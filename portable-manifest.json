@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "kitVersion": "0.1.0",
+  "renames": [],
+  "providerPathMigrations": [
+    {
+      "provider": "antigravity",
+      "type": "skill",
+      "from": ".agent/skills",
+      "to": ".agents/skills",
+      "since": "0.2.0"
+    }
+  ],
+  "sectionRenames": []
+}

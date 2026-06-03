@@ -1,0 +1,24 @@
+{
+  "name": "vcskill",
+  "version": "0.1.0",
+  "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
+  "type": "module",
+  "bin": { "vcskill": "dist/index.js" },
+  "files": ["dist", "kit", "kit.config.json", "portable-manifest.json"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup",
+    "prepack": "tsup && node scripts/bundle-kit-assets.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.8.2",
+    "commander": "^12.1.0",
+    "gray-matter": "^4.0.3",
+    "smol-toml": "^1.3.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5"
+  }
+}
