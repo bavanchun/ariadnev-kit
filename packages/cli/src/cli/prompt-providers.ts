@@ -1,5 +1,5 @@
 import { multiselect, select, isCancel, cancel } from "@clack/prompts";
-import { PROVIDER_IDS, type ProviderId } from "../providers/index.js";
+import { USER_FACING_PROVIDER_IDS, type ProviderId } from "../providers/index.js";
 import type { Scope } from "../providers/resolver.js";
 
 export interface PromptResult {
@@ -15,7 +15,7 @@ export interface PromptResult {
 export async function promptProviders(): Promise<PromptResult> {
   const providers = await multiselect({
     message: "Select target providers",
-    options: PROVIDER_IDS.map((id) => ({ value: id, label: id })),
+    options: USER_FACING_PROVIDER_IDS.map((id) => ({ value: id, label: id })),
     required: true,
   });
   if (isCancel(providers)) {

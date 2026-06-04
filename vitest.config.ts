@@ -7,7 +7,7 @@ export default defineConfig({
       provider: "v8",
       include: ["packages/cli/src/adapt/**/*.ts"],
       exclude: ["**/*.test.ts", "**/__fixtures__/**"],
-      thresholds: { lines: 90, functions: 90, statements: 90 },
+      thresholds: { lines: 95, functions: 95, statements: 95 },
     },
   },
 });

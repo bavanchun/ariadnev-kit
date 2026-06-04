@@ -47,4 +47,25 @@ describe("resolver target matrix", () => {
   it("every provider id resolves", () => {
     for (const id of PROVIDER_IDS) expect(getResolver(id).id).toBe(id);
   });
+
+  it("test-provider project paths (skills, commands, rules)", () => {
+    const r = getResolver("test-provider");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.test-provider/skills/x");
+    expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.test-provider/commands/c.md");
+    expect(r.targetFor(art("rule", "r"), ctx)).toBe("/proj/.test-provider/rules/r.md");
+    expect(r.scriptsTarget(ctx)).toBe("/proj/.test-provider/scripts");
+    expect(r.envTarget(ctx)).toBe("/proj/.test-provider/.env.example");
+  });
+
+  it("test-provider skips unverified agents (skip-and-log)", () => {
+    const r = getResolver("test-provider");
+    expect(r.supports.agent).toBe(false);
+    expect(r.targetFor(art("agent", "a"), ctx)).toBeNull();
+  });
+
+  it("test-provider global scope roots at home", () => {
+    const r = getResolver("test-provider");
+    expect(r.targetFor(art("skill", "x"), { ...ctx, scope: "global" }))
+      .toBe("/home/u/.test-provider/skills/x");
+  });
 });

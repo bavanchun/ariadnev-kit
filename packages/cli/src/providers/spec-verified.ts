@@ -9,7 +9,8 @@ export type ProviderId =
   | "cursor"
   | "antigravity"
   | "opencode"
-  | "generic";
+  | "generic"
+  | "test-provider";
 
 export type ArtifactKind = "skill" | "agent" | "command" | "rules" | "scripts" | "env";
 
@@ -52,6 +53,11 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
     paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true },
     toolNames: false,
     source: "neutral .agents/ layout; agents/commands have no generic target",
+  },
+  "test-provider": {
+    paths: { skill: true, agent: false, command: true, rules: true, scripts: true, env: true },
+    toolNames: false,
+    source: "mock provider for onboarding guide validation (agents path intentionally unverified)",
   },
 };
 

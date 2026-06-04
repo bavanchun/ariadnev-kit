@@ -8,7 +8,13 @@ export const PROVIDER_IDS: ProviderId[] = [
   "antigravity",
   "opencode",
   "generic",
+  "test-provider",
 ];
+
+/** Provider IDs shown in interactive prompts (excludes internal/mock providers). */
+export const USER_FACING_PROVIDER_IDS: ProviderId[] = PROVIDER_IDS.filter(
+  (id) => id !== "test-provider",
+);
 
 const REGISTRY: Record<ProviderId, ProviderResolver> = Object.fromEntries(
   PROVIDER_IDS.map((id) => [id, makeResolver(id)]),

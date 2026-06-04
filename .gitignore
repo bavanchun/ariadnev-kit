@@ -5,3 +5,8 @@ coverage/
 .DS_Store
 *.tgz
 .vcskill/
+
+# Bundled kit assets (build artifacts from prepack/bundle-kit-assets.mjs)
+packages/cli/kit/
+packages/cli/kit.config.json
+packages/cli/portable-manifest.json

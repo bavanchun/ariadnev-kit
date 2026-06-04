@@ -8,7 +8,8 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "build": "tsup",
-    "prepack": "tsup && node scripts/bundle-kit-assets.mjs"
+    "prepack": "tsup && node scripts/bundle-kit-assets.mjs",
+    "verify-tarball": "node scripts/verify-package-tarball.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^0.8.2",

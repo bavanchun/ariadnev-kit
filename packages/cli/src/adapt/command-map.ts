@@ -19,6 +19,7 @@ const COMMAND_DIR: Record<ProviderId, string> = {
   antigravity: "commands",
   opencode: "commands", // plural — verified vs generate-opencode.py
   generic: "commands",
+  "test-provider": "commands",
 };
 
 function opencodeContent(artifact: Artifact): string {

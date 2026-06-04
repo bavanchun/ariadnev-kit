@@ -54,6 +54,7 @@ const TABLES: Record<ProviderId, Rule[]> = {
   antigravity: NEUTRAL_RULES,
   opencode: OPENCODE_RULES,
   generic: NEUTRAL_RULES,
+  "test-provider": NEUTRAL_RULES,
 };
 
 /**

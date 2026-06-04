@@ -113,6 +113,16 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
   },
+  "test-provider": {
+    rulesMode: "dir",
+    base: (_k, ctx) => pickBase(ctx),
+    skillDir: ".test-provider/skills",
+    agentPath: null, // intentionally unverified for guide demo
+    commandPath: (n) => `.test-provider/commands/${n}.md`,
+    rulePath: (n) => `.test-provider/rules/${n}.md`,
+    scriptsDir: ".test-provider/scripts",
+    envFile: ".test-provider/.env.example",
+  },
 };
 
 const KIND_OF: Record<Artifact["type"], ArtifactKind> = {

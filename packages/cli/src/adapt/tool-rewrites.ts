@@ -34,6 +34,7 @@ const TABLES: Record<ProviderId, Rule[]> = {
   antigravity: [], // UNVERIFIED → identity (footer notes it)
   opencode: [], // UNVERIFIED → identity (footer notes it)
   generic: [],
+  "test-provider": [], // mock: identity (unverified tool names)
 };
 
 /** Rewrite Claude tool names to provider equivalents (non-Claude only). */
