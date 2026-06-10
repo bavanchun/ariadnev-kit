@@ -1,0 +1,13 @@
+{
+  "_comment": "Co-author identities for /vc:vchun-git --solo and --team flags. Format follows GitHub Co-authored-by spec. FILL IN your own identity before using --solo.",
+  "solo": {
+    "name": "YOUR_NAME",
+    "email": "YOUR_GITHUB_ID+YOUR_USERNAME@users.noreply.github.com",
+    "username": "YOUR_USERNAME",
+    "github_id": 0,
+    "note": "Replace with your own GitHub no-reply identity. The no-reply email format ensures commits link to your GitHub profile for solo-repo Pair Extraordinaire."
+  },
+  "team": {
+    "_comment": "Team co-authors are prompted per-commit via --team flag, not stored here. Optionally add named teammates below for quick selection."
+  }
+}
