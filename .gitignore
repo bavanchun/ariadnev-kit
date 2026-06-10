@@ -10,3 +10,4 @@ coverage/
 packages/cli/kit/
 packages/cli/kit.config.json
 packages/cli/portable-manifest.json
+packages/cli/LICENSE

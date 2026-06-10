@@ -11,4 +11,7 @@ const repoRoot = join(pkgDir, "..", "..");
 cpSync(join(repoRoot, "kit"), join(pkgDir, "kit"), { recursive: true });
 copyFileSync(join(repoRoot, "kit.config.json"), join(pkgDir, "kit.config.json"));
 copyFileSync(join(repoRoot, "portable-manifest.json"), join(pkgDir, "portable-manifest.json"));
+// LICENSE lives at the repo root but must ship inside the flat tarball so the
+// published package carries its own license text.
+copyFileSync(join(repoRoot, "LICENSE"), join(pkgDir, "LICENSE"));
 console.log("bundled kit assets into package");

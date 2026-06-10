@@ -3,13 +3,34 @@
   "version": "0.1.0",
   "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
   "type": "module",
+  "license": "MIT",
+  "author": "VChun <hoangbavan4478@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bavanchun/vcskill.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/bavanchun/vcskill#readme",
+  "bugs": { "url": "https://github.com/bavanchun/vcskill/issues" },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "skills",
+    "cli",
+    "ai-agents"
+  ],
   "bin": { "vcskill": "dist/index.js" },
-  "files": ["dist", "kit", "kit.config.json", "portable-manifest.json"],
+  "files": ["dist", "kit", "kit.config.json", "portable-manifest.json", "LICENSE"],
+  "publishConfig": { "access": "public", "provenance": true },
   "engines": { "node": ">=18" },
   "scripts": {
     "build": "tsup",
     "prepack": "tsup && node scripts/bundle-kit-assets.mjs",
-    "verify-tarball": "node scripts/verify-package-tarball.mjs"
+    "verify-tarball": "node scripts/verify-package-tarball.mjs",
+    "smoke-test": "node scripts/smoke-test-all-providers.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^0.8.2",

@@ -12,6 +12,8 @@ provider. Local-first; no account or network required.
 
 ## Install
 
+Once published to npm, run it on any machine with no clone:
+
 ```bash
 npx vcskill install                              # interactive: pick providers + scope
 npx vcskill install --provider codex,cursor      # non-interactive
@@ -20,6 +22,25 @@ npx vcskill install --provider opencode --dry-run # preview, write nothing
 ```
 
 Global flags: `--home <dir>`, `--cwd <dir>`, `--dry-run`, `--yes`.
+
+### Before the npm release (or for local builds)
+
+`npx vcskill` works only after the package is published. Until then — or to test
+an unreleased build on another machine — use one of:
+
+```bash
+# A) Carry the packed tarball, then install it globally
+npm i -g ./vcskill-<version>.tgz
+vcskill install --provider claude-code --dry-run
+
+# B) Clone + build from source
+git clone https://github.com/bavanchun/vcskill.git && cd vcskill
+pnpm install && pnpm --filter vcskill build
+node packages/cli/dist/index.js install --dry-run
+```
+
+See [`docs/release-and-publish-guide.md`](docs/release-and-publish-guide.md) for
+the full publish runbook and one-time prerequisites.
 
 ## Commands
 
