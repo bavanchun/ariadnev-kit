@@ -32,9 +32,11 @@ jobs:
           version: 9
 
       - name: Setup Node.js
+        # Node 20 (not 18): Changesets pulls human-id@4 which is ESM-only, and
+        # require(ESM) from its CJS caller only works on Node >= 20.19.
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
 
