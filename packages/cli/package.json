@@ -1,6 +1,6 @@
 {
   "name": "vcskill",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
   "type": "module",
   "license": "MIT",
@@ -11,7 +11,9 @@
     "directory": "packages/cli"
   },
   "homepage": "https://github.com/bavanchun/vcskill#readme",
-  "bugs": { "url": "https://github.com/bavanchun/vcskill/issues" },
+  "bugs": {
+    "url": "https://github.com/bavanchun/vcskill/issues"
+  },
   "keywords": [
     "agent-skills",
     "claude-code",
@@ -22,10 +24,23 @@
     "cli",
     "ai-agents"
   ],
-  "bin": { "vcskill": "dist/index.js" },
-  "files": ["dist", "kit", "kit.config.json", "portable-manifest.json", "LICENSE"],
-  "publishConfig": { "access": "public", "provenance": true },
-  "engines": { "node": ">=18" },
+  "bin": {
+    "vcskill": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "kit",
+    "kit.config.json",
+    "portable-manifest.json",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup",
     "prepack": "tsup && node scripts/bundle-kit-assets.mjs",
