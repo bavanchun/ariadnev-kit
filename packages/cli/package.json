@@ -1,6 +1,6 @@
 {
   "name": "vcskill",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
   "type": "module",
   "license": "MIT",
