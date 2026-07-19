@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Skills wave 1: skill-creator, journal, sequential-thinking, docs-seeker"
-status: pending
+status: completed
 priority: P2
 effort: "5h"
 dependencies: [1]
@@ -38,8 +38,8 @@ Report: `plans/reports/parity-260720-skills-wave1-vs-claudekit-report.md`.
 
 ## Success Criteria
 
-- [ ] 4 skills pass gate; parity report đủ; ≥1 điểm vượt/skill
-- [ ] vc:skill-creator dùng được ngay để viết wave 2 (dogfood)
+- [x] 4 skills pass gate (54/78/66/47 dòng); parity report đủ (parity-260720-skills-wave1-vs-claudekit-report.md); ≥2 điểm vượt/skill
+- [x] vc:skill-creator dùng được ngay để viết wave 2 (dogfood) — checklist + gate sẵn sàng cho phase 6
 
 ## Risk Assessment
 

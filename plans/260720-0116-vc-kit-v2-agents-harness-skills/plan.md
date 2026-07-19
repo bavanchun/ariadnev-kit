@@ -49,7 +49,7 @@ Quy trình cho MỖI agent/skill viết mới có bản CK tương ứng:
 | 2 | [Agents A: explore planner reviewer tester](./phase-02-agents-a-explore-planner-reviewer-tester.md) | ✅ Completed |
 | 3 | [Agents B: debugger developer git-manager simplifier](./phase-03-agents-b-debugger-developer-git-simplifier.md) | ✅ Completed |
 | 4 | [Agents C: 5 con còn lại + rewire skills](./phase-04-agents-c-remaining-rewire-skills.md) | ✅ Completed |
-| 5 | [Skills wave 1: skill-creator journal sequential-thinking docs-seeker](./phase-05-skills-wave-1-meta-journal-thinking-docs-seeker.md) | Pending |
+| 5 | [Skills wave 1: skill-creator journal sequential-thinking docs-seeker](./phase-05-skills-wave-1-meta-journal-thinking-docs-seeker.md) | ✅ Completed |
 | 6 | [Skills wave 2: bootstrap security-scan predict scenario worktree + smoke](./phase-06-skills-wave-2-bootstrap-security-predict-scenario-worktree.md) | Pending |
 
 Tuần tự 1→6. Phase 2 làm mẫu chuẩn; 3-4 nhân bản. Phase 5-6 độc lập với 2-4
