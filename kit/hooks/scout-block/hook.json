@@ -1,0 +1,5 @@
+{
+  "event": "PreToolUse",
+  "matcher": "Bash|Glob|Grep|Read",
+  "description": "Block context-wasting reads and searches inside generated trees (node_modules, dist, .git); .vcignore extends or negates defaults."
+}
