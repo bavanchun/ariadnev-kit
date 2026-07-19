@@ -206,6 +206,26 @@ describe("loadKit hooks discovery", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("skips underscore-prefixed dirs like _lib", () => {
+    const root = tmpKitWithHook(
+      JSON.stringify({ event: "SessionStart", description: "init session env" }),
+    );
+    mkdirSync(join(root, "hooks", "_lib"), { recursive: true });
+    writeFileSync(join(root, "hooks", "_lib", "helper.cjs"), "module.exports = {};\n");
+    const kit = loadKit(root);
+    expect(kit.hooks.map((h) => h.name)).toEqual(["session-init"]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("accepts a multi-event manifest via events[]", () => {
+    const root = tmpKitWithHook(
+      JSON.stringify({ events: ["Stop", "SubagentStop"], description: "persist state" }),
+    );
+    const kit = loadKit(root);
+    expect(kit.hooks[0].manifest.events).toEqual(["Stop", "SubagentStop"]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("returns empty hooks when kit has no hooks dir", () => {
     const root = mkdtempSync(join(tmpdir(), "vcskill-nohooks-"));
     mkdirSync(join(root, "skills"), { recursive: true });

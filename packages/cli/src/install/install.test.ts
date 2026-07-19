@@ -125,6 +125,29 @@ describe("executeInstall + dry-run", () => {
     expect(entries?.length).toBe(1);
   });
 
+  it("hooks: _lib helpers install next to hook files; multi-event hooks bind every event", () => {
+    const kitRoot = join(sandbox, "kit-with-lib");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    mkdirSync(join(kitRoot, "hooks", "_lib"), { recursive: true });
+    writeFileSync(join(kitRoot, "hooks", "_lib", "fail-open.cjs"), "module.exports = {};\n");
+    const hookDir = join(kitRoot, "hooks", "session-state");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ events: ["Stop", "SubagentStop"], description: "persist state" }),
+    );
+    const hookKit = loadKit(kitRoot);
+    installKit(hookKit, ["claude-code"], ctx, {
+      timestamp: "20260603-000080",
+      applyHookSettings: true,
+    });
+    expect(existsSync(join(ctx.cwd, ".claude/hooks/vc/_lib/fail-open.cjs"))).toBe(true);
+    const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
+    expect(settings.hooks.Stop).toBeDefined();
+    expect(settings.hooks.SubagentStop).toBeDefined();
+  });
+
   it("hooks: non-claude providers skip-and-log", () => {
     const kitRoot = join(sandbox, "kit-with-hooks2");
     mkdirSync(join(kitRoot, "skills"), { recursive: true });

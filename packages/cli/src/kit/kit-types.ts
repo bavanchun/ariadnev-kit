@@ -19,7 +19,9 @@ export interface Artifact {
 /** Data-driven hook binding manifest (kit/hooks/<name>/hook.json). */
 export interface HookManifest {
   /** Claude Code hook event, e.g. "SessionStart", "PreToolUse". */
-  event: string;
+  event?: string;
+  /** Multi-event hooks (e.g. Stop + SubagentStop); alternative to `event`. */
+  events?: string[];
   /** Optional tool-name matcher for PreToolUse/PostToolUse events. */
   matcher?: string;
   description: string;

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Kit } from "../kit/kit-types.js";
 import type { ProviderResolver, ResolverCtx } from "../providers/resolver.js";
@@ -95,11 +95,19 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
       dest,
       content: readFileSync(hook.file, "utf8"),
     });
-    bindings.push({
-      event: hook.manifest.event,
-      ...(hook.manifest.matcher ? { matcher: hook.manifest.matcher } : {}),
-      command: `node ${JSON.stringify(dest)}`,
-    });
+    const events = hook.manifest.events ?? [hook.manifest.event!];
+    for (const event of events) {
+      bindings.push({
+        event,
+        ...(hook.manifest.matcher ? { matcher: hook.manifest.matcher } : {}),
+        command: `node ${JSON.stringify(dest)}`,
+      });
+    }
+  }
+  // Shared helpers required by hook bodies at runtime.
+  const libDir = join(kit.root, "hooks", "_lib");
+  if (existsSync(libDir)) {
+    ops.push(...planDirTree(libDir, join(base, CLAUDE_HOOKS_DIR, "_lib"), r.id, "hook"));
   }
   ops.push({
     action: "hook-settings",
