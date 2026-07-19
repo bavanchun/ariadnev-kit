@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Agents B: vc-debugger, vc-developer, vc-git-manager, vc-simplifier"
-status: pending
+status: completed
 priority: P1
 effort: "5h"
 dependencies: [2]
@@ -38,8 +38,8 @@ Như phase 2; report: `plans/reports/parity-260720-agents-b-vs-claudekit-report.
 
 ## Success Criteria
 
-- [ ] 4 agents pass gate ≤120 dòng; parity report đủ; ≥1 điểm vượt/con
-- [ ] vc-git-manager tương thích flow vc:git skill (cm/cp/pr/prc)
+- [x] 4 agents pass gate ≤120 dòng (50/54/44/51); parity report đủ (parity-260720-agents-b-vs-claudekit-report.md); ≥2 điểm vượt/con
+- [x] vc-git-manager tương thích flow vc:git skill (cm/cp/pr/prc) — trỏ vc:git cho workflow chi tiết, agent chỉ thi hành cơ học
 
 ## Risk Assessment
 
