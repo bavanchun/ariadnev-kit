@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Core loop skills A: brainstorm cook git plan"
-status: pending
+status: completed
 priority: P1
 effort: "8h"
 dependencies: [1]
