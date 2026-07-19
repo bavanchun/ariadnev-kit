@@ -94,6 +94,19 @@ if (!existsSync(kitDir)) {
   }
 }
 
+// Assertion 3b: hooks bundled — every roster hook + the vendored ignore lib
+const kitHooksDir = join(extractedDir, "kit", "hooks");
+const expectedHooks = ["session-init", "rules-inject", "privacy-block", "scout-block", "session-state"];
+for (const hook of expectedHooks) {
+  if (!existsSync(join(kitHooksDir, hook, "hook.cjs")) || !existsSync(join(kitHooksDir, hook, "hook.json"))) {
+    errors.push(`Expected kit hook "${hook}" (hook.cjs + hook.json) not found in tarball`);
+  }
+}
+if (!existsSync(join(kitHooksDir, "_lib", "vendor-ignore.cjs"))) {
+  errors.push("kit/hooks/_lib/vendor-ignore.cjs missing — scout-block cannot run after install");
+}
+if (errors.length === 0) console.log(`✓ kit/hooks/ contains all ${expectedHooks.length} hooks + _lib`);
+
 // Assertion 4: kit.config.json and portable-manifest.json present
 for (const configFile of ["kit.config.json", "portable-manifest.json"]) {
   if (!existsSync(join(extractedDir, configFile))) {
