@@ -85,14 +85,14 @@ describe("runInstall handler", () => {
 
   it("real install writes files", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
-    expect(existsSync(join(base.cwd, ".claude/skills/hello-world/SKILL.md"))).toBe(true);
+    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(true);
   });
 });
 
 describe("runList handler", () => {
   it("lists kit + detects install state", () => {
     const before = runList({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
-    expect(before).toContain("hello-world");
+    expect(before).toContain("brainstorm");
     expect(before).toContain("not installed");
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
     const after = runList({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });

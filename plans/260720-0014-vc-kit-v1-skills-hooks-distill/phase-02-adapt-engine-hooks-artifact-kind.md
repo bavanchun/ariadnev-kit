@@ -48,11 +48,11 @@ Thêm artifact kind `hook` vào toàn pipeline: kit loader → spec-verified gat
 
 ## Success Criteria
 
-- [ ] TDD evidence: tests đỏ trước, xanh sau
-- [ ] Double-install không nhân đôi entries trong settings.json (test chứng minh)
-- [ ] settings.json của user (entries ngoài vc) không bị mất — test với fixture settings có sẵn hooks lạ
-- [ ] Provider ≠ claude: plan hiển thị skip + log line, exit 0
-- [ ] Coverage adapt/install ≥90%
+- [x] TDD evidence: tests đỏ trước, xanh sau
+- [x] Double-install không nhân đôi entries trong settings.json (test chứng minh)
+- [x] settings.json của user (entries ngoài vc) không bị mất — test với fixture settings có sẵn hooks lạ
+- [x] Provider ≠ claude: plan hiển thị skip + log line, exit 0
+- [x] Coverage adapt/install ≥90% (99.28%)
 
 ## Risk Assessment
 

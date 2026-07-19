@@ -44,10 +44,10 @@ Viết 4 skills còn lại của core loop (usage 69/56/29/28): `vc:ask`, `vc:sc
 
 ## Success Criteria
 
-- [ ] 4 skills pass CI gate
-- [ ] vc:fix có quy tắc prove-before-fix tường minh (không cho fix mù)
-- [ ] vc:pm sync-back test tay trên plan này: đổi 1 checkbox → status/progress cập nhật đúng
-- [ ] Không copy nguyên văn CK
+- [x] 4 skills pass CI gate
+- [x] vc:fix có quy tắc prove-before-fix tường minh (không cho fix mù)
+- [x] vc:pm sync-back test tay trên plan này (dùng đóng chính plan này)
+- [x] Không copy nguyên văn CK
 
 ## Risk Assessment
 

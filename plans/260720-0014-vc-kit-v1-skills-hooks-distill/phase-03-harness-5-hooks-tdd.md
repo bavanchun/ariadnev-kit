@@ -48,11 +48,11 @@ Viết 5 hooks trong `kit/hooks/` — học pattern CK nhưng gọn hơn, chất
 
 ## Success Criteria
 
-- [ ] 5 hooks + _lib đều có test đỏ-trước-xanh-sau, chạy trong `pnpm test`
-- [ ] Fail-open verified bằng test cho từng hook (malformed input, fs error)
-- [ ] privacy-block không thể bypass bằng path tricks (../, symlink, quotes) — test cases cụ thể
-- [ ] Manual smoke trên máy thật pass (ghi kết quả vào report)
-- [ ] Mỗi file <200 LOC
+- [x] 5 hooks + _lib đều có test đỏ-trước-xanh-sau, chạy trong `pnpm test`
+- [x] Fail-open verified bằng test cho từng hook (malformed input, fs error)
+- [x] privacy-block không thể bypass bằng path tricks (../, symlink, quotes) — test cases cụ thể
+- [ ] Manual smoke trên máy thật pass — DEFERRED: sandbox smoke pass; live ~/.claude install chờ user (đụng settings ClaudeKit đang dùng)
+- [x] Mỗi file <200 LOC (max 105)
 
 ## Risk Assessment
 
