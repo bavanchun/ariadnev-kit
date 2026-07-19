@@ -1,0 +1,4 @@
+{
+  "event": "SessionStart",
+  "description": "Detect project type, package manager, framework, and git branch; inject VC_* context lines at session start."
+}
