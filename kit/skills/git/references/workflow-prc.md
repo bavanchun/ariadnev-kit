@@ -76,8 +76,8 @@ Rules:
 
 **`--solo`:**
 ```bash
-SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/vchun-git/co-authors.json)
-SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/vchun-git/co-authors.json)
+SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/git/co-authors.json)
+SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/git/co-authors.json)
 ```
 Append (with blank line above — required by GitHub parser):
 ```

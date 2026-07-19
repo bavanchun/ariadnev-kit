@@ -66,10 +66,10 @@ Co-authored-by: <Name> <<email>>
 
 ### --solo
 
-Read identity from `~/.claude/skills/vchun-git/co-authors.json`:
+Read identity from `~/.claude/skills/git/co-authors.json`:
 ```bash
-SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/vchun-git/co-authors.json)
-SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/vchun-git/co-authors.json)
+SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/git/co-authors.json)
+SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/git/co-authors.json)
 ```
 
 Append: `Co-authored-by: $SOLO_NAME <$SOLO_EMAIL>`
