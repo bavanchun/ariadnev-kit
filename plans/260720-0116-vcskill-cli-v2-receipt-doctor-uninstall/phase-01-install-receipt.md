@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Install receipt — nền ownership cho doctor/uninstall/update"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: []
@@ -55,9 +55,10 @@ target. Doctor/uninstall/update đều đọc receipt — không bao giờ đoá
 
 ## Success Criteria
 
-- [ ] TDD đỏ-trước-xanh-sau; receipt xuất hiện sau install thật, không sau dry-run
-- [ ] Double-install cùng provider: receipt không phình (idempotent)
-- [ ] Coverage ≥90%
+- [x] TDD đỏ-trước-xanh-sau; receipt xuất hiện sau install thật (sandbox: 76 files hashed), không sau dry-run
+- [x] Double-install cùng provider: receipt không phình (idempotent) — test + sandbox verified
+- [x] Coverage 99.28% (≥90%)
+- [x] Bonus: content sha256 per file — điểm vượt so với ck (uninstall phase sẽ dùng để phát hiện user đã sửa file, tránh xóa nhầm — chính xác hơn "ownership-aware" heuristic của ck)
 
 ## Risk Assessment
 

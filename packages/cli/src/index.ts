@@ -1,7 +1,6 @@
 import { homedir } from "node:os";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { createRequire } from "node:module";
 import { Command } from "commander";
 import { runInstall } from "./cli/install-command.js";
 import { runList } from "./cli/list-command.js";
@@ -9,6 +8,7 @@ import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
 import { registerAddSkill } from "./cli/add-skill-command.js";
 import { registerMigrate } from "./cli/migrate-command.js";
+import { packageVersion } from "./version.js";
 
 interface GlobalOpts {
   home: string;
@@ -26,9 +26,7 @@ export function buildProgram(): Command {
   program
     .name("vcskill")
     .description("Author agent skills once, install to any AI provider.")
-    // Resolved at runtime relative to the built entry (dist/ and package.json
-    // are siblings' children in both dev and the published flat layout).
-    .version(createRequire(import.meta.url)("../package.json").version as string)
+    .version(packageVersion())
     .option("--home <dir>", "override home root", homedir())
     .option("--cwd <dir>", "override project root", process.cwd())
     .option("--dry-run", "plan only, write nothing", false)
@@ -62,6 +60,7 @@ export function buildProgram(): Command {
         cwd: g.cwd,
         timestamp: nowStamp(),
         applyHookSettings,
+        vcskillVersion: packageVersion(),
       });
       console.log(summary);
     });

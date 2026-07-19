@@ -41,7 +41,7 @@ Yêu cầu gốc từ user: lõi phải bằng hoặc CAO HƠN ck. Với mỗi l
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Install receipt](./phase-01-install-receipt.md) | Pending |
+| 1 | [Install receipt](./phase-01-install-receipt.md) | ✅ Completed |
 | 2 | [Doctor command](./phase-02-doctor-command.md) | Pending |
 | 3 | [Uninstall + settings un-merge](./phase-03-uninstall-settings-unmerge.md) | Pending |
 | 4 | [Backups restore + update + docs](./phase-04-backups-restore-update-docs.md) | Pending |

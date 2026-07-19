@@ -19,6 +19,8 @@ export interface InstallHandlerOpts {
   timestamp: string;
   /** User confirmed merging hook bindings into settings.json (prompt result). */
   applyHookSettings?: boolean;
+  /** Installed vcskill package version, recorded in the receipt. */
+  vcskillVersion?: string;
 }
 
 export interface InstallHandlerResult {
@@ -42,7 +44,12 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
     kit,
     providers,
     { home: opts.home, cwd: opts.cwd, scope: opts.scope },
-    { dryRun: opts.dryRun, timestamp: opts.timestamp, applyHookSettings: opts.applyHookSettings },
+    {
+      dryRun: opts.dryRun,
+      timestamp: opts.timestamp,
+      applyHookSettings: opts.applyHookSettings,
+      vcskillVersion: opts.vcskillVersion,
+    },
   );
   let summary = renderSummary(results, opts.dryRun);
   if (!opts.applyHookSettings) {
