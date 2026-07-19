@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "vcskill doctor — health check cài đặt"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1]
@@ -46,9 +46,9 @@ tình trạng + exit code cho scripting. Tham khảo `ck doctor` nhưng receipt-
 
 ## Success Criteria
 
-- [ ] 3 trạng thái + exit codes đúng, có test từng nhánh
-- [ ] Degraded liệt kê chính xác từng finding (path/binding cụ thể)
-- [ ] Hook-executability check hoạt động trong sandbox
+- [x] 3 trạng thái + exit codes đúng (0/1/2), có test từng nhánh (12 diagnose tests + 3 integration) + CLI sandbox verified thật
+- [x] Degraded liệt kê chính xác từng finding (path/binding cụ thể) — "missing file: .claude/skills/brainstorm/SKILL.md" xác nhận thật
+- [x] Hook-executability check hoạt động trong sandbox (spawnSync thật trên hook đã cài)
 
 ## Risk Assessment
 

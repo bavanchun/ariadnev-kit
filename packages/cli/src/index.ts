@@ -3,6 +3,7 @@ import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { runInstall } from "./cli/install-command.js";
+import { runDoctor } from "./cli/doctor-command.js";
 import { runList } from "./cli/list-command.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
@@ -63,6 +64,21 @@ export function buildProgram(): Command {
         vcskillVersion: packageVersion(),
       });
       console.log(summary);
+    });
+
+  program
+    .command("doctor")
+    .description("Health-check the installed kit against its receipt")
+    .option("--global", "check ~/ scope", false)
+    .action((opts: { global?: boolean }) => {
+      const g = program.opts<GlobalOpts>();
+      const { summary, exitCode } = runDoctor({
+        scope: opts.global ? "global" : "project",
+        home: g.home,
+        cwd: g.cwd,
+      });
+      console.log(summary);
+      if (exitCode !== 0) process.exitCode = exitCode;
     });
 
   program

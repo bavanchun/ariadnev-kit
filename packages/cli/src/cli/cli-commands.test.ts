@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInstall } from "./install-command.js";
+import { runDoctor } from "./doctor-command.js";
 import { runList } from "./list-command.js";
 import { renderSummary } from "./render-summary.js";
 import { nowStamp } from "./timestamp.js";
@@ -97,5 +98,45 @@ describe("runList handler", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
     const after = runList({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
     expect(after).toMatch(/claude-code\s+installed/);
+  });
+});
+
+describe("runDoctor handler (sandbox integration)", () => {
+  it("reports not-installed with exit code 2 when no receipt exists", () => {
+    const res = runDoctor({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
+    expect(res.status).toBe("not-installed");
+    expect(res.exitCode).toBe(2);
+  });
+
+  it("reports healthy with exit code 0 right after a real install", () => {
+    runInstall({
+      providers: ["claude-code"],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      kitRoot,
+      timestamp: nowStamp(),
+    });
+    const res = runDoctor({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
+    expect(res.status).toBe("healthy");
+    expect(res.exitCode).toBe(0);
+  });
+
+  it("detects a deleted file as degraded with exit code 1, naming the file", () => {
+    runInstall({
+      providers: ["claude-code"],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      kitRoot,
+      timestamp: nowStamp(),
+    });
+    rmSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"));
+    const res = runDoctor({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
+    expect(res.status).toBe("degraded");
+    expect(res.exitCode).toBe(1);
+    expect(res.summary).toContain("brainstorm/SKILL.md");
   });
 });
