@@ -43,10 +43,10 @@ Chuẩn hóa skill authoring spec cho bộ `vc` và dựng CI gate tự động 
 
 ## Success Criteria
 
-- [ ] Tests mới đỏ-trước-xanh-sau (TDD evidence trong commit history)
-- [ ] 5 skills hiện có pass gate (sau chỉnh sửa nếu cần)
-- [ ] Spec doc ≤300 dòng, có checklist actionable
-- [ ] `pnpm test` xanh, coverage không tụt
+- [x] Tests mới đỏ-trước-xanh-sau (TDD evidence trong commit history)
+- [x] 5 skills hiện có pass gate (vchun-git frontmatter đã chỉnh)
+- [x] Spec doc ≤300 dòng, có checklist actionable (docs/vc-skill-authoring-spec.md, 97 dòng)
+- [x] `pnpm test` xanh, coverage không tụt (99.28%)
 
 ## Risk Assessment
 

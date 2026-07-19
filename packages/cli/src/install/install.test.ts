@@ -11,6 +11,28 @@ import { installKit } from "./install-execute.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const kit = loadKit(resolveKitRoot(join(here, "..", "..", "..", "..", "kit")));
 
+// Synthetic kit for content-adaptation assertions — tests must not depend on
+// any real roster skill's body text.
+function makeAdaptFixtureKit(root: string) {
+  mkdirSync(join(root, "skills", "sample-skill", "scripts"), { recursive: true });
+  writeFileSync(
+    join(root, "skills", "sample-skill", "SKILL.md"),
+    [
+      "---",
+      "name: vc:sample-skill",
+      "description: Fixture skill for tests. Use when verifying provider adaptation.",
+      "---",
+      "",
+      "# Sample Skill",
+      "",
+      "Run the helper at `.claude/skills/sample-skill/scripts/run.ts`.",
+      "",
+    ].join("\n"),
+  );
+  writeFileSync(join(root, "skills", "sample-skill", "scripts", "run.ts"), "export {};\n");
+  return loadKit(root);
+}
+
 let sandbox: string;
 let ctx: { home: string; cwd: string; scope: "project" };
 beforeEach(() => {
@@ -32,8 +54,9 @@ describe("planInstall (pure)", () => {
   });
 
   it("codex skill content is path+tool adapted", () => {
-    const ops = planInstall(kit, getResolver("codex"), ctx);
-    const skillMd = ops.find((o) => o.action === "write" && o.dest.endsWith("echo-tool/SKILL.md"));
+    const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit"));
+    const ops = planInstall(fixtureKit, getResolver("codex"), ctx);
+    const skillMd = ops.find((o) => o.action === "write" && o.dest.endsWith("sample-skill/SKILL.md"));
     expect(skillMd && "content" in skillMd && skillMd.content).toContain("$HOME/.agents/skills/");
   });
 });
@@ -46,18 +69,20 @@ describe("executeInstall + dry-run", () => {
   });
 
   it("real install writes adapted files for codex", () => {
-    installKit(kit, ["codex"], ctx, { timestamp: "20260603-000001" });
-    const skill = join(ctx.home, ".agents/skills/echo-tool/SKILL.md");
+    const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit2"));
+    installKit(fixtureKit, ["codex"], ctx, { timestamp: "20260603-000001" });
+    const skill = join(ctx.home, ".agents/skills/sample-skill/SKILL.md");
     expect(existsSync(skill)).toBe(true);
     expect(readFileSync(skill, "utf8")).toContain("$HOME/.agents/skills/");
+    // real kit still carries agents + env
+    installKit(kit, ["codex"], ctx, { timestamp: "20260603-000002" });
     expect(existsSync(join(ctx.home, ".codex/agents/sample-reviewer.toml"))).toBe(true);
-    // env example present, real .env never created
     expect(existsSync(join(ctx.home, ".agents/vcskill/.env.example"))).toBe(true);
   });
 
   it("idempotent re-install: content stable, prior backed up", () => {
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000010" });
-    const skill = join(ctx.cwd, ".claude/skills/echo-tool/SKILL.md");
+    const skill = join(ctx.cwd, ".claude/skills/brainstorm/SKILL.md");
     const first = readFileSync(skill, "utf8");
     const res2 = installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000011" });
     expect(readFileSync(skill, "utf8")).toBe(first);
@@ -168,13 +193,50 @@ describe("executeInstall + dry-run", () => {
   });
 
   it("atomic: a pre-existing file is fully replaced, never half", () => {
-    const skill = join(ctx.cwd, ".claude/skills/echo-tool/SKILL.md");
+    const skill = join(ctx.cwd, ".claude/skills/brainstorm/SKILL.md");
     mkdirSync(dirname(skill), { recursive: true });
     writeFileSync(skill, "OLD CONTENT");
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000050" });
     const after = readFileSync(skill, "utf8");
     expect(after).not.toContain("OLD CONTENT");
-    expect(after).toContain("Echo Tool");
+    expect(after).toContain("Brainstorm");
     expect(existsSync(`${skill}.vcskill-tmp`)).toBe(false);
+  });
+});
+
+describe("full-kit install smoke (v1 roster)", () => {
+  const ROSTER = [
+    "ask", "brainstorm", "cook", "docs", "fix", "git",
+    "obsidian-second-brain-note", "plan", "pm", "problem-solving",
+    "research", "scout",
+  ];
+  const HOOKS = ["privacy-block", "rules-inject", "scout-block", "session-init", "session-state"];
+
+  it("kit ships exactly the 12-skill roster + 5 hooks", () => {
+    expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
+    expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
+  });
+
+  it("claude-code: all skills + hooks land, settings merge binds every event", () => {
+    installKit(kit, ["claude-code"], ctx, {
+      timestamp: "20260603-000100",
+      applyHookSettings: true,
+    });
+    for (const s of ROSTER) {
+      expect(existsSync(join(ctx.cwd, ".claude/skills", s, "SKILL.md")), s).toBe(true);
+    }
+    for (const h of HOOKS) {
+      expect(existsSync(join(ctx.cwd, ".claude/hooks/vc", `${h}.cjs`)), h).toBe(true);
+    }
+    const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
+    expect(Object.keys(settings.hooks).sort()).toEqual([
+      "PreToolUse", "SessionStart", "Stop", "SubagentStop", "UserPromptSubmit",
+    ]);
+  });
+
+  it("codex: skills install, all 5 hooks skip-and-log", () => {
+    const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
+    expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
+    expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
   });
 });

@@ -46,11 +46,11 @@ Viết lại từ đầu 4 skills usage cao nhất (209/125/111/69 lần dùng):
 
 ## Success Criteria
 
-- [ ] 4 skills pass CI gate (size/frontmatter/description)
-- [ ] vc:cook references chứa test-gate + review-gate rõ ràng (thay thế skill test/code-review riêng)
-- [ ] vc:plan tạo được plan scaffold không cần `ck` CLI (thử tay 1 lần)
-- [ ] Không đoạn văn nào copy nguyên văn từ CK (spot-check)
-- [ ] Changeset ghi breaking rename
+- [x] 4 skills pass CI gate (size/frontmatter/description)
+- [x] vc:cook references chứa test-gate + review-gate rõ ràng (thay thế skill test/code-review riêng)
+- [x] vc:plan tạo được plan scaffold không cần `ck` CLI (templates trong references, khớp format plan này)
+- [x] Không đoạn văn nào copy nguyên văn từ CK (spot-check)
+- [x] Changeset ghi breaking rename
 
 ## Risk Assessment
 

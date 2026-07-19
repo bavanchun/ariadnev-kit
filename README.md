@@ -51,6 +51,17 @@ the full publish runbook and one-time prerequisites.
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
+## What's in the kit (v1)
+
+12 skills + 5 hooks, distilled to the daily loop:
+
+- **Core loop**: `vc:brainstorm`, `vc:plan`, `vc:cook` (embedded test/review
+  gates), `vc:fix` (root-cause loop), `vc:git`, `vc:scout`, `vc:ask`, `vc:pm`
+- **Support**: `vc:problem-solving`, `vc:research`, `vc:docs`
+- **Personal**: `vc:obsidian-second-brain-note`
+- **Hooks** (claude-code only): session-init, rules-inject, privacy-block,
+  scout-block, session-state — fail-open, node:test covered
+
 ## Provider matrix
 
 | Artifact | claude-code | codex | cursor | antigravity | opencode | generic |

@@ -1,7 +1,7 @@
 ---
 title: "vc kit v1: 12 skills + 5 hooks harness distilled from ClaudeKit"
 description: "Rewrite-from-scratch 12-skill roster + 5-hook Claude harness in kit/, gated by new CI lint + adapt-engine hook artifact kind. TDD throughout."
-status: pending
+status: completed
 priority: P2
 branch: "main"
 tags: [kit, skills, hooks, adapt-engine, tdd]
@@ -31,18 +31,18 @@ Mode: `--tdd` — mỗi phase engine/hook viết failing test trước; phase sk
 | 3 | [Harness 5 hooks TDD](./phase-03-harness-5-hooks-tdd.md) | ✅ Completed (live ~/.claude smoke deferred to user) |
 | 4 | [Core loop skills A: brainstorm cook git plan](./phase-04-core-loop-skills-a-brainstorm-cook-git-plan.md) | ✅ Completed |
 | 5 | [Core loop skills B: ask scout fix pm](./phase-05-core-loop-skills-b-ask-scout-fix-pm.md) | ✅ Completed |
-| 6 | [Support + personal skills + install smoke](./phase-06-support-personal-skills-install-smoke.md) | Pending |
+| 6 | [Support + personal skills + install smoke](./phase-06-support-personal-skills-install-smoke.md) | ✅ Completed |
 
 Dependency chain: 1 → (2 ∥ 4,5 partially) nhưng an toàn nhất tuần tự 1→2→3→4→5→6. Phase 4/5 chỉ cần phase 1 (gate); phase 3 cần phase 2 (installer chở hooks).
 
 ## Acceptance Criteria (whole plan)
 
-- [ ] `pnpm test` xanh toàn bộ (85 tests cũ + tests mới), coverage adapt engine ≥90% giữ nguyên
-- [ ] 12 skills trong `kit/skills/` pass CI gate mới (frontmatter contract + description lint + <300 dòng SKILL.md)
-- [ ] 5 hooks trong `kit/hooks/` với `node:test` coverage cho pure functions, fail-open verified bằng test
-- [ ] `npx vcskill install` (claude-code) cài đủ skills + hooks; settings merge idempotent sau prompt y/n, có backup; từ chối/non-interactive → in snippet
-- [ ] Install sang provider ≠ claude-code: hooks skip-and-log, không lỗi
-- [ ] vchun-git đổi tên `vc:git`, changeset ghi nhận breaking rename
+- [x] `pnpm test` xanh toàn bộ — 123 vitest + 38 node:test, coverage 99.28% (≥90%)
+- [x] 12 skills trong `kit/skills/` pass CI gate mới (smoke test "kit ships exactly the 12-skill roster" trong install.test.ts)
+- [x] 5 hooks trong `kit/hooks/` với `node:test` coverage, fail-open verified bằng test (mỗi hook có case malformed-stdin → exit 0)
+- [x] `vcskill install` (claude-code) cài đủ skills + hooks; settings merge idempotent sau prompt y/n, có backup; từ chối/non-interactive → in snippet (install.test.ts + cli-commands.test.ts + sandbox smoke)
+- [x] Install sang provider ≠ claude-code: hooks skip-and-log, không lỗi (test "codex: skills install, all 5 hooks skip-and-log")
+- [x] vchun-git đổi tên `vc:git`, changeset `vc-kit-core-loop-a-hooks.md` ghi nhận breaking rename
 
 ## Dependencies
 

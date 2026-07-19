@@ -82,7 +82,7 @@ if (!existsSync(kitDir)) {
     errors.push("kit/skills/ directory not found in tarball");
   } else {
     const skills = readdirSync(kitSkillsDir);
-    const expectedSkills = ["hello-world", "echo-tool"];
+    const expectedSkills = ["brainstorm", "cook", "git", "plan", "fix"];
     for (const expected of expectedSkills) {
       if (!skills.includes(expected)) {
         errors.push(`Expected kit skill "${expected}" not found in tarball`);
