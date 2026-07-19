@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "vcskill uninstall — gỡ theo receipt + un-merge settings"
-status: pending
+status: completed
 priority: P1
 effort: "5h"
 dependencies: [1]
@@ -51,9 +51,9 @@ dày nhất, mọi nhánh phá hoại phải có test.
 
 ## Success Criteria
 
-- [ ] Round-trip install→uninstall trả settings.json + AGENTS.md về đúng nội dung user ban đầu (test chứng minh byte-level sau normalize)
-- [ ] Không rm path nào ngoài receipt/roots (test path-traversal)
-- [ ] Dry-run không side effect; backup luôn tạo trước khi gỡ thật
+- [x] Round-trip install→uninstall trả settings.json (deep-equal) + AGENTS.md (string-exact) về đúng nội dung user ban đầu — test + live CLI run xác nhận
+- [x] Không rm path nào ngoài receipt/roots (assertWithinRoots test path-traversal, dùng chung với install)
+- [x] Dry-run không side effect (test xác nhận); backup luôn tạo trước khi gỡ thật (backupPath trước unmerge settings/AGENTS.md)
 
 ## Risk Assessment
 

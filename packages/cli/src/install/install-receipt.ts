@@ -16,6 +16,7 @@ export interface ReceiptFile {
 
 export interface ReceiptHookBinding {
   event: string;
+  matcher?: string;
   command: string;
   /** false when the settings.json merge was declined/non-interactive. */
   applied: boolean;

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInstall } from "./install-command.js";
+import { runUninstall } from "./uninstall-command.js";
 import { runDoctor } from "./doctor-command.js";
 import { runList } from "./list-command.js";
 import { renderSummary } from "./render-summary.js";
@@ -98,6 +99,95 @@ describe("runList handler", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
     const after = runList({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
     expect(after).toMatch(/claude-code\s+installed/);
+  });
+});
+
+describe("runUninstall handler (sandbox round-trip)", () => {
+  it("reports nothing-to-do when no receipt exists", () => {
+    const { outcomes, summary } = runUninstall({
+      providers: [],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      timestamp: nowStamp(),
+    });
+    expect(outcomes).toEqual([]);
+    expect(summary).toContain("nothing to do");
+  });
+
+  it("round-trip: claude-code settings.json returns to its exact pre-install content", () => {
+    const settingsPath = join(base.cwd, ".claude", "settings.json");
+    mkdirSync(join(base.cwd, ".claude"), { recursive: true });
+    const originalSettings = { model: "opus", hooks: { Stop: [{ hooks: [{ type: "command", command: "say done" }] }] } };
+    writeFileSync(settingsPath, JSON.stringify(originalSettings, null, 2));
+
+    runInstall({
+      providers: ["claude-code"],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      kitRoot,
+      timestamp: nowStamp(),
+      applyHookSettings: true,
+    });
+    // confirm the merge actually happened before testing the reverse
+    const afterInstall = JSON.parse(readFileSync(settingsPath, "utf8"));
+    expect(afterInstall.hooks.SessionStart).toBeDefined();
+
+    const { outcomes } = runUninstall({
+      providers: ["claude-code"],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      timestamp: nowStamp(),
+    });
+
+    expect(JSON.parse(readFileSync(settingsPath, "utf8"))).toEqual(originalSettings);
+    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(false);
+    expect(existsSync(join(base.cwd, ".vcskill/backups"))).toBe(true);
+    expect(existsSync(join(base.cwd, ".vcskill/receipt.json"))).toBe(false); // last provider gone
+    const [{ result }] = outcomes;
+    expect(result.removed.length).toBeGreaterThan(0);
+    expect(result.settingsUnmerged).toBe(true);
+  });
+
+  it("round-trip: codex AGENTS.md returns to its exact pre-install content", () => {
+    const agentsPath = join(base.cwd, "AGENTS.md");
+    writeFileSync(agentsPath, "# My Project\n\nHand-written notes.");
+
+    runInstall({ providers: ["codex"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
+    expect(readFileSync(agentsPath, "utf8")).toContain("vcskill:start");
+
+    runUninstall({ providers: ["codex"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
+
+    expect(readFileSync(agentsPath, "utf8")).toBe("# My Project\n\nHand-written notes.");
+  });
+
+  it("preserves a file the user modified after install instead of deleting it", () => {
+    runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
+    const skillFile = join(base.cwd, ".claude/skills/brainstorm/SKILL.md");
+    writeFileSync(skillFile, "# My customized brainstorm skill\n");
+
+    const { outcomes } = runUninstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
+
+    expect(existsSync(skillFile)).toBe(true);
+    expect(readFileSync(skillFile, "utf8")).toBe("# My customized brainstorm skill\n");
+    const [{ result }] = outcomes;
+    expect(result.preserved.some((p) => p.path === skillFile)).toBe(true);
+  });
+
+  it("dry-run leaves every file and the receipt untouched", () => {
+    runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
+    const receiptPath = join(base.cwd, ".vcskill/receipt.json");
+    const before = readFileSync(receiptPath, "utf8");
+
+    runUninstall({ providers: ["claude-code"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
+
+    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(true);
+    expect(readFileSync(receiptPath, "utf8")).toBe(before);
   });
 });
 

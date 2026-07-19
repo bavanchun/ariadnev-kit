@@ -43,7 +43,7 @@ Yêu cầu gốc từ user: lõi phải bằng hoặc CAO HƠN ck. Với mỗi l
 |-------|------|--------|
 | 1 | [Install receipt](./phase-01-install-receipt.md) | ✅ Completed |
 | 2 | [Doctor command](./phase-02-doctor-command.md) | ✅ Completed |
-| 3 | [Uninstall + settings un-merge](./phase-03-uninstall-settings-unmerge.md) | Pending |
+| 3 | [Uninstall + settings un-merge](./phase-03-uninstall-settings-unmerge.md) | ✅ Completed |
 | 4 | [Backups restore + update + docs](./phase-04-backups-restore-update-docs.md) | Pending |
 
 Tuần tự 1→2→3→4 (2-4 đều đọc receipt từ 1; 3 nặng nhất để giữa; 4 gom phần mỏng).

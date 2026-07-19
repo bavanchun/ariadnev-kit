@@ -3,6 +3,7 @@ import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { runInstall } from "./cli/install-command.js";
+import { runUninstall } from "./cli/uninstall-command.js";
 import { runDoctor } from "./cli/doctor-command.js";
 import { runList } from "./cli/list-command.js";
 import { nowStamp } from "./cli/timestamp.js";
@@ -62,6 +63,24 @@ export function buildProgram(): Command {
         timestamp: nowStamp(),
         applyHookSettings,
         vcskillVersion: packageVersion(),
+      });
+      console.log(summary);
+    });
+
+  program
+    .command("uninstall")
+    .description("Remove a previously installed kit (receipt-based, preserves user-modified files)")
+    .option("--provider <list>", "comma-separated provider ids (default: every provider in the receipt)", splitProviders)
+    .option("--global", "uninstall from ~/ instead of ./", false)
+    .action((opts: { provider?: string[]; global?: boolean }) => {
+      const g = program.opts<GlobalOpts>();
+      const { summary } = runUninstall({
+        providers: opts.provider ?? [],
+        scope: opts.global ? "global" : "project",
+        dryRun: !!g.dryRun,
+        home: g.home,
+        cwd: g.cwd,
+        timestamp: nowStamp(),
       });
       console.log(summary);
     });
