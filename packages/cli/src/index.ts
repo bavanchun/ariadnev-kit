@@ -5,6 +5,8 @@ import { Command } from "commander";
 import { runInstall } from "./cli/install-command.js";
 import { runUninstall } from "./cli/uninstall-command.js";
 import { runDoctor } from "./cli/doctor-command.js";
+import { runBackupsList, runBackupsRestore } from "./cli/backups-command.js";
+import { runUpdate, fetchLatestVersionFromNpm } from "./cli/update-command.js";
 import { runList } from "./cli/list-command.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
@@ -98,6 +100,55 @@ export function buildProgram(): Command {
       });
       console.log(summary);
       if (exitCode !== 0) process.exitCode = exitCode;
+    });
+
+  program
+    .command("backups")
+    .description("List or restore vcskill-managed backups")
+    .argument("<action>", "list | restore <timestamp>")
+    .argument("[timestamp]", "backup timestamp (for restore)")
+    .option("--global", "use ~/ scope", false)
+    .option("--file <rel>", "restore only the file matching this name")
+    .action((action: string, timestamp: string | undefined, opts: { global?: boolean; file?: string }) => {
+      const g = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
+      if (action === "list") {
+        console.log(runBackupsList({ home: g.home, cwd: g.cwd, scope }));
+        return;
+      }
+      if (action === "restore") {
+        if (!timestamp) {
+          console.error("usage: vcskill backups restore <timestamp> [--file <rel>]");
+          process.exitCode = 1;
+          return;
+        }
+        const { summary } = runBackupsRestore({
+          home: g.home,
+          cwd: g.cwd,
+          scope,
+          timestamp,
+          dryRun: !!g.dryRun,
+          file: opts.file,
+          preRestoreTimestamp: nowStamp(),
+        });
+        console.log(summary);
+        return;
+      }
+      console.error(`unknown backups action: ${action} (use "list" or "restore")`);
+      process.exitCode = 1;
+    });
+
+  program
+    .command("update")
+    .description("Check for a newer vcskill release")
+    .option("--global", "check ~/ scope", false)
+    .action(async (opts: { global?: boolean }) => {
+      const g = program.opts<GlobalOpts>();
+      const { summary } = await runUpdate(
+        { home: g.home, cwd: g.cwd, scope: opts.global ? "global" : "project", currentVersion: packageVersion() },
+        { fetchLatestVersion: fetchLatestVersionFromNpm },
+      );
+      console.log(summary);
     });
 
   program
