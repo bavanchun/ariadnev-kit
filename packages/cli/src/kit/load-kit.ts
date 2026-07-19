@@ -110,6 +110,8 @@ function loadHooks(kitRoot: string): KitHook[] {
   if (!existsSync(hooksDir)) return [];
   const out: KitHook[] = [];
   for (const entry of readdirSync(hooksDir)) {
+    // `_lib` and friends hold shared helpers, not installable hooks.
+    if (entry.startsWith("_")) continue;
     const dir = join(hooksDir, entry);
     if (!statSync(dir).isDirectory()) continue;
     const file = join(dir, "hook.cjs");
@@ -126,8 +128,13 @@ function loadHooks(kitRoot: string): KitHook[] {
     } catch (err) {
       throw new KitValidationError(`hook "${entry}": invalid hook.json (${String(err)})`);
     }
-    if (typeof manifest.event !== "string" || manifest.event.length === 0) {
-      throw new KitValidationError(`hook "${entry}": manifest must declare an event`);
+    const hasEvent = typeof manifest.event === "string" && manifest.event.length > 0;
+    const hasEvents =
+      Array.isArray(manifest.events) &&
+      manifest.events.length > 0 &&
+      manifest.events.every((e) => typeof e === "string" && e.length > 0);
+    if (!hasEvent && !hasEvents) {
+      throw new KitValidationError(`hook "${entry}": manifest must declare an event (or events[])`);
     }
     if (typeof manifest.description !== "string" || manifest.description.length === 0) {
       throw new KitValidationError(`hook "${entry}": manifest must declare a description`);

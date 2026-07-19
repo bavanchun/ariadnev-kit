@@ -47,6 +47,7 @@ export interface ProviderInstallResult {
 // claudekit parity guards — never copy these into a provider tree.
 export const IGNORE_FILES = new Set([".env", ".DS_Store"]);
 export const IGNORE_DIRS = new Set([
+  "__tests__",
   ".git",
   ".venv",
   "__pycache__",
