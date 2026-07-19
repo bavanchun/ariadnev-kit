@@ -1,4 +1,4 @@
-import { multiselect, select, isCancel, cancel } from "@clack/prompts";
+import { multiselect, select, confirm, isCancel, cancel } from "@clack/prompts";
 import { USER_FACING_PROVIDER_IDS, type ProviderId } from "../providers/index.js";
 import type { Scope } from "../providers/resolver.js";
 
@@ -35,4 +35,18 @@ export async function promptProviders(): Promise<PromptResult> {
     process.exit(0);
   }
   return { providers: providers as ProviderId[], scope: scope as Scope };
+}
+
+/**
+ * y/n gate before touching the user's settings.json for hook bindings.
+ * Cancel or "no" → install still copies hook files; the CLI prints a
+ * copy-pasteable snippet instead of merging.
+ */
+export async function confirmHookSettingsMerge(): Promise<boolean> {
+  const answer = await confirm({
+    message: "Merge vc hook bindings into .claude/settings.json? (a backup is kept)",
+    initialValue: true,
+  });
+  if (isCancel(answer)) return false;
+  return answer === true;
 }

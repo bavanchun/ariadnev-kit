@@ -16,12 +16,30 @@ export interface Artifact {
   sourcePath: string;
 }
 
+/** Data-driven hook binding manifest (kit/hooks/<name>/hook.json). */
+export interface HookManifest {
+  /** Claude Code hook event, e.g. "SessionStart", "PreToolUse". */
+  event: string;
+  /** Optional tool-name matcher for PreToolUse/PostToolUse events. */
+  matcher?: string;
+  description: string;
+}
+
+export interface KitHook {
+  /** Hook dir slug, becomes the installed file stem. */
+  name: string;
+  manifest: HookManifest;
+  /** Absolute path to the hook.cjs body. */
+  file: string;
+}
+
 export interface Kit {
   root: string;
   skills: Artifact[];
   agents: Artifact[];
   commands: Artifact[];
   rules: Artifact[];
+  hooks: KitHook[];
   /** Absolute path to shared `kit/scripts/` if present. */
   scriptsDir: string | null;
   /** Absolute path to `kit/.env.example` if present. */

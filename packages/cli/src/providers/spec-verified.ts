@@ -12,7 +12,7 @@ export type ProviderId =
   | "generic"
   | "test-provider";
 
-export type ArtifactKind = "skill" | "agent" | "command" | "rules" | "scripts" | "env";
+export type ArtifactKind = "skill" | "agent" | "command" | "rules" | "scripts" | "env" | "hook";
 
 export interface ProviderVerification {
   /** Per-artifact target-path verification. false => skip-with-log. */
@@ -25,37 +25,37 @@ export interface ProviderVerification {
 
 export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   "claude-code": {
-    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: true },
     toolNames: true, // identity — canonical format
     source: "canonical Claude Agent Skills spec",
   },
   codex: {
-    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
     toolNames: true, // full table from claudekit adapt_content()
     source: "claudekit codex_generator_common.py::adapt_content + codex_generator.py",
   },
   cursor: {
-    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
     toolNames: false, // no verified equivalents — identity + footer
     source: "cursor .agents/skills + .cursor/{commands,rules}; tool table unverified",
   },
   antigravity: {
-    paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true, hook: false },
     toolNames: false,
     source: "antigravity .agents/skills verified; agents/commands paths unverified",
   },
   opencode: {
-    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
     toolNames: false, // generator rewrites paths only — tool-names identity
     source: "claudekit generate-opencode.py (plural dirs)",
   },
   generic: {
-    paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true, hook: false },
     toolNames: false,
     source: "neutral .agents/ layout; agents/commands have no generic target",
   },
   "test-provider": {
-    paths: { skill: true, agent: false, command: true, rules: true, scripts: true, env: true },
+    paths: { skill: true, agent: false, command: true, rules: true, scripts: true, env: true, hook: false },
     toolNames: false,
     source: "mock provider for onboarding guide validation (agents path intentionally unverified)",
   },
