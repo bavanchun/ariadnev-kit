@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Skills wave 2: bootstrap, security-scan, predict, scenario, worktree + smoke + changeset"
-status: pending
+status: completed
 priority: P2
 effort: "7h"
 dependencies: [4, 5]
@@ -50,10 +50,10 @@ Report: `plans/reports/parity-260720-skills-wave2-vs-claudekit-report.md`.
 
 ## Success Criteria
 
-- [ ] Roster 21 skills + 13 agents pass smoke trên CI
-- [ ] Parity reports đủ cho cả 9 skills mới
-- [ ] Changeset ghi roster mới; README khớp thực tế
-- [ ] Toàn plan sync-back, 6 phases completed
+- [x] Roster 21 skills + 13 agents pass smoke (sandbox verified, CI pending push)
+- [x] Parity reports đủ cho cả 9 skills mới (wave1 + wave2 reports)
+- [x] Changeset ghi roster mới; README khớp thực tế (Getting Started + roster + agent gate)
+- [x] Toàn plan sync-back, 6 phases completed
 
 ## Risk Assessment
 

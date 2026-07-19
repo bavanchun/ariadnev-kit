@@ -245,13 +245,18 @@ describe("executeInstall + dry-run", () => {
   });
 });
 
-describe("full-kit install smoke (v2 roster, in progress)", () => {
-  // Skills roster grows across plans/260720-0116-vc-kit-v2-agents-harness-skills/
-  // phases 5-6 (12 -> 21). Updated per-phase as new skills land.
+describe("full-kit install smoke (v2 roster)", () => {
   const ROSTER = [
-    "ask", "brainstorm", "cook", "docs", "docs-seeker", "fix", "git",
-    "journal", "obsidian-second-brain-note", "plan", "pm", "problem-solving",
-    "research", "scout", "sequential-thinking", "skill-creator",
+    "ask", "bootstrap", "brainstorm", "cook", "docs", "docs-seeker", "fix",
+    "git", "journal", "obsidian-second-brain-note", "plan", "pm", "predict",
+    "problem-solving", "research", "scenario", "scout", "security-scan",
+    "sequential-thinking", "skill-creator", "worktree",
+  ];
+  const AGENTS = [
+    "vc-brainstormer", "vc-debugger", "vc-developer", "vc-docs-manager",
+    "vc-explore", "vc-git-manager", "vc-journal-writer", "vc-planner",
+    "vc-project-manager", "vc-researcher", "vc-reviewer", "vc-simplifier",
+    "vc-tester",
   ];
   const HOOKS = [
     "privacy-block",
@@ -262,8 +267,9 @@ describe("full-kit install smoke (v2 roster, in progress)", () => {
     "subagent-init",
   ];
 
-  it("kit ships exactly the roster-so-far skills + hooks", () => {
+  it("kit ships exactly the 21-skill + 13-agent roster + 6 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
+    expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
   });
 
@@ -275,6 +281,9 @@ describe("full-kit install smoke (v2 roster, in progress)", () => {
     for (const s of ROSTER) {
       expect(existsSync(join(ctx.cwd, ".claude/skills", s, "SKILL.md")), s).toBe(true);
     }
+    for (const a of AGENTS) {
+      expect(existsSync(join(ctx.cwd, ".claude/agents", `${a}.md`)), a).toBe(true);
+    }
     for (const h of HOOKS) {
       expect(existsSync(join(ctx.cwd, ".claude/hooks/vc", `${h}.cjs`)), h).toBe(true);
     }
@@ -284,9 +293,10 @@ describe("full-kit install smoke (v2 roster, in progress)", () => {
     ]);
   });
 
-  it("codex: skills install, all 5 hooks skip-and-log", () => {
+  it("codex: skills + agents install, all 6 hooks skip-and-log", () => {
     const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
     expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
+    expect(existsSync(join(ctx.home, ".codex/agents/vc-explore.toml"))).toBe(true);
     expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
   });
 });

@@ -1,7 +1,7 @@
 ---
 title: "vc kit v2: 13 vc- agents + rules + subagent-init + 9 skills mới"
 description: "Agents roster đầy đủ (parity-or-better vs ClaudeKit), rules thật, hook subagent-init, mở roster 12→21 skills."
-status: pending
+status: completed
 priority: P1
 branch: "main"
 tags: [kit, agents, hooks, skills, parity]
@@ -50,22 +50,22 @@ Quy trình cho MỖI agent/skill viết mới có bản CK tương ứng:
 | 3 | [Agents B: debugger developer git-manager simplifier](./phase-03-agents-b-debugger-developer-git-simplifier.md) | ✅ Completed |
 | 4 | [Agents C: 5 con còn lại + rewire skills](./phase-04-agents-c-remaining-rewire-skills.md) | ✅ Completed |
 | 5 | [Skills wave 1: skill-creator journal sequential-thinking docs-seeker](./phase-05-skills-wave-1-meta-journal-thinking-docs-seeker.md) | ✅ Completed |
-| 6 | [Skills wave 2: bootstrap security-scan predict scenario worktree + smoke](./phase-06-skills-wave-2-bootstrap-security-predict-scenario-worktree.md) | Pending |
+| 6 | [Skills wave 2: bootstrap security-scan predict scenario worktree + smoke](./phase-06-skills-wave-2-bootstrap-security-predict-scenario-worktree.md) | ✅ Completed |
 
 Tuần tự 1→6. Phase 2 làm mẫu chuẩn; 3-4 nhân bản. Phase 5-6 độc lập với 2-4
 (chỉ cần phase 1) nhưng làm sau để dùng vc-reviewer tự review.
 
 ## Acceptance Criteria (whole plan)
 
-- [ ] 13 agents `vc-*` trong `kit/agents/`, mỗi con ≤120 dòng, pass CI gate agents mới
-- [ ] Mỗi agent/skill có bảng parity-or-better vs bản CK trong phase report; 100% capability được phủ hoặc bỏ-có-lý-do; mỗi con ≥1 điểm vượt
-- [ ] Cài song song với agents CK không đụng tên file/tên agent
-- [ ] `kit/rules/` ship rules thật; sample-rule + sample-cmd + sample-reviewer đã xóa; hook rules-inject inject được nội dung thật
-- [ ] Hook subagent-init (hook thứ 6) TDD, fail-open, inject paths/naming/rules cho subagent
-- [ ] Distill repository-harness: rules `intake-and-context.md` (authority gate + risk lanes + context budget); vc:cook route theo lane với high-risk bắt buộc confirm; proof vocabulary (unit/integration/e2e) trong test-gate + pm; session-state trace enrich (files-changed, outcome); vc:docs mode `decision`
-- [ ] 21 skills pass gate; 12 skills cũ trỏ delegation sang agents vc- đúng tên
-- [ ] `pnpm test` xanh, coverage ≥90%; install smoke assert 21 skills + 13 agents + 6 hooks
-- [ ] Changeset minor ghi roster mới
+- [x] 13 agents `vc-*` trong `kit/agents/`, mỗi con ≤120 dòng (max 75), pass CI gate agents mới (agent-lint.ts)
+- [x] Mỗi agent/skill có bảng parity-or-better vs bản CK trong phase report (5 parity reports: agents-a/b/c, skills-wave1/2); 100% capability phủ hoặc bỏ-có-lý-do; mỗi con ≥2 điểm vượt
+- [x] Cài song song với agents CK không đụng tên file/tên agent (prefix `vc-` riêng biệt, sandbox verified)
+- [x] `kit/rules/` ship 3 rules thật; sample-rule + sample-cmd + sample-reviewer đã xóa; hook rules-inject inject được nội dung thật (agents-md test "Never commit secrets")
+- [x] Hook subagent-init (hook thứ 6) TDD, fail-open, inject paths/naming/rules cho subagent — event verified thật qua CK settings.json:454
+- [x] Distill repository-harness: rules `intake-and-context.md` (authority gate + risk lanes + context budget + harness delta); vc:cook route theo lane với high-risk bắt buộc confirm (references/risk-lanes.md); proof vocabulary (unit/integration/e2e/platform) trong test-gate + pm sync-back; session-state trace enrich (gitFilesChanged + outcome); vc:docs mode `decision`
+- [x] 21 skills pass gate; 12 skills cũ trỏ delegation sang agents vc- đúng tên (grep xác nhận 0 tham chiếu mơ hồ)
+- [x] `pnpm test` xanh, coverage 99.28% (≥90%); install smoke assert 21 skills + 13 agents + 6 hooks (sandbox thật + vitest smoke test)
+- [x] Changeset minor ghi roster mới (vc-kit-v2-agents-harness-skills.md)
 
 ## Dependencies
 

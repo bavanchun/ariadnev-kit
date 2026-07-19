@@ -1,0 +1,74 @@
+---
+name: vc:security-scan
+description: Scan a codebase for hardcoded secrets, vulnerable dependencies, and common OWASP-style code patterns. Use for "security scan", "check for secrets", or before a release.
+user-invocable: true
+argument-hint: "[path] [--secrets-only|--deps-only]"
+metadata:
+  author: vchun
+  version: "1.0.0"
+---
+
+# Security Scan
+
+Lightweight scanner using grep patterns + reasoning — no external service, no
+API key, no paid dependency.
+
+Handles: secret detection, dependency audit, common code-level vulnerability
+patterns.
+Does not handle: penetration testing, runtime analysis, infrastructure
+security, compliance audits.
+
+## Workflow
+
+1. **Detect stack** (package.json / requirements.txt / go.mod / Cargo.toml)
+   to pick the right dependency-audit command.
+2. **Secrets first** — grep the patterns in `references/secret-patterns.md`,
+   excluding `.env.example`/`.sample`/`.template`, test fixtures, and
+   generated dirs. For each hit, confirm it isn't an obvious placeholder
+   (`YOUR_API_KEY`, `xxx`) before reporting it as real.
+3. **Dependency audit** — run the stack's native audit command
+   (`npm audit --json`, `pip audit --format json`, etc.); parse and
+   categorize by severity. Missing tool → note it, don't fail the scan.
+4. **Code patterns** — grep the patterns in
+   `references/vulnerability-patterns.md`; read 5-10 lines of context around
+   each hit and reason about whether it's a real vulnerability or a false
+   positive before reporting it.
+5. **`.env` exposure** — check `git ls-files` for tracked `.env*` files and
+   that `.gitignore` actually excludes them.
+
+## Severity
+
+| Level | Meaning |
+|---|---|
+| Critical | Exploitable now: exposed prod credential, confirmed injection path |
+| High | Real credential or vulnerability pattern, exploitation plausible |
+| Medium | Possible credential/pattern, needs a human look |
+| Low | Style/hardening suggestion, not exploitable as-is |
+
+## Output
+
+```markdown
+# Security Scan Report
+Scanned: <path> | Files checked: <n>
+
+## Summary
+| Category | Critical | High | Medium | Low |
+|---|---|---|---|---|
+
+## Findings
+### CRITICAL
+1. [SECRET] <redacted-pattern> in `path:line` — fix: <concrete action>
+
+## Recommendations
+1. <prioritized>
+```
+
+Confirmed Critical/High findings route to `vc:fix` for remediation — this
+skill reports, it does not patch code automatically.
+
+## Security policy
+
+- Never print an actual secret value — redact to first 4 + last 2 chars
+- Never execute a credential found during scanning
+- Never modify code automatically, only report + recommend
+- A confirmed real credential → recommend immediate rotation, not just a code fix
