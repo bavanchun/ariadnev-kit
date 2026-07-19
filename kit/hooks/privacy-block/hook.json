@@ -1,0 +1,5 @@
+{
+  "event": "PreToolUse",
+  "matcher": "Read|Edit|Write|Bash",
+  "description": "Block access to .env files, key material, and credentials; emit an AskUserQuestion marker with a VC_APPROVED=1 retry path."
+}
