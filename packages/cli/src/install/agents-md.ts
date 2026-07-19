@@ -18,6 +18,17 @@ export function mergeAgentsBlock(existing: string, block: string): string {
   return `${sep}${managed}\n`;
 }
 
+/**
+ * Reverse of mergeAgentsBlock: strip the vcskill-managed block (and the
+ * blank-line separator mergeAgentsBlock inserted before it), restoring the
+ * user's original content. No-op when no managed block is present.
+ */
+export function removeAgentsBlock(existing: string): string {
+  if (!existing.includes(AGENTS_MD_START) || !existing.includes(AGENTS_MD_END)) return existing;
+  const re = new RegExp(`\\n*${AGENTS_MD_START}[\\s\\S]*?${AGENTS_MD_END}\\n?`);
+  return existing.replace(re, "");
+}
+
 /** Read AGENTS.md at `path` (empty string when absent). */
 export function readAgentsMd(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf8") : "";

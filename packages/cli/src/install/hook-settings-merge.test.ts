@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   mergeHookSettings,
+  unmergeHookSettings,
   renderHookSettingsSnippet,
   type HookBinding,
 } from "./hook-settings-merge.js";
@@ -50,6 +51,50 @@ describe("mergeHookSettings (pure)", () => {
 
   it("throws on unparseable settings JSON instead of clobbering", () => {
     expect(() => mergeHookSettings("{not json", bindings)).toThrow();
+  });
+});
+
+describe("unmergeHookSettings (pure)", () => {
+  it("removes exactly our bindings, restoring pre-merge settings", () => {
+    const before = JSON.stringify({ model: "opus" });
+    const merged = mergeHookSettings(before, bindings);
+    const back = unmergeHookSettings(merged, bindings);
+    expect(JSON.parse(back)).toEqual(JSON.parse(before));
+  });
+
+  it("preserves foreign entries under the same event", () => {
+    const existing = JSON.stringify({
+      hooks: {
+        SessionStart: [{ hooks: [{ type: "command", command: "echo custom" }] }],
+      },
+    });
+    const merged = mergeHookSettings(existing, [bindings[0]]);
+    const back = JSON.parse(unmergeHookSettings(merged, [bindings[0]]));
+    expect(JSON.stringify(back.hooks.SessionStart)).toContain("echo custom");
+    expect(JSON.stringify(back.hooks.SessionStart)).not.toContain("session-init.cjs");
+  });
+
+  it("deletes the event key, and the hooks object itself, once nothing is left", () => {
+    const merged = mergeHookSettings("", [bindings[0]]);
+    const back = JSON.parse(unmergeHookSettings(merged, [bindings[0]]));
+    expect(back.hooks).toBeUndefined();
+  });
+
+  it("is idempotent: unmerging twice is the same as once", () => {
+    const merged = mergeHookSettings("", bindings);
+    const once = unmergeHookSettings(merged, bindings);
+    const twice = unmergeHookSettings(once, bindings);
+    expect(JSON.parse(twice)).toEqual(JSON.parse(once));
+  });
+
+  it("leaves settings untouched when the binding was never present", () => {
+    const existing = JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "say done" }] }] } });
+    const back = unmergeHookSettings(existing, bindings);
+    expect(JSON.parse(back)).toEqual(JSON.parse(existing));
+  });
+
+  it("throws on unparseable settings JSON", () => {
+    expect(() => unmergeHookSettings("{not json", bindings)).toThrow();
   });
 });
 
