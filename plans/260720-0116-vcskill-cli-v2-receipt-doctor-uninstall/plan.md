@@ -24,6 +24,19 @@ TDD toàn bộ, giữ chuẩn repo: pure logic tách fs, atomic writes, coverage
 Context: `plans/reports/brainstorm-260720-0116-vc-kit-v2-agents-cli-parity-report.md`.
 Bỏ chủ đích (v3+): config dashboard, plan kanban, watch/content/api của ck.
 
+## PARITY-OR-BETTER GATE (bắt buộc — như plan agents v2)
+
+Yêu cầu gốc từ user: lõi phải bằng hoặc CAO HƠN ck. Với mỗi lệnh mới:
+1. Chạy `ck <cmd> --help` + thử hành vi thật của lệnh ck tương ứng
+   (doctor/uninstall/backups/update), liệt kê capability của họ.
+2. Mỗi capability: phủ, hoặc bỏ-có-lý-do 1 dòng (khác kiến trúc, YAGNI).
+3. Điểm vượt định sẵn phải chứng minh bằng test: **receipt-based chính xác hơn
+   heuristic-scan của ck** (doctor không false-positive trên file user tự tạo;
+   uninstall không đụng file ngoài receipt — ck uninstall "ownership-aware"
+   là mốc phải vượt).
+4. Bảng đối chiếu lưu `plans/reports/parity-260720-cli-vs-ck-report.md`,
+   hoàn thiện dần qua 4 phases.
+
 ## Phases
 
 | Phase | Name | Status |
@@ -43,6 +56,7 @@ Tuần tự 1→2→3→4 (2-4 đều đọc receipt từ 1; 3 nặng nhất đ�
 - [ ] `vcskill backups list|restore` khôi phục được settings.json/file bất kỳ từ backup last-3
 - [ ] `vcskill update` so version receipt vs npm, re-install có backup, báo diff roster
 - [ ] `pnpm test` xanh, coverage ≥90%; provider ngoài claude-code không bị lệnh mới làm hỏng (receipt vẫn ghi, uninstall vẫn gỡ đúng)
+- [ ] Parity report `parity-260720-cli-vs-ck-report.md` đủ 4 lệnh: mọi capability ck phủ hoặc bỏ-có-lý-do; điểm vượt receipt-based có test chứng minh
 - [ ] README cập nhật bảng lệnh; changeset minor
 
 ## Dependencies
