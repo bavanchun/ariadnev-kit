@@ -28,7 +28,7 @@ Mode: `--tdd` — mỗi phase engine/hook viết failing test trước; phase sk
 |-------|------|--------|
 | 1 | [Skill spec + kit CI gates](./phase-01-skill-spec-kit-ci-gates.md) | ✅ Completed |
 | 2 | [Adapt engine hooks artifact kind](./phase-02-adapt-engine-hooks-artifact-kind.md) | ✅ Completed |
-| 3 | [Harness 5 hooks TDD](./phase-03-harness-5-hooks-tdd.md) | Pending |
+| 3 | [Harness 5 hooks TDD](./phase-03-harness-5-hooks-tdd.md) | ✅ Completed (live ~/.claude smoke deferred to user) |
 | 4 | [Core loop skills A: brainstorm cook git plan](./phase-04-core-loop-skills-a-brainstorm-cook-git-plan.md) | Pending |
 | 5 | [Core loop skills B: ask scout fix pm](./phase-05-core-loop-skills-b-ask-scout-fix-pm.md) | Pending |
 | 6 | [Support + personal skills + install smoke](./phase-06-support-personal-skills-install-smoke.md) | Pending |

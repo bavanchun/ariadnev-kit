@@ -144,6 +144,7 @@ export function makeResolver(id: ProviderId): ProviderResolver {
       rules: isVerified(id, "rules"),
       scripts: isVerified(id, "scripts"),
       env: isVerified(id, "env"),
+      hook: isVerified(id, "hook"),
     },
     targetFor(artifact, ctx) {
       const kind = KIND_OF[artifact.type];
