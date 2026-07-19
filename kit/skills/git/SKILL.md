@@ -1,5 +1,5 @@
 ---
-name: vc:vchun-git
+name: vc:git
 description: "Personal git workflow (forked from ck:git). Use for commits, PRs, branch hygiene, merges, or the full prc pipeline with co-author and achievement-friendly defaults."
 user-invocable: true
 argument-hint: "cm|cp|pr|prc|merge|feat|fix [--solo|--team] [args]"
@@ -7,7 +7,7 @@ metadata:
   author: vchun
   version: "0.2.0"
   forked-from: "ck:git@1.0.0"
-  upstream: "~/.claude/skills/git/SKILL.md"
+  upstream: "ClaudeKit git skill"
 ---
 
 # Git Operations (vchun edition)
@@ -133,8 +133,8 @@ git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"
 
 If `--solo`:
 ```bash
-SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/vchun-git/co-authors.json)
-SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/vchun-git/co-authors.json)
+SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/git/co-authors.json)
+SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/git/co-authors.json)
 FOOTER=$'\n\nCo-authored-by: '"$SOLO_NAME"' <'"$SOLO_EMAIL"'>'
 ```
 
@@ -233,10 +233,11 @@ See `references/workflow-prc.md` for complete details.
 
 ## Upstream Sync
 
-When `/ck:git` (upstream) releases a new version, manually diff:
+When `/ck:git` (upstream ClaudeKit) releases a new version, manually diff it
+against this kit's canonical source:
 ```bash
-diff -u ~/.claude/skills/vchun-git/SKILL.md ~/.claude/skills/git/SKILL.md
-diff -ru ~/.claude/skills/vchun-git/references ~/.claude/skills/git/references
+diff -u <claudekit>/skills/git/SKILL.md kit/skills/git/SKILL.md
+diff -ru <claudekit>/skills/git/references kit/skills/git/references
 ```
 
 Cherry-pick valuable changes. Bump version + update `forked-from` field.
