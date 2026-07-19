@@ -3,6 +3,7 @@ import { join, basename } from "node:path";
 import matter from "gray-matter";
 import type { Artifact, ArtifactType, HookManifest, Kit, KitHook } from "./kit-types.js";
 import { lintSkill, type ReferenceFile } from "./skill-lint.js";
+import { lintAgent } from "./agent-lint.js";
 
 export class KitValidationError extends Error {
   constructor(message: string) {
@@ -105,6 +106,17 @@ function loadFlat(kitRoot: string, sub: string, type: ArtifactType): Artifact[] 
     .map((f) => readArtifact(type, basename(f, ".md"), join(dir, f)));
 }
 
+function loadAgents(kitRoot: string): Artifact[] {
+  const agents = loadFlat(kitRoot, "agents", "agent");
+  for (const agent of agents) {
+    const lint = lintAgent(agent, agent.name);
+    if (lint.errors.length > 0) {
+      throw new KitValidationError(lint.errors.join("\n"));
+    }
+  }
+  return agents;
+}
+
 function loadHooks(kitRoot: string): KitHook[] {
   const hooksDir = join(kitRoot, "hooks");
   if (!existsSync(hooksDir)) return [];
@@ -151,7 +163,7 @@ export function loadKit(kitRoot: string): Kit {
   return {
     root: kitRoot,
     skills: loadSkills(kitRoot, warnings),
-    agents: loadFlat(kitRoot, "agents", "agent"),
+    agents: loadAgents(kitRoot),
     commands: loadFlat(kitRoot, "commands", "command"),
     rules: loadFlat(kitRoot, "rules", "rule"),
     hooks: loadHooks(kitRoot),
