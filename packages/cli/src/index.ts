@@ -46,6 +46,11 @@ export function buildProgram(): Command {
         providers = picked.providers;
       }
       if (providers.length === 0) providers = [...PROVIDER_IDS].slice(0, 1); // default claude-code
+      let applyHookSettings = false;
+      if (providers.includes("claude-code") && !g.yes && !g.dryRun && process.stdout.isTTY) {
+        const { confirmHookSettingsMerge } = await import("./cli/prompt-providers.js");
+        applyHookSettings = await confirmHookSettingsMerge();
+      }
       const { summary } = runInstall({
         providers,
         scope,
@@ -53,6 +58,7 @@ export function buildProgram(): Command {
         home: g.home,
         cwd: g.cwd,
         timestamp: nowStamp(),
+        applyHookSettings,
       });
       console.log(summary);
     });

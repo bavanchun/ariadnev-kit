@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,6 +51,30 @@ describe("runInstall handler", () => {
     });
     expect(results.map((r) => r.provider)).toEqual(["codex", "cursor"]);
     expect(existsSync(join(base.cwd, ".agents"))).toBe(false);
+  });
+
+  it("prints a settings snippet when hook merge is not confirmed", () => {
+    const hookKitRoot = join(sandbox, "hook-kit");
+    mkdirSync(join(hookKitRoot, "skills"), { recursive: true });
+    const hookDir = join(hookKitRoot, "hooks", "session-init");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ event: "SessionStart", description: "init env" }),
+    );
+    const { summary } = runInstall({
+      providers: ["claude-code"],
+      scope: "project",
+      dryRun: false,
+      home: base.home,
+      cwd: base.cwd,
+      kitRoot: hookKitRoot,
+      timestamp: nowStamp(),
+    });
+    expect(summary).toContain("settings.json");
+    expect(summary).toContain("session-init.cjs");
+    expect(existsSync(join(base.cwd, ".claude/settings.json"))).toBe(false);
   });
 
   it("rejects unknown provider", () => {

@@ -4,6 +4,7 @@ import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
 import { installKit } from "../install/install-execute.js";
 import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
+import { renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
 import { renderSummary } from "./render-summary.js";
 
 export interface InstallHandlerOpts {
@@ -16,6 +17,8 @@ export interface InstallHandlerOpts {
   kitRoot?: string;
   /** Injected backup timestamp. */
   timestamp: string;
+  /** User confirmed merging hook bindings into settings.json (prompt result). */
+  applyHookSettings?: boolean;
 }
 
 export interface InstallHandlerResult {
@@ -39,7 +42,15 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
     kit,
     providers,
     { home: opts.home, cwd: opts.cwd, scope: opts.scope },
-    { dryRun: opts.dryRun, timestamp: opts.timestamp },
+    { dryRun: opts.dryRun, timestamp: opts.timestamp, applyHookSettings: opts.applyHookSettings },
   );
-  return { results, summary: renderSummary(results, opts.dryRun) };
+  let summary = renderSummary(results, opts.dryRun);
+  if (!opts.applyHookSettings) {
+    // Merge declined or non-interactive: hand the user the exact block instead.
+    const hookOp = results
+      .flatMap((r) => r.ops)
+      .find((o) => o.action === "hook-settings");
+    if (hookOp) summary += `\n\n${renderHookSettingsSnippet(hookOp.bindings)}`;
+  }
+  return { results, summary };
 }

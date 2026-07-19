@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import matter from "gray-matter";
-import type { Artifact, ArtifactType, Kit } from "./kit-types.js";
+import type { Artifact, ArtifactType, HookManifest, Kit, KitHook } from "./kit-types.js";
 import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 
 export class KitValidationError extends Error {
@@ -105,6 +105,38 @@ function loadFlat(kitRoot: string, sub: string, type: ArtifactType): Artifact[] 
     .map((f) => readArtifact(type, basename(f, ".md"), join(dir, f)));
 }
 
+function loadHooks(kitRoot: string): KitHook[] {
+  const hooksDir = join(kitRoot, "hooks");
+  if (!existsSync(hooksDir)) return [];
+  const out: KitHook[] = [];
+  for (const entry of readdirSync(hooksDir)) {
+    const dir = join(hooksDir, entry);
+    if (!statSync(dir).isDirectory()) continue;
+    const file = join(dir, "hook.cjs");
+    const manifestPath = join(dir, "hook.json");
+    if (!existsSync(file)) {
+      throw new KitValidationError(`hook "${entry}": missing hook.cjs`);
+    }
+    if (!existsSync(manifestPath)) {
+      throw new KitValidationError(`hook "${entry}": missing hook.json manifest`);
+    }
+    let manifest: HookManifest;
+    try {
+      manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as HookManifest;
+    } catch (err) {
+      throw new KitValidationError(`hook "${entry}": invalid hook.json (${String(err)})`);
+    }
+    if (typeof manifest.event !== "string" || manifest.event.length === 0) {
+      throw new KitValidationError(`hook "${entry}": manifest must declare an event`);
+    }
+    if (typeof manifest.description !== "string" || manifest.description.length === 0) {
+      throw new KitValidationError(`hook "${entry}": manifest must declare a description`);
+    }
+    out.push({ name: entry, manifest, file });
+  }
+  return out;
+}
+
 export function loadKit(kitRoot: string): Kit {
   const scriptsDir = join(kitRoot, "scripts");
   const envExample = join(kitRoot, ".env.example");
@@ -115,6 +147,7 @@ export function loadKit(kitRoot: string): Kit {
     agents: loadFlat(kitRoot, "agents", "agent"),
     commands: loadFlat(kitRoot, "commands", "command"),
     rules: loadFlat(kitRoot, "rules", "rule"),
+    hooks: loadHooks(kitRoot),
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
     warnings,

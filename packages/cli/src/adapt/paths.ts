@@ -32,3 +32,7 @@ export const CURSOR_RULES_DIR = ".cursor/rules";
 
 /** OpenCode user-global config root (for ~/.claude rewrites). */
 export const OPENCODE_USER_CONFIG = "~/.config/opencode";
+
+/** Claude Code hooks install dir + settings file (hooks are claude-only). */
+export const CLAUDE_HOOKS_DIR = ".claude/hooks/vc";
+export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";

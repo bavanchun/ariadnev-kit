@@ -168,6 +168,52 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
   });
 });
 
+describe("loadKit hooks discovery", () => {
+  function tmpKitWithHook(manifest: string | null, withCjs = true): string {
+    const root = mkdtempSync(join(tmpdir(), "vcskill-hooks-"));
+    mkdirSync(join(root, "skills"), { recursive: true });
+    const hookDir = join(root, "hooks", "session-init");
+    mkdirSync(hookDir, { recursive: true });
+    if (withCjs) writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    if (manifest !== null) writeFileSync(join(hookDir, "hook.json"), manifest);
+    return root;
+  }
+
+  it("discovers hooks with manifest {event, matcher?, description}", () => {
+    const root = tmpKitWithHook(
+      JSON.stringify({ event: "SessionStart", description: "init session env" }),
+    );
+    const kit = loadKit(root);
+    expect(kit.hooks.length).toBe(1);
+    expect(kit.hooks[0].name).toBe("session-init");
+    expect(kit.hooks[0].manifest.event).toBe("SessionStart");
+    expect(kit.hooks[0].file.endsWith("hook.cjs")).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects a hook manifest without event", () => {
+    const root = tmpKitWithHook(JSON.stringify({ description: "no event" }));
+    expect(() => loadKit(root)).toThrow(KitValidationError);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects a hook dir missing hook.cjs", () => {
+    const root = tmpKitWithHook(
+      JSON.stringify({ event: "Stop", description: "persist state" }),
+      false,
+    );
+    expect(() => loadKit(root)).toThrow(/hook\.cjs/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("returns empty hooks when kit has no hooks dir", () => {
+    const root = mkdtempSync(join(tmpdir(), "vcskill-nohooks-"));
+    mkdirSync(join(root, "skills"), { recursive: true });
+    expect(loadKit(root).hooks).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
 describe("resolveKitRoot", () => {
   it("locates a directory containing skills/ from a start path", () => {
     const root = resolveKitRoot(repoKitRoot);

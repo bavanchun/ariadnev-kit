@@ -61,6 +61,7 @@ the full publish runbook and one-time prerequisites.
 | rules | `.claude/rules/` | `AGENTS.md` block | `.cursor/rules/*.mdc` | `AGENTS.md` block | `AGENTS.md` block | `AGENTS.md` block |
 | scripts | `.claude/scripts/` | `~/.agents/vcskill/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/vcskill/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` |
+| hook | `.claude/hooks/vc/*.cjs` | **skip (unverified)** | **skip (unverified)** | **skip (unverified)** | **skip (unverified)** | skip |
 
 Cells marked **skip** are unverified target paths — vcskill never guesses; it
 skips and logs them in the install summary. See `src/providers/spec-verified.ts`.
@@ -82,4 +83,8 @@ vcskill install --provider cursor --dry-run   # see it land
 - Adapt engine is pure functions under `packages/cli/src/adapt/` (≥95% coverage).
 - Path constants are single-sourced in `src/adapt/paths.ts` — change once.
 
-Hooks are **not** shipped in v1. skillsmp.com publishing is deferred.
+Hooks (`kit/hooks/`) are a Claude Code event contract: installing to
+claude-code copies hook files and — after a y/n confirmation — merges event
+bindings into `.claude/settings.json` (idempotent, backed up). Declining or
+running non-interactively prints a copy-pasteable snippet instead. Other
+providers skip-and-log. skillsmp.com publishing is deferred.

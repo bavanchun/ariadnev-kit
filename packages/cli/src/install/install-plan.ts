@@ -3,7 +3,10 @@ import { join } from "node:path";
 import type { Kit } from "../kit/kit-types.js";
 import type { ProviderResolver, ResolverCtx } from "../providers/resolver.js";
 import { mapCommand } from "../adapt/command-map.js";
+import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
+import { isVerified } from "../providers/spec-verified.js";
 import { buildRulesBlock } from "./agents-md.js";
+import type { HookBinding } from "./hook-settings-merge.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
 import { IGNORE_DIRS, IGNORE_FILES, isTextFile, type InstallOp } from "./install-types.js";
 
@@ -73,6 +76,41 @@ function planDirTree(srcDir: string, destDir: string, providerId: ProviderResolv
   return ops;
 }
 
+// Hooks are a Claude Code event contract — providers with an unverified
+// (provider, hook) cell get skip ops, never guessed paths.
+function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
+  if (kit.hooks.length === 0) return [];
+  if (!isVerified(r.id, "hook")) {
+    return kit.hooks.map((h) => skip("hook", h.name, `unsupported/unverified (${r.id})`));
+  }
+  const base = ctx.scope === "global" ? ctx.home : ctx.cwd;
+  const ops: InstallOp[] = [];
+  const bindings: HookBinding[] = [];
+  for (const hook of kit.hooks) {
+    const dest = join(base, CLAUDE_HOOKS_DIR, `${hook.name}.cjs`);
+    ops.push({
+      action: "write",
+      kind: "hook",
+      name: hook.name,
+      dest,
+      content: readFileSync(hook.file, "utf8"),
+    });
+    bindings.push({
+      event: hook.manifest.event,
+      ...(hook.manifest.matcher ? { matcher: hook.manifest.matcher } : {}),
+      command: `node ${JSON.stringify(dest)}`,
+    });
+  }
+  ops.push({
+    action: "hook-settings",
+    kind: "hook",
+    name: "settings.json",
+    dest: join(base, CLAUDE_SETTINGS_FILE),
+    bindings,
+  });
+  return ops;
+}
+
 /** Pure: build the full op plan for one provider. Reads sources, writes nothing. */
 export function planInstall(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   const ops: InstallOp[] = [
@@ -80,6 +118,7 @@ export function planInstall(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): In
     ...planAgents(kit, r, ctx),
     ...planCommands(kit, r, ctx),
     ...planRules(kit, r, ctx),
+    ...planHooks(kit, r, ctx),
   ];
   if (kit.scriptsDir && r.supports.scripts) {
     ops.push(...planDirTree(kit.scriptsDir, r.scriptsTarget(ctx), r.id, "scripts"));

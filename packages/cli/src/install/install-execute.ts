@@ -7,6 +7,7 @@ import type { ResolverCtx } from "../providers/resolver.js";
 import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
+import { mergeHookSettings } from "./hook-settings-merge.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
 
 export interface ExecuteOpts {
@@ -15,6 +16,8 @@ export interface ExecuteOpts {
   timestamp: string;
   /** Roots every write must stay within (path-traversal guard). */
   allowedRoots: string[];
+  /** User confirmed merging hook bindings into settings.json (default: no). */
+  applyHookSettings?: boolean;
 }
 
 function assertWithinRoots(dest: string, roots: string[]): void {
@@ -43,11 +46,17 @@ function atomicWrite(dest: string, content: string): void {
   renameSync(tmp, dest);
 }
 
+function opContent(op: Exclude<InstallOp, { action: "skip" }>): string {
+  if (op.action === "agents-md") return mergeAgentsBlock(readAgentsMd(op.dest), op.block);
+  if (op.action === "hook-settings") return mergeHookSettings(readAgentsMd(op.dest), op.bindings);
+  return op.content;
+}
+
 function applyOp(op: InstallOp, backupRoot: string, opts: ExecuteOpts): { wrote: boolean; backedUp: boolean } {
   if (op.action === "skip") return { wrote: false, backedUp: false };
   assertWithinRoots(op.dest, opts.allowedRoots);
   const existed = existsSync(op.dest);
-  const content = op.action === "agents-md" ? mergeAgentsBlock(readAgentsMd(op.dest), op.block) : op.content;
+  const content = opContent(op);
   if (opts.dryRun) return { wrote: true, backedUp: existed };
   if (existed) backupPath(op.dest, backupRoot, op.kind);
   atomicWrite(op.dest, content);
@@ -66,6 +75,17 @@ export function executeInstall(
       result.skipped.push(op);
       continue;
     }
+    if (op.action === "hook-settings" && !opts.applyHookSettings) {
+      // Prompt declined or non-interactive: never touch settings.json; the CLI
+      // layer prints a copy-pasteable snippet instead.
+      result.skipped.push({
+        action: "skip",
+        kind: "hook",
+        name: op.name,
+        reason: "settings.json merge not confirmed — snippet printed",
+      });
+      continue;
+    }
     const { wrote, backedUp } = applyOp(op, backupRoot, opts);
     if (wrote) result.written++;
     if (backedUp) result.backedUp++;
@@ -76,6 +96,8 @@ export function executeInstall(
 export interface InstallKitOpts {
   dryRun?: boolean;
   timestamp: string;
+  /** User confirmed merging hook bindings into settings.json. */
+  applyHookSettings?: boolean;
 }
 
 /** Install the kit to every requested provider; returns per-provider results. */
@@ -93,7 +115,14 @@ export function installKit(
   for (const id of providers) {
     const resolver = getResolver(id);
     const ops = planInstall(kit, resolver, ctx);
-    results.push(executeInstall(ops, id, backupRoot, { dryRun: opts.dryRun ?? false, timestamp: opts.timestamp, allowedRoots }));
+    results.push(
+      executeInstall(ops, id, backupRoot, {
+        dryRun: opts.dryRun ?? false,
+        timestamp: opts.timestamp,
+        allowedRoots,
+        applyHookSettings: opts.applyHookSettings ?? false,
+      }),
+    );
   }
   if (!opts.dryRun) rotateBackups(backupsParent, 3);
   return results;

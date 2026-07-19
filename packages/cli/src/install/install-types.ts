@@ -23,7 +23,18 @@ export interface SkipOp {
   reason: string;
 }
 
-export type InstallOp = WriteOp | AgentsMdOp | SkipOp;
+import type { HookBinding } from "./hook-settings-merge.js";
+
+export interface HookSettingsOp {
+  action: "hook-settings";
+  kind: "hook";
+  name: string;
+  /** Absolute settings.json path to merge bindings into. */
+  dest: string;
+  bindings: HookBinding[];
+}
+
+export type InstallOp = WriteOp | AgentsMdOp | SkipOp | HookSettingsOp;
 
 export interface ProviderInstallResult {
   provider: string;

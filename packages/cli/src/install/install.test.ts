@@ -91,6 +91,59 @@ describe("executeInstall + dry-run", () => {
     ).not.toThrow(); // dry-run still validates paths under cwd=/nope so ok
   });
 
+  it("hooks: claude-code copies files; settings merge only when confirmed", () => {
+    const kitRoot = join(sandbox, "kit-with-hooks");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "session-init");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ event: "SessionStart", description: "init env" }),
+    );
+    const hookKit = loadKit(kitRoot);
+
+    // declined / non-interactive: file copied, settings.json untouched, skip logged
+    const [declined] = installKit(hookKit, ["claude-code"], ctx, {
+      timestamp: "20260603-000060",
+    });
+    expect(existsSync(join(ctx.cwd, ".claude/hooks/vc/session-init.cjs"))).toBe(true);
+    expect(existsSync(join(ctx.cwd, ".claude/settings.json"))).toBe(false);
+    expect(declined.skipped.some((s) => s.kind === "hook")).toBe(true);
+
+    // confirmed: settings merged, idempotent across double install
+    installKit(hookKit, ["claude-code"], ctx, {
+      timestamp: "20260603-000061",
+      applyHookSettings: true,
+    });
+    installKit(hookKit, ["claude-code"], ctx, {
+      timestamp: "20260603-000062",
+      applyHookSettings: true,
+    });
+    const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
+    const entries = JSON.stringify(settings.hooks.SessionStart).match(/session-init\.cjs/g);
+    expect(entries?.length).toBe(1);
+  });
+
+  it("hooks: non-claude providers skip-and-log", () => {
+    const kitRoot = join(sandbox, "kit-with-hooks2");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "privacy-block");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ event: "PreToolUse", matcher: "Read", description: "block secrets" }),
+    );
+    const hookKit = loadKit(kitRoot);
+    const ops = planInstall(hookKit, getResolver("codex"), ctx);
+    const hookOps = ops.filter((o) => o.kind === "hook");
+    expect(hookOps.length).toBeGreaterThan(0);
+    expect(hookOps.every((o) => o.action === "skip")).toBe(true);
+    const [res] = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
+    expect(res.skipped.some((s) => s.kind === "hook" && /unverified/.test(s.reason))).toBe(true);
+  });
+
   it("atomic: a pre-existing file is fully replaced, never half", () => {
     const skill = join(ctx.cwd, ".claude/skills/echo-tool/SKILL.md");
     mkdirSync(dirname(skill), { recursive: true });
