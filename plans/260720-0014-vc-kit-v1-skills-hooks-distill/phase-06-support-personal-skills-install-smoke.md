@@ -53,7 +53,7 @@ Hoàn thiện roster: 3 support skills (`vc:problem-solving`, `vc:research`, `vc
 
 ## Success Criteria
 
-- [ ] Integration smoke pass trên CI — chạy trong `pnpm test` (CI verify khi push)
+- [x] Integration smoke pass trên CI (run 29698220219, Lint · Build · Test xanh)
 - [x] Kit chỉ còn 12 skills roster + 5 hooks (demo skills đã xóa, smoke test assert)
 - [x] README matrix đúng thực tế (hooks: claude only)
 - [x] Toàn plan sync-back: 6 phases completed, checkbox khớp
