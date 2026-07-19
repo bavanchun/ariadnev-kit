@@ -46,8 +46,13 @@ the full publish runbook and one-time prerequisites.
 
 | Command | Purpose |
 |---|---|
-| `vcskill install [--provider a,b] [--global] [--dry-run]` | Install kit to providers |
+| `vcskill install [--provider a,b] [--global] [--dry-run]` | Install kit to providers; writes `.vcskill/receipt.json` |
 | `vcskill list [--global]` | Show kit contents + per-provider install state |
+| `vcskill doctor [--global]` | Health-check the install against its receipt (files, hooks, settings bindings, version) |
+| `vcskill uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install |
+| `vcskill backups list [--global]` | List timestamped backups with file counts |
+| `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
+| `vcskill update [--global]` | Check npm for a newer vcskill release (offline-safe) |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 

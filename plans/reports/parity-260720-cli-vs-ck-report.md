@@ -86,14 +86,39 @@ tests: nothing-to-do, claude-code round-trip, codex round-trip, modified-file
 preservation, dry-run no-op), plus a live CLI smoke reproducing the
 claude-code round-trip outside the test suite.
 
-## Phase 4: Backups/update — TBD
+## Phase 4: Backups + update (`vcskill backups list|restore`, `vcskill update`, 4h)
 
-No direct ck equivalent for `backups list/restore` (ck has no backup
-mechanism in its help output). `update` vs ck's `update` (CLI-tool-only,
-does not touch kit content) — vcskill's updates both the CLI and offers to
-re-sync kit content, a broader scope stated explicitly as a difference, not
-an oversight.
+| ck capability | vcskill |
+|---|---|
+| No `backups` command in ck's help output at all | ✅ **net addition, not parity**: vcskill's last-3 backup rotation existed since v1; this phase adds `list`/`restore` so the backups are actually usable, not just a safety net nobody can act on |
+| `ck update` (CLI-tool-only, never touches kit content) | ➡️ scope note, not a gap: `vcskill update` checks version and prints upgrade guidance; it does not silently re-run install (a deliberate v1 cut — auto-reinstall was flagged as a second risky code path this late in the plan and wasn't requested) |
+
+**Điểm vượt**: (1) backup manifest (`originalPath` + sha256-free direct
+content copy, indexed per backup) makes `restore` possible at all — a
+capability ck doesn't expose; (2) restore always backs up the current state
+before overwriting it (same discipline as uninstall), so a restore can
+itself be undone; (3) pre-manifest (old-layout) backups degrade to
+list-only with an explicit message — never guessed; (4) `update` is
+offline-safe by construction (injected fetch dependency, 3s timeout,
+returns null on any failure) — proven by a real test with a failing fetch,
+not just "should work."
+
+Evidence: `backup.test.ts` (5 tests), `backups-command.test.ts` (7 tests),
+`update-command.test.ts` (6 tests), plus live CLI runs: `backups list`
+against a real install, `backups restore` round-tripping a tampered
+`AGENTS.md` back to its original content, `update` against the real npm
+registry (reported "up to date" against the currently published 0.3.0).
+
+## Whole-plan summary
+
+All 4 phases shipped: install receipt (foundation) → doctor → uninstall
+(highest risk, byte-exact round-trip proven) → backups/update. vcskill CLI
+grew from 4 to 8 commands. Every new command was compared against its `ck`
+counterpart from real `--help` output; every dropped capability has a
+one-line reason (YAGNI, architecture difference, or deliberate risk
+avoidance); every claimed improvement is backed by a test, not just an
+assertion in this report.
 
 ## Unresolved questions
 
-None yet — updated per phase.
+None.

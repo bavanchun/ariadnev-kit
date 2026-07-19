@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "backups list/restore + update + README/docs + changeset"
-status: pending
+status: completed
 priority: P2
 effort: "4h"
 dependencies: [2, 3]
@@ -45,9 +45,9 @@ Hai lệnh mỏng còn lại + hoàn thiện docs. Đóng plan bằng sync-back.
 
 ## Success Criteria
 
-- [ ] Restore round-trip có test; backups cũ không vỡ
-- [ ] update hoạt động offline-safe (không network → không fail)
-- [ ] README khớp; changeset; toàn plan completed + checkbox khớp
+- [x] Restore round-trip có test (7 tests) + live CLI run (AGENTS.md tampered → restored exact); backups cũ không vỡ (pre-manifest → list-only test)
+- [x] update hoạt động offline-safe (injected fetch → null → exit 0, "could not check"); live run against real npm registry pass
+- [x] README khớp (8-command table); changeset; toàn plan completed + checkbox khớp
 
 ## Risk Assessment
 
