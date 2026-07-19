@@ -49,11 +49,42 @@ tests, all failure branches covered), `doctor-command.ts` +
 `cli-commands.test.ts` (3 integration tests using a real install +
 real file deletion), manual CLI run across all 3 states.
 
-## Phase 3: Uninstall — TBD
+## Phase 3: Uninstall (`vcskill uninstall [--provider id,id] [--global] [--dry-run]`, 5h)
 
-ck capabilities to address: `--local`/`--global`/`--all`/`--kit <type>`
-scope options, `--dry-run`, `--force-overwrite`, `-y/--yes`, ownership-aware
-preservation of user-modified files.
+| ck capability | vcskill uninstall |
+|---|---|
+| `--dry-run` (preview, no deletion) | ✅ kept — plans and reports removed/preserved counts, zero fs writes |
+| `-y/--yes` (skip confirmation) | ➡️ bỏ có lý do: v1 uninstall is always non-interactive (matches ck's `--yes` behavior by default) — an interactive confirmation prompt is a thin CLI-layer addition deferred, not a missing capability |
+| `-l/-g/-A` (local/global/all scope) | ✅ `--global` kept (project is default, matching install's own scope flag); `--all` (both scopes in one call) not implemented — v1 requires two invocations, one per scope, which is the honest reflection of "each scope has its own receipt file" |
+| `-k, --kit <type>` (uninstall one named kit, e.g. marketing) | ➡️ bỏ có lý do: no multi-kit concept in vcskill — one canonical `kit/`, filtering is by `--provider` instead |
+| `--force-overwrite` (delete even user-modified files) | ➡️ bỏ có lý do (deliberately, not an oversight): v1 never force-deletes a modified file under any flag — the plan's stated risk mitigation ("rm nhầm file user" is the single highest risk) rules this out; a future `--force` could be added but was not requested |
+| **Ownership-aware**: "Only CK-installed files that haven't been modified are removed. User-created files and modified files are preserved" | ✅ **matched and made verifiable**: every receipt file carries a sha256 recorded at install time; uninstall recomputes the hash and skips (preserves) any file that differs — proven by a real test that edits a file after install and confirms it survives uninstall untouched |
+
+**Điểm vượt** (the central claim of this whole CLI plan, now proven):
+1. **Modification detection is inspectable, not opaque.** ck's mechanism for
+   "hasn't been modified" isn't documented; vcskill's is a plain sha256 in a
+   JSON file anyone can read.
+2. **Round-trip correctness proven byte-exact**, not just "preserves stuff
+   generally": a real sandbox test installs claude-code into a project with
+   pre-existing `settings.json` (user's `model` field + a foreign `Stop`
+   hook), confirms the merge actually happened, uninstalls, and asserts the
+   settings file is deep-equal to the original. Same for codex's `AGENTS.md`
+   managed-block round-trip (string-exact, not just deep-equal). A live CLI
+   run reproduced the same result outside the test suite.
+3. **Bounded directory cleanup**: only removes a now-empty artifact directory
+   and its own subdirectories, never the kind-root (`skills/`, `agents/`) or
+   the provider directory (`.claude/`) itself — tested explicitly, since an
+   unbounded cleanup was identified as a real risk during design.
+4. **Path-traversal guard reused verbatim from install** (`assertWithinRoots`,
+   extracted to `path-guard.ts` specifically so uninstall and install share
+   one security boundary instead of two copies that could drift).
+
+Evidence: `hook-settings-merge.test.ts` (+6 unmerge tests), `agents-md.test.ts`
+(+3 round-trip tests), `uninstall-plan.test.ts` (9 tests),
+`uninstall-execute.test.ts` (7 tests), `cli-commands.test.ts` (+5 integration
+tests: nothing-to-do, claude-code round-trip, codex round-trip, modified-file
+preservation, dry-run no-op), plus a live CLI smoke reproducing the
+claude-code round-trip outside the test suite.
 
 ## Phase 4: Backups/update — TBD
 
