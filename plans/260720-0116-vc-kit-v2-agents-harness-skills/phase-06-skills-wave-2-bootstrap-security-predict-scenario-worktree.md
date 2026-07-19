@@ -25,8 +25,11 @@ rồi smoke toàn kit + changeset.
 | vc:worktree | worktree | Tạo/dọn git worktree cô lập; + health audit stale worktrees; tương thích vc:git |
 
 Smoke cuối: install claude-code sandbox → **21 skills + 13 agents + 6 hooks +
-2 rules** đủ; codex → hooks skip; agents land dạng TOML như adapt hiện có.
-Update README roster + provider matrix nếu đổi. Changeset minor.
+3 rules** đủ; codex → hooks skip; agents land dạng TOML như adapt hiện có
+(`model`/`memory` drop chủ đích — codex không có per-agent model tiering).
+README: update roster + provider matrix + **mục Getting Started cho người mới**
+(cài 1 lệnh → thử /vc:brainstorm → cook — yêu cầu "ai cũng dùng được").
+Changeset minor.
 
 ## PARITY GATE
 

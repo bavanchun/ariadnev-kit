@@ -18,7 +18,7 @@ dependencies: [1]
 | Skill | CK counterpart | Cốt lõi + điểm vượt tối thiểu (gợi ý) |
 |---|---|---|
 | vc:skill-creator | skill-creator | Meta-skill: checklist authoring + scaffold qua `vcskill add-skill` + tự chạy gate (`pnpm test` với lint) — CK không có gate máy, mình có: điểm vượt tự nhiên. Enforce parity-table khi port skill từ kit khác |
-| vc:journal | journal | Ghi nhật ký kỹ thuật cuối session vào `docs/journal/` hoặc plans/reports; trigger conditions rõ; gọn hơn CK (bỏ phần emotional dài), + template 10 dòng chuẩn |
+| vc:journal | journal | Ghi nhật ký kỹ thuật cuối session vào `docs/journal/` hoặc plans/reports; trigger conditions rõ; gọn hơn CK (bỏ phần emotional dài), + template 10 dòng chuẩn, + mục **friction/harness-delta** (từ repository-harness IMPROVEMENT_PROTOCOL: friction lặp ≥2 lần → đề xuất sửa rule/skill cụ thể) |
 | vc:sequential-thinking | sequential-thinking | Reasoning có cấu trúc: steps, revision, verify hypothesis; zero deps; + quy tắc "mỗi step phải falsifiable" |
 | vc:docs-seeker | docs-seeker | Tra docs mới qua context7/llms.txt/WebFetch; + bắt buộc ghi version/date checked (khớp vc:research) |
 
