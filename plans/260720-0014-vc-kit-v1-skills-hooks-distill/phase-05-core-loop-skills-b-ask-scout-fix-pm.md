@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Core loop skills B: ask scout fix pm"
-status: pending
+status: completed
 priority: P2
 effort: "6h"
 dependencies: [4]
