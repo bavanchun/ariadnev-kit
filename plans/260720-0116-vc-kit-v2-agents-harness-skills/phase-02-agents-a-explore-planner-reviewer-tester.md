@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Agents A: vc-explore, vc-planner, vc-reviewer, vc-tester"
-status: pending
+status: completed
 priority: P1
 effort: "6h"
 dependencies: [1]
@@ -48,9 +48,9 @@ vượt, lưu `plans/reports/parity-260720-agents-a-vs-claudekit-report.md`.
 
 ## Success Criteria
 
-- [ ] 4 agents pass gate, ≤120 dòng/con
-- [ ] Parity report đầy đủ 4 bảng, mỗi con ≥1 điểm vượt cụ thể
-- [ ] Không câu nào copy nguyên văn CK
+- [x] 4 agents pass gate (49/63/75/59 dòng), sandbox smoke claude-code + codex TOML xác nhận
+- [x] Parity report đầy đủ 4 bảng (parity-260720-agents-a-vs-claudekit-report.md), mỗi con ≥3 điểm vượt
+- [x] Không câu nào copy nguyên văn CK
 
 ## Risk Assessment
 
