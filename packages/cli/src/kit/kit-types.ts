@@ -26,4 +26,6 @@ export interface Kit {
   scriptsDir: string | null;
   /** Absolute path to `kit/.env.example` if present. */
   envExample: string | null;
+  /** Non-fatal lint findings (e.g. duplicate-heading heuristic). */
+  warnings: string[];
 }
