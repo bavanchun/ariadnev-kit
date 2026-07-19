@@ -33,7 +33,9 @@ Start narrow, then widen only when shared surface changed:
 
 The final report must quote real output: test counts, suite duration, or the
 failing→passing transition. "Tests pass" without numbers does not clear the
-gate.
+gate. Label evidence by proof layer (unit/integration/e2e/platform — defined
+in `references/risk-lanes.md`) when the change crosses more than one; a phase
+can skip a layer if the report states why.
 
 ## No test infrastructure?
 

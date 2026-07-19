@@ -43,14 +43,15 @@ multi-phase roadmap authoring (`vc:plan`).
 
 1. **Understand** — read the plan or scout the touched area (existing
    patterns, contracts, callers). List: files to modify, files to create,
-   acceptance criteria.
+   acceptance criteria. Classify the risk lane per `references/risk-lanes.md`
+   — high-risk stops here for a confirm before any code is written.
 2. **Implement per unit of work**:
    a. failing test → b. implementation → c. green → d. commit via `vc:git`
    (conventional message, one concern per commit).
 3. **Test gate** — read `references/test-gate.md` and pass every check before
    claiming completion.
 4. **Review gate** — read `references/review-gate.md`; self-review the full
-   diff against it (or delegate to a reviewer subagent for cross-module or
+   diff against it (or delegate to `vc-reviewer` for cross-module or
    contract-touching changes).
 5. **Finalize** — sync plan checkboxes/status if executing a plan, update
    docs only when user-visible behavior changed, report the outcome with
@@ -78,6 +79,7 @@ End every cook run with:
 ## Quality gates
 
 - [ ] Plan (file or inline) existed before the first code edit
+- [ ] Risk lane classified; high-risk work confirmed with the user before implementing
 - [ ] Red-then-green evidence for each behavior change
 - [ ] `references/test-gate.md` checklist passed
 - [ ] `references/review-gate.md` checklist passed

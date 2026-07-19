@@ -1,7 +1,8 @@
-# Explore Agent Prompt Template
+# vc-explore Prompt Template
 
-Fill every {placeholder}; send the same template to each agent with a
-different scope. Agents are read-only: no edits, no writes, no state.
+Fill every {placeholder}; send the same template to each `vc-explore`
+instance with a different scope. Agents are read-only: no edits, no writes,
+no state.
 
 ```text
 Task: {the question, one sentence}
