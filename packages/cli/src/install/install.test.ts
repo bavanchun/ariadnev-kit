@@ -106,6 +106,47 @@ describe("executeInstall + dry-run", () => {
     const [res] = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
     expect(res.written).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".claude"))).toBe(false);
+    expect(existsSync(join(ctx.cwd, ".vcskill/receipt.json"))).toBe(false);
+  });
+
+  it("real install writes a receipt with files, version, and scope", () => {
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002a", vcskillVersion: "1.2.3" });
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    expect(receipt.schemaVersion).toBe(1);
+    expect(receipt.vcskillVersion).toBe("1.2.3");
+    expect(receipt.installs["claude-code"].scope).toBe("project");
+    expect(receipt.installs["claude-code"].files.length).toBeGreaterThan(0);
+    expect(receipt.installs["claude-code"].files[0]).toHaveProperty("sha256");
+  });
+
+  it("re-installing the same provider replaces its receipt record without growing it", () => {
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002b" });
+    const first = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002c" });
+    const second = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    expect(second.installs["claude-code"].files.length).toBe(first.installs["claude-code"].files.length);
+  });
+
+  it("installing a second provider preserves the first provider's receipt record", () => {
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002d" });
+    installKit(kit, ["codex"], ctx, { timestamp: "20260603-000002e" });
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    expect(Object.keys(receipt.installs).sort()).toEqual(["claude-code", "codex"]);
+  });
+
+  it("declined hook-settings merge records applied:false in the receipt", () => {
+    const kitRoot = join(sandbox, "receipt-hook-kit");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "session-init");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(join(hookDir, "hook.json"), JSON.stringify({ event: "SessionStart", description: "d" }));
+    const hookKit = loadKit(kitRoot);
+    installKit(hookKit, ["claude-code"], ctx, { timestamp: "20260603-000002f" }); // applyHookSettings defaults false
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    expect(receipt.installs["claude-code"].hookBindings).toEqual([
+      { event: "SessionStart", command: expect.stringContaining("session-init.cjs"), applied: false },
+    ]);
   });
 
   it("real install writes adapted files for codex", () => {
