@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Agent spec + CI gate + rules thật + subagent-init hook"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: []
@@ -74,11 +74,11 @@ hook subagent-init để agents nhận context.
 
 ## Success Criteria
 
-- [ ] Agent lint đỏ-trước-xanh-sau, chạy trong pnpm test
-- [ ] subagent-init fail-open verified, đúng event đã verify với docs
-- [ ] Kit không còn placeholder nào; 3 rules thật inject được qua rules-inject
-- [ ] session-state trace có files-changed + outcome, TDD, vẫn fail-open
-- [ ] Coverage ≥90%
+- [x] Agent lint đỏ-trước-xanh-sau (agent-lint.test.ts + kit-fixtures.test.ts), chạy trong pnpm test
+- [x] subagent-init fail-open verified (node:test), event SubagentStart xác nhận qua CK settings.json:454 + sandbox smoke thật
+- [x] Kit không còn placeholder nào (sample-rule/sample-cmd/sample-reviewer xóa); 3 rules thật inject được qua rules-inject (AGENTS.md merge test)
+- [x] session-state trace có files-changed + outcome (gitFilesChanged, TDD), vẫn fail-open
+- [x] Coverage ≥90% (99.28%, 139 vitest + 46 node:test)
 
 ## Risk Assessment
 

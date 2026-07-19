@@ -7,6 +7,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const os = require("node:os");
 const crypto = require("node:crypto");
+const { execFileSync } = require("node:child_process");
 
 const LIB = [path.join(__dirname, "_lib"), path.join(__dirname, "..", "_lib")].find((d) =>
   fs.existsSync(d),
@@ -22,7 +23,18 @@ function cwdHash(cwd) {
   return crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
 }
 
-function buildStateMarkdown(input, project, now) {
+/** git status --short lines for cwd; [] outside a repo or on any failure. */
+function gitFilesChanged(cwd) {
+  try {
+    const out = execFileSync("git", ["status", "--short"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    return out.split("\n").filter((l) => l.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function buildStateMarkdown(input, project, now, filesChanged) {
+  const outcome = filesChanged.length === 0 ? "clean" : `${filesChanged.length} files changed`;
   return [
     "# vc session state",
     "",
@@ -32,6 +44,10 @@ function buildStateMarkdown(input, project, now) {
     `- cwd: ${input.cwd || ""}`,
     `- project: ${project.type}${project.packageManager ? ` (${project.packageManager})` : ""}`,
     `- branch: ${project.branch || "n/a"}`,
+    `- outcome: ${outcome}`,
+    "",
+    "## Files changed",
+    filesChanged.length === 0 ? "(none)" : filesChanged.map((l) => `- ${l.trim()}`).join("\n"),
     "",
   ].join("\n");
 }
@@ -65,9 +81,9 @@ function main() {
   if (fs.existsSync(latest)) {
     fs.renameSync(latest, path.join(dir, `archive-${archiveStamp(now)}.md`));
   }
-  atomicWrite(latest, buildStateMarkdown(input, detectProject(cwd), now));
+  atomicWrite(latest, buildStateMarkdown(input, detectProject(cwd), now, gitFilesChanged(cwd)));
   pruneStateDir(dir, now.getTime());
 }
 
 if (require.main === module) failOpen("session-state", main);
-module.exports = { buildStateMarkdown, cwdHash, pruneStateDir };
+module.exports = { buildStateMarkdown, cwdHash, pruneStateDir, gitFilesChanged };
