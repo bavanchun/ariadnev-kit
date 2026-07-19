@@ -72,16 +72,99 @@ describe("loadKit validation (negative cases)", () => {
 
   it("rejects duplicate names", () => {
     const root = tmpKit();
-    writeSkill(root, "foo", "name: vc:foo\ndescription: x");
+    const desc = "Valid fixture skill. Use when testing kit loading of multiple skills.";
+    writeSkill(root, "foo", `name: vc:foo\ndescription: ${desc}`);
     // second skill dir 'bar' but name vc:foo -> mismatch first, so use valid dup setup
     mkdirSync(join(root, "skills", "foo2"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo2", "SKILL.md"),
-      `---\nname: vc:foo2\ndescription: x\n---\n`,
+      `---\nname: vc:foo2\ndescription: ${desc}\n---\n`,
     );
     // duplicate is hard to trigger with name==dir invariant; ensure valid kit loads
     expect(loadKit(root).skills.length).toBe(2);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("loadKit skill lint gates (negative fixtures)", () => {
+  function tmpKit(): string {
+    const root = mkdtempSync(join(tmpdir(), "vcskill-lint-"));
+    mkdirSync(join(root, "skills"), { recursive: true });
+    return root;
+  }
+
+  function writeSkillFile(root: string, dir: string, content: string) {
+    mkdirSync(join(root, "skills", dir), { recursive: true });
+    writeFileSync(join(root, "skills", dir, "SKILL.md"), content);
+  }
+
+  const okDescription = "Demo skill for lint tests. Use when validating the kit CI gate rules.";
+
+  it("rejects a too-short description", () => {
+    const root = tmpKit();
+    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: Use it.\n---\n# foo\n`);
+    expect(() => loadKit(root)).toThrow(KitValidationError);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects a description without trigger verb", () => {
+    const root = tmpKit();
+    writeSkillFile(
+      root,
+      "foo",
+      `---\nname: vc:foo\ndescription: A pile of git conventions and various pipelines together.\n---\n# foo\n`,
+    );
+    expect(() => loadKit(root)).toThrow(/trigger/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects SKILL.md over 300 lines", () => {
+    const root = tmpKit();
+    const body = Array.from({ length: 301 }, (_, i) => `line ${i}`).join("\n");
+    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: ${okDescription}\n---\n${body}\n`);
+    expect(() => loadKit(root)).toThrow(/300/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects a reference file over 300 lines", () => {
+    const root = tmpKit();
+    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n`);
+    mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "foo", "references", "big.md"),
+      Array.from({ length: 301 }, () => "x").join("\n"),
+    );
+    expect(() => loadKit(root)).toThrow(/big\.md/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects unknown frontmatter fields", () => {
+    const root = tmpKit();
+    writeSkillFile(
+      root,
+      "foo",
+      `---\nname: vc:foo\ndescription: ${okDescription}\ncategory: dev-tools\n---\n# foo\n`,
+    );
+    expect(() => loadKit(root)).toThrow(/category/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("surfaces duplicate-heading overlap as kit warnings, not errors", () => {
+    const root = tmpKit();
+    writeSkillFile(
+      root,
+      "foo",
+      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n\n## Shared Heading\n`,
+    );
+    mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
+    writeFileSync(join(root, "skills", "foo", "references", "ref.md"), "## Shared Heading\n\ntext\n");
+    const kit = loadKit(root);
+    expect(kit.warnings.some((w) => w.includes("Shared Heading"))).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real kit/ passes the lint gate", () => {
+    expect(() => loadKit(repoKitRoot)).not.toThrow();
   });
 });
 

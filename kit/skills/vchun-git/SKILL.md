@@ -1,10 +1,7 @@
 ---
 name: vc:vchun-git
-description: "Personal git workflow (forked from ck:git). Conventional commits, branch protection, co-author footer for Pair Extraordinaire, full prc pipeline for Pull Shark farming."
+description: "Personal git workflow (forked from ck:git). Use for commits, PRs, branch hygiene, merges, or the full prc pipeline with co-author and achievement-friendly defaults."
 user-invocable: true
-when_to_use: "Invoke for commits, PRs, branch hygiene, or full git pipeline with achievement-friendly defaults."
-category: dev-tools
-keywords: [git, commits, staging, PR, merge, co-author, pair, pull-shark]
 argument-hint: "cm|cp|pr|prc|merge|feat|fix [--solo|--team] [args]"
 metadata:
   author: vchun

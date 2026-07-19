@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import matter from "gray-matter";
 import type { Artifact, ArtifactType, Kit } from "./kit-types.js";
+import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 
 export class KitValidationError extends Error {
   constructor(message: string) {
@@ -44,7 +45,18 @@ function readArtifact(type: ArtifactType, name: string, filePath: string): Artif
   };
 }
 
-function loadSkills(kitRoot: string): Artifact[] {
+function readReferenceFiles(skillDir: string): ReferenceFile[] {
+  const refsDir = join(skillDir, "references");
+  if (!existsSync(refsDir)) return [];
+  return readdirSync(refsDir)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => ({
+      name: join("references", f),
+      content: readFileSync(join(refsDir, f), "utf8"),
+    }));
+}
+
+function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
   const skillsDir = join(kitRoot, "skills");
   if (!existsSync(skillsDir)) return [];
   const out: Artifact[] = [];
@@ -55,6 +67,11 @@ function loadSkills(kitRoot: string): Artifact[] {
     if (!statSync(dir).isDirectory() || !existsSync(skillMd)) continue;
     const artifact = readArtifact("skill", entry, skillMd);
     validateSkill(artifact);
+    const lint = lintSkill(artifact, readReferenceFiles(dir));
+    if (lint.errors.length > 0) {
+      throw new KitValidationError(lint.errors.join("\n"));
+    }
+    warnings.push(...lint.warnings);
     if (seen.has(artifact.name)) {
       throw new KitValidationError(`duplicate skill name: ${artifact.name}`);
     }
@@ -91,13 +108,15 @@ function loadFlat(kitRoot: string, sub: string, type: ArtifactType): Artifact[] 
 export function loadKit(kitRoot: string): Kit {
   const scriptsDir = join(kitRoot, "scripts");
   const envExample = join(kitRoot, ".env.example");
+  const warnings: string[] = [];
   return {
     root: kitRoot,
-    skills: loadSkills(kitRoot),
+    skills: loadSkills(kitRoot, warnings),
     agents: loadFlat(kitRoot, "agents", "agent"),
     commands: loadFlat(kitRoot, "commands", "command"),
     rules: loadFlat(kitRoot, "rules", "rule"),
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
+    warnings,
   };
 }

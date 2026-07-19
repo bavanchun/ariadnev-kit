@@ -35,14 +35,18 @@ describe("runAddSkill", () => {
   });
   afterEach(() => rmSync(dirname(kitRoot), { recursive: true, force: true }));
 
+  const gateOkDescription = "A foo skill for tests. Use when verifying the add-skill scaffold.";
+
   it("creates a skill that loadKit accepts", () => {
-    const res = runAddSkill({ name: "foo", description: "A foo skill.", kitRoot });
+    const res = runAddSkill({ name: "foo", description: gateOkDescription, kitRoot });
     expect(existsSync(res.path)).toBe(true);
     expect(loadKit(kitRoot).skills.some((s) => s.name === "foo")).toBe(true);
   });
   it("rejects duplicate name", () => {
-    runAddSkill({ name: "foo", description: "x", kitRoot });
-    expect(() => runAddSkill({ name: "foo", description: "x", kitRoot })).toThrow(/already exists/);
+    runAddSkill({ name: "foo", description: gateOkDescription, kitRoot });
+    expect(() => runAddSkill({ name: "foo", description: gateOkDescription, kitRoot })).toThrow(
+      /already exists/,
+    );
   });
   it("rejects invalid name", () => {
     expect(() => runAddSkill({ name: "Bad Name", description: "x", kitRoot })).toThrow(/invalid/);
