@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Agents C: brainstormer, researcher, docs-manager, project-manager, journal-writer + rewire skills"
-status: pending
+status: completed
 priority: P2
 effort: "6h"
 dependencies: [3]
@@ -56,10 +56,10 @@ Report: `plans/reports/parity-260720-agents-c-vs-claudekit-report.md`.
 
 ## Success Criteria
 
-- [ ] Roster đủ 13 agents pass gate; parity reports đủ 13 con
-- [ ] `grep -r "Task(Explore)\|reviewer subagent"` trong kit/skills → 0 tham chiếu mơ hồ, tất cả trỏ tên vc-*
-- [ ] cook risk-lanes routing + high-risk confirm gate; pm proof vocabulary; docs mode decision — cả 3 pass skill gate
-- [ ] Install smoke: 13 agents land `.claude/agents/vc-*.md`, không đè file CK nào
+- [x] Roster đủ 13 agents pass gate; parity reports đủ 13 con (agents-a/b/c reports)
+- [x] `grep -r "Task(Explore)\|reviewer subagent"` trong kit/skills → 0 tham chiếu mơ hồ, tất cả trỏ tên vc-*
+- [x] cook risk-lanes routing (references/risk-lanes.md) + high-risk confirm gate; pm proof vocabulary (sync-back.md); docs mode decision — cả 3 pass skill gate
+- [x] Install smoke: 13 agents land `.claude/agents/vc-*.md`, không đè file CK nào (sandbox verified)
 
 ## Risk Assessment
 

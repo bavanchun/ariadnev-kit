@@ -30,8 +30,7 @@ If invoked without arguments, use `AskUserQuestion` to present available operati
 | `fix <name>` | Create `fix/<name>` branch |
 | `merge` | Merge branches |
 
-Execute git workflows via `git-manager` subagent to isolate verbose output.
-Activate `ck:context-engineering` skill.
+Execute git workflows via the `vc-git-manager` agent to isolate verbose output.
 
 **IMPORTANT:**
 - Sacrifice grammar for the sake of concision.

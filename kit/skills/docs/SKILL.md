@@ -1,8 +1,8 @@
 ---
 name: vc:docs
-description: Initialize and maintain project documentation in the docs/ folder. Use for doc setup, updating docs after behavior changes, or auditing docs against the code.
+description: Initialize and maintain project documentation in the docs/ folder. Use for doc setup, updating docs after behavior changes, auditing docs against the code, or recording a durable decision.
 user-invocable: true
-argument-hint: "init | update | audit [scope]"
+argument-hint: "init | update | audit | decision [scope]"
 metadata:
   author: vchun
   version: "1.0.0"
@@ -50,6 +50,27 @@ them.
 **audit** — walk each doc claim against the code: commands still run, paths
 still exist, architecture still true, versions current. Output a findings
 list (doc, claim, reality) and fix the confirmed drift.
+
+**decision** — record a durable architectural or behavioral decision that
+future sessions should inherit rather than re-debate. Write
+`docs/decisions/NNNN-<slug>.md` (next number, zero-padded):
+
+```markdown
+# NNNN: <decision title>
+
+## Context
+What forced this decision — the constraint, trade-off, or problem.
+
+## Decision
+What was chosen, one paragraph.
+
+## Consequences
+What this makes easier, what it makes harder, what it rules out.
+```
+
+Keep each record ≤40 lines. Use this mode when a plan, brainstorm, or fix
+session changed behavior, architecture, authorization, or a public contract
+in a way the next session must not silently reverse — not for routine changes.
 
 ## Rules
 
