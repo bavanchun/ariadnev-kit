@@ -245,11 +245,13 @@ describe("executeInstall + dry-run", () => {
   });
 });
 
-describe("full-kit install smoke (v1 roster)", () => {
+describe("full-kit install smoke (v2 roster, in progress)", () => {
+  // Skills roster grows across plans/260720-0116-vc-kit-v2-agents-harness-skills/
+  // phases 5-6 (12 -> 21). Updated per-phase as new skills land.
   const ROSTER = [
-    "ask", "brainstorm", "cook", "docs", "fix", "git",
-    "obsidian-second-brain-note", "plan", "pm", "problem-solving",
-    "research", "scout",
+    "ask", "brainstorm", "cook", "docs", "docs-seeker", "fix", "git",
+    "journal", "obsidian-second-brain-note", "plan", "pm", "problem-solving",
+    "research", "scout", "sequential-thinking", "skill-creator",
   ];
   const HOOKS = [
     "privacy-block",
@@ -260,7 +262,7 @@ describe("full-kit install smoke (v1 roster)", () => {
     "subagent-init",
   ];
 
-  it("kit ships exactly the 12-skill roster + 5 hooks", () => {
+  it("kit ships exactly the roster-so-far skills + hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
   });
