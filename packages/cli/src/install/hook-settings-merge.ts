@@ -51,6 +51,34 @@ export function mergeHookSettings(existing: string, bindings: HookBinding[]): st
   return `${JSON.stringify(settings, null, 2)}\n`;
 }
 
+/**
+ * Remove exactly the given vc bindings from an existing settings.json string.
+ * Reverse of mergeHookSettings: entries not matching one of `bindings`'
+ * commands are left untouched; an event whose groups all get removed drops
+ * the event key entirely. Idempotent, throws on unparseable input.
+ */
+export function unmergeHookSettings(existing: string, bindings: HookBinding[]): string {
+  const settings: SettingsJson = existing.trim().length
+    ? (JSON.parse(existing) as SettingsJson)
+    : {};
+  const ourCommands = new Set(bindings.map((b) => b.command));
+  const hooks = settings.hooks;
+  if (hooks) {
+    for (const event of Object.keys(hooks)) {
+      const remaining = hooks[event]
+        .map((group) => ({ ...group, hooks: group.hooks.filter((h) => !ourCommands.has(h.command)) }))
+        .filter((group) => group.hooks.length > 0);
+      if (remaining.length > 0) {
+        hooks[event] = remaining;
+      } else {
+        delete hooks[event];
+      }
+    }
+    if (Object.keys(hooks).length === 0) delete settings.hooks;
+  }
+  return `${JSON.stringify(settings, null, 2)}\n`;
+}
+
 /** Copy-pasteable `hooks` block for users who declined the automatic merge. */
 export function renderHookSettingsSnippet(bindings: HookBinding[]): string {
   const merged = JSON.parse(mergeHookSettings("", bindings)) as SettingsJson;

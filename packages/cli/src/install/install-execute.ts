@@ -1,5 +1,7 @@
-import { mkdirSync, writeFileSync, renameSync, existsSync, rmSync, statSync, readFileSync } from "node:fs";
-import { join, dirname, resolve, relative, isAbsolute } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { assertWithinRoots } from "./path-guard.js";
+import { atomicWrite } from "./fs-atomic.js";
 import type { Kit } from "../kit/kit-types.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 import { getResolver } from "../providers/index.js";
@@ -19,32 +21,6 @@ export interface ExecuteOpts {
   allowedRoots: string[];
   /** User confirmed merging hook bindings into settings.json (default: no). */
   applyHookSettings?: boolean;
-}
-
-function assertWithinRoots(dest: string, roots: string[]): void {
-  const abs = resolve(dest);
-  // Cross-platform containment check: dest must sit strictly under a root.
-  // `path.relative` handles separators on every OS and rejects sibling-dir
-  // escapes (`/home/user-evil`) and writes to the root itself.
-  const within = roots.some((root) => {
-    const rel = relative(resolve(root), abs);
-    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-  });
-  if (!within) throw new Error(`refusing to write outside allowed roots: ${dest}`);
-}
-
-function atomicWrite(dest: string, content: string): void {
-  mkdirSync(dirname(dest), { recursive: true });
-  const tmp = `${dest}.vcskill-tmp`;
-  writeFileSync(tmp, content, "utf8");
-  // renameSync atomically replaces an existing FILE — no pre-delete needed
-  // (deleting first would open a crash window where dest is neither old nor
-  // new). Only a pre-existing DIRECTORY must be removed, since rename onto a
-  // non-empty dir fails.
-  if (existsSync(dest) && statSync(dest).isDirectory()) {
-    rmSync(dest, { recursive: true, force: true });
-  }
-  renameSync(tmp, dest);
 }
 
 function opContent(op: Exclude<InstallOp, { action: "skip" }>): string {
