@@ -1,0 +1,4 @@
+{
+  "events": ["Stop", "SubagentStop"],
+  "description": "Persist a per-project markdown session snapshot on stop; archives last 5, expires after 7 days."
+}
