@@ -30,7 +30,7 @@ Mode: `--tdd` — mỗi phase engine/hook viết failing test trước; phase sk
 | 2 | [Adapt engine hooks artifact kind](./phase-02-adapt-engine-hooks-artifact-kind.md) | ✅ Completed |
 | 3 | [Harness 5 hooks TDD](./phase-03-harness-5-hooks-tdd.md) | ✅ Completed (live ~/.claude smoke deferred to user) |
 | 4 | [Core loop skills A: brainstorm cook git plan](./phase-04-core-loop-skills-a-brainstorm-cook-git-plan.md) | ✅ Completed |
-| 5 | [Core loop skills B: ask scout fix pm](./phase-05-core-loop-skills-b-ask-scout-fix-pm.md) | Pending |
+| 5 | [Core loop skills B: ask scout fix pm](./phase-05-core-loop-skills-b-ask-scout-fix-pm.md) | ✅ Completed |
 | 6 | [Support + personal skills + install smoke](./phase-06-support-personal-skills-install-smoke.md) | Pending |
 
 Dependency chain: 1 → (2 ∥ 4,5 partially) nhưng an toàn nhất tuần tự 1→2→3→4→5→6. Phase 4/5 chỉ cần phase 1 (gate); phase 3 cần phase 2 (installer chở hooks).
