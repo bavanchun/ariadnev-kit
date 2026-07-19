@@ -13,8 +13,11 @@ describe("loadKit (real kit/)", () => {
 
   it("discovers all artifact kinds", () => {
     expect(kit.skills.length).toBeGreaterThanOrEqual(2);
-    expect(kit.agents.length).toBeGreaterThanOrEqual(1);
-    expect(kit.commands.length).toBeGreaterThanOrEqual(1);
+    // agents/commands roster is under active construction (vc kit v2 plan);
+    // arrays must exist even when empty — non-empty asserted by the
+    // "full-kit install smoke" describe block once the roster lands.
+    expect(kit.agents).toBeInstanceOf(Array);
+    expect(kit.commands).toBeInstanceOf(Array);
     expect(kit.rules.length).toBeGreaterThanOrEqual(1);
     expect(kit.scriptsDir).not.toBeNull();
     expect(kit.envExample).not.toBeNull();
@@ -230,6 +233,54 @@ describe("loadKit hooks discovery", () => {
     const root = mkdtempSync(join(tmpdir(), "vcskill-nohooks-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     expect(loadKit(root).hooks).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("loadKit agent lint gates", () => {
+  function tmpKit(): string {
+    const root = mkdtempSync(join(tmpdir(), "vcskill-agentlint-"));
+    mkdirSync(join(root, "skills"), { recursive: true });
+    mkdirSync(join(root, "agents"), { recursive: true });
+    return root;
+  }
+
+  const okDescription =
+    "Use this agent when scouting a codebase, needing a fast file map, or tracing how modules relate. <example>Example: user asks to find auth code; assistant delegates to vc-explore.</example><commentary>Fast read-only scan avoids the main agent burning context on broad greps.</commentary>";
+
+  function writeAgent(root: string, stem: string, frontmatterExtra: string) {
+    writeFileSync(
+      join(root, "agents", `vc-${stem}.md`),
+      `---\nname: vc-${stem}\ndescription: "${okDescription}"\n${frontmatterExtra}---\n\n# ${stem}\n\nPersona.\n\n## Behavioral Checklist\n\n- [ ] Item\n`,
+    );
+  }
+
+  it("rejects an agent whose name lacks vc- prefix", () => {
+    const root = tmpKit();
+    writeFileSync(
+      join(root, "agents", "demo.md"),
+      `---\nname: demo\ndescription: "${okDescription}"\n---\n\n# demo\n\n## Behavioral Checklist\n\n- [ ] x\n`,
+    );
+    expect(() => loadKit(root)).toThrow(/vc-/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects an agent body over the line limit", () => {
+    const root = tmpKit();
+    const body = Array.from({ length: 121 }, (_, i) => `line ${i}`).join("\n");
+    writeFileSync(
+      join(root, "agents", "vc-demo.md"),
+      `---\nname: vc-demo\ndescription: "${okDescription}"\n---\n${body}\n\n## Behavioral Checklist\n`,
+    );
+    expect(() => loadKit(root)).toThrow(/120/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("accepts a well-formed agent", () => {
+    const root = tmpKit();
+    writeAgent(root, "demo", "");
+    const kit = loadKit(root);
+    expect(kit.agents.some((a) => a.name === "vc-demo")).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 });

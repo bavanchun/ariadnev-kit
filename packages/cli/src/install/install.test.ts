@@ -12,7 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const kit = loadKit(resolveKitRoot(join(here, "..", "..", "..", "..", "kit")));
 
 // Synthetic kit for content-adaptation assertions — tests must not depend on
-// any real roster skill's body text.
+// any real roster skill's/agent's/command's body text.
 function makeAdaptFixtureKit(root: string) {
   mkdirSync(join(root, "skills", "sample-skill", "scripts"), { recursive: true });
   writeFileSync(
@@ -30,6 +30,45 @@ function makeAdaptFixtureKit(root: string) {
     ].join("\n"),
   );
   writeFileSync(join(root, "skills", "sample-skill", "scripts", "run.ts"), "export {};\n");
+
+  mkdirSync(join(root, "agents"), { recursive: true });
+  writeFileSync(
+    join(root, "agents", "vc-sample-reviewer.md"),
+    [
+      "---",
+      "name: vc-sample-reviewer",
+      'description: "Use this agent to review a diff for fixture tests. <example>Example: reviewing a small diff.</example><commentary>Read-only check.</commentary>"',
+      "tools: Read, Grep",
+      "---",
+      "",
+      "# Sample Reviewer",
+      "",
+      "Review the diff and report findings via `Task tool` orchestration.",
+      "",
+      "## Behavioral Checklist",
+      "",
+      "- [ ] Findings are concrete",
+      "",
+    ].join("\n"),
+  );
+
+  mkdirSync(join(root, "commands"), { recursive: true });
+  writeFileSync(
+    join(root, "commands", "sample-cmd.md"),
+    [
+      "---",
+      "description: Sample slash command fixture.",
+      "argument-hint: \"[text]\"",
+      "agent: vc-sample-reviewer",
+      "---",
+      "",
+      "# /sample-cmd",
+      "",
+      "Run the fixture flow on `$ARGUMENTS`.",
+      "",
+    ].join("\n"),
+  );
+
   return loadKit(root);
 }
 
@@ -45,7 +84,8 @@ afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
 describe("planInstall (pure)", () => {
   it("emits adapted skill + skips unverified codex... none; antigravity skips agents", () => {
-    const ops = planInstall(kit, getResolver("antigravity"), ctx);
+    const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit0"));
+    const ops = planInstall(fixtureKit, getResolver("antigravity"), ctx);
     const skips = ops.filter((o) => o.action === "skip");
     expect(skips.some((o) => o.kind === "agent")).toBe(true);
     expect(skips.some((o) => o.kind === "command")).toBe(true);
@@ -74,9 +114,9 @@ describe("executeInstall + dry-run", () => {
     const skill = join(ctx.home, ".agents/skills/sample-skill/SKILL.md");
     expect(existsSync(skill)).toBe(true);
     expect(readFileSync(skill, "utf8")).toContain("$HOME/.agents/skills/");
-    // real kit still carries agents + env
+    expect(existsSync(join(ctx.home, ".codex/agents/vc-sample-reviewer.toml"))).toBe(true);
+    // real kit still carries env
     installKit(kit, ["codex"], ctx, { timestamp: "20260603-000002" });
-    expect(existsSync(join(ctx.home, ".codex/agents/sample-reviewer.toml"))).toBe(true);
     expect(existsSync(join(ctx.home, ".agents/vcskill/.env.example"))).toBe(true);
   });
 
@@ -102,11 +142,12 @@ describe("executeInstall + dry-run", () => {
     installKit(kit, ["codex"], ctx, { timestamp: "20260603-000030" });
     const agentsMd = readFileSync(join(ctx.cwd, "AGENTS.md"), "utf8");
     expect(agentsMd).toContain("vcskill:start");
-    expect(agentsMd).toContain("Never commit secrets.");
+    expect(agentsMd).toContain("Never commit secrets");
   });
 
   it("opencode writes plural command dir", () => {
-    installKit(kit, ["opencode"], ctx, { timestamp: "20260603-000040" });
+    const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit3"));
+    installKit(fixtureKit, ["opencode"], ctx, { timestamp: "20260603-000040" });
     expect(existsSync(join(ctx.cwd, ".opencode/commands/sample-cmd.md"))).toBe(true);
   });
 

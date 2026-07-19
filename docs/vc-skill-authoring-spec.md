@@ -76,6 +76,28 @@ section in one file and linking from the other.
 - No provider-specific absolute paths — use `.claude/...`-relative canonical
   paths; the adapt engine rewrites them per provider.
 
+## Agent authoring
+
+Agents live in `kit/agents/vc-<slug>.md`; enforced by
+`packages/cli/src/kit/agent-lint.ts` inside `loadKit`.
+
+| Field | Required | Rule |
+|---|---|---|
+| `name` | yes | exactly the file stem (`vc-<slug>.md` → `name: vc-<slug>`) |
+| `description` | yes | 50–1200 chars, must contain ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
+| `tools` | no | comma-separated string or array of tool names |
+| `model` | no | one of `opus`, `sonnet`, `haiku` — tier by task weight (opus: planning/brainstorming; sonnet: review/debug/implement; haiku: mechanical/read-heavy work) |
+| `memory` | no | claude-code only |
+
+Body ≤ 120 lines, must contain a `## Behavioral Checklist` heading (5-8
+concrete pre-submission checks). Shape: persona (1 sentence) → Behavioral
+Checklist → workflow → output template → status protocol. Point to the
+matching `vc:<skill>` for workflow detail — don't duplicate it in the agent.
+
+`model` and `memory` only mean something to claude-code. The codex adapter
+(`adapt/agent-to-toml.ts`) drops both fields when converting to `.toml` —
+that's intentional (codex has no per-agent model tiering), not a bug.
+
 ## Checklist before adding a skill
 
 - [ ] Slug is kebab-case; `name: vc:<slug>` matches the directory
