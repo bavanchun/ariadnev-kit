@@ -45,7 +45,7 @@ Quy trình cho MỖI agent/skill viết mới có bản CK tương ứng:
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Agent spec + CI gate + rules + subagent-init](./phase-01-agent-spec-gate-rules-subagent-init.md) | Pending |
+| 1 | [Agent spec + CI gate + rules + subagent-init](./phase-01-agent-spec-gate-rules-subagent-init.md) | ✅ Completed |
 | 2 | [Agents A: explore planner reviewer tester](./phase-02-agents-a-explore-planner-reviewer-tester.md) | Pending |
 | 3 | [Agents B: debugger developer git-manager simplifier](./phase-03-agents-b-debugger-developer-git-simplifier.md) | Pending |
 | 4 | [Agents C: 5 con còn lại + rewire skills](./phase-04-agents-c-remaining-rewire-skills.md) | Pending |

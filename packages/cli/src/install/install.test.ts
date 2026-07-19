@@ -251,7 +251,14 @@ describe("full-kit install smoke (v1 roster)", () => {
     "obsidian-second-brain-note", "plan", "pm", "problem-solving",
     "research", "scout",
   ];
-  const HOOKS = ["privacy-block", "rules-inject", "scout-block", "session-init", "session-state"];
+  const HOOKS = [
+    "privacy-block",
+    "rules-inject",
+    "scout-block",
+    "session-init",
+    "session-state",
+    "subagent-init",
+  ];
 
   it("kit ships exactly the 12-skill roster + 5 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
@@ -271,7 +278,7 @@ describe("full-kit install smoke (v1 roster)", () => {
     }
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
     expect(Object.keys(settings.hooks).sort()).toEqual([
-      "PreToolUse", "SessionStart", "Stop", "SubagentStop", "UserPromptSubmit",
+      "PreToolUse", "SessionStart", "Stop", "SubagentStart", "SubagentStop", "UserPromptSubmit",
     ]);
   });
 

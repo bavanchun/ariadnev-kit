@@ -1,0 +1,4 @@
+{
+  "event": "SubagentStart",
+  "description": "Inject ~200 tokens of context (agent type, paths, naming pattern, git branch) into a freshly spawned subagent."
+}

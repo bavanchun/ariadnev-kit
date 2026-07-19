@@ -6,7 +6,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const hookPath = path.join(__dirname, "..", "hook.cjs");
-const { buildStateMarkdown, cwdHash, pruneStateDir } = require(hookPath);
+const { buildStateMarkdown, cwdHash, pruneStateDir, gitFilesChanged } = require(hookPath);
 
 function runHook(input, env = {}) {
   return spawnSync(process.execPath, [hookPath], {
@@ -21,11 +21,32 @@ test("buildStateMarkdown includes session metadata", () => {
     { session_id: "s1", cwd: "/proj", hook_event_name: "Stop" },
     { type: "node", packageManager: "pnpm", framework: null, branch: "main" },
     new Date("2026-07-20T00:00:00Z"),
+    [],
   );
   assert.match(md, /s1/);
   assert.match(md, /\/proj/);
   assert.match(md, /main/);
   assert.match(md, /2026-07-20/);
+});
+
+test("buildStateMarkdown trace: lists changed files and derives outcome", () => {
+  const base = { session_id: "s1", cwd: "/proj", hook_event_name: "Stop" };
+  const project = { type: "node", packageManager: "pnpm", framework: null, branch: "main" };
+  const now = new Date("2026-07-20T00:00:00Z");
+
+  const clean = buildStateMarkdown(base, project, now, []);
+  assert.match(clean, /outcome: clean/);
+
+  const dirty = buildStateMarkdown(base, project, now, [" M src/a.ts", "?? src/b.ts"]);
+  assert.match(dirty, /outcome: 2 files changed/);
+  assert.match(dirty, /src\/a\.ts/);
+  assert.match(dirty, /src\/b\.ts/);
+});
+
+test("gitFilesChanged returns [] outside a git repo instead of throwing", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ss-nogit-"));
+  assert.deepEqual(gitFilesChanged(dir), []);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("cwdHash is stable and filesystem-safe", () => {
