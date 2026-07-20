@@ -90,7 +90,7 @@ Never write secrets, API keys, passwords, tokens, private keys, recovery phrases
    - MOC should group notes by concept, pipeline, project, and safety.
    - Keep MOC short, navigational, and curated.
 
-9. **Quality Check**
+9. **Quality gates**
    - Confirm no durable note was created in root vault.
    - Confirm no note is too long for its purpose.
    - Confirm broad topics are split into linked docs.
@@ -108,6 +108,15 @@ When finished, report:
 - key tags added
 - unresolved links, if any
 - whether changes were committed, only if user asked
+
+## Workflow position
+
+**Typically follows:** a learning/research session worth capturing —
+`vc:research` output, a lecture, an article, or ad-hoc knowledge to preserve.
+**Typically precedes:** nothing — this is a terminal capture step into a
+personal vault, standalone from the code-work loop.
+**Related:** a personal knowledge skill, not part of the implementation
+pipeline; parity vs ClaudeKit N/A.
 
 ## References
 

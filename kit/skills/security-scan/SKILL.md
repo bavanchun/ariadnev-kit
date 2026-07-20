@@ -64,7 +64,10 @@ Scanned: <path> | Files checked: <n>
 ```
 
 Confirmed Critical/High findings route to `vc:fix` for remediation — this
-skill reports, it does not patch code automatically.
+skill reports, it does not patch code automatically. Each fix recommendation
+names the proof that would confirm it (`integration` test that the injection
+path is closed, `unit` test that the validator rejects the payload) so `vc:fix`
+inherits a testable done-condition, not just "sanitize the input".
 
 ## Security policy
 
@@ -72,3 +75,23 @@ skill reports, it does not patch code automatically.
 - Never execute a credential found during scanning
 - Never modify code automatically, only report + recommend
 - A confirmed real credential → recommend immediate rotation, not just a code fix
+
+## Quality gates
+
+Before delivering the report:
+
+1. Every finding cites `path:line` — no "there may be secrets somewhere".
+2. Every reported hit passed the false-positive check (placeholder excluded,
+   5-10 lines of context read) — a wall of grep noise is not a scan.
+3. Secret values are redacted; no raw credential appears in the report.
+4. Each Critical/High finding has a concrete fix + its confirming proof layer.
+5. Severity is justified by exploitability, not by pattern-match count.
+
+## Workflow position
+
+**Typically follows:** a pre-release checkpoint, `vc:cook` finalize on
+security-sensitive work, or a direct "scan for secrets" request.
+**Typically precedes:** `vc:fix` (remediate confirmed Critical/High findings).
+**Related:** `vc:fix` handles the actual patching; this skill only finds and
+reports. For dependency-only or secret-only runs, use the `--deps-only` /
+`--secrets-only` flags.
