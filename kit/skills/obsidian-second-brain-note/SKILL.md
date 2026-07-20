@@ -122,7 +122,11 @@ pipeline; parity vs ClaudeKit N/A.
 
 Load only as needed:
 
+- `references/vault-conventions.md` — read first when working in the known
+  your-vault vault (path, git, bilingual + frontmatter conventions in use)
 - `references/note-taxonomy.md` for note types and folder placement
 - `references/frontmatter-schema.md` for YAML schema
 - `references/linking-rules.md` for backlinks, aliases, MOCs
 - `references/quality-checklist.md` for final review
+- `references/course-to-cluster-pipeline.md` — follow when Cluster Mode (a
+  packaged course→cluster engagement pattern) is selected

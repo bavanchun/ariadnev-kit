@@ -8,6 +8,7 @@ import { runDoctor } from "./cli/doctor-command.js";
 import { runBackupsList, runBackupsRestore } from "./cli/backups-command.js";
 import { runUpdate, fetchLatestVersionFromNpm } from "./cli/update-command.js";
 import { runList } from "./cli/list-command.js";
+import { runValidate } from "./cli/validate-command.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
 import { registerAddSkill } from "./cli/add-skill-command.js";
@@ -149,6 +150,15 @@ export function buildProgram(): Command {
         { fetchLatestVersion: fetchLatestVersionFromNpm },
       );
       console.log(summary);
+    });
+
+  program
+    .command("validate")
+    .description("Lint the kit source (frontmatter, sizes, reference integrity) without installing")
+    .action(() => {
+      const { summary, ok } = runValidate();
+      console.log(summary);
+      if (!ok) process.exitCode = 1;
     });
 
   program

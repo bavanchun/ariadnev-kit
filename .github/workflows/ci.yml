@@ -38,5 +38,8 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Validate kit
+        run: node packages/cli/dist/index.js validate
+
       - name: Test + Coverage gate
         run: pnpm run coverage

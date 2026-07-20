@@ -29,9 +29,11 @@ describe("checkReferenceIntegrity", () => {
     expect(result.orphans).toEqual(["references/unused.md"]);
   });
 
-  it("treats a ./references/ prefix as a valid link", () => {
-    const body = "See ./references/foo.md.";
-    const result = checkReferenceIntegrity(body, ["references/foo.md"]);
+  it("ignores a cross-skill reference (../<other>/references/x.md)", () => {
+    // A mention of another skill's reference is not this skill's file, so it is
+    // neither dangling here nor does it satisfy a local orphan.
+    const body = "See ../cook/references/risk-lanes.md for the lane table.";
+    const result = checkReferenceIntegrity(body, []);
     expect(result).toEqual({ dangling: [], orphans: [] });
   });
 
