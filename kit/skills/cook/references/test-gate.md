@@ -14,6 +14,11 @@ Start narrow, then widen only when shared surface changed:
 | Public contract (API, schema, CLI flag, env var) | Full suite + typecheck + build |
 | Config / build files | Full suite + a real build |
 
+When delegating the run to the `vc-tester` agent, it maps changed files to tests
+by its Strategy A–E table (co-located → mirror-dir → import-graph → config →
+high-fan-out) and auto-escalates to the full suite on config/high-fan-out
+changes — the agent-side detail of the scope rules above.
+
 ## 2. Execute
 
 1. Run the narrowest suite. All green? Widen per the table.
