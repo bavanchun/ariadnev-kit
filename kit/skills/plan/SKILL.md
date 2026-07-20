@@ -60,4 +60,19 @@ in doubt, verify against the code before ticking.
 - [ ] Dependencies between phases stated explicitly
 - [ ] Whole-plan acceptance criteria are checkboxes in `plan.md`
 - [ ] Risks named with mitigations, not just listed
+- [ ] Each phase carries Stop Conditions when it has real risk (the finding
+      that must halt and ask the user — see the phase template)
 - [ ] No phase requires work from a later phase to be testable
+
+When ordering phases by risk, classify each phase by risk lane (tiny / normal /
+high-risk — the `intake-and-context` rule) so the plan front-loads the
+high-risk work and marks where `vc:cook` must stop for confirmation.
+
+## Workflow position
+
+**Typically follows:** `vc:brainstorm` (an approach is decided and needs
+phasing), or a direct multi-phase request.
+**Typically precedes:** `vc:cook <plan path>` (executes a phase) and `vc:pm`
+(tracks sync-back).
+**Related:** `vc:brainstorm` decides *what* approach; `vc:plan` sequences *how*
+to build it. Don't plan an undecided approach — brainstorm first.

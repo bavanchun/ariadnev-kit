@@ -82,6 +82,18 @@ List them, or "none".
 
 - [ ] Scout summary shown to the user before the first question
 - [ ] Every approach names concrete files/modules it would touch
+- [ ] Each approach's Risks entry reflects its risk lane (a high-risk approach —
+      auth, data model, public contract — says so; see the `intake-and-context`
+      rule) so the recommendation weighs risk, not just effort
 - [ ] Recommendation exists — never end with "it depends"
 - [ ] Report saved under `plans/reports/` with the naming pattern
 - [ ] User decision recorded, not assumed
+
+## Workflow position
+
+**Typically follows:** a fuzzy idea, `vc:ask` that grew into "which approach", or
+`vc:problem-solving` that reopened the design question.
+**Typically precedes:** `vc:plan` (phase the decided approach) or `vc:cook` (a
+small direct change). Pass the brainstorm report path along for continuity.
+**Related:** `vc:research` supplies technology evidence to weigh here; `vc:plan`
+sequences the approach this skill picks.

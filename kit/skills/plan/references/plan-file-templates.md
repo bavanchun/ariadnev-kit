@@ -72,6 +72,13 @@ Functional + non-functional, each one sentence.
 
 ## Risk Assessment
 - <risk> → <mitigation / rollback>
+
+## Stop Conditions
+- <the specific finding that must halt this phase and ask the user, e.g.
+  "a public contract must change to proceed", "the fix needs a schema
+  migration", "weak/no test coverage on the touched area"> — on hitting one,
+  `vc:cook` stops and confirms scope via AskUserQuestion, never silently
+  works around it. Omit the section only for a genuinely no-risk phase.
 ```
 
 ## Naming
