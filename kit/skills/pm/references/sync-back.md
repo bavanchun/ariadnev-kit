@@ -49,3 +49,31 @@ Same evidence rule applies.
 Before finishing, grep the plan dir for stale claims: old counts, renamed
 files, phases that changed scope. Fix inline. A plan that contradicts itself
 sends the next session down the wrong path.
+
+## 6. Disposition on close
+
+When a plan reaches `completed` (all phases done, all acceptance met), do not
+leave it to accumulate. A pile of finished plans + reports is context rot: a
+future session reads a superseded plan and follows stale direction. So:
+
+1. **Distill what's durable.** Any decision a future session must honor —
+   architecture, a contract, a chosen approach — goes into `docs/` via
+   `vc:docs` `decision` mode *before* anything is removed. If everything durable
+   already lives in the code/docs, say so; most closed plans have nothing left.
+2. **Delete the plan + its reports.** Remove the plan dir and the
+   `plans/reports/*` files tied only to it. Git history is the archive — nothing
+   is lost, and `git log`/`git show` recovers any of it. Do not keep an
+   `_archive/` folder; "keep just in case" is the rot this step exists to stop.
+3. **Record the disposition** in the closing commit: one line naming what was
+   distilled (or "nothing durable") and what was deleted.
+
+Never auto-delete without confirming the exact file list when running live —
+deletion is the one irreversible-looking step (though `git` reverts it).
+
+## 7. Friction routing
+
+If closing the plan surfaced the *same* friction for the 2nd+ time (a rule that
+keeps confusing, a step that keeps breaking), route it to `vc:journal`'s
+harness-delta mode — propose the concrete kit fix rather than silently patching
+mid-close. That is how repeated pain becomes a kit improvement instead of a
+recurring tax.
