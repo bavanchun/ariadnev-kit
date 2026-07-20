@@ -7,18 +7,10 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync, createReadStream } from
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { TARGETS } from "./binary-targets.mjs";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(pkgDir, "dist", "release");
-
-// (bun --target) → published asset name. install.sh maps `uname` to these.
-const TARGETS = [
-  { target: "bun-darwin-arm64", asset: "vcskill-darwin-arm64" },
-  { target: "bun-darwin-x64", asset: "vcskill-darwin-x64" },
-  { target: "bun-linux-x64", asset: "vcskill-linux-x64" },
-  { target: "bun-linux-arm64", asset: "vcskill-linux-arm64" },
-  { target: "bun-windows-x64", asset: "vcskill-windows-x64.exe" },
-];
 
 function sha256(file) {
   return new Promise((resolve, reject) => {

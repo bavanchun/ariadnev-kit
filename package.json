@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "pnpm --filter vcskill build",
-    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\"",
+    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\"",
     "test:hooks": "node --test \"kit/hooks/**/*.test.cjs\"",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
