@@ -1,5 +1,129 @@
 # vcskill
 
+## 0.4.0
+
+### Minor Changes
+
+- d9cec8e: vc kit core loop A + hooks harness.
+
+  - **BREAKING (kit content)**: `vc:vchun-git` renamed to `vc:git` — the skill
+    now installs to `skills/git/`; update any `/vc:vchun-git` habits to
+    `/vc:git`. The old `vchun-git` install dir is not auto-removed.
+  - New skills: `vc:brainstorm`, `vc:cook` (embedded test + review gates),
+    `vc:plan` (CLI-free plan scaffolding).
+  - New `hook` artifact kind: `kit/hooks/` ships 5 Claude Code hooks
+    (session-init, rules-inject, privacy-block, scout-block, session-state)
+    with fail-open behavior and node:test coverage. Installing to claude-code
+    copies hook files and offers a confirmed, idempotent `settings.json` merge;
+    other providers skip-and-log.
+  - Skill lint gate: frontmatter contract, description trigger lint, 300-line
+    limits enforced at load time (`docs/vc-skill-authoring-spec.md`).
+
+- 76718a2: vc kit core loop B: `vc:ask` (analysis-only Q&A), `vc:scout` (parallel
+  explore agents with a shared prompt template), `vc:fix` (prove-before-fix
+  root-cause loop), `vc:pm` (evidence-based plan sync-back and status reports).
+- 9d91673: vc kit v1 complete: support skills `vc:problem-solving`, `vc:research`,
+  `vc:docs`; demo skills `echo-tool` and `hello-world` removed from the kit
+  (tests now use synthetic fixtures). Final roster: 12 skills + 5 hooks,
+  verified by a full-kit install smoke test.
+- 516eadf: vc kit v2: full 13-agent roster + repository-harness distill + 9 new skills.
+
+  - **New agents** (`kit/agents/vc-*.md`, 13 total): `vc-explore`, `vc-planner`,
+    `vc-reviewer`, `vc-tester`, `vc-debugger`, `vc-developer`, `vc-git-manager`,
+    `vc-simplifier`, `vc-brainstormer`, `vc-researcher`, `vc-docs-manager`,
+    `vc-project-manager`, `vc-journal-writer`. Persona + behavioral checklist +
+    status protocol, no external CLI coupling; install alongside existing
+    ClaudeKit agents without name conflicts.
+  - **New agent lint gate**: `packages/cli/src/kit/agent-lint.ts`, enforced in
+    `loadKit` same as the skill gate — frontmatter contract, description
+    `<example>`/`<commentary>` requirement, ≤120 lines, required
+    `Behavioral Checklist` heading.
+  - **New hook**: `subagent-init` (SubagentStart) injects ~200 tokens of
+    context into spawned subagents. `session-state` enriched with a git-status
+    trace (files-changed + outcome).
+  - **New rules**: `kit/rules/development-rules.md`, `delegation-protocol.md`,
+    `intake-and-context.md` (authority gate, risk lanes, context budget, and
+    harness-delta distilled from the `repository-harness` project) replace the
+    sample placeholder.
+  - **9 new skills**: `vc:skill-creator`, `vc:journal`, `vc:sequential-thinking`,
+    `vc:docs-seeker`, `vc:bootstrap`, `vc:security-scan`, `vc:predict`,
+    `vc:scenario`, `vc:worktree`. Roster: 12 → 21 skills.
+  - **BREAKING (kit content)**: removed `kit/agents/sample-reviewer.md`,
+    `kit/commands/sample-cmd.md`, `kit/rules/sample-rule.md` placeholders.
+  - `vc:cook` gained risk-lane routing (`references/risk-lanes.md`) with a
+    mandatory confirm gate for high-risk changes; `vc:pm` and `vc:cook`'s
+    test-gate share a unit/integration/e2e/platform proof vocabulary; `vc:docs`
+    gained a `decision` mode for durable architecture records.
+
+  Full parity analysis against ClaudeKit for every new agent/skill — capability
+  coverage plus concrete improvements — recorded in
+  `plans/reports/parity-260720-*.md`.
+
+- 912e319: vc kit v3a: deep coherence — all 21 skills brought to one cook-grade bar.
+
+  - Every skill now has a real workflow, an `## Output format` contract,
+    `## Quality gates` self-checks, and a `## Workflow position` — so the kit
+    reads as one connected graph, not a strong core surrounded by thin satellites.
+  - Risk lanes and proof vocabulary (`unit`/`integration`/`e2e`/`platform`) are
+    wired across 8 and 7 skills respectively, not confined to `vc:cook`.
+  - `vc:docs` gains an anti-bloat gate (don't create docs the code answers, no
+    routine ADRs, prune on sight) encoding a real documentation-rot failure mode.
+  - `vc:plan` phase template gains a `Stop Conditions` section — halt and confirm
+    scope, never silently work around a risk.
+  - `vc:git` references cleaned 10→7: merged the small push/PR/merge files into
+    `workflow-sync.md` and removed a contradictory orphan `prc` spec that bypassed
+    review. Behavior unchanged.
+  - Authoring spec documents the seven-point cook-grade standard.
+
+  No skill count change; no CLI change. `pnpm test` green (218).
+
+- c060f36: vc kit v3b: anti-bloat + infra.
+
+  - **New**: `vcskill validate` — lint the kit source without installing it.
+    Runs the same `loadKit` checks the installer does (frontmatter, sizes,
+    duplicate names, hook manifests) plus reference integrity: it flags a
+    `references/x.md` that is linked-but-missing (dangling) or exists-but-unlinked
+    (orphan). Exit 0 clean / 1 on findings; wired as a CI gate. On its first run
+    it caught three real orphans manual review had missed.
+  - `vc:pm` sync-back gains a **disposition-on-close** step (distill durable
+    decisions to `docs/`, then delete the finished plan + its reports — git is the
+    archive) and a friction-routing step (repeat friction → `vc:journal`).
+  - `kit/hooks/README.md` documents all 6 hooks (event, purpose, fail-open
+    contract).
+
+  vcskill now ships 9 CLI commands.
+
+- 303c081: vcskill CLI v2: install receipt + doctor + uninstall + backups + update.
+
+  - **New**: every install writes `.vcskill/receipt.json` — an inspectable
+    record of every file written (with a sha256 hash), hook bindings, and
+    AGENTS.md management, per provider. Foundation for everything below.
+  - **New**: `vcskill doctor [--global]` — health-checks the install against
+    its receipt (missing files, hooks that fail to spawn, hook bindings
+    removed from `settings.json`, version drift). Exit 0 healthy / 1 degraded
+    / 2 not-installed.
+  - **New**: `vcskill uninstall [--provider a,b] [--global] [--dry-run]` —
+    removes exactly what the receipt says was written. A file you've edited
+    since install is preserved, never deleted (detected via content hash).
+    Reverses the hook-settings and AGENTS.md merges exactly, backing up both
+    before rewriting. Proven byte-exact by round-trip tests and a live run.
+  - **New**: `vcskill backups list [--global]` /
+    `vcskill backups restore <timestamp> [--file <rel>] [--dry-run]` — restore
+    any backed-up file, safety-backing up the current state first. Backups
+    created before this release (no manifest) are listed but not
+    auto-restorable — reported explicitly, never guessed.
+  - **New**: `vcskill update [--global]` — offline-safe check against the npm
+    registry for a newer release; never fails the command on a network error.
+
+  vcskill now ships 8 CLI commands. See README's command table.
+
+### Patch Changes
+
+- edd0eab: `vcskill --version` now reports the real package version instead of a
+  hardcoded string; tarball verification additionally asserts all 5 hooks and
+  the vendored ignore lib are bundled.
+- 709ddce: Remove the vc:claude-van-patch skill from the kit.
+
 ## 0.3.0
 
 ### Minor Changes
