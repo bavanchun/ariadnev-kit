@@ -1,7 +1,8 @@
 import { readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
+import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
@@ -37,7 +38,7 @@ function renderSummary(findings: ValidateFinding[], counts: ValidateResult["coun
 
 /** Validate the kit source. Returns a structured result + rendered summary. */
 export function runValidate(opts: ValidateOpts = {}): ValidateResult {
-  const root = opts.kitRoot ?? resolveKitRoot(dirname(fileURLToPath(import.meta.url)));
+  const root = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
 
   let kit;
   try {

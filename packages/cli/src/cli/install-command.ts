@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
+import { getKitRoot } from "../kit/embedded-kit.js";
 import { installKit } from "../install/install-execute.js";
 import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
@@ -38,7 +39,7 @@ function validateProviders(providers: string[]): ProviderId[] {
 /** Pure-ish handler: resolves providers, loads kit, installs, returns summary. */
 export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
   const providers = validateProviders(opts.providers);
-  const kitRoot = opts.kitRoot ?? resolveKitRoot(dirname(fileURLToPath(import.meta.url)));
+  const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const kit = loadKit(kitRoot);
   const results = installKit(
     kit,

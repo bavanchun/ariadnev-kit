@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import type { Receipt } from "../install/install-receipt.js";
 import { diagnose, deriveStatus, type DiagnoseDeps, type DoctorStatus, type ProviderFinding } from "../doctor/diagnose.js";
-import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
+import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
 
 export interface DoctorHandlerOpts {
@@ -45,7 +46,7 @@ function realDeps(): DiagnoseDeps {
 
 function kitLintFinding(kitRoot: string | undefined): ProviderFinding | null {
   try {
-    const root = kitRoot ?? resolveKitRoot(dirname(fileURLToPath(import.meta.url)));
+    const root = kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
     loadKit(root);
     return null;
   } catch (err) {

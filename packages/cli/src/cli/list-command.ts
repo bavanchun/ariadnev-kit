@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
+import { getKitRoot } from "../kit/embedded-kit.js";
 import { getResolver, PROVIDER_IDS } from "../providers/index.js";
 import type { Scope } from "../providers/resolver.js";
 
@@ -14,7 +15,7 @@ export interface ListHandlerOpts {
 
 /** Render kit contents and, per provider, whether the skill target exists. */
 export function runList(opts: ListHandlerOpts): string {
-  const kitRoot = opts.kitRoot ?? resolveKitRoot(dirname(fileURLToPath(import.meta.url)));
+  const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const kit = loadKit(kitRoot);
   const lines: string[] = ["vcskill kit:"];
   lines.push(`  skills:   ${kit.skills.map((s) => s.name).join(", ") || "(none)"}`);

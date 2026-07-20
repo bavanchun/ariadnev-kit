@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
-import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
+import { getKitRoot } from "../kit/embedded-kit.js";
 import { renderSkillTemplate, isValidSlug } from "../kit/skill-template.js";
 
 export interface AddSkillOpts {
@@ -21,7 +22,7 @@ export interface AddSkillResult {
 export function runAddSkill(opts: AddSkillOpts): AddSkillResult {
   const slug = opts.name.trim();
   if (!isValidSlug(slug)) throw new Error(`invalid skill name: "${slug}" (use lowercase-with-hyphens)`);
-  const kitRoot = opts.kitRoot ?? resolveKitRoot(dirname(fileURLToPath(import.meta.url)));
+  const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const dir = join(kitRoot, "skills", slug);
   if (existsSync(dir)) throw new Error(`skill already exists: ${slug}`);
   mkdirSync(dir, { recursive: true });
