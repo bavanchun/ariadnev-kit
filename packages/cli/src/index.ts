@@ -12,6 +12,9 @@ import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
 import { runEval, realEvalDeps } from "./cli/eval-command.js";
+import { runQuery, normalizeView } from "./cli/query-command.js";
+import { recordSafe } from "./history/store.js";
+import { toEvent, type HistoryKind, type EventInput } from "./history/record.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
 import { emit, emitError, setEmitTransform } from "./cli/emit.js";
 import { sanitize } from "./security/credential-sanitizer.js";
@@ -37,6 +40,12 @@ function splitProviders(value: string): string[] {
 /** Whether stdout should carry ANSI branding (TTY, not CI, not NO_COLOR). */
 function outColor(): boolean {
   return shouldColor(process.env, process.stdout);
+}
+
+/** Best-effort history record — never throws, never blocks the command. History
+ * lives at ~/.vcskill (homedir), one timeline per machine. */
+function record(kind: HistoryKind, fields: EventInput): void {
+  recordSafe(homedir(), toEvent(kind, { version: packageVersion(), ...fields }));
 }
 
 /** The branded no-args / help banner. Plain when piped. */
@@ -80,7 +89,7 @@ export function buildProgram(): Command {
         const { confirmHookSettingsMerge } = await import("./cli/prompt-providers.js");
         applyHookSettings = await confirmHookSettingsMerge();
       }
-      const { summary } = runInstall({
+      const { summary, results } = runInstall({
         providers,
         scope,
         dryRun: !!g.dryRun,
@@ -91,6 +100,7 @@ export function buildProgram(): Command {
         vcskillVersion: packageVersion(),
       });
       emit(summary);
+      if (!g.dryRun) record("install", { provider: providers.join(","), scope, count: results.length });
     });
 
   program
@@ -100,15 +110,17 @@ export function buildProgram(): Command {
     .option("--global", "uninstall from ~/ instead of ./", false)
     .action((opts: { provider?: string[]; global?: boolean }) => {
       const g = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
       const { summary } = runUninstall({
         providers: opts.provider ?? [],
-        scope: opts.global ? "global" : "project",
+        scope,
         dryRun: !!g.dryRun,
         home: g.home,
         cwd: g.cwd,
         timestamp: nowStamp(),
       });
       emit(summary);
+      if (!g.dryRun) record("uninstall", { provider: (opts.provider ?? []).join(","), scope });
     });
 
   program
@@ -118,8 +130,9 @@ export function buildProgram(): Command {
     .option("--fix", "re-merge hook bindings that drifted out of settings.json (backs up first)", false)
     .action((opts: { global?: boolean; fix?: boolean }) => {
       const g = program.opts<GlobalOpts>();
-      const { summary, exitCode } = runDoctor({
-        scope: opts.global ? "global" : "project",
+      const scope = opts.global ? "global" : "project";
+      const { summary, exitCode, status } = runDoctor({
+        scope,
         home: g.home,
         cwd: g.cwd,
         fix: !!opts.fix,
@@ -128,6 +141,7 @@ export function buildProgram(): Command {
         color: outColor(),
       });
       emit(summary);
+      record("doctor", { scope, status });
       if (exitCode !== 0) process.exitCode = exitCode;
     });
 
@@ -190,6 +204,7 @@ export function buildProgram(): Command {
         realUpdateDeps(),
       );
       emit(summary);
+      if (!opts.check) record("update", {});
     });
 
   program
@@ -224,6 +239,7 @@ export function buildProgram(): Command {
         deps: evalCmd ? realEvalDeps(evalCmd) : undefined,
       });
       emit(summary);
+      record("eval", { status: ok ? "ok" : "fail" });
       if (!ok) process.exitCode = 1;
     });
 
@@ -234,6 +250,14 @@ export function buildProgram(): Command {
     .action((opts: { global?: boolean }) => {
       const g = program.opts<GlobalOpts>();
       emit(runList({ scope: opts.global ? "global" : "project", home: g.home, cwd: g.cwd, color: outColor() }));
+    });
+
+  program
+    .command("query")
+    .description("Show recorded vcskill history (installs | doctor | history)")
+    .argument("[view]", "installs | doctor | history", "history")
+    .action((view: string | undefined) => {
+      emit(runQuery({ view: normalizeView(view), home: homedir(), color: outColor() }));
     });
 
   registerAddSkill(program);
