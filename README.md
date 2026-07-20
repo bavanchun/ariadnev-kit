@@ -77,7 +77,8 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
-| `vcskill validate` | Lint the kit source (frontmatter, sizes, reference integrity) without installing; CI-able exit code |
+| `vcskill validate [--check]` | Lint the kit source (frontmatter, sizes, reference integrity); `--check` also fails if the README provider matrix drifted |
+| `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
@@ -120,17 +121,22 @@ live" fast; `/vc:fix <bug>` proves a root cause before touching code.
 
 ## Provider matrix
 
-| Artifact | claude-code | codex | cursor | antigravity | opencode | generic |
+Generated from `src/providers/{resolver,spec-verified}.ts` — do not hand-edit;
+run `pnpm --filter vcskill generate:matrix` and `vcskill validate --check` gates it.
+
+<!-- BEGIN provider-matrix (generated) -->
+| artifact | claude-code | codex | cursor | antigravity | opencode | generic |
 |---|---|---|---|---|---|---|
 | skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `.agents/skills/` | `.opencode/skills/` | `.agents/skills/` |
-| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/` (shim) | **skip (unverified)** | `.opencode/agents/*.md` | skip |
-| command | `.claude/commands/*.md` | `~/.codex/commands/*.md` | `.cursor/commands/*.md` | **skip (unverified)** | `.opencode/commands/*.md` | skip |
-| rules | `.claude/rules/` | `AGENTS.md` block | `.cursor/rules/*.mdc` | `AGENTS.md` block | `AGENTS.md` block | `AGENTS.md` block |
+| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/*` | skip | `.opencode/agents/*.md` | skip |
+| command | `.claude/commands/*.md` | `~/.codex/commands/*.md` | `.cursor/commands/*.md` | skip | `.opencode/commands/*.md` | skip |
+| rules | `.claude/rules/*.md` | `AGENTS.md` | `.cursor/rules/*.mdc` | `AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
 | scripts | `.claude/scripts/` | `~/.agents/vcskill/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/vcskill/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` |
-| hook | `.claude/hooks/vc/*.cjs` | **skip (unverified)** | **skip (unverified)** | **skip (unverified)** | **skip (unverified)** | skip |
+| hook | `.claude/hooks/vc/*.cjs` | skip | skip | skip | skip | skip |
+<!-- END provider-matrix (generated) -->
 
-Cells marked **skip** are unverified target paths — vcskill never guesses; it
+Cells marked `skip` are unverified target paths — vcskill never guesses; it
 skips and logs them in the install summary. See `src/providers/spec-verified.ts`.
 
 ## Authoring

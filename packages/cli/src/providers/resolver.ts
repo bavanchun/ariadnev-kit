@@ -132,6 +132,60 @@ const KIND_OF: Record<Artifact["type"], ArtifactKind> = {
   rule: "rules",
 };
 
+// Display-path sentinels: stand in for the home/cwd roots so a resolved target
+// can be rendered as a scope-relative template (`~/…` for home, bare for cwd).
+const HOME_SENTINEL = "H";
+const CWD_SENTINEL = "C";
+
+function toTemplate(resolved: string): string {
+  if (resolved.startsWith(HOME_SENTINEL)) {
+    return "~/" + resolved.slice(HOME_SENTINEL.length).replace(/^[/\\]+/, "");
+  }
+  if (resolved.startsWith(CWD_SENTINEL)) {
+    return resolved.slice(CWD_SENTINEL.length).replace(/^[/\\]+/, "") || ".";
+  }
+  return resolved;
+}
+
+/**
+ * Human-readable target-path template for one (provider, artifact) cell, or null
+ * when unverified/unsupported (→ skip). Single-sources the same CONFIGS/resolver
+ * the installer uses, so the docs matrix + `contract` can never drift from real
+ * install behavior. Rules in AGENTS.md mode render as "AGENTS.md".
+ */
+export function targetTemplate(id: ProviderId, kind: ArtifactKind): string | null {
+  const r = makeResolver(id);
+  const ctx: ResolverCtx = { home: HOME_SENTINEL, cwd: CWD_SENTINEL, scope: "project" };
+  const mk = (type: Artifact["type"], name: string) =>
+    r.targetFor({ type, name } as Artifact, ctx);
+  const dir = (p: string) => (p.endsWith("/") ? p : p + "/");
+  switch (kind) {
+    case "skill":
+      return r.supports.skill ? dir(toTemplate(mk("skill", "") ?? "")) : null;
+    case "agent": {
+      const p = mk("agent", "*");
+      return p ? toTemplate(p) : null;
+    }
+    case "command": {
+      const p = mk("command", "*");
+      return p ? toTemplate(p) : null;
+    }
+    case "rules":
+      if (!r.supports.rules) return null;
+      if (r.rulesMode === "agents-md") return "AGENTS.md";
+      {
+        const p = mk("rule", "*");
+        return p ? toTemplate(p) : null;
+      }
+    case "scripts":
+      return r.supports.scripts ? dir(toTemplate(r.scriptsTarget(ctx))) : null;
+    case "env":
+      return r.supports.env ? toTemplate(r.envTarget(ctx)) : null;
+    case "hook":
+      return r.supports.hook ? ".claude/hooks/vc/*.cjs" : null;
+  }
+}
+
 export function makeResolver(id: ProviderId): ProviderResolver {
   const cfg = CONFIGS[id];
   return {

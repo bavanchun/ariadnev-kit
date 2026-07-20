@@ -10,6 +10,7 @@ import { runUpdate, realUpdateDeps } from "./cli/update-command.js";
 import { basename } from "node:path";
 import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
+import { runContract } from "./cli/contract-command.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
 import { registerAddSkill } from "./cli/add-skill-command.js";
@@ -168,10 +169,20 @@ export function buildProgram(): Command {
   program
     .command("validate")
     .description("Lint the kit source (frontmatter, sizes, reference integrity) without installing")
-    .action(() => {
-      const { summary, ok } = runValidate();
+    .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
+    .action((opts: { check?: boolean }) => {
+      const { summary, ok } = runValidate({ check: !!opts.check });
       console.log(summary);
       if (!ok) process.exitCode = 1;
+    });
+
+  program
+    .command("contract")
+    .description("Print the provider×artifact capability contract (--json for machines)")
+    .option("--json", "emit JSON instead of the Markdown matrix", false)
+    .action((opts: { json?: boolean }) => {
+      const { output } = runContract({ json: !!opts.json, version: packageVersion() });
+      console.log(output);
     });
 
   program

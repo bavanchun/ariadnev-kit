@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runValidate } from "./validate-command.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
+import { renderMatrixBlock } from "../providers/matrix-drift.js";
 
 const GOOD_FRONTMATTER = `---
 name: vc:foo
@@ -72,5 +73,31 @@ describe("runValidate", () => {
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings[0].kind).toBe("lint");
+  });
+
+  describe("--check (provider matrix drift)", () => {
+    const realKit = () => resolveKitRoot(process.cwd());
+
+    it("passes when the README matrix is in sync", () => {
+      const readme = join(tmp, "README.md");
+      writeFileSync(readme, `# vcskill\n\n${renderMatrixBlock()}\n`);
+      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
+      expect(result.ok).toBe(true);
+      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
+    });
+
+    it("fails with a matrix finding when the README block is stale", () => {
+      const readme = join(tmp, "README.md");
+      const stale = renderMatrixBlock().replace(".claude/skills/", ".claude/WRONG/");
+      writeFileSync(readme, `# vcskill\n\n${stale}\n`);
+      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
+      expect(result.ok).toBe(false);
+      expect(result.findings).toContainEqual(expect.objectContaining({ kind: "matrix" }));
+    });
+
+    it("does not touch the matrix without --check", () => {
+      const result = runValidate({ kitRoot: realKit() });
+      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
+    });
   });
 });
