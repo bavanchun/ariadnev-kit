@@ -31,8 +31,12 @@ export function checkSmokeOutput({ versionOut, validateOut, expectedVersion }) {
     failures.push(`validate reported an empty kit count: ${counts[0]}`);
   }
 
-  if (!/all checks passed/.test(validateOut)) {
-    failures.push("validate was not clean (expected `all checks passed`)");
+  // Match validate's actual pass contract: it exits 0 with either "all checks
+  // passed" (no findings) or "0 error(s)" (only non-failing warnings). Asserting
+  // just the zero-findings string would break the release on a warn the validate
+  // gate deliberately lets through.
+  if (!/all checks passed|0 error\(s\)/.test(validateOut)) {
+    failures.push("validate reported errors (expected a clean pass)");
   }
 
   // A build-machine absolute path in output means a dev path was baked into the

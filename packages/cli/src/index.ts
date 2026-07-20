@@ -104,6 +104,7 @@ export function buildProgram(): Command {
         home: g.home,
         cwd: g.cwd,
         fix: !!opts.fix,
+        dryRun: !!g.dryRun,
         timestamp: nowStamp(),
       });
       console.log(summary);
