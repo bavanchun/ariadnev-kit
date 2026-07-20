@@ -44,7 +44,7 @@ implementing (`vc:cook`).
    `plans/reports/research-{yymmdd-hhmm}-{slug}-report.md`; summarize
    verbally with the recommendation up front.
 
-## Report format
+## Report format (output contract)
 
 ```markdown
 # Research: <topic>
@@ -67,3 +67,32 @@ Links, versions, dates.
 ## Unresolved questions
 Or "none".
 ```
+
+When the recommendation implies building, name the proof layer the eventual
+change will need (`unit`/`integration`/`e2e`/`platform`, see
+`../cook/references/risk-lanes.md`) — e.g. "adopting library X needs an
+integration proof against the real API, not just a unit mock". This hands the
+downstream `vc:plan`/`vc:cook` a proof expectation instead of a bare verdict.
+
+## Quality gates
+
+Before delivering, confirm:
+
+1. Every moving-target claim (version, API, pricing) carries a checked
+   date/version — no un-dated "X supports Y".
+2. Every important claim has ≥2 independent sources, or is flagged as
+   single-source.
+3. Findings are weighted by *this* project's stack and constraints, not ranked
+   in the abstract.
+4. Source disagreements are reported, not silently resolved to the tidier answer.
+5. The recommendation is committed (names the condition that flips it), not an
+   "it depends" survey.
+
+## Workflow position
+
+**Typically follows:** `vc:ask` (a question grew into "I need to evaluate
+options"), the research phase of `vc:brainstorm`.
+**Typically precedes:** `vc:brainstorm` (consumes findings to pick an approach),
+`vc:plan` (turns the chosen tech into phases).
+**Related:** `vc:docs-seeker` — use it for pinpoint "what's the API for X in the
+version we already use"; use `vc:research` for open evaluation across options.
