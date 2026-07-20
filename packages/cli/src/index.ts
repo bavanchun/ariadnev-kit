@@ -12,7 +12,8 @@ import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
-import { emit } from "./cli/emit.js";
+import { emit, emitError, setEmitTransform } from "./cli/emit.js";
+import { sanitize } from "./security/credential-sanitizer.js";
 import { shouldColor, wordmark, coral, faint } from "./ui/style.js";
 import { scopeProcessEnv } from "./env-scope.js";
 import { nowStamp } from "./cli/timestamp.js";
@@ -145,7 +146,7 @@ export function buildProgram(): Command {
       }
       if (action === "restore") {
         if (!timestamp) {
-          console.error("usage: vcskill backups restore <timestamp> [--file <rel>]");
+          emitError("usage: vcskill backups restore <timestamp> [--file <rel>]");
           process.exitCode = 1;
           return;
         }
@@ -161,7 +162,7 @@ export function buildProgram(): Command {
         emit(summary);
         return;
       }
-      console.error(`unknown backups action: ${action} (use "list" or "restore")`);
+      emitError(`unknown backups action: ${action} (use "list" or "restore")`);
       process.exitCode = 1;
     });
 
@@ -253,7 +254,7 @@ async function nudgeAfterCommand(): Promise<void> {
   if (!isBinary || !process.stderr.isTTY || process.env.CI || cmd === "update") return;
   try {
     const hint = await maybeNudge(realNudgeDeps(packageVersion()));
-    if (hint) console.error(hint);
+    if (hint) emitError(hint);
   } catch {
     /* nudge is best-effort */
   }
@@ -263,11 +264,14 @@ if (isEntry()) {
   // A cwd `.env` must never configure vcskill (Bun auto-loads it) — drop any
   // VCSKILL_* it injected before anything reads process.env.
   scopeProcessEnv();
+  // Redact credentials at the single output boundary + the fatal handler, so a
+  // token in any summary/error string is never printed.
+  setEmitTransform(sanitize);
   buildProgram()
     .parseAsync(process.argv)
     .then(nudgeAfterCommand)
     .catch((err) => {
-      console.error(String(err instanceof Error ? err.message : err));
+      console.error(sanitize(String(err instanceof Error ? err.message : err)));
       process.exit(1);
     });
 }
