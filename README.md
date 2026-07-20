@@ -19,19 +19,19 @@ A one-line install of the standalone binary — **no Node needed**.
 **macOS / Linux**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash
+curl -fsSL https://vcskill.vchun.dev/install | bash
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-irm https://raw.githubusercontent.com/bavanchun/vcskill/main/install.ps1 | iex
+irm https://vcskill.vchun.dev/install.ps1 | iex
 ```
 
-The installer downloads the right binary for your platform from the latest
-GitHub Release and **verifies its sha256** before installing to `~/.local/bin`
-(macOS/Linux) or `%LOCALAPPDATA%\Programs\vcskill` (Windows). Pin a version with
-`VCSKILL_VERSION=0.5.0`, or change the target dir with `VCSKILL_INSTALL_DIR`.
+The installer downloads the right binary for your platform from the vcskill edge
+(`vcskill.vchun.dev`) and **verifies its sha256** before installing to
+`~/.local/bin` (macOS/Linux) or `%LOCALAPPDATA%\Programs\vcskill` (Windows).
+Change the target dir with `VCSKILL_INSTALL_DIR`.
 
 > **macOS Gatekeeper**: the binary is not yet notarized, so the first run may be
 > blocked. Allow it with `xattr -d com.apple.quarantine "$(command -v vcskill)"`.

@@ -20,12 +20,18 @@ Ship vcskill as a **single self-contained binary**, not an npm package
    first (dev/tests unchanged) and falls back to the embedded kit in binary mode
    — chosen over a `KitSource` virtual-fs refactor to avoid touching the `Kit`
    contract (lower risk, same outcome).
-3. **Install via `curl … | install.sh | bash`** / `install.ps1`, each verifying
-   the binary's **sha256** from the release `checksums.txt` (fail-closed). Hosted
-   from the repo's raw GitHub URL; binaries published to GitHub Releases.
-4. **npm dropped entirely** — package is `private`, no publish/OIDC/provenance.
-   `vcskill update` checks GitHub Releases.
-5. **Homebrew considered and dropped** — needs a separate tap repo for marginal
+3. **Install via `curl -fsSL https://vcskill.vchun.dev/install | bash`** /
+   `install.ps1`, each verifying the binary's **sha256** from `checksums.txt`
+   (fail-closed).
+4. **Private repo behind a Cloudflare Worker edge** (`vcskill.vchun.dev`). The
+   Worker is the only public face — it proxies the private repo's install
+   scripts, `/version`, and `/download/<asset>` using a server-side `GH_TOKEN`,
+   so source *and* releases stay private while anonymous install still works.
+   CI publishes releases to its own private repo with the built-in
+   `GITHUB_TOKEN` (no cross-repo token). See `docs/cloudflare-worker-setup.md`.
+5. **npm dropped entirely** — package is `private`, no publish/OIDC/provenance.
+   `vcskill update` self-updates via the edge.
+6. **Homebrew considered and dropped** — needs a separate tap repo for marginal
    reach over curl; not worth the maintenance.
 
 ## Consequences

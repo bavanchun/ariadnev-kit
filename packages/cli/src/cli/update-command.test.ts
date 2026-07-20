@@ -132,7 +132,7 @@ describe("runUpdate", () => {
   it("guides to the curl installer when not running as the binary", async () => {
     const d = deps();
     const res = await runUpdate(baseOpts({ isBinary: false }), d);
-    expect(res.summary).toContain("install.sh");
+    expect(res.summary).toContain("vcskill.vchun.dev/install");
     expect(d.replaced).toHaveLength(0);
   });
 

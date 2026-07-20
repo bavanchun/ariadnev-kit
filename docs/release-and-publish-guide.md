@@ -8,7 +8,9 @@ only the built-in `GITHUB_TOKEN`.
 
 Add a changeset per change → merge the auto "Version Packages" PR → the `Release`
 workflow cross-compiles the 5 platform binaries and publishes them to a GitHub
-Release. Users install with `curl … | install.sh | bash`.
+Release. Users install from the edge with
+`curl -fsSL https://vcskill.vchun.dev/install | bash` — a Cloudflare Worker
+proxies the (private) repo's releases (see `cloudflare-worker-setup.md`).
 
 ## Day-to-day flow (Changesets → binaries)
 

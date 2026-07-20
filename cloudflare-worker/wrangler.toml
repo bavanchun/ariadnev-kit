@@ -1,0 +1,12 @@
+name = "vcskill"
+main = "worker.js"
+compatibility_date = "2026-07-20"
+
+# Serve the whole vcskill.vchun.dev host from this Worker.
+routes = [
+  { pattern = "vcskill.vchun.dev/*", zone_name = "vchun.dev" }
+]
+
+# Secret (do NOT put the value here — set it out of band):
+#   wrangler secret put GH_TOKEN
+# A fine-grained PAT with Contents: read on bavanchun/vcskill.
