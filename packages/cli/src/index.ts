@@ -11,6 +11,7 @@ import { basename } from "node:path";
 import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
+import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
 import { registerAddSkill } from "./cli/add-skill-command.js";
@@ -217,9 +218,27 @@ function isEntry(): boolean {
     return false;
   }
 }
+// A newer-version hint, printed to stderr after a normal command. Only when
+// running as the binary in an interactive terminal, not in CI, and not for the
+// `update` command itself. Best-effort — never blocks or throws.
+async function nudgeAfterCommand(): Promise<void> {
+  const isBinary = !/^(node|bun)/i.test(basename(process.execPath));
+  const cmd = process.argv[2];
+  if (!isBinary || !process.stderr.isTTY || process.env.CI || cmd === "update") return;
+  try {
+    const hint = await maybeNudge(realNudgeDeps(packageVersion()));
+    if (hint) console.error(hint);
+  } catch {
+    /* nudge is best-effort */
+  }
+}
+
 if (isEntry()) {
-  buildProgram().parseAsync(process.argv).catch((err) => {
-    console.error(String(err instanceof Error ? err.message : err));
-    process.exit(1);
-  });
+  buildProgram()
+    .parseAsync(process.argv)
+    .then(nudgeAfterCommand)
+    .catch((err) => {
+      console.error(String(err instanceof Error ? err.message : err));
+      process.exit(1);
+    });
 }

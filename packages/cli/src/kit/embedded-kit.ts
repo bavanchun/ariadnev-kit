@@ -10,7 +10,7 @@ import { EMBEDDED_ASSETS, EMBEDDED_VERSION } from "./kit-embedded.generated.js";
 // first run — so the single binary is fully self-contained.
 
 /** Where the embedded kit self-extracts. Version-stamped so upgrades re-extract. */
-function cacheRoot(): string {
+export function cacheRoot(): string {
   const base = process.env.VCSKILL_CACHE_DIR ?? join(homedir(), ".cache", "vcskill");
   return join(base, EMBEDDED_VERSION);
 }
