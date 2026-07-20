@@ -5,7 +5,7 @@
   "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
   "type": "module",
   "license": "MIT",
-  "author": "VChun <hoangbavan4478@gmail.com>",
+  "author": "VChun",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bavanchun/vcskill.git",
