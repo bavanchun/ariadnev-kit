@@ -4,9 +4,11 @@ Claude Code guidance for **vcskill**. Mirrors `AGENTS.md`; read that for full de
 
 ## What this is
 
-A Node/TypeScript monorepo that authors agent skills/subagents/commands/rules once
-in canonical Claude format (`kit/`), then installs them to any AI provider via
-`npx vcskill install`. A data-driven adapt engine rewrites paths/tool-names/formats.
+A Node/TypeScript monorepo (dev tooling) that authors agent skills/subagents/
+commands/rules once in canonical Claude format (`kit/`), then installs them to any
+AI provider. Ships as a single Bun-compiled binary with the kit embedded, installed
+via `curl … | install.sh | bash` (no npm). A data-driven adapt engine rewrites
+paths/tool-names/formats.
 
 ## Working here
 

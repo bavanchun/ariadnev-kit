@@ -23,12 +23,6 @@ curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh |
 irm https://raw.githubusercontent.com/bavanchun/vcskill/main/install.ps1 | iex
 ```
 
-**Homebrew**
-
-```bash
-brew install bavanchun/vcskill/vcskill
-```
-
 The installer downloads the right binary for your platform from the latest
 GitHub Release and **verifies its sha256** before installing to `~/.local/bin`
 (macOS/Linux) or `%LOCALAPPDATA%\Programs\vcskill` (Windows). Pin a version with

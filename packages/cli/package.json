@@ -28,23 +28,13 @@
   "bin": {
     "vcskill": "dist/index.js"
   },
-  "files": [
-    "dist",
-    "kit",
-    "kit.config.json",
-    "portable-manifest.json",
-    "LICENSE"
-  ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "build": "tsup",
-    "prepack": "tsup && node scripts/bundle-kit-assets.mjs",
     "generate:embedded": "node scripts/generate-embedded-kit.mjs",
-    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill",
-    "verify-tarball": "node scripts/verify-package-tarball.mjs",
-    "smoke-test": "node scripts/smoke-test-all-providers.mjs"
+    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill"
   },
   "dependencies": {
     "@clack/prompts": "^0.8.2",

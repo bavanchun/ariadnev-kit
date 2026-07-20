@@ -5,7 +5,7 @@
 //
 // Keys mirror the flat published layout relative to a "flat root":
 //   kit/skills/…, kit/agents/…, kit/hooks/…, portable-manifest.json, …
-// Run from prepack / the binary build. Deterministic (sorted) for stable diffs.
+// Run from the binary build. Deterministic (sorted) for stable diffs.
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, dirname, relative } from "node:path";

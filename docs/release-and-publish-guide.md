@@ -1,76 +1,64 @@
-# Release & Publish Guide
+# Release Guide
 
-How `vcskill` gets to npm, and the boundary between what is **automated** and what
-**you must do by hand** (the automation cannot create accounts or secrets for you).
+How a new `vcskill` version reaches users. `vcskill` ships as a standalone binary
+via GitHub Releases — **no npm, no tokens, no manual publish**. The automation uses
+only the built-in `GITHUB_TOKEN`.
 
 ## TL;DR
 
-- Day-to-day: add a changeset per change → merge the auto "Version Packages" PR →
-  GitHub Actions publishes to npm. No manual `npm publish`.
-- One-time setup below must be done before the first automated publish works.
+Add a changeset per change → merge the auto "Version Packages" PR → the `Release`
+workflow cross-compiles the 5 platform binaries and publishes them to a GitHub
+Release. Users install with `curl … | install.sh | bash`.
 
-## One-time prerequisites (you, by hand)
-
-These cannot be automated — they involve your npm account and GitHub secrets.
-
-1. **npm account + login**
-   ```bash
-   npm login          # or create one at https://www.npmjs.com/signup
-   npm whoami         # confirm you're logged in
-   ```
-2. **Create an npm Automation token** (npmjs.com → Access Tokens → Generate →
-   *Automation*). Copy it.
-3. **Add it as a GitHub secret** named `NPM_TOKEN`:
-   GitHub repo → Settings → Secrets and variables → Actions → New repository secret →
-   name `NPM_TOKEN`, value = the token.
-4. **First publish to claim the name** (only needed once — the automated flow takes
-   over afterward). The name `vcskill` is currently free on npm:
-   ```bash
-   cd packages/cli
-   npm publish --access public   # runs prepack: build + bundle kit/LICENSE
-   ```
-   If you prefer, skip this and let the first CI run claim the name — the Automation
-   token has permission to create a new package.
-
-## Automated flow (Changesets)
+## Day-to-day flow (Changesets → binaries)
 
 1. Make changes on a branch. For anything user-facing, add a changeset:
    ```bash
-   pnpm changeset           # pick `vcskill`, choose bump, write a summary
+   pnpm changeset        # pick `vcskill`, choose the bump, write a summary
    ```
    Commit the generated `.changeset/*.md` with your PR.
-2. Merge your PR to `main`. The `Release` workflow (`.github/workflows/release.yml`)
-   sees pending changesets and opens a **"Version Packages"** PR that bumps the
-   version and updates `CHANGELOG.md`.
-3. Merge the "Version Packages" PR. The workflow runs again and **publishes**
-   `vcskill` to npm (with provenance via OIDC).
+2. Merge your PR to `main`. `.github/workflows/release.yml` sees the pending
+   changeset and opens a **"Version Packages"** PR that bumps the version and
+   updates `CHANGELOG.md`.
+3. Merge the "Version Packages" PR. On that push the workflow detects the version
+   change, runs `packages/cli/scripts/build-binaries.mjs` (regenerate embedded kit
+   → `bun --compile` all 5 targets → `checksums.txt`), and publishes them to the
+   `vcskill@<version>` GitHub Release.
 
-The private monorepo root (`vcskill-monorepo`) is never published — only the public
-`vcskill` package under `packages/cli`.
+The package is `private` — nothing is published to npm.
 
-## Verify before publishing (optional, local)
+## What ships each release
+
+Attached to the `vcskill@<version>` GitHub Release:
+
+| Asset | Target |
+|---|---|
+| `vcskill-darwin-arm64` | macOS Apple Silicon |
+| `vcskill-darwin-x64` | macOS Intel |
+| `vcskill-linux-x64` / `vcskill-linux-arm64` | Linux |
+| `vcskill-windows-x64.exe` | Windows |
+| `checksums.txt` | sha256 of every binary (install.sh verifies against it) |
+
+## Local checks (optional)
 
 ```bash
-pnpm --filter vcskill run verify-tarball   # tarball shape: dist + kit + LICENSE + shebang
-pnpm --filter vcskill run smoke-test       # install --dry-run across all 6 providers
-cd packages/cli && npm publish --dry-run   # what npm would upload (no upload)
+pnpm --filter vcskill build:binary     # host-target binary (needs Bun) → dist/vcskill
+node packages/cli/scripts/build-binaries.mjs   # all 5 targets + checksums locally
+pnpm test                              # full suite incl. the embedded-kit drift guard
 ```
 
 ## Boundary summary
 
 | Step | Who | How |
 |---|---|---|
-| npm account + login | **You** | `npm login` |
-| Create Automation token | **You** | npmjs.com → Access Tokens |
-| Add `NPM_TOKEN` secret | **You** | GitHub repo Settings → Secrets |
-| First name claim (optional) | **You** | `npm publish --access public` once |
 | Version bump + CHANGELOG | Automated | Changesets "Version Packages" PR |
-| Build + pack + publish | Automated | `release.yml` on merge to `main` |
-| Provenance attestation | Automated | OIDC (`id-token: write`) |
+| Cross-compile 5 binaries + checksums | Automated | `build-binaries.mjs` in `release.yml` |
+| Publish GitHub Release | Automated | `gh release` (idempotent) with `GITHUB_TOKEN` |
 
 ## Notes
 
-- Smoke-test currently runs locally / before publish. It is intentionally kept out
-  of the per-PR `ci.yml` to keep pull-request feedback fast.
-- `npx vcskill install` only works **after** the first successful publish. Before
-  that, use the tarball or source-build paths in the README.
+- The embedded kit is regenerated at build time, so no binary ships a stale kit;
+  a `drift guard` test also fails CI if the committed map diverges from `kit/`.
+- macOS binaries are **not notarized** — first run may hit Gatekeeper. See the
+  README's install note (`xattr -d com.apple.quarantine …`). Notarization is a
+  future improvement.
