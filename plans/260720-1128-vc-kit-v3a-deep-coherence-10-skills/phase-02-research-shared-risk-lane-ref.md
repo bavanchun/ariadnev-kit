@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Exemplar rewrite: research + shared risk-lane quick-check reference"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: [1]

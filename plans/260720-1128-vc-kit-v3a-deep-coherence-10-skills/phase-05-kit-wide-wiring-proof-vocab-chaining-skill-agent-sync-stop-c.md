@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Kit-wide wiring: proof vocab + chaining + skill↔agent sync + stop conditions"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [3, 4]

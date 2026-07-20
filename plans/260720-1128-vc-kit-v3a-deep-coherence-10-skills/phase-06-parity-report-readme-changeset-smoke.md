@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Parity report + README + changeset + smoke"
-status: pending
+status: completed
 priority: P2
 effort: "2h"
 dependencies: [5]
