@@ -71,6 +71,13 @@ jobs:
         if: steps.rel.outputs.release == 'true'
         run: node packages/cli/scripts/build-binaries.mjs
 
+      # Run the freshly-built host binary (linux-x64 on this runner) and assert it
+      # actually works: version matches, embedded kit loads, no baked-in dev path.
+      # Only the host-arch artifact can execute here; the break class is shared.
+      - name: Smoke-test binary
+        if: steps.rel.outputs.release == 'true'
+        run: node packages/cli/scripts/smoke-binary.mjs
+
       - name: Publish GitHub Release
         if: steps.rel.outputs.release == 'true'
         env:
