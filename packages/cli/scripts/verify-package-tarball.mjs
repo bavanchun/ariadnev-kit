@@ -96,7 +96,7 @@ if (!existsSync(kitDir)) {
 
 // Assertion 3b: hooks bundled — every roster hook + the vendored ignore lib
 const kitHooksDir = join(extractedDir, "kit", "hooks");
-const expectedHooks = ["session-init", "rules-inject", "privacy-block", "scout-block", "session-state"];
+const expectedHooks = ["session-init", "rules-inject", "privacy-block", "scout-block", "session-state", "subagent-init"];
 for (const hook of expectedHooks) {
   if (!existsSync(join(kitHooksDir, hook, "hook.cjs")) || !existsSync(join(kitHooksDir, hook, "hook.json"))) {
     errors.push(`Expected kit hook "${hook}" (hook.cjs + hook.json) not found in tarball`);
