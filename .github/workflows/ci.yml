@@ -45,6 +45,8 @@ jobs:
         run: pnpm run coverage
 
       - name: Test scripts + hooks (node:test)
+        # Node 20's test runner does not expand glob patterns (that landed in
+        # Node 21), so enumerate the files with find for version-independence.
         run: |
-          node --test "packages/cli/scripts/**/*.test.mjs"
-          node --test "kit/hooks/**/*.test.cjs"
+          find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
+          find kit/hooks -name '*.test.cjs' -print0 | xargs -0 -r node --test
