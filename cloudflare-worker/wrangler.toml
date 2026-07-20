@@ -2,9 +2,15 @@ name = "vcskill"
 main = "worker.js"
 compatibility_date = "2026-07-20"
 
-# Serve the whole vcskill.vchun.dev host from this Worker.
+# Bind vcskill.vchun.dev as a Custom Domain — Cloudflare auto-provisions the DNS
+# record + TLS cert and routes the whole host to this Worker.
 routes = [
-  { pattern = "vcskill.vchun.dev/*", zone_name = "vchun.dev" }
+  { pattern = "vcskill.vchun.dev", custom_domain = true }
+]
+
+# Import landing.html as a string module (served at `/`).
+rules = [
+  { type = "Text", globs = ["**/*.html"] }
 ]
 
 # Secret (do NOT put the value here — set it out of band):
