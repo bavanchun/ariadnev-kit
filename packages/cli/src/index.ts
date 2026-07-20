@@ -123,6 +123,7 @@ export function buildProgram(): Command {
         fix: !!opts.fix,
         dryRun: !!g.dryRun,
         timestamp: nowStamp(),
+        color: outColor(),
       });
       emit(summary);
       if (exitCode !== 0) process.exitCode = exitCode;
