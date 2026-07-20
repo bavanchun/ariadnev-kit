@@ -17,6 +17,8 @@ export interface DoctorHandlerOpts {
   scope: "project" | "global";
   /** Re-merge any hook bindings that drifted out of settings.json. */
   fix?: boolean;
+  /** With --fix, only report what would change; write nothing. */
+  dryRun?: boolean;
   /** Timestamp for the backup dir when --fix writes (defaults to a literal). */
   timestamp?: string;
   /** Override kit source root (tests / packaging). */
@@ -88,15 +90,23 @@ export function renderDoctorSummary(status: DoctorStatus, findings: ProviderFind
 
 /** Re-merge drifted hook bindings back into settings.json, backing up first. */
 function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string, opts: DoctorHandlerOpts): string[] {
-  const repairs = planHookRepair(receipt, deps, { home: opts.home, cwd: opts.cwd });
+  let repairs;
+  try {
+    repairs = planHookRepair(receipt, deps, { home: opts.home, cwd: opts.cwd });
+  } catch (err) {
+    // Corrupt settings.json → report instead of crashing the health-check.
+    return [`  cannot auto-fix: settings.json is unparseable (${String(err instanceof Error ? err.message : err)})`];
+  }
   if (repairs.length === 0) return [];
+  const verb = opts.dryRun ? "would fix" : "fixed";
+  const lines = repairs.map((r) => `  ${verb} ${r.added.length} hook binding(s) for ${r.providerId} → ${r.settingsPath}`);
+  if (opts.dryRun) return lines;
+
   const backupsParent = join(root, ".vcskill", "backups");
   const backupRoot = join(backupsParent, opts.timestamp ?? "doctor-fix");
-  const lines: string[] = [];
   for (const r of repairs) {
     backupPath(r.settingsPath, backupRoot, "settings");
     atomicWrite(r.settingsPath, r.nextContent);
-    lines.push(`  fixed ${r.added.length} hook binding(s) for ${r.providerId} → ${r.settingsPath}`);
   }
   rotateBackups(backupsParent, 3);
   return lines;

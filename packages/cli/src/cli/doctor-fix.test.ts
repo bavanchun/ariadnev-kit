@@ -45,6 +45,15 @@ describe("doctor --fix (hook-binding self-heal)", () => {
     expect(summary).toMatch(/hook binding removed/);
   });
 
+  it("--fix --dry-run reports the plan but writes nothing", () => {
+    const { summary } = runDoctor({ ...opts(), fix: true, dryRun: true, timestamp: "20260720-000000" });
+    expect(summary).toMatch(/would fix 1 hook binding/);
+    // drift still reported (nothing was written) and no backup dir created
+    expect(summary).toMatch(/hook binding removed/);
+    expect(readFileSync(join(cwd, ".claude", "settings.json"), "utf8")).toBe("{}\n");
+    expect(existsSync(join(cwd, ".vcskill", "backups"))).toBe(false);
+  });
+
   it("--fix re-merges the binding, backs up, and re-runs clean + idempotent", () => {
     const before = runDoctor({ ...opts(), fix: true, timestamp: "20260720-000000" });
     // binding restored in settings.json

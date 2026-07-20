@@ -31,6 +31,12 @@ test("fails when validate is not clean", () => {
   assert.match(r.failures.join(" "), /clean|passed/i);
 });
 
+test("passes on a warn-only validate (0 errors) — matches the gate contract", () => {
+  const warnOnly = "vcskill validate — 21 skills, 13 agents, 6 hooks\n  [warn:collision] a ~ b: 45% similar\n  0 error(s), 1 warning(s)";
+  const r = checkSmokeOutput({ versionOut: "0.6.0", validateOut: warnOnly, expectedVersion: "0.6.0" });
+  assert.equal(r.ok, true);
+});
+
 test("fails when output leaks an absolute dev path", () => {
   const leak = goodValidate + "\n  loaded from /Users/dev/vcskill/kit";
   const r = checkSmokeOutput({ versionOut: "0.6.0", validateOut: leak, expectedVersion: "0.6.0" });
