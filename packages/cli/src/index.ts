@@ -12,6 +12,7 @@ import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
+import { scopeProcessEnv } from "./env-scope.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
 import { registerAddSkill } from "./cli/add-skill-command.js";
@@ -234,6 +235,9 @@ async function nudgeAfterCommand(): Promise<void> {
 }
 
 if (isEntry()) {
+  // A cwd `.env` must never configure vcskill (Bun auto-loads it) — drop any
+  // VCSKILL_* it injected before anything reads process.env.
+  scopeProcessEnv();
   buildProgram()
     .parseAsync(process.argv)
     .then(nudgeAfterCommand)
