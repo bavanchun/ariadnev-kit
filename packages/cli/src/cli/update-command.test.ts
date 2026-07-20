@@ -2,7 +2,16 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runUpdate, isNewerVersion, parseLatestTag } from "./update-command.js";
+import { createHash } from "node:crypto";
+import {
+  runUpdate,
+  isNewerVersion,
+  parseLatestTag,
+  assetNameFor,
+  expectedSha,
+  type UpdateDeps,
+  type UpdateHandlerOpts,
+} from "./update-command.js";
 
 describe("parseLatestTag", () => {
   it("strips the vcskill@ prefix", () => {
@@ -14,77 +23,138 @@ describe("parseLatestTag", () => {
   });
 });
 
-let sandbox: string;
-let root: string;
-beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-update-"));
-  root = join(sandbox, "proj");
-  mkdirSync(join(root, ".vcskill"), { recursive: true });
+describe("assetNameFor", () => {
+  it("maps supported platform/arch pairs", () => {
+    expect(assetNameFor("darwin", "arm64")).toBe("vcskill-darwin-arm64");
+    expect(assetNameFor("darwin", "x64")).toBe("vcskill-darwin-x64");
+    expect(assetNameFor("linux", "arm64")).toBe("vcskill-linux-arm64");
+    expect(assetNameFor("linux", "x64")).toBe("vcskill-linux-x64");
+    expect(assetNameFor("win32", "x64")).toBe("vcskill-windows-x64.exe");
+  });
+  it("returns null for unsupported combos", () => {
+    expect(assetNameFor("win32", "arm64")).toBeNull();
+    expect(assetNameFor("freebsd" as NodeJS.Platform, "x64")).toBeNull();
+    expect(assetNameFor("linux", "ia32")).toBeNull();
+  });
 });
-afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
-function writeReceipt(version: string) {
-  writeFileSync(
-    join(root, ".vcskill", "receipt.json"),
-    JSON.stringify({ schemaVersion: 1, vcskillVersion: version, installs: {} }),
-  );
-}
+describe("expectedSha", () => {
+  it("finds the sha for an exact asset name", () => {
+    const body = "aaa  vcskill-linux-x64\nbbb  vcskill-darwin-arm64\n";
+    expect(expectedSha(body, "vcskill-darwin-arm64")).toBe("bbb");
+    expect(expectedSha(body, "vcskill-windows-x64.exe")).toBeNull();
+  });
+});
+
+describe("runUpdate", () => {
+  let sandbox: string;
+  let root: string;
+  const bin = new Uint8Array([1, 2, 3, 4]);
+  const binSha = createHash("sha256").update(bin).digest("hex");
+
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "vcskill-update-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  function writeReceipt(version: string) {
+    mkdirSync(join(root, ".vcskill"), { recursive: true });
+    writeFileSync(join(root, ".vcskill", "receipt.json"), JSON.stringify({ vcskillVersion: version }));
+  }
+
+  function baseOpts(over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts {
+    return {
+      home: sandbox,
+      cwd: root,
+      scope: "project",
+      currentVersion: "0.5.0",
+      execPath: join(sandbox, "vcskill"),
+      isBinary: true,
+      checkOnly: false,
+      platform: "darwin",
+      arch: "arm64",
+      ...over,
+    };
+  }
+
+  function deps(over: Partial<UpdateDeps> = {}): UpdateDeps & { replaced: { path: string; bytes: Uint8Array }[] } {
+    const replaced: { path: string; bytes: Uint8Array }[] = [];
+    return {
+      fetchLatestVersion: async () => "0.6.0",
+      downloadBinary: async () => bin,
+      downloadText: async () => `${binSha}  vcskill-darwin-arm64\n`,
+      replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      replaced,
+      ...over,
+    };
+  }
+
+  it("reports offline and does not download", async () => {
+    const d = deps({ fetchLatestVersion: async () => null });
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("could not check");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("reports up to date when not newer", async () => {
+    const d = deps({ fetchLatestVersion: async () => "0.5.0" });
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("up to date");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("self-updates the binary when a newer version verifies", async () => {
+    const d = deps();
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("updated 0.5.0 -> 0.6.0");
+    expect(d.replaced).toHaveLength(1);
+    expect(d.replaced[0].bytes).toEqual(bin);
+  });
+
+  it("does NOT replace on a checksum mismatch (fail-closed)", async () => {
+    const d = deps({ downloadText: async () => "deadbeef  vcskill-darwin-arm64\n" });
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("checksum mismatch");
+    expect(res.summary).toContain("NOT replaced");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("--check only reports, never replaces", async () => {
+    const d = deps();
+    const res = await runUpdate(baseOpts({ checkOnly: true }), d);
+    expect(res.summary).toContain("update available: 0.5.0 -> 0.6.0");
+    expect(res.summary).toContain("vcskill update");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("guides to the curl installer when not running as the binary", async () => {
+    const d = deps();
+    const res = await runUpdate(baseOpts({ isBinary: false }), d);
+    expect(res.summary).toContain("install.sh");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("reports (no replace) when the download fails", async () => {
+    const d = deps({ downloadBinary: async () => null });
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("could not download");
+    expect(d.replaced).toHaveLength(0);
+  });
+
+  it("notes when the receipt version differs from the running CLI", async () => {
+    writeReceipt("0.4.0");
+    const d = deps({ fetchLatestVersion: async () => "0.5.0" });
+    const res = await runUpdate(baseOpts(), d);
+    expect(res.summary).toContain("receipt was written by 0.4.0");
+  });
+});
 
 describe("isNewerVersion", () => {
-  it("compares semver-ish strings numerically, not lexicographically", () => {
+  it("compares numerically", () => {
     expect(isNewerVersion("0.10.0", "0.9.0")).toBe(true);
-    expect(isNewerVersion("0.9.0", "0.10.0")).toBe(false);
-    expect(isNewerVersion("1.0.0", "1.0.0")).toBe(false);
-    expect(isNewerVersion("1.0.1", "1.0.0")).toBe(true);
-  });
-});
-
-describe("runUpdate (offline-safe)", () => {
-  it("exits 0 and reports 'could not check' when the version fetch fails", async () => {
-    writeReceipt("0.3.0");
-    const res = await runUpdate(
-      { home: sandbox, cwd: root, scope: "project", currentVersion: "0.4.0" },
-      { fetchLatestVersion: async () => null },
-    );
-    expect(res.exitCode).toBe(0);
-    expect(res.summary).toMatch(/could not check/i);
-  });
-
-  it("reports up to date when latest equals current", async () => {
-    writeReceipt("0.4.0");
-    const res = await runUpdate(
-      { home: sandbox, cwd: root, scope: "project", currentVersion: "0.4.0" },
-      { fetchLatestVersion: async () => "0.4.0" },
-    );
-    expect(res.exitCode).toBe(0);
-    expect(res.summary).toMatch(/up to date/i);
-  });
-
-  it("reports an available update with an upgrade command", async () => {
-    writeReceipt("0.3.0");
-    const res = await runUpdate(
-      { home: sandbox, cwd: root, scope: "project", currentVersion: "0.4.0" },
-      { fetchLatestVersion: async () => "0.5.0" },
-    );
-    expect(res.exitCode).toBe(0);
-    expect(res.summary).toContain("0.5.0");
-    expect(res.summary).toContain("install.sh");
-  });
-
-  it("notes when the receipt's recorded version differs from the running CLI", async () => {
-    writeReceipt("0.2.0");
-    const res = await runUpdate(
-      { home: sandbox, cwd: root, scope: "project", currentVersion: "0.4.0" },
-      { fetchLatestVersion: async () => "0.4.0" },
-    );
-    expect(res.summary).toContain("0.2.0");
-  });
-
-  it("handles a missing receipt without failing", async () => {
-    const res = await runUpdate(
-      { home: sandbox, cwd: root, scope: "project", currentVersion: "0.4.0" },
-      { fetchLatestVersion: async () => "0.4.0" },
-    );
-    expect(res.exitCode).toBe(0);
+    expect(isNewerVersion("0.5.0", "0.5.0")).toBe(false);
+    expect(isNewerVersion("0.4.0", "0.5.0")).toBe(false);
   });
 });

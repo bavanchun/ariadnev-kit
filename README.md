@@ -47,6 +47,17 @@ vcskill install --provider opencode --dry-run # preview, write nothing
 
 Global flags: `--home <dir>`, `--cwd <dir>`, `--dry-run`, `--yes`.
 
+### Upgrading
+
+After the first install, just run:
+
+```bash
+vcskill update            # self-updates the binary to the latest release (sha256-verified)
+vcskill update --check    # only report whether a newer version exists
+```
+
+No need to re-run the curl installer.
+
 ### Build from source
 
 ```bash
@@ -65,7 +76,7 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install |
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
-| `vcskill update [--global]` | Check GitHub Releases for a newer vcskill release (offline-safe) |
+| `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
 | `vcskill validate` | Lint the kit source (frontmatter, sizes, reference integrity) without installing; CI-able exit code |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
