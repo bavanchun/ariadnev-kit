@@ -34,8 +34,27 @@ uses `$ARGUMENTS` placeholder; output = 5 prescribed sections.
 
 ---
 
-<!-- research, problem-solving, journal, docs, sequential-thinking,
-security-scan, docs-seeker, obsidian, git entries appended per phase -->
+## research (`vc:research` vs `ck:research`)
+
+CK `ck:research` = a long methodology doc (4 phases, Gemini-CLI toggle plumbing,
+"max 5 tool calls" rule, a fixed report template). Heavy on process narration;
+its report template is generic (overview/trends/best-practices/security/perf).
+
+| CK capability | vc:research |
+|---|---|
+| Multi-source gathering + cross-reference validation | ✅ kept, tighter: "primary sources first, community as color", contradictions-are-findings rule |
+| Recency emphasis ("2024/latest" keywords) | ✅ kept as a hard Quality gate (dated/versioned claims) rather than a search-keyword tip |
+| Gemini-CLI toggle + `.ck.json` config plumbing | ➡️ dropped: tool-specific infra, not portable across providers; vc uses whatever search/docs tools the harness offers |
+| Fixed 8-section academic report template | ➡️ replaced with a decision-first contract (Question → Recommendation → Findings → Comparison → Sources) — a research report exists to feed a decision, not to be a textbook |
+
+**Điểm vượt:**
+1. **Decision-first output.** Recommendation is committed and up front with its
+   flip-condition; CK buries it under "Executive Summary" + 8 sections.
+2. **Proof-layer handoff.** vc:research names the proof layer the eventual build
+   needs (integration vs unit …), handing `vc:plan` a testable expectation — a
+   concept absent from CK.
+3. **`## Quality gates`** (≥2 sources, dated claims, project-weighted, report
+   disagreement) make the findings self-auditing; CK has no done-definition.
 
 ## Unresolved questions
 
