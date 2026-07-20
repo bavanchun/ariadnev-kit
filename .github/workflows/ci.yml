@@ -43,3 +43,8 @@ jobs:
 
       - name: Test + Coverage gate
         run: pnpm run coverage
+
+      - name: Test scripts + hooks (node:test)
+        run: |
+          node --test "packages/cli/scripts/**/*.test.mjs"
+          node --test "kit/hooks/**/*.test.cjs"
