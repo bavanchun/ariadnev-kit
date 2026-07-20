@@ -36,7 +36,7 @@ function settingsPathFor(scope: "project" | "global", home: string, cwd: string)
   return `${root}/.claude/settings.json`;
 }
 
-function hasBindingCommand(settingsJson: string, event: string, command: string): boolean {
+export function hasBindingCommand(settingsJson: string, event: string, command: string): boolean {
   try {
     const parsed = JSON.parse(settingsJson) as { hooks?: Record<string, unknown> };
     const groups = parsed.hooks?.[event];

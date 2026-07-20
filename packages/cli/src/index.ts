@@ -94,12 +94,15 @@ export function buildProgram(): Command {
     .command("doctor")
     .description("Health-check the installed kit against its receipt")
     .option("--global", "check ~/ scope", false)
-    .action((opts: { global?: boolean }) => {
+    .option("--fix", "re-merge hook bindings that drifted out of settings.json (backs up first)", false)
+    .action((opts: { global?: boolean; fix?: boolean }) => {
       const g = program.opts<GlobalOpts>();
       const { summary, exitCode } = runDoctor({
         scope: opts.global ? "global" : "project",
         home: g.home,
         cwd: g.cwd,
+        fix: !!opts.fix,
+        timestamp: nowStamp(),
       });
       console.log(summary);
       if (exitCode !== 0) process.exitCode = exitCode;

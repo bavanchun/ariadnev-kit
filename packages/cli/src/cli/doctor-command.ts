@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import type { Receipt } from "../install/install-receipt.js";
 import { diagnose, deriveStatus, type DiagnoseDeps, type DoctorStatus, type ProviderFinding } from "../doctor/diagnose.js";
+import { planHookRepair } from "../doctor/hook-repair.js";
+import { atomicWrite } from "../install/fs-atomic.js";
+import { backupPath, rotateBackups } from "../install/backup.js";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
@@ -12,6 +15,10 @@ export interface DoctorHandlerOpts {
   home: string;
   cwd: string;
   scope: "project" | "global";
+  /** Re-merge any hook bindings that drifted out of settings.json. */
+  fix?: boolean;
+  /** Timestamp for the backup dir when --fix writes (defaults to a literal). */
+  timestamp?: string;
   /** Override kit source root (tests / packaging). */
   kitRoot?: string;
 }
@@ -79,11 +86,32 @@ export function renderDoctorSummary(status: DoctorStatus, findings: ProviderFind
   return lines.join("\n");
 }
 
-/** Pure-ish handler: reads the receipt, diagnoses, renders a summary + exit code. */
+/** Re-merge drifted hook bindings back into settings.json, backing up first. */
+function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string, opts: DoctorHandlerOpts): string[] {
+  const repairs = planHookRepair(receipt, deps, { home: opts.home, cwd: opts.cwd });
+  if (repairs.length === 0) return [];
+  const backupsParent = join(root, ".vcskill", "backups");
+  const backupRoot = join(backupsParent, opts.timestamp ?? "doctor-fix");
+  const lines: string[] = [];
+  for (const r of repairs) {
+    backupPath(r.settingsPath, backupRoot, "settings");
+    atomicWrite(r.settingsPath, r.nextContent);
+    lines.push(`  fixed ${r.added.length} hook binding(s) for ${r.providerId} → ${r.settingsPath}`);
+  }
+  rotateBackups(backupsParent, 3);
+  return lines;
+}
+
+/** Pure-ish handler: reads the receipt, optionally repairs, diagnoses, renders. */
 export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
   const root = opts.scope === "global" ? opts.home : opts.cwd;
   const receipt = readReceipt(root);
-  const findings = diagnose(receipt, realDeps(), {
+  const deps = realDeps();
+
+  // --fix runs BEFORE diagnose so the post-repair diagnosis reflects the fix.
+  const fixLines = opts.fix ? applyHookFix(receipt, deps, root, opts) : [];
+
+  const findings = diagnose(receipt, deps, {
     home: opts.home,
     cwd: opts.cwd,
     currentVersion: packageVersion(),
@@ -92,5 +120,6 @@ export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
   const allFindings = kitFinding ? [...findings, kitFinding] : findings;
   const status = deriveStatus(receipt, allFindings);
   const exitCode: 0 | 1 | 2 = status === "healthy" ? 0 : status === "degraded" ? 1 : 2;
-  return { status, exitCode, summary: renderDoctorSummary(status, allFindings) };
+  const summary = [renderDoctorSummary(status, allFindings), ...fixLines].join("\n");
+  return { status, exitCode, summary };
 }
