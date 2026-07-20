@@ -6,6 +6,8 @@
 // Deploy: see docs/cloudflare-worker-setup.md. Requires one secret:
 //   GH_TOKEN — a fine-grained PAT with Contents: read on bavanchun/vcskill.
 
+import LANDING_HTML from "./landing.html";
+
 const REPO = "bavanchun/vcskill";
 const API = "https://api.github.com";
 
@@ -69,7 +71,14 @@ export default {
       return releaseAssetResponse(token, decodeURIComponent(dl[1]));
     }
 
+    if (pathname === "/" || pathname === "/index.html") {
+      return new Response(LANDING_HTML, {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
+      });
+    }
+
     return new Response("vcskill — install:  curl -fsSL https://vcskill.vchun.dev/install | bash\n", {
+      status: 404,
       headers: { "content-type": "text/plain" },
     });
   },
