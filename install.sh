@@ -54,6 +54,18 @@ mkdir -p "$INSTALL_DIR"
 mv "${tmp}/${asset}" "${INSTALL_DIR}/vcskill"
 chmod +x "${INSTALL_DIR}/vcskill"
 
+# --- short `vc` alias (opt out with VCSKILL_ALIAS=off) ------------------------
+# Never clobber a pre-existing different `vc` — only create/refresh our own link.
+if [ "${VCSKILL_ALIAS:-on}" != "off" ]; then
+  vc_path="${INSTALL_DIR}/vc"
+  if [ ! -e "$vc_path" ] || { [ -L "$vc_path" ] && [ "$(readlink "$vc_path")" = "vcskill" ]; }; then
+    ln -s vcskill "$vc_path" 2>/dev/null || cp "${INSTALL_DIR}/vcskill" "$vc_path"
+    echo "vcskill install: linked short alias  ${vc_path} → vcskill"
+  else
+    echo "vcskill install: '${vc_path}' already exists and is not vcskill — leaving it; use 'vcskill' or set VCSKILL_ALIAS=off" >&2
+  fi
+fi
+
 echo "vcskill install: installed to ${INSTALL_DIR}/vcskill ($("${INSTALL_DIR}/vcskill" --version))"
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) : ;;

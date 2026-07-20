@@ -4,6 +4,7 @@
 
 import type { ProviderId, ArtifactKind } from "./spec-verified.js";
 import { targetTemplate } from "./resolver.js";
+import { coral, teal, faint, symbols, type StyleOpts } from "../ui/style.js";
 
 // Public, doc-facing order. Excludes the internal "test-provider" mock.
 export const MATRIX_PROVIDERS: ProviderId[] = [
@@ -63,4 +64,40 @@ export function matrixToMarkdown(data: MatrixData = buildProviderMatrix()): stri
 /** Serialize the matrix for `contract --json` (version added by the caller). */
 export function matrixToJSON(data: MatrixData = buildProviderMatrix()): MatrixData {
   return data;
+}
+
+// Branded terminal grid for `vcskill contract` — mirrors the landing-page
+// signature matrix (◆ canonical / ✓ verified / · skip). Cells are padded to a
+// fixed width BEFORE coloring, so ANSI escapes never disturb column alignment.
+const ARTIFACT_COL = 10;
+const PROVIDER_COL = 13;
+
+export function matrixToTerminal(
+  data: MatrixData = buildProviderMatrix(),
+  opts: StyleOpts = { color: false },
+): string {
+  const head =
+    "artifact".padEnd(ARTIFACT_COL) +
+    MATRIX_PROVIDERS.map((p) => {
+      const label = p.padEnd(PROVIDER_COL);
+      return p === "claude-code" ? coral(label, opts) : faint(label, opts);
+    }).join("");
+
+  const rows = MATRIX_ARTIFACTS.map((artifact) => {
+    const cells = MATRIX_PROVIDERS.map((p) => {
+      const cell = data[p][artifact];
+      if (!cell.verified) return faint(` ${symbols.skip} skip`.padEnd(PROVIDER_COL), opts);
+      if (p === "claude-code") return coral(` ${symbols.self}`.padEnd(PROVIDER_COL), opts);
+      return teal(` ${symbols.ok}`.padEnd(PROVIDER_COL), opts);
+    });
+    return artifact.padEnd(ARTIFACT_COL) + cells.join("");
+  });
+
+  const legend = [
+    `${coral(symbols.self, opts)} canonical`,
+    `${teal(symbols.ok, opts)} verified`,
+    `${faint(symbols.skip, opts)} skip (unverified path)`,
+  ].join("   ");
+
+  return [head, ...rows, "", legend].join("\n");
 }

@@ -2,6 +2,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
+import { emit } from "./emit.js";
 import { loadManifest } from "../migrate/manifest.js";
 import { readAppliedState } from "../migrate/applied-state.js";
 import { planMigrations } from "../migrate/plan-migrations.js";
@@ -61,6 +62,6 @@ export function registerMigrate(program: Command): void {
         dryRun: !!g.dryRun,
         timestamp: nowStamp(),
       });
-      console.log(summary);
+      emit(summary);
     });
 }

@@ -26,7 +26,8 @@
     "ai-agents"
   ],
   "bin": {
-    "vcskill": "dist/index.js"
+    "vcskill": "dist/index.js",
+    "vc": "dist/index.js"
   },
   "engines": {
     "node": ">=18"

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
+import { emit } from "./emit.js";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { renderSkillTemplate, isValidSlug } from "../kit/skill-template.js";
@@ -53,6 +54,6 @@ export function registerAddSkill(program: Command): void {
         description = answer as string;
       }
       const res = runAddSkill({ name, description });
-      console.log(`created ${res.path} (name: vc:${res.slug})`);
+      emit(`created ${res.path} (name: vc:${res.slug})`);
     });
 }

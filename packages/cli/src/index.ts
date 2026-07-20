@@ -12,6 +12,8 @@ import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
+import { emit } from "./cli/emit.js";
+import { shouldColor, wordmark, coral, faint } from "./ui/style.js";
 import { scopeProcessEnv } from "./env-scope.js";
 import { nowStamp } from "./cli/timestamp.js";
 import { PROVIDER_IDS } from "./providers/index.js";
@@ -28,6 +30,21 @@ interface GlobalOpts {
 
 function splitProviders(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+/** Whether stdout should carry ANSI branding (TTY, not CI, not NO_COLOR). */
+function outColor(): boolean {
+  return shouldColor(process.env, process.stdout);
+}
+
+/** The branded no-args / help banner. Plain when piped. */
+function banner(): string {
+  const o = { color: outColor() };
+  return [
+    `${wordmark(o)}  ${faint("— author agent skills once, install to any provider", o)}`,
+    "",
+    `  ${coral("vc", o)} <command>   ·   try  ${coral("vc install", o)}  ·  ${coral("vc doctor", o)}  ·  ${coral("vc list", o)}`,
+  ].join("\n");
 }
 
 export function buildProgram(): Command {
@@ -71,7 +88,7 @@ export function buildProgram(): Command {
         applyHookSettings,
         vcskillVersion: packageVersion(),
       });
-      console.log(summary);
+      emit(summary);
     });
 
   program
@@ -89,7 +106,7 @@ export function buildProgram(): Command {
         cwd: g.cwd,
         timestamp: nowStamp(),
       });
-      console.log(summary);
+      emit(summary);
     });
 
   program
@@ -107,7 +124,7 @@ export function buildProgram(): Command {
         dryRun: !!g.dryRun,
         timestamp: nowStamp(),
       });
-      console.log(summary);
+      emit(summary);
       if (exitCode !== 0) process.exitCode = exitCode;
     });
 
@@ -122,7 +139,7 @@ export function buildProgram(): Command {
       const g = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       if (action === "list") {
-        console.log(runBackupsList({ home: g.home, cwd: g.cwd, scope }));
+        emit(runBackupsList({ home: g.home, cwd: g.cwd, scope }));
         return;
       }
       if (action === "restore") {
@@ -140,7 +157,7 @@ export function buildProgram(): Command {
           file: opts.file,
           preRestoreTimestamp: nowStamp(),
         });
-        console.log(summary);
+        emit(summary);
         return;
       }
       console.error(`unknown backups action: ${action} (use "list" or "restore")`);
@@ -169,7 +186,7 @@ export function buildProgram(): Command {
         },
         realUpdateDeps(),
       );
-      console.log(summary);
+      emit(summary);
     });
 
   program
@@ -178,7 +195,7 @@ export function buildProgram(): Command {
     .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
     .action((opts: { check?: boolean }) => {
       const { summary, ok } = runValidate({ check: !!opts.check });
-      console.log(summary);
+      emit(summary);
       if (!ok) process.exitCode = 1;
     });
 
@@ -187,8 +204,8 @@ export function buildProgram(): Command {
     .description("Print the provider×artifact capability contract (--json for machines)")
     .option("--json", "emit JSON instead of the Markdown matrix", false)
     .action((opts: { json?: boolean }) => {
-      const { output } = runContract({ json: !!opts.json, version: packageVersion() });
-      console.log(output);
+      const { output } = runContract({ json: !!opts.json, version: packageVersion(), color: !opts.json && outColor() });
+      emit(output);
     });
 
   program
@@ -197,11 +214,17 @@ export function buildProgram(): Command {
     .option("--global", "check ~/ scope", false)
     .action((opts: { global?: boolean }) => {
       const g = program.opts<GlobalOpts>();
-      console.log(runList({ scope: opts.global ? "global" : "project", home: g.home, cwd: g.cwd }));
+      emit(runList({ scope: opts.global ? "global" : "project", home: g.home, cwd: g.cwd, color: outColor() }));
     });
 
   registerAddSkill(program);
   registerMigrate(program);
+
+  // Branded first impression: the wordmark banner heads `--help`, and bare
+  // `vcskill`/`vc` (no subcommand) prints it instead of a bare usage error.
+  program.addHelpText("beforeAll", () => `${banner()}\n`);
+  program.action(() => emit(banner()));
+
   return program;
 }
 
