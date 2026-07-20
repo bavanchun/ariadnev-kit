@@ -1,27 +1,19 @@
-# vcskill installer (Windows) — downloads the standalone binary from the latest
-# GitHub Release, verifies its sha256, and installs it to
-# %LOCALAPPDATA%\Programs\vcskill, adding that dir to the user PATH.
+# vcskill installer (Windows) — downloads the standalone binary from the vcskill
+# edge, verifies its sha256, and installs it to %LOCALAPPDATA%\Programs\vcskill,
+# adding that dir to the user PATH.
 #
-#   irm https://raw.githubusercontent.com/bavanchun/vcskill/main/install.ps1 | iex
-#
-# Overrides (env): VCSKILL_VERSION (pin a tag, e.g. "0.5.0"; default = latest).
+#   irm https://vcskill.vchun.dev/install.ps1 | iex
 $ErrorActionPreference = "Stop"
 
-$repo = "bavanchun/vcskill"
+$base = if ($env:VCSKILL_BASE_URL) { $env:VCSKILL_BASE_URL } else { "https://vcskill.vchun.dev" }
 $asset = "vcskill-windows-x64.exe"
 $installDir = Join-Path $env:LOCALAPPDATA "Programs\vcskill"
-
-if ($env:VCSKILL_VERSION) {
-  $base = "https://github.com/$repo/releases/download/vcskill@$($env:VCSKILL_VERSION)"
-} else {
-  $base = "https://github.com/$repo/releases/latest/download"
-}
 
 $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("vcskill-" + [guid]::NewGuid()))
 try {
   Write-Host "vcskill install: downloading $asset ..."
-  Invoke-WebRequest -Uri "$base/$asset" -OutFile (Join-Path $tmp $asset)
-  Invoke-WebRequest -Uri "$base/checksums.txt" -OutFile (Join-Path $tmp "checksums.txt")
+  Invoke-WebRequest -Uri "$base/download/$asset" -OutFile (Join-Path $tmp $asset)
+  Invoke-WebRequest -Uri "$base/download/checksums.txt" -OutFile (Join-Path $tmp "checksums.txt")
 
   # Verify sha256 (fail closed).
   $line = Get-Content (Join-Path $tmp "checksums.txt") | Where-Object { $_ -match "\s$([regex]::Escape($asset))$" }

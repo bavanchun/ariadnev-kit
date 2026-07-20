@@ -3,7 +3,10 @@ import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import type { Receipt } from "../install/install-receipt.js";
 
-const REPO = "bavanchun/vcskill";
+// Everything goes through the public edge (a Cloudflare Worker on this domain)
+// that proxies the private GitHub repo's releases — the CLI never talks to
+// GitHub directly, so the repo can stay fully private.
+const DOMAIN = "https://vcskill.vchun.dev";
 
 /** Numeric major.minor.patch compare — "0.10.0" > "0.9.0", unlike string compare. */
 export function isNewerVersion(candidate: string, base: string): boolean {
@@ -76,7 +79,7 @@ export interface UpdateHandlerResult {
   summary: string;
 }
 
-const CURL_HINT = "  run: curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash";
+const CURL_HINT = "  run: curl -fsSL https://vcskill.vchun.dev/install | bash";
 
 function readReceiptVersion(root: string): string | null {
   const path = join(root, ".vcskill", "receipt.json");
@@ -131,29 +134,29 @@ function atomicReplaceBinary(target: string, bytes: Uint8Array): void {
   renameSync(tmp, target);
 }
 
-/** Production deps: real GitHub fetch + on-disk atomic replace. */
+/** Production deps: real edge fetch + on-disk atomic replace. */
 export function realUpdateDeps(): UpdateDeps {
   return {
-    fetchLatestVersion: fetchLatestVersionFromGitHub,
+    fetchLatestVersion,
     downloadBinary: downloadBytes,
     downloadText: downloadTextAsset,
     replaceBinary: atomicReplaceBinary,
   };
 }
 
-/** Real fetch against GitHub Releases with a short timeout — never throws. */
-export async function fetchLatestVersionFromGitHub(): Promise<string | null> {
+/** Ask the edge for the latest version. Short timeout; never throws. */
+export async function fetchLatestVersion(): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+    const res = await fetch(`${DOMAIN}/version`, {
       signal: controller.signal,
-      headers: { Accept: "application/vnd.github+json", "User-Agent": "vcskill" },
+      headers: { "User-Agent": "vcskill" },
     });
     clearTimeout(timer);
     if (!res.ok) return null;
-    const data = (await res.json()) as { tag_name?: string };
-    return data.tag_name ? parseLatestTag(data.tag_name) : null;
+    const text = (await res.text()).trim();
+    return text ? parseLatestTag(text) : null;
   } catch {
     return null;
   }
@@ -197,10 +200,9 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
     return done();
   }
 
-  const base = `https://github.com/${REPO}/releases/download/vcskill@${latest}`;
   const [bytes, checksums] = await Promise.all([
-    deps.downloadBinary(`${base}/${asset}`),
-    deps.downloadText(`${base}/checksums.txt`),
+    deps.downloadBinary(`${DOMAIN}/download/${asset}`),
+    deps.downloadText(`${DOMAIN}/download/checksums.txt`),
   ]);
   if (!bytes || !checksums) {
     lines.push(`  could not download the update — ${CURL_HINT.trim()}`);

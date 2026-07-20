@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # vcskill installer — downloads the standalone binary for your platform from the
-# latest GitHub Release, verifies its sha256, and installs it to ~/.local/bin.
+# vcskill edge, verifies its sha256, and installs it to ~/.local/bin.
 #
-#   curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash
+#   curl -fsSL https://vcskill.vchun.dev/install | bash
 #
-# Overrides (env): VCSKILL_INSTALL_DIR (default ~/.local/bin),
-#                  VCSKILL_VERSION (pin a tag, e.g. "0.5.0"; default = latest).
+# Overrides (env): VCSKILL_INSTALL_DIR (default ~/.local/bin).
 set -euo pipefail
 
-REPO="bavanchun/vcskill"
+BASE="${VCSKILL_BASE_URL:-https://vcskill.vchun.dev}"
 INSTALL_DIR="${VCSKILL_INSTALL_DIR:-$HOME/.local/bin}"
 
 err() { echo "vcskill install: $*" >&2; exit 1; }
@@ -30,19 +29,12 @@ esac
 
 asset="vcskill-${os}-${arch}"
 
-# --- resolve download URLs ---------------------------------------------------
-if [ -n "${VCSKILL_VERSION:-}" ]; then
-  base="https://github.com/${REPO}/releases/download/vcskill@${VCSKILL_VERSION}"
-else
-  base="https://github.com/${REPO}/releases/latest/download"
-fi
-
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "vcskill install: downloading ${asset} …"
-curl -fsSL "${base}/${asset}" -o "${tmp}/${asset}" || err "download failed: ${base}/${asset}"
-curl -fsSL "${base}/checksums.txt" -o "${tmp}/checksums.txt" || err "could not fetch checksums.txt"
+curl -fsSL "${BASE}/download/${asset}" -o "${tmp}/${asset}" || err "download failed: ${BASE}/download/${asset}"
+curl -fsSL "${BASE}/download/checksums.txt" -o "${tmp}/checksums.txt" || err "could not fetch checksums.txt"
 
 # --- verify sha256 (fail closed) ---------------------------------------------
 expected="$(grep " ${asset}\$" "${tmp}/checksums.txt" | awk '{print $1}')"
