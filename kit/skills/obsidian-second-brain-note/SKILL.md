@@ -21,7 +21,7 @@ Never write secrets, API keys, passwords, tokens, private keys, recovery phrases
 ## Workflow
 
 1. **Find Vault Context**
-   - **Primary vault:** `~/Codes/Docs/Obsidian/your-vault/` — always use this unless user specifies otherwise.
+   - **Primary vault:** `~/path/to/your/vault/` — set your own default and use it unless the user specifies otherwise.
    - Work from the Obsidian vault Git root when possible.
    - Inspect existing folder conventions before creating new folders.
    - Never place new durable notes in vault root unless user explicitly asks.
@@ -122,8 +122,8 @@ pipeline; parity vs ClaudeKit N/A.
 
 Load only as needed:
 
-- `references/vault-conventions.md` — read first when working in the known
-  your-vault vault (path, git, bilingual + frontmatter conventions in use)
+- `references/vault-conventions.md` — read first when working in your primary
+  vault (path, git, bilingual + frontmatter conventions in use)
 - `references/note-taxonomy.md` for note types and folder placement
 - `references/frontmatter-schema.md` for YAML schema
 - `references/linking-rules.md` for backlinks, aliases, MOCs

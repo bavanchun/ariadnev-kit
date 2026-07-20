@@ -1,12 +1,14 @@
-# Vault Conventions — your-vault
+# Vault Conventions
 
-Concrete conventions for the known vault. Read this first when working in it. If working in a *different* vault, detect its conventions instead (do not assume these).
+Conventions for the primary vault. Read this first when working in it. Fill in
+the concrete path/domains for your own vault; if working in a *different* vault,
+detect its conventions instead (do not assume these).
 
 ## Vault
 
-- Path: `~/Codes/Docs/Obsidian/your-vault`
+- Path: `~/path/to/your/vault` (set your own)
 - Separate git repo, branch `main` → `origin/main`. Commit only when user asks (skill default).
-- Bilingual: Vietnamese + English. Match the note's language to its source/user. Do not switch arbitrarily.
+- Bilingual example: Vietnamese + English. Match the note's language to its source/user. Do not switch arbitrarily.
 
 ## Frontmatter Schema (in use — conform to this)
 
@@ -52,7 +54,7 @@ Daily/               real daily journals only
 Dashboard.md         vault homepage (root) — links every MOC
 ```
 
-Known domains: `AI` (+ `AI/Tools/AI Tools MOC.md` sub-MOC), `Backend`, `DevOps`, `FPT`, `Frontend`, `Flutter-and-Dart`. Root must contain only `Dashboard.md`.
+Known domains: your own set (e.g. `AI` with an `AI/Tools/AI Tools MOC.md` sub-MOC, `Backend`, `DevOps`, `Frontend`, `Mobile`). Root must contain only `Dashboard.md`.
 
 ## MOC + Hub Conventions
 
