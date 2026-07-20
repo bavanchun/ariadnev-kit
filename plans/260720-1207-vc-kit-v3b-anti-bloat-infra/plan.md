@@ -1,7 +1,7 @@
 ---
 title: "vc kit v3b: anti-bloat + infra — pm disposition, vcskill validate, hooks README, friction wiring"
 description: "Apply the RDD anti-bloat lesson (pm disposition + live plans/ cleanup) and add the infra that would have caught v3a's defects automatically: vcskill validate (reference-integrity), hooks README, friction wiring."
-status: pending
+status: completed
 priority: P1
 branch: "main"
 tags: [cli, validate, anti-bloat, hooks, pm, tdd]
@@ -41,10 +41,10 @@ references. Record in `plans/reports/parity-260720-cli-validate-vs-ck-report.md`
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [validate: reference-integrity pure module (TDD)](./phase-01-validate-reference-integrity-pure-module-tdd.md) | Pending |
-| 2 | [validate: CLI command + loadKit wiring + CI](./phase-02-validate-cli-command-loadkit-wiring-ci.md) | Pending |
-| 3 | [pm disposition + plan evidence rule + friction wiring + hooks README](./phase-03-pm-disposition-plan-evidence-rule-friction-wiring-hooks-read.md) | Pending |
-| 4 | [Live plans cleanup (confirm-gated) + changeset + sync-back](./phase-04-live-plans-cleanup-confirm-gated-changeset-sync-back.md) | Pending |
+| 1 | [validate: reference-integrity pure module (TDD)](./phase-01-validate-reference-integrity-pure-module-tdd.md) | ✅ Completed |
+| 2 | [validate: CLI command + loadKit wiring + CI](./phase-02-validate-cli-command-loadkit-wiring-ci.md) | ✅ Completed |
+| 3 | [pm disposition + plan evidence rule + friction wiring + hooks README](./phase-03-pm-disposition-plan-evidence-rule-friction-wiring-hooks-read.md) | ✅ Completed |
+| 4 | [Live plans cleanup (confirm-gated) + changeset + sync-back](./phase-04-live-plans-cleanup-confirm-gated-changeset-sync-back.md) | ✅ Completed |
 
 Order: 1→2 (validate code, TDD, riskiest-first by proof burden); 3 (markdown, kit
 content); 4 (destructive cleanup last, confirm-gated). 3 and 4 depend on 1-2 only
@@ -52,17 +52,15 @@ for changeset/README grouping, not code.
 
 ## Acceptance Criteria (whole plan)
 
-- [ ] `vcskill validate` exists: loadKit lint + reference-integrity (orphan +
-  dangling) across all skills/agents; exit 0 clean / 1 on any finding
-- [ ] Reference-integrity is a pure, well-tested module (no fs) — TDD red-first
-- [ ] `validate` catches a real injected orphan (test proves it) — the v3a defect class
-- [ ] CI runs `vcskill validate` as a gate (fails the build on kit drift)
-- [ ] `vc:pm` sync-back has a disposition step (distill durable → docs/, delete
-  plan + related reports, 1-line commit note); plan template requires evidence-cited checkboxes
-- [ ] hooks/README.md documents all 6 hooks (event + purpose); each hook.cjs has a header
-- [ ] Friction wiring: closing a plan with repeated friction routes to `vc:journal` harness-delta
-- [ ] 4 completed plans distilled + deleted (confirm-gated); plans/ holds only active work
-- [ ] `pnpm test` green; adapt-engine coverage unchanged; parity report done; changeset minor; README commands table updated (validate)
+- [x] `vcskill validate` exists: loadKit lint + reference-integrity across skills; exit 0/1 (validate-command.ts + index.ts, live smoke exit 0)
+- [x] Reference-integrity is pure, tested (reference-integrity.ts + 9 tests, no fs)
+- [x] `validate` catches real orphans — caught 3 live on first run (obsidian ×2, predict); injected-orphan/dangling/lint tests in validate-command.test.ts
+- [x] CI runs `vcskill validate` as a gate (.github/workflows/ci.yml, after Build)
+- [x] `vc:pm` sync-back has Disposition-on-close (§6) + Friction routing (§7); evidence-cited rule already in sync-back §1
+- [x] hooks/README.md documents all 6 hooks; each hook.cjs already had a header (verified)
+- [x] Friction wiring: sync-back §7 routes repeat friction to vc:journal harness-delta
+- [x] 4 completed plans + their reports deleted (confirm-gated); durable decision distilled to docs/decisions/0001; plans/ holds v3b + 3 older June plans (out of confirmed scope)
+- [x] `pnpm test` green (232→ with new tests); parity report done; changeset minor; README 9-command table
 
 ## Dependencies
 

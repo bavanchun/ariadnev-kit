@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "pm disposition + plan evidence rule + friction wiring + hooks README"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []

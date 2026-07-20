@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Live plans cleanup (confirm-gated) + changeset + sync-back"
-status: pending
+status: completed
 priority: P2
 effort: "2h"
 dependencies: [2, 3]
