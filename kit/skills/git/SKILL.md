@@ -81,9 +81,7 @@ Protected branches: **`main`**, **`master`**, **`dev`**, **`develop`**.
 |------|-----------|
 | Commit + co-author | `references/workflow-commit.md` |
 | Full pipeline (prc) | `references/workflow-prc.md` |
-| Push | `references/workflow-push.md` |
-| Pull Request | `references/workflow-pr.md` |
-| Merge | `references/workflow-merge.md` |
+| Push / PR / Merge | `references/workflow-sync.md` |
 | Standards | `references/commit-standards.md` |
 | Safety | `references/safety-protocols.md` |
 | Branches | `references/branch-management.md` |
@@ -221,14 +219,20 @@ See `references/workflow-prc.md` for complete details.
 
 - `references/workflow-commit.md` — Commit workflow + co-author footer
 - `references/workflow-prc.md` — Full pipeline (prc)
-- `references/workflow-push.md` — Push workflow
-- `references/workflow-pr.md` — PR creation
-- `references/workflow-merge.md` — Branch merge
+- `references/workflow-sync.md` — Push, PR creation, and merge (remote sync)
 - `references/commit-standards.md` — Conventional commit format
 - `references/safety-protocols.md` — Secret detection
 - `references/branch-management.md` — Naming, lifecycle
 - `references/gh-cli-guide.md` — GitHub CLI reference
 - `co-authors.json` — Co-author identities (--solo / --team data)
+
+## Workflow position
+
+**Typically follows:** any skill that produced changes to ship — `vc:cook`,
+`vc:fix`, `vc:docs`, or a manual edit session.
+**Typically precedes:** nothing — committing/merging is the terminal step.
+**Related:** the `vc-git-manager` agent executes these operations to keep verbose
+git output out of the main context; `vc:cook`'s finalize step delegates to it.
 
 ## Upstream Sync
 

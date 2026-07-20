@@ -117,6 +117,64 @@ isn't reasoning, it's restating the question"; hypotheses must reach
 branches converged) — a done-definition CK's version lacks. (3) Proof note: the
 reasoning is not itself a proof; a downstream change still owes its proof layer.
 
+## security-scan (`vc:security-scan` vs `ck:security-scan`)
+
+CK's is a heavier STRIDE/OWASP audit skill. vc is a lightweight grep+reason
+scanner (no external service/API key).
+
+| CK capability | vc:security-scan |
+|---|---|
+| Secret + dependency + code-pattern scan | ✅ all three + `.env` git-tracking check; native audit per stack |
+| Severity classification | ✅ kept (Critical/High/Medium/Low by exploitability) |
+| Heavy STRIDE threat-model framing | ➡️ scoped out: this skill is the fast pre-release pass; deep threat modeling is a separate concern (KISS) |
+
+**Điểm vượt:** (1) **False-positive discipline as a gate** — every hit passes a
+placeholder/context check before reporting; the output bans "there may be secrets
+somewhere". (2) **Proof-carrying fixes** — each Critical/High names the proof
+(`integration`/`unit`) that would confirm remediation, handing `vc:fix` a
+testable done-condition. (3) Redaction enforced in the Quality gates, not just
+prose.
+
+## docs-seeker (`vc:docs-seeker` vs `ck:docs-seeker`)
+
+Both fetch current docs. vc adds a verification contract.
+
+**Điểm vượt:** (1) **Staleness is visible** — version/date-checked is mandatory in
+the output, and "say so if nothing found" is a hard gate (no silent memory
+fallback). (2) Clear split from `vc:research` (pinpoint lookup vs open
+evaluation) so the two never overlap. (3) context7-first tool routing.
+
+## obsidian-second-brain-note (personal — parity N/A)
+
+No ClaudeKit counterpart; personal knowledge-capture skill. Brought to
+naming-consistency only: `Quality Check` → `## Quality gates`, added
+`## Workflow position` marking it a standalone terminal capture step. Content
+(9-step vault workflow, taxonomy/frontmatter/linking references) unchanged.
+
+## git (`vc:git` vs `ck:git`)
+
+vc:git is an explicit fork of `ck:git` (frontmatter records `forked-from` +
+upstream-sync instructions). This phase consolidated its references.
+
+| CK capability | vc:git |
+|---|---|
+| cm/cp/pr/prc/merge/feat/fix operations | ✅ all kept, behavior unchanged |
+| Conventional commits, branch protection, secret scan | ✅ kept |
+
+**Điểm vượt / cleanup:**
+1. **Removed a contradictory duplicate.** `workflow-pr-per-change.md` was an
+   unreferenced orphan spec of `prc` that *bypassed review* with `gh pr merge
+   --admin` (YOLO) — contradicting SKILL.md's own "YOLO ❌ not in scope" and the
+   referenced `workflow-prc.md`. Deleted; its one unique rule (no-AI co-author)
+   was already canonical in `commit-standards.md`. This is exactly the
+   two-sources-of-truth drift the RDD lesson warns about.
+2. **References 10→7** — merged 3 tiny remote-ops files (push/pr/merge, 158
+   lines across 3) into one `workflow-sync.md`; kept genuinely-distinct concerns
+   (commit, prc, standards, safety, branches, gh-cli) separate. Not forced to
+   "4": cramming distinct concerns together would reduce quality, not raise it.
+3. Added `## Workflow position`. Achievement-friendly `--solo`/`--team`
+   co-author + `prc` pipeline remain vc's value-add over stock `ck:git`.
+
 ## Unresolved questions
 
 (pending — filled at phase 6)
