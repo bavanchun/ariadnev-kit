@@ -5,6 +5,7 @@ import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
+import { scoreDescriptions } from "../kit/description-collision.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -12,8 +13,10 @@ import { checkMatrixDrift } from "../providers/matrix-drift.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "matrix";
+  kind: "lint" | "dangling" | "orphan" | "matrix" | "collision";
   message: string;
+  /** "warn" findings surface but do not fail validation. Default: "error". */
+  level?: "warn" | "error";
 }
 
 export interface ValidateResult {
@@ -43,8 +46,13 @@ function renderSummary(findings: ValidateFinding[], counts: ValidateResult["coun
   const header = `vcskill validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
   if (findings.length === 0) return `${header}\n  all checks passed`;
   const lines = [header];
-  for (const f of findings) lines.push(`  [${f.kind}] ${f.skill}: ${f.message}`);
-  lines.push(`  ${findings.length} finding(s)`);
+  for (const f of findings) {
+    const tag = (f.level ?? "error") === "warn" ? "warn:" : "";
+    lines.push(`  [${tag}${f.kind}] ${f.skill}: ${f.message}`);
+  }
+  const errors = findings.filter((f) => (f.level ?? "error") === "error").length;
+  const warns = findings.length - errors;
+  lines.push(`  ${errors} error(s), ${warns} warning(s)`);
   return lines.join("\n");
 }
 
@@ -79,6 +87,19 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     }
   }
 
+  // Cross-skill description confusability (routing-collision guard).
+  const collisions = scoreDescriptions(
+    kit.skills.map((s) => ({ name: s.name, description: String(s.frontmatter.description ?? "") })),
+  );
+  for (const c of collisions) {
+    findings.push({
+      skill: `${c.a} ~ ${c.b}`,
+      kind: "collision",
+      level: c.level,
+      message: `descriptions ${(c.score * 100).toFixed(0)}% similar — routing may be ambiguous`,
+    });
+  }
+
   if (opts.check) {
     const readmePath = opts.readmePath ?? defaultReadmePath();
     const readme = existsSync(readmePath) ? readFileSync(readmePath, "utf8") : null;
@@ -91,5 +112,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   }
 
   const counts = { skills: kit.skills.length, agents: kit.agents.length, hooks: kit.hooks.length };
-  return { ok: findings.length === 0, findings, counts, summary: renderSummary(findings, counts) };
+  // Warnings surface but don't fail; only error-level findings break the gate.
+  const ok = !findings.some((f) => (f.level ?? "error") === "error");
+  return { ok, findings, counts, summary: renderSummary(findings, counts) };
 }
