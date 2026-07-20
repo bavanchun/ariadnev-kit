@@ -1,5 +1,31 @@
 # vcskill
 
+## 0.6.0
+
+### Minor Changes
+
+- 12c33ce: Install and self-update now go through the vcskill edge (`vcskill.vchun.dev`)
+  instead of GitHub directly, so the repo can be **fully private**.
+
+  - Install: `curl -fsSL https://vcskill.vchun.dev/install | bash` /
+    `irm https://vcskill.vchun.dev/install.ps1 | iex`.
+  - `vcskill update` checks `/version` and downloads binaries from `/download/…`
+    on the edge (still sha256-verified, still self-updating).
+  - A Cloudflare Worker (`cloudflare-worker/`) proxies the private repo's install
+    scripts and release binaries with a server-side token — the only public face.
+    Setup runbook: `docs/cloudflare-worker-setup.md`.
+
+- 412a2db: `vcskill update` now **self-updates** the binary in place — download the latest
+  release for your platform, verify its sha256, and atomically replace the running
+  binary. No need to re-run the curl installer.
+
+  - `vcskill update` — upgrade to the latest release (fail-closed on checksum
+    mismatch; never replaces on a bad download).
+  - `vcskill update --check` — only report whether a newer version exists (the old
+    behavior).
+  - When run via `node` (not the compiled binary) it guides you to the curl
+    installer instead of replacing `node`.
+
 ## 0.5.0
 
 ### Minor Changes
