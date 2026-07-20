@@ -154,6 +154,12 @@ vcskill add-skill my-skill --description "When to use this skill"
 vcskill install --provider cursor --dry-run   # see it land
 ```
 
+## Security
+
+The installer verifies each binary's sha256 before installing, and the CLI
+redacts credential-shaped strings from all output. To report a vulnerability,
+see [`SECURITY.md`](SECURITY.md) (please report privately).
+
 ## Contributing
 
 - `pnpm install` → `pnpm test` (vitest, TDD).
