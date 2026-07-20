@@ -36,10 +36,14 @@ Change the target dir with `VCSKILL_INSTALL_DIR`.
 > **macOS Gatekeeper**: the binary is not yet notarized, so the first run may be
 > blocked. Allow it with `xattr -d com.apple.quarantine "$(command -v vcskill)"`.
 
+The installer also links a short **`vc`** alias next to the binary (skip it with
+`VCSKILL_ALIAS=off`; it never overwrites an existing `vc`). Everywhere below,
+`vcskill` and `vc` are interchangeable.
+
 Then set up your providers:
 
 ```bash
-vcskill install                              # interactive: pick providers + scope
+vc install                                   # interactive: pick providers + scope (or: vcskill install)
 vcskill install --provider codex,cursor      # non-interactive
 vcskill install --provider claude-code --global
 vcskill install --provider opencode --dry-run # preview, write nothing

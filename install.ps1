@@ -25,6 +25,14 @@ try {
   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
   Copy-Item (Join-Path $tmp $asset) (Join-Path $installDir "vcskill.exe") -Force
 
+  # Short `vc` alias (opt out with VCSKILL_ALIAS=off). Windows lacks reliable
+  # symlinks without elevation, so ship a copy — but never clobber a different vc.
+  if ($env:VCSKILL_ALIAS -ne "off") {
+    $vcExe = Join-Path $installDir "vc.exe"
+    Copy-Item (Join-Path $installDir "vcskill.exe") $vcExe -Force
+    Write-Host "vcskill install: installed short alias  vc.exe"
+  }
+
   # Add to the user PATH if missing.
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   if ($userPath -notlike "*$installDir*") {
