@@ -10,6 +10,8 @@ import { backupPath, rotateBackups } from "../install/backup.js";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
+import { scoreAudit } from "../doctor/audit-score.js";
+import { coral, teal, amber, faint, bar, symbols, type StyleOpts } from "../ui/style.js";
 
 export interface DoctorHandlerOpts {
   home: string;
@@ -23,6 +25,8 @@ export interface DoctorHandlerOpts {
   timestamp?: string;
   /** Override kit source root (tests / packaging). */
   kitRoot?: string;
+  /** Branded coloring; false (default) keeps output plain for pipes/tests. */
+  color?: boolean;
 }
 
 export interface DoctorHandlerResult {
@@ -68,22 +72,37 @@ function kitLintFinding(kitRoot: string | undefined): ProviderFinding | null {
     loadKit(root);
     return null;
   } catch (err) {
-    return { providerId: "kit", level: "error", message: `kit failed to load: ${String(err instanceof Error ? err.message : err)}` };
+    return { providerId: "kit", level: "fail", weight: 10, remedy: "vcskill validate", message: `kit failed to load: ${String(err instanceof Error ? err.message : err)}` };
   }
 }
 
-export function renderDoctorSummary(status: DoctorStatus, findings: ProviderFinding[]): string {
-  const lines: string[] = [`vcskill doctor — ${status}`];
-  if (status === "not-installed") {
-    lines.push("  no receipt found — run `vcskill install` first");
-    return lines.join("\n");
+function glyphFor(level: ProviderFinding["level"], opts: StyleOpts): string {
+  switch (level) {
+    case "pass": return teal(symbols.ok, opts);
+    case "warning": return amber(symbols.warn, opts);
+    case "fail": return coral(symbols.fail, opts);
+    case "skip": return faint(symbols.skip, opts);
   }
+}
+
+export function renderDoctorSummary(
+  status: DoctorStatus,
+  findings: ProviderFinding[],
+  opts: StyleOpts = { color: false },
+): string {
+  const head = `${coral("vcskill", opts)} doctor — ${status}`;
+  if (status === "not-installed") {
+    return `${head}\n  no receipt found — run \`vcskill install\` first`;
+  }
+  const { score } = scoreAudit(findings);
+  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`];
   if (findings.length === 0) {
-    lines.push("  all checks passed");
+    lines.push(`  ${teal(symbols.ok, opts)} all checks passed`);
     return lines.join("\n");
   }
   for (const f of findings) {
-    lines.push(`  [${f.level}] ${f.providerId}: ${f.message}`);
+    lines.push(`  ${glyphFor(f.level, opts)} ${f.providerId}: ${f.message}`);
+    if (f.remedy) lines.push(faint(`      ↳ run  ${f.remedy}`, opts));
   }
   return lines.join("\n");
 }
@@ -130,6 +149,6 @@ export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
   const allFindings = kitFinding ? [...findings, kitFinding] : findings;
   const status = deriveStatus(receipt, allFindings);
   const exitCode: 0 | 1 | 2 = status === "healthy" ? 0 : status === "degraded" ? 1 : 2;
-  const summary = [renderDoctorSummary(status, allFindings), ...fixLines].join("\n");
+  const summary = [renderDoctorSummary(status, allFindings, { color: !!opts.color }), ...fixLines].join("\n");
   return { status, exitCode, summary };
 }

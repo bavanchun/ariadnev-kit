@@ -3,12 +3,18 @@
 // here directly, so this is fully unit-testable without a real install.
 import { fromPortablePath, type Receipt } from "../install/install-receipt.js";
 
-export type FindingLevel = "error" | "warning";
+// Tri-state (plus warning). `pass`/`skip` are informational rows; only `fail`
+// affects the exit code (see deriveStatus). `warning` surfaces but never fails.
+export type FindingLevel = "pass" | "skip" | "warning" | "fail";
 
 export interface ProviderFinding {
   providerId: string;
   level: FindingLevel;
   message: string;
+  /** Exact command that resolves the finding, e.g. "vcskill doctor --fix". */
+  remedy?: string;
+  /** Health-score deduction (0–100 scale). Only fail/warning carry weight. */
+  weight?: number;
 }
 
 export type DoctorStatus = "healthy" | "degraded" | "not-installed";
@@ -54,25 +60,35 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
   for (const [providerId, install] of Object.entries(receipt.installs)) {
     if (!install) continue;
 
+    const applied = install.hookBindings.filter((b) => b.applied);
+    // Nothing recorded to verify → an informational skip, not a green pass.
+    if (install.files.length === 0 && applied.length === 0) {
+      findings.push({ providerId, level: "skip", message: "nothing to verify (no files or hook bindings recorded)" });
+      continue;
+    }
+
+    const before = findings.length;
+
     for (const file of install.files) {
       const abs = fromPortablePath(file.path, opts.home, opts.cwd);
       if (!deps.fileExists(abs)) {
-        findings.push({ providerId, level: "error", message: `missing file: ${file.path}` });
+        findings.push({ providerId, level: "fail", weight: 10, remedy: "vcskill install", message: `missing file: ${file.path}` });
         continue;
       }
       if (isHookFile(file.path) && !deps.hookExecutable(abs)) {
-        findings.push({ providerId, level: "error", message: `hook failed to execute: ${file.path}` });
+        findings.push({ providerId, level: "fail", weight: 8, remedy: "vcskill install", message: `hook failed to execute: ${file.path}` });
       }
     }
 
-    const applied = install.hookBindings.filter((b) => b.applied);
     if (applied.length > 0) {
       const settingsAbs = settingsPathFor(install.scope, opts.home, opts.cwd);
       const settingsJson = deps.readSettingsJson(settingsAbs);
       if (settingsJson === null) {
         findings.push({
           providerId,
-          level: "error",
+          level: "fail",
+          weight: 10,
+          remedy: "vcskill doctor --fix",
           message: "settings.json missing but hook bindings were applied at install time",
         });
       } else {
@@ -80,7 +96,9 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
           if (!hasBindingCommand(settingsJson, b.event, b.command)) {
             findings.push({
               providerId,
-              level: "error",
+              level: "fail",
+              weight: 10,
+              remedy: "vcskill doctor --fix",
               message: `hook binding removed from settings.json: ${b.event} -> ${b.command}`,
             });
           }
@@ -92,16 +110,24 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
       findings.push({
         providerId,
         level: "warning",
+        weight: 5,
+        remedy: "vcskill update",
         message: `receipt recorded vcskillVersion ${receipt.vcskillVersion}, running ${opts.currentVersion} — consider "vcskill update"`,
       });
+    }
+
+    // No problem row added for this provider → a green pass line.
+    if (findings.length === before) {
+      findings.push({ providerId, level: "pass", message: `${install.files.length} file(s) present, bindings intact` });
     }
   }
 
   return findings;
 }
 
-/** Roll findings + receipt presence up into one overall status. */
+/** Roll findings + receipt presence up into one overall status. Only `fail`
+ * findings degrade — pass/skip/warning never do, preserving the exit contract. */
 export function deriveStatus(receipt: Receipt | null, findings: ProviderFinding[]): DoctorStatus {
   if (!receipt || Object.keys(receipt.installs).length === 0) return "not-installed";
-  return findings.some((f) => f.level === "error") ? "degraded" : "healthy";
+  return findings.some((f) => f.level === "fail") ? "degraded" : "healthy";
 }
