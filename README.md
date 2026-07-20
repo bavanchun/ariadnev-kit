@@ -1,5 +1,10 @@
 # vcskill
 
+[![Release](https://img.shields.io/github/v/release/bavanchun/vcskill?label=release&color=b8232c)](https://github.com/bavanchun/vcskill/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/bavanchun/vcskill/ci.yml?branch=main&label=CI)](https://github.com/bavanchun/vcskill/actions/workflows/ci.yml)
+[![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows-informational)](#install)
+[![License: MIT](https://img.shields.io/github/license/bavanchun/vcskill?color=blue)](LICENSE)
+
 Author agent skills, subagents, commands, and rules **once** in canonical Claude
 format, then install them to any AI coding provider with one command.
 
