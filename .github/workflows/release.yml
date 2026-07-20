@@ -73,7 +73,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.rel.outputs.version }}
         run: |
-          gh release create "vcskill@${VERSION}" \
-            packages/cli/dist/release/* \
-            --title "vcskill@${VERSION}" \
-            --notes "Standalone binaries for macOS/Linux/Windows. Install: \`curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash\`. Verify with checksums.txt."
+          NOTES="Standalone binaries for macOS/Linux/Windows. Install: \`curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash\`. Verify with checksums.txt."
+          # Idempotent: create the release if it doesn't exist yet, otherwise
+          # (re-run, or a release the changesets action already opened) just
+          # upload/replace the assets.
+          if gh release view "vcskill@${VERSION}" >/dev/null 2>&1; then
+            gh release upload "vcskill@${VERSION}" packages/cli/dist/release/* --clobber
+          else
+            gh release create "vcskill@${VERSION}" packages/cli/dist/release/* \
+              --title "vcskill@${VERSION}" --notes "$NOTES"
+          fi
