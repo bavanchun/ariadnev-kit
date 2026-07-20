@@ -34,6 +34,7 @@
   "scripts": {
     "build": "tsup",
     "generate:embedded": "node scripts/generate-embedded-kit.mjs",
+    "generate:matrix": "bun scripts/generate-provider-matrix.ts",
     "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill"
   },
   "dependencies": {

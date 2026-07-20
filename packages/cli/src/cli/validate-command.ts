@@ -1,9 +1,10 @@
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
+import { checkMatrixDrift } from "../providers/matrix-drift.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -11,7 +12,7 @@ import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan";
+  kind: "lint" | "dangling" | "orphan" | "matrix";
   message: string;
 }
 
@@ -25,6 +26,17 @@ export interface ValidateResult {
 export interface ValidateOpts {
   /** Override kit source root (tests / packaging). Default: resolve from module. */
   kitRoot?: string;
+  /** Also check the README provider matrix is in sync (CI gate). */
+  check?: boolean;
+  /** Override README path (tests). Default: repo README relative to this module. */
+  readmePath?: string;
+}
+
+// `--check` is a CI/dev gate run from the repo root, so resolve README against
+// cwd — robust whether this runs from src (tsx/bun), the bundled dist, or the
+// binary. Outside a checkout the file is absent and --check reports that.
+function defaultReadmePath(): string {
+  return join(process.cwd(), "README.md");
 }
 
 function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
@@ -64,6 +76,17 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     }
     for (const o of orphans) {
       findings.push({ skill: skill.name, kind: "orphan", message: `${o} exists but is never linked from SKILL.md` });
+    }
+  }
+
+  if (opts.check) {
+    const readmePath = opts.readmePath ?? defaultReadmePath();
+    const readme = existsSync(readmePath) ? readFileSync(readmePath, "utf8") : null;
+    if (readme === null) {
+      findings.push({ skill: "(matrix)", kind: "matrix", message: `README not found at ${readmePath} — --check needs the source tree` });
+    } else {
+      const drift = checkMatrixDrift(readme);
+      if (!drift.ok) findings.push({ skill: "(matrix)", kind: "matrix", message: drift.message });
     }
   }
 
