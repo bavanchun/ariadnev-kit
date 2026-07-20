@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildProviderMatrix,
   matrixToMarkdown,
+  matrixToTerminal,
   MATRIX_PROVIDERS,
   MATRIX_ARTIFACTS,
 } from "./provider-matrix.js";
@@ -46,5 +47,22 @@ describe("matrixToMarkdown", () => {
     expect(lines).toHaveLength(2 + MATRIX_ARTIFACTS.length);
     expect(md).toContain("| skill | `.claude/skills/`");
     expect(md).toContain("skip"); // antigravity agent etc.
+  });
+});
+
+describe("matrixToTerminal (branded signature grid)", () => {
+  it("plain form: header, one row per artifact, glyphs + legend, no ANSI", () => {
+    const grid = matrixToTerminal();
+    expect(grid).not.toContain("\x1b["); // color:false default
+    expect(grid).toContain("artifact");
+    for (const a of MATRIX_ARTIFACTS) expect(grid).toContain(a);
+    expect(grid).toContain("◆"); // claude-code canonical
+    expect(grid).toContain("✓"); // verified elsewhere
+    expect(grid).toContain("· skip"); // unverified
+    expect(grid).toContain("canonical"); // legend
+  });
+
+  it("colored form emits ANSI", () => {
+    expect(matrixToTerminal(undefined, { color: true })).toContain("\x1b[");
   });
 });
