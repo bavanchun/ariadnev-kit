@@ -54,14 +54,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Fire the binary release only on the commit that bumped the version
-      # (i.e. the Version Packages PR merge).
+      # (i.e. the Version Packages PR merge). Read the COMMITTED version from git,
+      # not the working tree — the changesets action above bumps the working-tree
+      # package.json in the runner, which would otherwise falsely trip a release
+      # on every push that has pending changesets.
       - name: Detect release
         id: rel
         run: |
-          CUR=$(node -p "require('./packages/cli/package.json').version")
-          PREV=$(git show HEAD~1:packages/cli/package.json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version)}catch{console.log('')}})")
+          ver() { git show "$1:packages/cli/package.json" 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version)}catch{console.log('')}})"; }
+          CUR=$(ver HEAD)
+          PREV=$(ver HEAD~1)
           echo "version=$CUR" >> "$GITHUB_OUTPUT"
-          if [ "$CUR" != "$PREV" ]; then echo "release=true" >> "$GITHUB_OUTPUT"; else echo "release=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -n "$CUR" ] && [ "$CUR" != "$PREV" ]; then echo "release=true" >> "$GITHUB_OUTPUT"; else echo "release=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Cross-compile binaries
         if: steps.rel.outputs.release == 'true'
