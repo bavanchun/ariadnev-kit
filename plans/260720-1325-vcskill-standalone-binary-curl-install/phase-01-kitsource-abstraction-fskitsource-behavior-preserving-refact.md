@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "KitSource abstraction + FsKitSource (behavior-preserving refactor)"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: []

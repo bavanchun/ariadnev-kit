@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Release workflow: 5-target cross-compile + checksums + GH Release + drop npm"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [2]

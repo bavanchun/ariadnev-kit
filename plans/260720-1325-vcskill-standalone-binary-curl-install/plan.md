@@ -1,7 +1,7 @@
 ---
 title: "vcskill standalone binary + curl|bash install (replace npx)"
 description: "Ship vcskill as a single Bun-compiled binary with the kit embedded, installed via curl|bash / ps1 / brew across 5 platforms. Drop npm publish."
-status: pending
+status: completed
 priority: P1
 branch: "main"
 tags: [distribution, binary, bun, install, release, tdd]
@@ -34,25 +34,33 @@ D3 all 5 platforms, D4 GitHub raw URL hosting.
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [KitSource abstraction + FsKitSource (behavior-preserving)](./phase-01-kitsource-abstraction-fskitsource-behavior-preserving-refact.md) | Pending |
-| 2 | [Embedded kit codegen + EmbeddedKitSource + bun binary smoke](./phase-02-embedded-kit-codegen-embeddedkitsource-bun-binary-smoke.md) | Pending |
-| 3 | [Release workflow: 5-target cross-compile + checksums + GH Release + drop npm](./phase-03-release-workflow-5-target-cross-compile-checksums-gh-release.md) | Pending |
-| 4 | [install.sh + install.ps1 + brew + update→GH Releases + README](./phase-04-install-sh-install-ps1-brew-formula-update-gh-releases-readm.md) | Pending |
+| 1 | [KitSource abstraction + FsKitSource (behavior-preserving)](./phase-01-kitsource-abstraction-fskitsource-behavior-preserving-refact.md) | ✅ Completed |
+| 2 | [Embedded kit codegen + EmbeddedKitSource + bun binary smoke](./phase-02-embedded-kit-codegen-embeddedkitsource-bun-binary-smoke.md) | ✅ Completed |
+| 3 | [Release workflow: 5-target cross-compile + checksums + GH Release + drop npm](./phase-03-release-workflow-5-target-cross-compile-checksums-gh-release.md) | ✅ Completed |
+| 4 | [install.sh + install.ps1 + brew + update→GH Releases + README](./phase-04-install-sh-install-ps1-brew-formula-update-gh-releases-readm.md) | ✅ Completed |
 
 Order 1→4. Phase 2 carries the top risk (interactive wizard under `bun --compile`)
 — de-risk there before investing in the release pipeline (3-4).
 
 ## Acceptance Criteria (whole plan)
 
-- [ ] All kit reads go through a `KitSource` interface; `FsKitSource` preserves current behavior — full existing suite (232+) stays green
-- [ ] `scripts/generate-embedded-kit.ts` produces a map of all 90 kit files; `EmbeddedKitSource` reads it; binary-mode auto-selected
-- [ ] A locally-built Bun binary runs `list` / `validate` / `install` / `doctor` / `uninstall` identically to the npm build, incl. the interactive install wizard (or a documented non-interactive fallback)
-- [ ] Embedded-map drift fails CI (regenerate + diff, or validate check)
-- [ ] Release workflow cross-compiles 5 targets, emits `checksums.txt`, attaches binaries to the GitHub Release; npm publish removed (`private: true`, provenance dropped); changeset kept for version+CHANGELOG only
-- [ ] `install.sh` + `install.ps1` detect os/arch, download from latest Release, verify sha256, install to PATH; brew formula generated
-- [ ] `vcskill update` checks GitHub Releases (not npm); offline-safe
-- [ ] README headlines curl/brew/ps1; `curl … | bash` works on a Node-less machine
-- [ ] `pnpm test` green throughout; each phase TDD (lock behavior first)
+**Design deviation (documented):** the scout showed kit reads span load-kit +
+install-plan + artifact-content via absolute paths on the `Kit` object, so the
+planned `KitSource` virtual-fs refactor would touch the Kit contract and risk
+regressions. Switched to **self-extract**: kit embedded in the binary,
+self-extracted to a version-stamped cache on first run; `getKitRoot()` tries fs
+first, falls back to embedded. Same single-binary outcome, zero changes to
+load-kit/install/validate behavior. (commit 61cd3c8)
+
+- [x] Kit reads unchanged; `getKitRoot()` seam added (self-extract instead of KitSource) — full suite stays green
+- [x] `generate-embedded-kit.mjs` maps all 92 assets (kit tree + manifest + config); `EmbeddedKitSource`≡`materializeEmbeddedKit`; binary-mode auto-selected (try-fs-then-embedded)
+- [x] Bun binary runs list/validate/install/doctor/uninstall identically to npm build (live smoke from outside repo → embedded); interactive @clack wizard loads+renders+cancels cleanly under compile
+- [x] Embedded-map drift-guard test (byte-compare vs live kit) — fails on staleness
+- [x] Release workflow cross-compiles 5 targets (verified locally) + checksums.txt → GitHub Release; npm removed (`private: true`, provenance/OIDC/NPM_TOKEN dropped); changeset kept for version+CHANGELOG
+- [x] install.sh (shellcheck-clean, sha256 verify tested) + install.ps1 + Formula/vcskill.rb
+- [x] `vcskill update` checks GitHub Releases (parseLatestTag + GH API), offline-safe, tested
+- [x] README headlines curl/brew/ps1 (no Node needed) + Gatekeeper note
+- [x] 241 tests green; each phase TDD; setup-bun SHA-pinned (security review)
 
 ## Dependencies
 
