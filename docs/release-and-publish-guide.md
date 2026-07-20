@@ -10,7 +10,8 @@ Add a changeset per change → merge the auto "Version Packages" PR → the `Rel
 workflow cross-compiles the 5 platform binaries and publishes them to a GitHub
 Release. Users install from the edge with
 `curl -fsSL https://vcskill.vchun.dev/install | bash` — a Cloudflare Worker
-proxies the (private) repo's releases (see `cloudflare-worker-setup.md`).
+proxies the (private) repo's releases. The edge lives in its own repo,
+`bavanchun/vcskill-web` (see `cloudflare-worker-setup.md`).
 
 ## Day-to-day flow (Changesets → binaries)
 
