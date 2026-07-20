@@ -45,3 +45,31 @@ docs — if the answer implies work, it names the follow-up skill instead.
 - **Why** — the load-bearing reasons, with file/doc citations.
 - **Trade-offs / when not to** — what this costs, when to choose otherwise.
 - **Next step** — a skill handoff or "none".
+
+Proof/risk: N/A — analysis only, this skill changes nothing. When the answer
+recommends work, the proof burden moves to the follow-up skill (`vc:cook`,
+`vc:fix`), which classifies its own risk lane.
+
+## Quality gates
+
+Before returning, confirm:
+
+1. The verdict answers the question actually asked — not an adjacent one that
+   was easier to answer.
+2. Every claim about this codebase cites a path (or admits it wasn't read).
+   No confident assertions about code you could have opened.
+3. The trade-off / "when not to" is present and specific — a recommendation
+   with only upsides is unfinished.
+4. Fast-moving library or API facts are verified against current docs, with the
+   check noted; otherwise flagged as from-memory.
+5. The answer is right-sized: no headers on a one-line question, no one-liner on
+   an architecture comparison.
+
+## Workflow position
+
+**Typically follows:** a question mid-task, or `vc:scout` (located the code, now
+decide what to do with it).
+**Typically precedes:** `vc:brainstorm` (open-ended design), `vc:plan` (agreed
+multi-phase work), `vc:cook` (direct change), `vc:fix` (concrete bug).
+**Related:** `vc:brainstorm` — use it instead when the question is "which
+approach", needs a design debate, or has no single right answer.
