@@ -76,6 +76,38 @@ section in one file and linking from the other.
 - No provider-specific absolute paths — use `.claude/...`-relative canonical
   paths; the adapt engine rewrites them per provider.
 
+## Cook-grade skill standard
+
+Every skill in `kit/skills/` must clear this seven-point bar. `vc:cook` is the
+reference implementation; measure new and rewritten skills against it. The lint
+gate enforces frontmatter and size; the rest is an authoring contract reviewers
+check by reading.
+
+1. **Trigger-precise frontmatter.** `description` states *what it does* + *when
+   to fire* (see "Writing the description"). A reader deciding whether to invoke
+   the skill can tell from the description alone.
+2. **Real workflow, not advice.** Numbered steps with branch conditions the
+   agent actually follows — not a list of virtues ("be thorough", "consider
+   edge cases"). If a step has a decision, name the options and how to pick.
+3. **`## Output format`.** A concrete, verifiable contract for what the skill
+   returns (sections, table columns, a verdict enum). "Produces a report" is not
+   a contract; the exact shape is.
+4. **`## Quality gates`.** 3-6 self-checks the agent runs *before* returning —
+   the skill's own definition of done (e.g. "every finding cites file:line",
+   "recommendation names its trade-off"). This is what makes output trustworthy
+   without a human re-checking it.
+5. **Proof / risk wiring when relevant.** A skill that changes code or asserts
+   correctness states which proof layer (`unit`/`integration`/`e2e`/`platform`,
+   see `cook/references/risk-lanes.md`) its output belongs to, and classifies
+   work by risk lane where that gates behavior. Analysis-only skills write
+   `Proof/risk: N/A — <reason>` so the omission is deliberate, not forgotten.
+6. **Tight body, references for depth.** SKILL.md carries the common-case
+   workflow; a section covering an independent sub-topic (a technique catalogue,
+   a format spec, an edge-case playbook) moves to `references/` linked with a
+   "read when …" trigger. Aim ≤120 lines; hard ceiling stays 300.
+7. **`## Workflow position`.** Name the skills this one typically follows,
+   precedes, and relates to, so the kit reads as one graph, not 21 islands.
+
 ## Agent authoring
 
 Agents live in `kit/agents/vc-<slug>.md`; enforced by
