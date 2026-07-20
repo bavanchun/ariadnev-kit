@@ -32,16 +32,24 @@ export interface UpdateHandlerResult {
   summary: string;
 }
 
-/** Real fetch against the npm registry with a short timeout — never throws. */
-export async function fetchLatestVersionFromNpm(): Promise<string | null> {
+/** A release tag ("vcskill@0.5.0") → its version ("0.5.0"). Tolerates a bare "v". */
+export function parseLatestTag(tag: string): string {
+  return tag.replace(/^vcskill@/, "").replace(/^v/, "");
+}
+
+/** Real fetch against GitHub Releases with a short timeout — never throws. */
+export async function fetchLatestVersionFromGitHub(): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch("https://registry.npmjs.org/vcskill/latest", { signal: controller.signal });
+    const res = await fetch("https://api.github.com/repos/bavanchun/vcskill/releases/latest", {
+      signal: controller.signal,
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "vcskill" },
+    });
     clearTimeout(timer);
     if (!res.ok) return null;
-    const data = (await res.json()) as { version?: string };
-    return data.version ?? null;
+    const data = (await res.json()) as { tag_name?: string };
+    return data.tag_name ? parseLatestTag(data.tag_name) : null;
   } catch {
     return null;
   }
@@ -72,13 +80,13 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
 
   const latest = await deps.fetchLatestVersion();
   if (latest === null) {
-    lines.push("  could not check the latest version (offline or npm registry unreachable)");
+    lines.push("  could not check the latest version (offline or GitHub unreachable)");
     return { exitCode: 0, summary: lines.join("\n") };
   }
 
   if (isNewerVersion(latest, opts.currentVersion)) {
     lines.push(`  update available: ${opts.currentVersion} -> ${latest}`);
-    lines.push(`  run: npx vcskill@latest install --provider <ids>${opts.scope === "global" ? " --global" : ""}`);
+    lines.push("  run: curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash");
   } else {
     lines.push("  up to date");
   }

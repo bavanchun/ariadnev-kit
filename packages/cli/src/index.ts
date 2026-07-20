@@ -6,7 +6,7 @@ import { runInstall } from "./cli/install-command.js";
 import { runUninstall } from "./cli/uninstall-command.js";
 import { runDoctor } from "./cli/doctor-command.js";
 import { runBackupsList, runBackupsRestore } from "./cli/backups-command.js";
-import { runUpdate, fetchLatestVersionFromNpm } from "./cli/update-command.js";
+import { runUpdate, fetchLatestVersionFromGitHub } from "./cli/update-command.js";
 import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { nowStamp } from "./cli/timestamp.js";
@@ -147,7 +147,7 @@ export function buildProgram(): Command {
       const g = program.opts<GlobalOpts>();
       const { summary } = await runUpdate(
         { home: g.home, cwd: g.cwd, scope: opts.global ? "global" : "project", currentVersion: packageVersion() },
-        { fetchLatestVersion: fetchLatestVersionFromNpm },
+        { fetchLatestVersion: fetchLatestVersionFromGitHub },
       );
       console.log(summary);
     });

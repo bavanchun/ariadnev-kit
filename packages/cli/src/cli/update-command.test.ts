@@ -2,7 +2,17 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runUpdate, isNewerVersion } from "./update-command.js";
+import { runUpdate, isNewerVersion, parseLatestTag } from "./update-command.js";
+
+describe("parseLatestTag", () => {
+  it("strips the vcskill@ prefix", () => {
+    expect(parseLatestTag("vcskill@0.5.0")).toBe("0.5.0");
+  });
+  it("tolerates a bare version or a leading v", () => {
+    expect(parseLatestTag("0.5.0")).toBe("0.5.0");
+    expect(parseLatestTag("v0.5.0")).toBe("0.5.0");
+  });
+});
 
 let sandbox: string;
 let root: string;
@@ -58,7 +68,7 @@ describe("runUpdate (offline-safe)", () => {
     );
     expect(res.exitCode).toBe(0);
     expect(res.summary).toContain("0.5.0");
-    expect(res.summary).toContain("npx vcskill@latest install");
+    expect(res.summary).toContain("install.sh");
   });
 
   it("notes when the receipt's recorded version differs from the running CLI", async () => {

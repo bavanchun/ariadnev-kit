@@ -3,44 +3,58 @@
 Author agent skills, subagents, commands, and rules **once** in canonical Claude
 format, then install them to any AI coding provider with one command.
 
-```bash
-npx vcskill install
-```
-
 A data-driven adapt engine rewrites paths, tool names, and file formats per
-provider. Local-first; no account or network required.
+provider. Local-first; no account or Node runtime required — vcskill ships as a
+single self-contained binary with the kit baked in.
 
 ## Install
 
-Once published to npm, run it on any machine with no clone:
+A one-line install of the standalone binary — **no Node needed**.
+
+**macOS / Linux**
 
 ```bash
-npx vcskill install                              # interactive: pick providers + scope
-npx vcskill install --provider codex,cursor      # non-interactive
-npx vcskill install --provider claude-code --global
-npx vcskill install --provider opencode --dry-run # preview, write nothing
+curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://raw.githubusercontent.com/bavanchun/vcskill/main/install.ps1 | iex
+```
+
+**Homebrew**
+
+```bash
+brew install bavanchun/vcskill/vcskill
+```
+
+The installer downloads the right binary for your platform from the latest
+GitHub Release and **verifies its sha256** before installing to `~/.local/bin`
+(macOS/Linux) or `%LOCALAPPDATA%\Programs\vcskill` (Windows). Pin a version with
+`VCSKILL_VERSION=0.5.0`, or change the target dir with `VCSKILL_INSTALL_DIR`.
+
+> **macOS Gatekeeper**: the binary is not yet notarized, so the first run may be
+> blocked. Allow it with `xattr -d com.apple.quarantine "$(command -v vcskill)"`.
+
+Then set up your providers:
+
+```bash
+vcskill install                              # interactive: pick providers + scope
+vcskill install --provider codex,cursor      # non-interactive
+vcskill install --provider claude-code --global
+vcskill install --provider opencode --dry-run # preview, write nothing
 ```
 
 Global flags: `--home <dir>`, `--cwd <dir>`, `--dry-run`, `--yes`.
 
-### Before the npm release (or for local builds)
-
-`npx vcskill` works only after the package is published. Until then — or to test
-an unreleased build on another machine — use one of:
+### Build from source
 
 ```bash
-# A) Carry the packed tarball, then install it globally
-npm i -g ./vcskill-<version>.tgz
-vcskill install --provider claude-code --dry-run
-
-# B) Clone + build from source
 git clone https://github.com/bavanchun/vcskill.git && cd vcskill
-pnpm install && pnpm --filter vcskill build
-node packages/cli/dist/index.js install --dry-run
+pnpm install
+pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcskill
 ```
-
-See [`docs/release-and-publish-guide.md`](docs/release-and-publish-guide.md) for
-the full publish runbook and one-time prerequisites.
 
 ## Commands
 
@@ -52,7 +66,7 @@ the full publish runbook and one-time prerequisites.
 | `vcskill uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install |
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
-| `vcskill update [--global]` | Check npm for a newer vcskill release (offline-safe) |
+| `vcskill update [--global]` | Check GitHub Releases for a newer vcskill release (offline-safe) |
 | `vcskill validate` | Lint the kit source (frontmatter, sizes, reference integrity) without installing; CI-able exit code |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
@@ -86,7 +100,7 @@ are shared across skills, not siloed in `vc:cook`. See
 ## Getting started
 
 ```bash
-npx vcskill install --provider claude-code   # or codex, cursor, opencode...
+vcskill install --provider claude-code   # or codex, cursor, opencode...
 ```
 
 Then in Claude Code, try the daily loop: `/vc:brainstorm <idea>` to explore
