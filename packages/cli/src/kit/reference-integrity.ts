@@ -8,9 +8,11 @@
 // The orphan check is the one that would have caught v3a's contradictory
 // `workflow-pr-per-change.md` — a real file no SKILL.md linked.
 
-/** Matches `references/<name>.md`, tolerating a leading `./` and surrounding
- *  backticks/parens/brackets. Group 1 is the bare `references/<name>.md`. */
-const REFERENCE_MENTION = /(?:\.\/)?(references\/[A-Za-z0-9._-]+\.md)/g;
+/** Matches a LOCAL `references/<name>.md` mention: one not preceded by a path
+ *  separator, so a cross-skill reference like `../cook/references/x.md` (where
+ *  `references` is preceded by `/`) is deliberately ignored — that file belongs
+ *  to another skill, not this one. Group 1 is the bare `references/<name>.md`. */
+const REFERENCE_MENTION = /(?<![\w/.-])(references\/[A-Za-z0-9._-]+\.md)/g;
 
 export interface ReferenceIntegrityResult {
   dangling: string[];

@@ -18,8 +18,8 @@ code is written.
 Handles: pre-implementation risk analysis for major features, refactors, or
 competing approaches.
 Does not handle: bugs (`vc:fix`), already-decided work (`vc:cook`), routine
-low-risk changes (the debate overhead isn't worth it — see `references/risk-lanes.md`
-in `vc:cook` for the lane check).
+low-risk changes (the debate overhead isn't worth it — see
+`../cook/references/risk-lanes.md` for the lane check).
 
 ## The 5 personas
 
