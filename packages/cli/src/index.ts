@@ -11,6 +11,7 @@ import { basename } from "node:path";
 import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
+import { runEval, realEvalDeps } from "./cli/eval-command.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
 import { emit, emitError, setEmitTransform } from "./cli/emit.js";
 import { sanitize } from "./security/credential-sanitizer.js";
@@ -208,6 +209,22 @@ export function buildProgram(): Command {
     .action((opts: { json?: boolean }) => {
       const { output } = runContract({ json: !!opts.json, version: packageVersion(), color: !opts.json && outColor() });
       emit(output);
+    });
+
+  program
+    .command("eval")
+    .description("Score kit skill quality — tier-1 static always; tier-3 LLM judge when VCSKILL_EVAL_CMD is set")
+    .option("--skill <name>", "only evaluate one skill (bare or vc: prefixed)")
+    .action((opts: { skill?: string }) => {
+      const evalCmd = process.env.VCSKILL_EVAL_CMD;
+      const { summary, ok } = runEval({
+        skill: opts.skill,
+        evalCmd,
+        color: outColor(),
+        deps: evalCmd ? realEvalDeps(evalCmd) : undefined,
+      });
+      emit(summary);
+      if (!ok) process.exitCode = 1;
     });
 
   program

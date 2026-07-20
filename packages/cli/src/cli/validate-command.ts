@@ -33,6 +33,15 @@ export interface ValidateOpts {
   check?: boolean;
   /** Override README path (tests). Default: repo README relative to this module. */
   readmePath?: string;
+  /** Restrict per-skill checks to these skill names (accepts "scout" or
+   * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
+  skillFilter?: string[];
+}
+
+/** Does a skill name match a user-supplied filter entry (bare or vc:-prefixed)? */
+export function matchesFilter(name: string, filter: string[]): boolean {
+  const bare = name.replace(/^vc:/, "");
+  return filter.some((f) => f === name || f === bare || `vc:${f}` === name);
 }
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
@@ -71,7 +80,10 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   }
 
   const findings: ValidateFinding[] = [];
-  for (const skill of kit.skills) {
+  const skillsToCheck = opts.skillFilter
+    ? kit.skills.filter((s) => matchesFilter(s.name, opts.skillFilter!))
+    : kit.skills;
+  for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
     const names = existsSync(refsDir)
       ? readdirSync(refsDir)

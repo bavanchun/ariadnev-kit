@@ -83,6 +83,7 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
 | `vcskill validate [--check]` | Lint the kit source (frontmatter, sizes, reference integrity); `--check` also fails if the README provider matrix drifted |
 | `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
+| `vcskill eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `VCSKILL_EVAL_CMD` is set |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
