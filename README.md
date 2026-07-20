@@ -53,6 +53,7 @@ the full publish runbook and one-time prerequisites.
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--global]` | Check npm for a newer vcskill release (offline-safe) |
+| `vcskill validate` | Lint the kit source (frontmatter, sizes, reference integrity) without installing; CI-able exit code |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
