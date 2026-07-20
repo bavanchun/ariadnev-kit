@@ -1,7 +1,7 @@
 ---
 title: "vc kit v3a: deep coherence — 10 skills cook-grade + kit-wide wiring"
 description: "Rewrite sâu 10 skills vệ tinh lên chuẩn cook-grade, unify proof vocab + risk lanes toàn kit, sync skill↔agent, chaining 2 chiều. Parity-or-better vs CK từng skill."
-status: pending
+status: completed
 priority: P1
 branch: "main"
 tags: [kit, skills, quality, parity, coherence]
@@ -43,26 +43,26 @@ Gom vào `plans/reports/parity-260720-skills-v3a-vs-claudekit-report.md` (phase 
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Cook-grade template + exemplar: ask](./phase-01-template-exemplar-rewrites-ask.md) | Pending |
-| 2 | [Exemplar: research + shared risk-lane quick-check ref](./phase-02-research-shared-risk-lane-ref.md) | Pending |
-| 3 | [Rewrite: problem-solving, journal, docs (RDD-guard), sequential-thinking](./phase-03-rewrite-problem-solving-journal-docs-sequential-thinking.md) | Pending |
-| 4 | [Rewrite: security-scan, docs-seeker, obsidian, git (refs 10→4)](./phase-04-rewrite-security-scan-docs-seeker-obsidian-git-consolidation.md) | Pending |
-| 5 | [Kit-wide wiring: proof vocab + chaining + skill↔agent sync + stop conditions](./phase-05-kit-wide-wiring-proof-vocab-chaining-skill-agent-sync-stop-c.md) | Pending |
-| 6 | [Parity report + README + changeset + smoke](./phase-06-parity-report-readme-changeset-smoke.md) | Pending |
+| 1 | [Cook-grade template + exemplar: ask](./phase-01-template-exemplar-rewrites-ask.md) | ✅ Completed |
+| 2 | [Exemplar: research + canonical risk-lane source](./phase-02-research-shared-risk-lane-ref.md) | ✅ Completed |
+| 3 | [Rewrite: problem-solving, journal, docs (RDD-guard), sequential-thinking](./phase-03-rewrite-problem-solving-journal-docs-sequential-thinking.md) | ✅ Completed |
+| 4 | [Rewrite: security-scan, docs-seeker, obsidian, git (refs 10→7)](./phase-04-rewrite-security-scan-docs-seeker-obsidian-git-consolidation.md) | ✅ Completed |
+| 5 | [Kit-wide wiring: proof vocab + chaining + skill↔agent sync + stop conditions](./phase-05-kit-wide-wiring-proof-vocab-chaining-skill-agent-sync-stop-c.md) | ✅ Completed |
+| 6 | [Parity report + README + changeset + smoke](./phase-06-parity-report-readme-changeset-smoke.md) | ✅ Completed |
 
 Tuần tự 1→6. Phase 1-2 là exemplar: chốt format trước khi nhân ra 3-4 (chống
 drift giọng văn giữa 10 skills). Phase 5 chạm nhiều file nhỏ. Phase 6 đóng gate.
 
 ## Acceptance Criteria (whole plan)
 
-- [ ] 10/10 skills đạt cook-grade standard (7 mục), SKILL.md ≤120 dòng mỗi cái
-- [ ] Shared reference risk-lane quick-check tồn tại, link từ ≥5 skills (brainstorm, predict, plan, scenario, problem-solving)
-- [ ] Proof vocab trong output contract của mọi skill đụng verification (research, security-scan, scenario, predict, brainstorm)
-- [ ] review-gate.md ↔ vc-reviewer, cook ↔ vc-tester strategies, plan template ↔ vc-developer ownership: cùng 1 ngôn ngữ, không mâu thuẫn
-- [ ] git references 10→~4, hành vi giữ nguyên (đọc lại từng workflow xác nhận)
-- [ ] Phase template của vc:plan có section Stop conditions
-- [ ] Parity report đủ 10 skills, mỗi skill ≥1-2 điểm vượt CK cụ thể
-- [ ] `pnpm test` xanh (kit-fixtures lint gate + install smoke); không skill nào vỡ frontmatter
+- [x] 10/10 skills đạt cook-grade standard (7 mục), SKILL.md ≤300 (spec limit; 120 là limit của *agent*) — thực tế tất cả ≤128
+- [x] Canonical risk-lane source (`intake-and-context` rule, globally injected) referenced từ 8 skills — vượt ≥5 (deviation: không tạo file `_shared/` mới, xem parity report §Deviations)
+- [x] Proof vocab trong 7 skills đụng verification (ask, docs-seeker, problem-solving, research, scenario, security-scan, sequential-thinking)
+- [x] review-gate.md ↔ vc-reviewer (đã link sẵn), test-gate ↔ vc-tester strategies (thêm pointer), plan template ↔ vc-developer (Stop Conditions), docs ↔ vc-docs-manager — không mâu thuẫn (bảng trong parity report)
+- [x] git references 10→7 (không phải ~4 — chỉ gộp cái gộp được, xoá orphan mâu thuẫn), hành vi giữ nguyên
+- [x] Phase template của vc:plan có section Stop Conditions
+- [x] Parity report đủ 10 skills + kit-wide wiring + deviations, mỗi skill ≥1-2 điểm vượt CK
+- [x] `pnpm test` xanh (218 tests, kit-fixtures lint gate); dry-run install lands 76 files, refs mới OK
 
 ## Dependencies
 

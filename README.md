@@ -56,9 +56,14 @@ the full publish runbook and one-time prerequisites.
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
-## What's in the kit (v2)
+## What's in the kit
 
-21 skills + 13 agents + 6 hooks, distilled from daily usage.
+21 skills + 13 agents + 6 hooks, distilled from daily usage. Every skill meets
+one cook-grade bar — a real workflow, an `## Output format` contract, `##
+Quality gates` self-checks, and a `## Workflow position` so the kit reads as one
+graph. Risk lanes and proof vocabulary (`unit`/`integration`/`e2e`/`platform`)
+are shared across skills, not siloed in `vc:cook`. See
+[`docs/vc-skill-authoring-spec.md`](docs/vc-skill-authoring-spec.md).
 
 - **Core loop skills**: `vc:brainstorm`, `vc:plan`, `vc:cook` (embedded
   test/review gates + risk-lane routing), `vc:fix` (root-cause loop), `vc:git`,

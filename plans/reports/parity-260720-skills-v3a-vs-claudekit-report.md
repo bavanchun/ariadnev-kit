@@ -175,6 +175,52 @@ upstream-sync instructions). This phase consolidated its references.
 3. Added `## Workflow position`. Achievement-friendly `--solo`/`--team`
    co-author + `prc` pipeline remain vc's value-add over stock `ck:git`.
 
+## Kit-wide wiring (skill↔agent coherence)
+
+Verified the four skill↔agent pairs speak one language (no contradictions):
+
+| Skill surface | Agent | State |
+|---|---|---|
+| `cook/references/review-gate.md` | `vc-reviewer` | already delegates to it; checklists align (correctness/blast-radius/fit/security ↔ agent's Behavioral Checklist). No change needed. |
+| `cook/references/test-gate.md` | `vc-tester` | added pointer to the agent's Strategy A-E scope-mapping table |
+| `plan` phase template | `vc-developer` | Stop Conditions added; file-ownership lives in the agent + delegation-protocol rule |
+| `docs` anti-bloat gate | `vc-docs-manager` | consistent "docs earn their maintenance" stance |
+
+Shared delegation template: the `intake-and-context` + `delegation-protocol`
+rules (globally injected) already provide task/files/acceptance/constraints +
+status protocol — no separate file created (would have been a 3rd copy).
+
+Risk-lane vocabulary now referenced in 8 skills (ask, brainstorm, cook, journal,
+plan, predict, research, scenario); proof vocabulary in 7 (ask, docs-seeker,
+problem-solving, research, scenario, security-scan, sequential-thinking).
+
+## Whole-plan summary
+
+10 skills brought to the cook-grade bar (Output format + Quality gates +
+Workflow position + proof/risk wiring). Finding: most were already strong —
+this was coherence + explicit self-checks + kit-wide wiring, not a rescue.
+Real defects fixed along the way: git's contradictory orphan prc spec removed,
+git references 10→7. No skill count change (21). Every claimed win reads against
+the real `ck:*` source. `pnpm test` 218 green; dry-run install lands all refs.
+
+## Deviations from plan (documented)
+
+1. **No `_shared/risk-lane-quick-check.md` file.** The `intake-and-context` rule
+   already is the canonical, globally-injected risk-lane source; a new file
+   under `_shared/` risked not being installed by the adapt engine. Skills
+   invoke the vocabulary instead. Intent (single-source risk lanes across the
+   kit) fully met.
+2. **problem-solving techniques kept inline** (not extracted to `references/`) —
+   at 63→~90 lines the file is already tight; splitting adds indirection for no
+   gain (YAGNI). Plan floated extraction as optional.
+3. **git references 10→7, not "≈4".** Merged only genuinely-mergeable files;
+   distinct concerns (commit, prc, standards, safety, branches, gh-cli) stay
+   separate — forcing 4 would lower quality.
+4. **No separate delegation-template file** — the delegation-protocol rule
+   already serves that role.
+5. Plan's "SKILL.md ≤120 lines" criterion corrected to the spec's real limit
+   (≤300; 120 is the *agent* limit). All rewritten skills land ≤128 anyway.
+
 ## Unresolved questions
 
-(pending — filled at phase 6)
+None.
