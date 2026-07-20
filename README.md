@@ -156,6 +156,16 @@ vcskill add-skill my-skill --description "When to use this skill"
 vcskill install --provider cursor --dry-run   # see it land
 ```
 
+## Telemetry
+
+vcskill has an **anonymous, opt-out** telemetry facility that is **off by default**
+— nothing is sent unless an ingest endpoint is configured (none ships yet). When
+enabled it is **stateless**: no device id, no IP, no identifiers, and only
+categorical enums (event name, provider id or `custom`, an `errorClass`) ever
+leave the machine. Check status with `vcskill telemetry status`. Opt out any time
+with `VCSKILL_TELEMETRY_DISABLED=1` or the standard `DO_NOT_TRACK=1`; it is also
+off automatically in CI.
+
 ## Security
 
 The installer verifies each binary's sha256 before installing, and the CLI

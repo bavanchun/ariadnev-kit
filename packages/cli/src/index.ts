@@ -13,6 +13,7 @@ import { runValidate } from "./cli/validate-command.js";
 import { runContract } from "./cli/contract-command.js";
 import { runEval, realEvalDeps } from "./cli/eval-command.js";
 import { runQuery, normalizeView } from "./cli/query-command.js";
+import { runTelemetryStatus } from "./cli/telemetry-command.js";
 import { recordSafe } from "./history/store.js";
 import { toEvent, type HistoryKind, type EventInput } from "./history/record.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
@@ -258,6 +259,17 @@ export function buildProgram(): Command {
     .argument("[view]", "installs | doctor | history", "history")
     .action((view: string | undefined) => {
       emit(runQuery({ view: normalizeView(view), home: homedir(), color: outColor() }));
+    });
+
+  program
+    .command("telemetry")
+    .description("Anonymous telemetry status (stateless, off unless configured; opt out with VCSKILL_TELEMETRY_DISABLED=1)")
+    .argument("[action]", "status", "status")
+    .action(() => {
+      // No ingest endpoint is baked in yet, so telemetry is disabled by default
+      // until the edge route ships and a url is configured.
+      const config = { enabled: !process.env.VCSKILL_TELEMETRY_DISABLED, url: undefined };
+      emit(runTelemetryStatus(process.env, config, { color: outColor() }));
     });
 
   registerAddSkill(program);
