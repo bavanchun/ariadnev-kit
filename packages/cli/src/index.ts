@@ -179,6 +179,10 @@ export function buildProgram(): Command {
 // (a symlink to dist/index.js) is still recognized as the entry point.
 function isEntry(): boolean {
   if (process.env.VCSKILL_RUN === "1") return true;
+  // Bun single-file executable: this module is the entry, and its URL lives in
+  // the compiled binary's embedded fs — argv[1] is a user arg, not a script.
+  if ((import.meta as { main?: boolean }).main === true) return true;
+  if (import.meta.url.includes("/$bunfs/") || import.meta.url.startsWith("bun:")) return true;
   if (!process.argv[1]) return false;
   try {
     return pathToFileURL(realpathSync(process.argv[1])).href === import.meta.url;

@@ -44,6 +44,8 @@
   "scripts": {
     "build": "tsup",
     "prepack": "tsup && node scripts/bundle-kit-assets.mjs",
+    "generate:embedded": "node scripts/generate-embedded-kit.mjs",
+    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill",
     "verify-tarball": "node scripts/verify-package-tarball.mjs",
     "smoke-test": "node scripts/smoke-test-all-providers.mjs"
   },

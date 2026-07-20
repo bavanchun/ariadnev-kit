@@ -1,10 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { materializeEmbeddedKit, embeddedFlatRoot, getKitRoot } from "./embedded-kit.js";
-import { EMBEDDED_VERSION } from "./kit-embedded.generated.js";
+import { EMBEDDED_VERSION, EMBEDDED_ASSETS } from "./kit-embedded.generated.js";
 import { resolveKitRoot } from "./load-kit.js";
+
+// Repo root: this test lives at packages/cli/src/kit/, so up 4.
+const repoRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
+
+function walkText(dir: string, base: string, acc: Record<string, string>): Record<string, string> {
+  for (const entry of readdirSync(dir)) {
+    const abs = join(dir, entry);
+    if (statSync(abs).isDirectory()) walkText(abs, base, acc);
+    else acc[relative(base, abs)] = readFileSync(abs, "utf8");
+  }
+  return acc;
+}
 
 describe("embedded-kit", () => {
   let cache: string;
@@ -61,5 +74,19 @@ describe("embedded-kit", () => {
   it("VCSKILL_EMBEDDED=1 forces the embedded path even with a kit on disk", () => {
     process.env.VCSKILL_EMBEDDED = "1";
     expect(getKitRoot(process.cwd())).toBe(join(cache, EMBEDDED_VERSION, "kit"));
+  });
+
+  it("drift guard: the generated map exactly matches the live kit + flat-root assets", () => {
+    // Rebuild what the generator would embed, compare byte-for-byte. Fails if a
+    // kit file was added/changed without re-running generate-embedded-kit.mjs.
+    const expected: Record<string, string> = {};
+    walkText(join(repoRoot, "kit"), repoRoot, expected);
+    for (const f of ["portable-manifest.json", "kit.config.json"]) {
+      expected[f] = readFileSync(join(repoRoot, f), "utf8");
+    }
+    expect(Object.keys(EMBEDDED_ASSETS).sort()).toEqual(Object.keys(expected).sort());
+    for (const k of Object.keys(expected)) {
+      expect(EMBEDDED_ASSETS[k], `stale embed for ${k} — run generate-embedded-kit.mjs`).toBe(expected[k]);
+    }
   });
 });

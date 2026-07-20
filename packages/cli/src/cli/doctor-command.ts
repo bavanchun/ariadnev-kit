@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import type { Receipt } from "../install/install-receipt.js";
@@ -38,7 +38,16 @@ function realDeps(): DiagnoseDeps {
     readSettingsJson: (p) => (existsSync(p) ? readFileSync(p, "utf8") : null),
     hookExecutable: (p) => {
       if (!existsSync(p)) return false;
-      const res = spawnSync(process.execPath, [p], { input: "{}", encoding: "utf8", timeout: 5000 });
+      // Hooks are Node .cjs scripts run by the host (Claude Code) with node — so
+      // verify them with node, not process.execPath (which is the vcskill binary
+      // itself when running as a compiled single-file executable).
+      const runtime = basename(process.execPath).toLowerCase().startsWith("node")
+        ? process.execPath
+        : "node";
+      const res = spawnSync(runtime, [p], { input: "{}", encoding: "utf8", timeout: 5000 });
+      // ENOENT (node not on PATH) → cannot verify; don't flag an existing hook as
+      // broken. Any other non-zero exit is a real failure.
+      if (res.error && (res.error as NodeJS.ErrnoException).code === "ENOENT") return true;
       return res.status === 0;
     },
   };
