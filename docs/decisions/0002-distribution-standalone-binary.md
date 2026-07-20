@@ -28,7 +28,8 @@ Ship vcskill as a **single self-contained binary**, not an npm package
    scripts, `/version`, and `/download/<asset>` using a server-side `GH_TOKEN`,
    so source *and* releases stay private while anonymous install still works.
    CI publishes releases to its own private repo with the built-in
-   `GITHUB_TOKEN` (no cross-repo token). See `docs/cloudflare-worker-setup.md`.
+   `GITHUB_TOKEN` (no cross-repo token). The Worker + landing page live in their
+   own repo `bavanchun/vcskill-web`; see `docs/cloudflare-worker-setup.md`.
 5. **npm dropped entirely** — package is `private`, no publish/OIDC/provenance.
    `vcskill update` self-updates via the edge.
 6. **Homebrew considered and dropped** — needs a separate tap repo for marginal
