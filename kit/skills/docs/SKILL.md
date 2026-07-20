@@ -72,16 +72,43 @@ Keep each record ≤40 lines. Use this mode when a plan, brainstorm, or fix
 session changed behavior, architecture, authorization, or a public contract
 in a way the next session must not silently reverse — not for routine changes.
 
-## Rules
+## Anti-bloat gate
+
+The codebase is the single source of truth; docs are a thin, curated map on top
+of it. A pile of stale, contradictory docs is worse than fewer docs — an agent
+reading them trusts the wrong one and ships bugs (this is a documented failure
+mode, not a hypothetical). So:
+
+- **Do not create a new doc when the code already answers the question.** Prefer
+  a `// why:` comment at the code site over a prose file that will drift.
+- **Do not open a `docs/decisions/NNNN` record for routine choices** — only for
+  decisions a future session would otherwise re-debate or silently reverse.
+- **Comments say WHY, never WHAT.** The code shows what it does; a comment that
+  restates it is future rot.
+- **Prune on sight.** If `audit` finds a doc the code no longer needs, delete it
+  and say so — keeping it "just in case" is the bloat this gate exists to stop.
+
+## Quality gates
 
 - Read the existing doc fully before editing; match its structure and tone.
 - Never document aspirations as facts — roadmap items go in the roadmap.
 - Examples must be real: taken from the repo or executed once.
 - Each doc stays under ~800 lines; split by concern when it grows past that.
 - After editing, verify links and file references resolve.
+- Every claim is derived from the repo, not from what projects "usually" have.
 
 ## Output
 
 Report which docs changed and why, which were deliberately left alone
-(update rule not triggered), and any drift found but not fixed (with a
-reason).
+(update rule not triggered), any doc pruned, and any drift found but not fixed
+(with a reason).
+
+## Workflow position
+
+**Typically follows:** `vc:cook`/`vc:plan` finalize (behavior changed, docs may
+need it), `vc:journal` (a session decision worth making durable → `decision`
+mode).
+**Typically precedes:** nothing — docs are a terminal maintenance step.
+**Related:** `vc:journal` records what happened in a session; `vc:docs`
+`decision` mode records a choice future sessions must honor. Route consequential
+decisions here, reflections to `vc:journal`.

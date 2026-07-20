@@ -71,8 +71,23 @@ Why this wasn't caught the first time: <one line>
 Propose the fix; do not silently edit the rule mid-task without this record
 — per `intake-and-context.md`'s harness-delta principle.
 
-## Rules
+## Quality gates
 
-- Write the file immediately — don't describe what you would write.
-- Include at least one concrete technical detail (error message, metric, path).
-- No corporate softening of what went wrong.
+Before considering the entry done:
+
+- The file is written — not described as "what I would write".
+- "What happened" names a real error/metric/symptom, not "an issue occurred".
+- "Root cause" is stated without euphemism; "Lesson" is specific enough to act
+  on ("run the migration against a copy first", not "be more careful").
+- If this is a 2nd+ occurrence of the same friction, the Harness delta block is
+  present with a concrete file + change.
+
+## Workflow position
+
+**Typically follows:** the end of almost any skill — `vc:cook`/`vc:fix` after a
+hard-won result, `vc:plan` after a notable decision, a failed session worth
+recording. `vc:cook`'s finalize step calls it.
+**Typically precedes:** `vc:docs` `decision` mode — when the entry surfaced a
+durable architectural choice, promote it there so future sessions inherit it.
+**Related:** `vc:docs` (decision mode) for consequential decisions vs. this for
+session reflection and friction.
