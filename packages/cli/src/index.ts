@@ -6,7 +6,8 @@ import { runInstall } from "./cli/install-command.js";
 import { runUninstall } from "./cli/uninstall-command.js";
 import { runDoctor } from "./cli/doctor-command.js";
 import { runBackupsList, runBackupsRestore } from "./cli/backups-command.js";
-import { runUpdate, fetchLatestVersionFromGitHub } from "./cli/update-command.js";
+import { runUpdate, realUpdateDeps } from "./cli/update-command.js";
+import { basename } from "node:path";
 import { runList } from "./cli/list-command.js";
 import { runValidate } from "./cli/validate-command.js";
 import { nowStamp } from "./cli/timestamp.js";
@@ -141,13 +142,25 @@ export function buildProgram(): Command {
 
   program
     .command("update")
-    .description("Check for a newer vcskill release")
+    .description("Self-update to the latest vcskill release (--check to only report)")
     .option("--global", "check ~/ scope", false)
-    .action(async (opts: { global?: boolean }) => {
+    .option("--check", "only report whether an update exists; don't install", false)
+    .action(async (opts: { global?: boolean; check?: boolean }) => {
       const g = program.opts<GlobalOpts>();
+      const isBinary = !/^(node|bun)/i.test(basename(process.execPath));
       const { summary } = await runUpdate(
-        { home: g.home, cwd: g.cwd, scope: opts.global ? "global" : "project", currentVersion: packageVersion() },
-        { fetchLatestVersion: fetchLatestVersionFromGitHub },
+        {
+          home: g.home,
+          cwd: g.cwd,
+          scope: opts.global ? "global" : "project",
+          currentVersion: packageVersion(),
+          execPath: process.execPath,
+          isBinary,
+          checkOnly: !!opts.check,
+          platform: process.platform,
+          arch: process.arch,
+        },
+        realUpdateDeps(),
       );
       console.log(summary);
     });
