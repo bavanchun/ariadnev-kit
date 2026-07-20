@@ -59,8 +59,34 @@ reasoning, or the problem is genuinely contentious.
 of silently pivot) internally for routine work, without cluttering the
 response with thought markers.
 
-## Pairs well with
+## Output format
 
-`vc-debugger`'s hypothesis-elimination loop and `vc-planner`'s verification
-discipline both fit this shape naturally — use this skill's explicit mode
-when either needs to show its work.
+- **Explicit mode**: the numbered `Thought n/~N` trace (with any REVISION /
+  BRANCH / HYPOTHESIS / VERIFICATION markers) ending in a `Thought N [FINAL]`
+  that states the verified conclusion + residual uncertainty (or "none").
+- **Implicit mode**: just the conclusion, but reached under the same discipline.
+
+Proof/risk: the reasoning itself is not a proof — a `[HYPOTHESIS]` becomes a
+finding only after its `[VERIFICATION]` names real evidence. When the conclusion
+drives a change, the change still owes its own proof layer.
+
+## Quality gates
+
+Before marking `[FINAL]`:
+
+1. Every step stated what would falsify it — no step that merely restates the
+   question.
+2. Every hypothesis was verified or eliminated against real evidence, not left
+   at "plausible".
+3. Revisions were shown (Original / Why / Impact), not silently overwritten.
+4. Branches converged explicitly — the losing branch and the reason are on record.
+
+## Workflow position
+
+**Typically follows:** a problem where jumping to a conclusion already failed
+once — inside `vc:fix`, `vc:debug`, or a tangled `vc:plan`.
+**Typically precedes:** the action the reasoning justifies (`vc:cook`, `vc:fix`)
+or `vc:plan` once the path is clear.
+**Related:** `vc:problem-solving` reframes a *stuck* state; this skill *reasons*
+through a complex-but-moving one. `vc-debugger` and `vc-planner` apply this shape
+naturally — use explicit mode when either must show its work.

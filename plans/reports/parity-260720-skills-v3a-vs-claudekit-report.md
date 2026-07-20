@@ -56,6 +56,67 @@ its report template is generic (overview/trends/best-practices/security/perf).
 3. **`## Quality gates`** (≥2 sources, dated claims, project-weighted, report
    disagreement) make the findings self-auditing; CK has no done-definition.
 
+## problem-solving (`vc:problem-solving` vs `ck:*`)
+
+CK has no direct 1:1 "get-unstuck" skill of this shape (its closest is generic
+sequential-thinking / brainstorm). vc:problem-solving is a symptom→technique
+router (6 named techniques) that ends in a decision.
+
+**Điểm vượt / design:**
+1. **Symptom-indexed router** — "same fix 3+ times" → Assumption audit; "can't
+   choose for days" → Inversion — so the agent picks the right tool by the
+   stuck-pattern, not by browsing a menu.
+2. **Ends in a decision, added `## Quality gates`** ("did it actually move the
+   state, or just restate the problem"), the failure mode this skill exists to
+   prevent.
+3. Kept inline (63→~90 lines) rather than exploding 6 one-paragraph techniques
+   into `references/` — the plan floated extraction, but splitting a tight file
+   adds indirection for zero benefit (YAGNI). Documented deviation.
+
+## journal (`vc:journal` vs `ck:journal`)
+
+CK `ck:journal` writes reflective entries. vc keeps the honest-entry template
+and adds a friction/harness-delta loop.
+
+| CK capability | vc:journal |
+|---|---|
+| Honest failure/decision entry | ✅ kept: fixed template (What happened / Root cause / What we tried / Lesson / Next steps), no corporate softening |
+| Reflection after hard sessions | ✅ kept + `## Quality gates` (real detail, actionable lesson) |
+
+**Điểm vượt:** (1) **Harness-delta mode** — a 2nd+ occurrence of the same
+friction forces a concrete rule/skill/doc fix proposal, turning journaling into
+kit self-improvement (distilled from repository-harness, kept ultralight — no
+state machine). (2) Explicit routing to `vc:docs` decision mode for durable
+choices, so reflections and decisions don't get conflated.
+
+## docs (`vc:docs` vs `ck:docs`)
+
+CK `ck:docs` maintains a fixed 7-file docs tree. vc treats docs as a liability
+to minimize.
+
+| CK capability | vc:docs |
+|---|---|
+| Init / update / audit docs tree | ✅ all kept as explicit modes; audit outputs (doc, claim, reality) + fixes drift |
+| Fixed docs structure | ✅ kept as a *subset-on-demand* ("create only files the project needs") not a mandatory tree |
+| — | ✅ added `decision` mode (durable ADR-style records ≤40 lines) |
+
+**Điểm vượt:** **`## Anti-bloat gate` (RDD lesson)** — explicit rules against
+creating docs the code already answers, against routine ADRs, comments say WHY
+not WHAT, and *prune on sight* during audit. This directly encodes the failure
+that sank a real kit launch (stale/contradictory docs → agent trusts the wrong
+one). CK's docs skill only ever adds; vc's can subtract.
+
+## sequential-thinking (`vc:sequential-thinking` vs `ck:sequential-thinking`)
+
+Both do revisable step reasoning. vc's core rule is stricter.
+
+**Điểm vượt:** (1) **Falsifiability is mandatory** — "a step that can't be wrong
+isn't reasoning, it's restating the question"; hypotheses must reach
+`[VERIFICATION]` against real evidence, not stop at "plausible". (2) Added
+`## Output format` (explicit vs implicit) + `## Quality gates` (revisions shown,
+branches converged) — a done-definition CK's version lacks. (3) Proof note: the
+reasoning is not itself a proof; a downstream change still owes its proof layer.
+
 ## Unresolved questions
 
 (pending — filled at phase 6)

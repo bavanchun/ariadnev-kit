@@ -55,9 +55,34 @@ loop for bugs.
 still true, what does violating it actually cost? Most deadlocks contain one
 assumed constraint nobody owns.
 
-## Output
+## Output format
 
 1. Named stuck-pattern and chosen technique.
 2. The technique's work, shown (the list, the ladder, the audit table).
 3. One next action, concrete enough to start now — or the honest conclusion
    that the task should be dropped/rescoped, said plainly.
+
+Proof/risk: N/A — this skill produces a direction, not a change. The next
+action it names inherits the proof burden when a change skill picks it up.
+
+## Quality gates
+
+Before returning, confirm:
+
+1. The chosen technique matches the actual stuck-pattern — not the one easiest
+   to apply.
+2. The technique's work is *shown*, not asserted (the assumption list, the
+   ladder, the inversion) — so the reasoning is checkable.
+3. The output genuinely moves the state: a next action that can start now, or an
+   explicit "drop/rescope this". Restating the problem in new words is failure.
+4. If the stuck-pattern is "same fix 3+ times", an assumption was actually
+   verified empirically — not just re-examined in the head.
+
+## Workflow position
+
+**Typically follows:** any skill that hit a wall — `vc:fix` circling a bug,
+`vc:cook` over-branching, `vc:brainstorm` unable to choose.
+**Typically precedes:** returning to whatever was stuck (`vc:fix`, `vc:cook`),
+or `vc:brainstorm` when the unstuck insight reopens the design question.
+**Related:** `vc:sequential-thinking` — reach for that when the problem needs
+step-by-step *reasoning*; reach here when it needs *reframing* to get unstuck.
