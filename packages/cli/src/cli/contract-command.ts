@@ -36,6 +36,7 @@ export const CAPABILITIES = [
   "contract.envelope.v1",
   "update.selfupdate.v1",
   "backups.restore.v1",
+  "history.query.v1",
 ] as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -49,6 +50,7 @@ export const KNOWN_COMMANDS = [
   "validate",
   "contract",
   "eval",
+  "query",
   "list",
   "add-skill",
   "migrate",
