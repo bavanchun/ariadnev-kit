@@ -54,16 +54,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Fire the binary release only on the commit that bumped the version
-      # (i.e. the Version Packages PR merge). Read the COMMITTED version from git,
-      # not the working tree — the changesets action above bumps the working-tree
-      # package.json in the runner, which would otherwise falsely trip a release
-      # on every push that has pending changesets.
+      # (i.e. the Version Packages PR merge). Compare the version at the PUSHED
+      # commit ($SHA) against its parent — NOT `HEAD`. The changesets action above
+      # commits its version bump locally in the runner, moving `HEAD` off the
+      # pushed commit; reading `HEAD` there would falsely see the bumped version
+      # on any feature merge that still has pending changesets and publish a
+      # release prematurely (tagged at the pre-bump commit). $SHA is immutable and
+      # only differs from its parent on the actual Version-PR merge, so the tag
+      # lands on the commit whose source is that version.
       - name: Detect release
         id: rel
+        env:
+          SHA: ${{ github.sha }}
         run: |
           ver() { git show "$1:packages/cli/package.json" 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version)}catch{console.log('')}})"; }
-          CUR=$(ver HEAD)
-          PREV=$(ver HEAD~1)
+          CUR=$(ver "$SHA")
+          PREV=$(ver "$SHA~1")
           echo "version=$CUR" >> "$GITHUB_OUTPUT"
           if [ -n "$CUR" ] && [ "$CUR" != "$PREV" ]; then echo "release=true" >> "$GITHUB_OUTPUT"; else echo "release=false" >> "$GITHUB_OUTPUT"; fi
 
