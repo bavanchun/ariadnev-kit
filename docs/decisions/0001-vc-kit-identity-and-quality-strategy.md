@@ -1,5 +1,10 @@
 # 0001: vc kit identity and quality strategy
 
+> **Superseded in part by [0003](0003-comprehensive-distillation-identity.md)**
+> (2026-07-24): the ClaudeKit baseline is now AgentKit, and §4's anti-bloat is
+> re-read as "no low-quality/redundant skills" rather than "few skills". The
+> quality-as-moat principle (§1–§3) still stands. Kept as history.
+
 ## Context
 
 vcskill exists to gradually replace ClaudeKit (CK) for personal use. Most vc

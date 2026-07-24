@@ -72,6 +72,15 @@ describe("lintSkill: frontmatter field allowlist", () => {
     );
     expect(res.errors).toEqual([]);
   });
+
+  // Taxonomy field for the growing kit lives under metadata (nested), so it is
+  // additive and needs no allowlist change; a bare top-level `category` stays rejected.
+  it("accepts metadata.category (taxonomy) but still rejects top-level category", () => {
+    const nested = lintSkill(makeSkill({ frontmatter: { metadata: { category: "core-loop" } } }), []);
+    expect(nested.errors).toEqual([]);
+    const topLevel = lintSkill(makeSkill({ frontmatter: { category: "core-loop" } }), []);
+    expect(topLevel.errors.some((e) => e.includes("category"))).toBe(true);
+  });
 });
 
 describe("lintSkill: size limits", () => {

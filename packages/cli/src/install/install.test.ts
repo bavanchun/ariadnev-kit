@@ -288,10 +288,11 @@ describe("executeInstall + dry-run", () => {
 
 describe("full-kit install smoke (v2 roster)", () => {
   const ROSTER = [
-    "ask", "bootstrap", "brainstorm", "cook", "docs", "docs-seeker", "fix",
-    "git", "journal", "obsidian-second-brain-note", "plan", "pm", "predict",
-    "problem-solving", "research", "scenario", "scout", "security-scan",
-    "sequential-thinking", "skill-creator", "worktree",
+    "ask", "bootstrap", "brainstorm", "code-review", "cook", "docs",
+    "docs-seeker", "fix", "git", "handoff", "journal",
+    "obsidian-second-brain-note", "plan", "pm", "predict", "problem-solving",
+    "research", "review-pr", "scenario", "scout", "security-scan",
+    "sequential-thinking", "ship", "skill-creator", "test", "worktree",
   ];
   const AGENTS = [
     "vc-brainstormer", "vc-debugger", "vc-developer", "vc-docs-manager",
@@ -308,7 +309,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "subagent-init",
   ];
 
-  it("kit ships exactly the 21-skill + 13-agent roster + 6 hooks", () => {
+  it("kit ships exactly the 26-skill + 13-agent roster + 6 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);

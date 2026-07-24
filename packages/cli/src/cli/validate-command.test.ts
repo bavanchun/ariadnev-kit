@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runValidate } from "./validate-command.js";
+import { runValidate, loadCollisionAllowlist } from "./validate-command.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
 import { renderMatrixBlock } from "../providers/matrix-drift.js";
 
@@ -73,6 +73,63 @@ describe("runValidate", () => {
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings[0].kind).toBe("lint");
+  });
+
+  describe("collision allowlist", () => {
+    function writeNamedSkill(kitRoot: string, slug: string, description: string): void {
+      const dir = join(kitRoot, "skills", slug);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "SKILL.md"), `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n`);
+    }
+    const DESC_A = "Use this to migrate database schema changes safely with rollback support and checks.";
+    const DESC_B = "Use this to migrate database schema changes safely with rollback support and guards.";
+
+    it("flags a near-duplicate pair as an error collision by default", () => {
+      writeNamedSkill(tmp, "alpha", DESC_A);
+      writeNamedSkill(tmp, "beta", DESC_B);
+      const result = runValidate({ kitRoot: tmp });
+      expect(result.findings.some((f) => f.kind === "collision" && (f.level ?? "error") === "error")).toBe(true);
+    });
+
+    it("suppresses the pair when it is allowlisted with a reason", () => {
+      writeNamedSkill(tmp, "alpha", DESC_A);
+      writeNamedSkill(tmp, "beta", DESC_B);
+      writeFileSync(
+        join(tmp, "collision-allowlist.json"),
+        JSON.stringify([{ a: "vc:alpha", b: "vc:beta", reason: "adjacent by design" }]),
+      );
+      const result = runValidate({ kitRoot: tmp });
+      expect(result.findings.some((f) => f.kind === "collision")).toBe(false);
+    });
+  });
+
+  describe("loadCollisionAllowlist", () => {
+    it("returns [] when the file is absent", () => {
+      expect(loadCollisionAllowlist(tmp)).toEqual([]);
+    });
+
+    it("returns [] for malformed JSON", () => {
+      writeFileSync(join(tmp, "collision-allowlist.json"), "{not json");
+      expect(loadCollisionAllowlist(tmp)).toEqual([]);
+    });
+
+    it("returns [] when the top level is not an array", () => {
+      writeFileSync(join(tmp, "collision-allowlist.json"), JSON.stringify({ a: 1 }));
+      expect(loadCollisionAllowlist(tmp)).toEqual([]);
+    });
+
+    it("drops entries missing a non-empty reason or string endpoints", () => {
+      writeFileSync(
+        join(tmp, "collision-allowlist.json"),
+        JSON.stringify([
+          { a: "vc:x", b: "vc:y", reason: "kept" },
+          { a: "vc:x", b: "vc:y", reason: "  " },
+          { a: "vc:x", b: 2, reason: "bad endpoint" },
+          null,
+        ]),
+      );
+      expect(loadCollisionAllowlist(tmp)).toEqual([{ a: "vc:x", b: "vc:y", reason: "kept" }]);
+    });
   });
 
   describe("--check (provider matrix drift)", () => {
