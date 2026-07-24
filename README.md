@@ -90,20 +90,26 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 
 ## What's in the kit
 
-21 skills + 13 agents + 6 hooks, distilled from daily usage. Every skill meets
-one cook-grade bar — a real workflow, an `## Output format` contract, `##
-Quality gates` self-checks, and a `## Workflow position` so the kit reads as one
-graph. Risk lanes and proof vocabulary (`unit`/`integration`/`e2e`/`platform`)
-are shared across skills, not siloed in `vc:cook`. See
+26 skills + 13 agents + 6 hooks today, growing toward full AgentKit parity in
+waves — every `ak-*` skill distilled,
+each earning its place by gate-passing + a parity-or-better proof vs its source
+(see [`docs/decisions/0003-comprehensive-distillation-identity.md`](docs/decisions/0003-comprehensive-distillation-identity.md)),
+not by keeping the count small. Every skill meets one cook-grade bar — a real
+workflow, an `## Output format` contract, `## Quality gates` self-checks, and a
+`## Workflow position` so the kit reads as one graph. Risk lanes and proof
+vocabulary (`unit`/`integration`/`e2e`/`platform`) are shared across skills, not
+siloed in `vc:cook`. See
 [`docs/vc-skill-authoring-spec.md`](docs/vc-skill-authoring-spec.md).
 
 - **Core loop skills**: `vc:brainstorm`, `vc:plan`, `vc:cook` (embedded
-  test/review gates + risk-lane routing), `vc:fix` (root-cause loop), `vc:git`,
-  `vc:scout`, `vc:ask`, `vc:pm`
+  test/review gates + risk-lane routing), `vc:fix` (root-cause loop),
+  `vc:code-review`, `vc:test`, `vc:ship` (test→review→git orchestrator),
+  `vc:review-pr` (GitHub PR + fix/reply/merge), `vc:git`, `vc:scout`, `vc:ask`,
+  `vc:pm`
 - **Support skills**: `vc:problem-solving`, `vc:research`, `vc:docs` (incl.
   `decision` mode for durable records), `vc:skill-creator`, `vc:journal`,
-  `vc:sequential-thinking`, `vc:docs-seeker`, `vc:bootstrap`,
-  `vc:security-scan`, `vc:predict`, `vc:scenario`, `vc:worktree`
+  `vc:handoff` (session compaction), `vc:sequential-thinking`, `vc:docs-seeker`,
+  `vc:bootstrap`, `vc:security-scan`, `vc:predict`, `vc:scenario`, `vc:worktree`
 - **Personal skill**: `vc:obsidian-second-brain-note`
 - **Agents** (`kit/agents/vc-*.md`, install alongside ClaudeKit without
   conflicts): `vc-explore`, `vc-planner`, `vc-reviewer`, `vc-tester`,

@@ -5,7 +5,7 @@ import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
-import { scoreDescriptions } from "../kit/description-collision.js";
+import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -49,6 +49,30 @@ export function matchesFilter(name: string, filter: string[]): boolean {
 // binary. Outside a checkout the file is absent and --check reports that.
 function defaultReadmePath(): string {
   return join(process.cwd(), "README.md");
+}
+
+// Justified-similar pairs live in `<kitRoot>/collision-allowlist.json` — a flat
+// array of {a,b,reason}. Absent or malformed ⇒ empty (fail-open: the gate just
+// keeps flagging). Entries missing a non-empty reason are ignored so no pair is
+// silenced without a rationale.
+export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry[] {
+  const path = join(kitRoot, "collision-allowlist.json");
+  if (!existsSync(path)) return [];
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is CollisionAllowlistEntry =>
+        typeof e === "object" &&
+        e !== null &&
+        typeof (e as CollisionAllowlistEntry).a === "string" &&
+        typeof (e as CollisionAllowlistEntry).b === "string" &&
+        typeof (e as CollisionAllowlistEntry).reason === "string" &&
+        (e as CollisionAllowlistEntry).reason.trim().length > 0,
+    );
+  } catch {
+    return [];
+  }
 }
 
 function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
@@ -102,6 +126,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // Cross-skill description confusability (routing-collision guard).
   const collisions = scoreDescriptions(
     kit.skills.map((s) => ({ name: s.name, description: String(s.frontmatter.description ?? "") })),
+    loadCollisionAllowlist(root),
   );
   for (const c of collisions) {
     findings.push({
