@@ -1,6 +1,6 @@
 {
   "name": "vcskill",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
   "type": "module",
