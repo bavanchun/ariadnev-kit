@@ -7,6 +7,10 @@ metadata:
   author: vchun
   version: "1.0.0"
   category: core-loop
+  upstream: "ak:ship"
+  upstream_version: "2.1.0"
+  upstream_digest: "sha256:533030fdfff4789aee6fe71b31f41afbcbb47671d74fe49b409e2f9dc94b223b"
+  upstream_relation: "distill"
 ---
 
 # Ship

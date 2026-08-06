@@ -6,6 +6,10 @@ argument-hint: "<feature or goal to plan>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:plan"
+  upstream_version: "1.4.0"
+  upstream_digest: "sha256:4f7da347843b5569555ea86a020c87a9503323c22714ea703f0979374dcbd520"
+  upstream_relation: "distill"
 ---
 
 # Plan

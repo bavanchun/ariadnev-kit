@@ -2,6 +2,11 @@
 name: vc:obsidian-second-brain-note
 description: Create professional Obsidian second-brain notes. Use when saving knowledge, summaries, concepts, lectures, images, or important info into an Obsidian vault with tags, links, MOCs, and clean folders.
 version: "1.0.0"
+metadata:
+  upstream: "none"
+  upstream_version: "none"
+  upstream_digest: "none"
+  upstream_relation: "none"
 ---
 
 # Obsidian Second-Brain Note

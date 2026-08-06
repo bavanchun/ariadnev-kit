@@ -6,6 +6,10 @@ argument-hint: "[plan dir] [--report]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:project-management"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:c7c8aa4d27fb1ce1a850283108f6ccf78d8603cf91e18249ea6bdc935bdd5c73"
+  upstream_relation: "distill"
 ---
 
 # PM

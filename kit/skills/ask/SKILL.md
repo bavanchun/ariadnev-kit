@@ -6,6 +6,10 @@ argument-hint: "<question>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:ask"
+  upstream_version: "1.2.0"
+  upstream_digest: "sha256:a2eb54a87d6aaf6f268fa524dfbf28939968edbda0cceef6fff8ece93800daf2"
+  upstream_relation: "distill"
 ---
 
 # Ask

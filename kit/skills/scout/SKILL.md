@@ -6,6 +6,10 @@ argument-hint: "<what to find or understand> [--quick]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:scout"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:9c2eaea95e1b7b1a2a228a7e70e858f52f0a1718dae835a631e30ab4f29dab44"
+  upstream_relation: "distill"
 ---
 
 # Scout

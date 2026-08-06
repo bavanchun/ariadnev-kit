@@ -48,6 +48,7 @@ Normalize each relative path to `/`, sort paths bytewise, and hash a length-fram
       "upstream": "ak:plan",
       "upstream_version": "1.4.0",
       "upstream_digest": "sha256:…",
+      "upstream_relation": "distill",
       "pinned_at": "2026-08-06",
       "claims": [
         { "id": "c001", "text": "…", "status": "covered" },
@@ -65,6 +66,7 @@ One registry for the whole kit (user decision) — it doubles as the auditable a
 
 - Create: `kit/distill-decisions.json`
 - Create: `packages/cli/src/kit/upstream-digest.ts` — pure canonical length-framed digest over supplied path + raw-byte entries
+- Create: `packages/cli/src/kit/claim-extract.ts` + test — pure deterministic source-text claim extraction needed by the pin helper; Phase 4 consumes and coverage-gates it
 - Create: `packages/cli/scripts/pin-upstream.ts` — Bun authoring helper that imports the shared TypeScript digest, walks an ak source dir, filters volatile/generated entries, and emits version + digest + extracted claims
 - Modify: `packages/cli/src/kit/skill-lint.ts` — require the provenance fields, validate their shapes
 - Modify: `packages/cli/src/kit/skill-lint.test.ts`
@@ -78,7 +80,7 @@ One registry for the whole kit (user decision) — it doubles as the auditable a
 
 1. Failing tests for `upstream-digest.ts`: same tree → same digest despite input order; changed raw byte → different digest; renamed file with identical bytes → different digest; ambiguous content boundaries → different digests; script/workflow change → different digest.
 2. Implement `upstream-digest.ts` as the pure length-framed hash over `{ path, content: Uint8Array }[]`; normalize relative separators, sort paths, and reject duplicate/absolute/parent-traversal paths.
-3. Write `pin-upstream.ts`: given an installed ak skill dir, walk regular authored files, apply the explicit exclusion list, reject symlinks, import the shared digest function, and print `upstream_version`, `upstream_digest`, and the extracted claim list as JSON. Add traversal tests proving an excluded cache file does not change the digest while a script/workflow file does.
+3. Add failing tests and implement pure deterministic claim extraction, then write `pin-upstream.ts`: given an installed ak skill dir, walk regular authored files, apply the explicit exclusion list, reject symlinks, import the shared digest and claim extractor, and print `upstream_version`, `upstream_digest`, and the extracted claim list as JSON. Add traversal tests proving an excluded cache file does not change the digest while a script/workflow file does.
 4. Failing lint tests: missing `upstream`; malformed digest; inconsistent `"none"` sentinels; `upstream: "none"` with a non-`none` relation; unknown `upstream_relation` value.
 5. Implement the lint rules.
 6. Update `skill-template.ts` so newly-authored skills emit the four explicit `"none"` provenance values; prove `vcskill add-skill` still creates a loadable skill after provenance enforcement.
@@ -88,16 +90,16 @@ One registry for the whole kit (user decision) — it doubles as the auditable a
 
 ## Success Criteria
 
-- [ ] `upstream-digest` is deterministic, input-order-independent, path-sensitive, boundary-safe, and byte-sensitive (tests prove each property)
-- [ ] Digest covers scripts, workflows, tests, assets, config, and licenses as well as Markdown; only the documented volatile/generated paths are excluded
-- [ ] All 26 skills carry the four provenance fields; lint fails if any is absent or malformed
-- [ ] `kit/distill-decisions.json` validates against its own `schema_version: 1` shape
-- [ ] `pin-upstream.ts <ak-skill-dir>` emits current version + canonical digest + claims without network access and rejects symlinks
-- [ ] `upstream_relation: "none"` requires all three source-valued fields to equal `"none"`; fork cases are represented and pass lint
-- [ ] `vcskill add-skill` emits the valid no-upstream sentinel and remains loadable after the new lint
-- [ ] All values are strings — the kit remains valid against the `agentskills.io` metadata contract
-- [ ] Registry carries `claims` for exactly the 8 Phase-5 skills; the other 18 have provenance but no claims array
-- [ ] `pnpm test` green
+- [x] `upstream-digest` is deterministic, input-order-independent, path-sensitive, boundary-safe, and byte-sensitive (tests prove each property)
+- [x] Digest covers scripts, workflows, tests, assets, config, and licenses as well as Markdown; only the documented volatile/generated paths are excluded
+- [x] All 26 skills carry the four provenance fields; lint fails if any is absent or malformed
+- [x] `kit/distill-decisions.json` validates against its own `schema_version: 1` shape
+- [x] `pin-upstream.ts <ak-skill-dir>` emits current version + canonical digest + claims without network access and rejects symlinks
+- [x] `upstream_relation: "none"` requires all three source-valued fields to equal `"none"`; fork cases are represented and pass lint
+- [x] `vcskill add-skill` emits the valid no-upstream sentinel and remains loadable after the new lint
+- [x] All values are strings — the kit remains valid against the `agentskills.io` metadata contract
+- [x] Registry carries `claims` for exactly the 8 Phase-5 skills; the other 18 have provenance but no claims array
+- [x] `pnpm test` green
 
 <!-- Updated: Validation Session 1 - claim extraction narrowed to the 8 reshaped skills -->
 

@@ -6,6 +6,10 @@ argument-hint: "create <feature> | list | status | prune"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:worktree"
+  upstream_version: "1.1.0"
+  upstream_digest: "sha256:f7e93ef847df946ecbe3259d62b0371902d7787a056c2c00818edc09b0bfd777"
+  upstream_relation: "distill"
 ---
 
 # Worktree

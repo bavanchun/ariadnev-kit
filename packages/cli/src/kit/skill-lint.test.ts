@@ -27,11 +27,23 @@ Output.
 Related: none.
 `;
 
+const VALID_PROVENANCE = {
+  upstream: "ak:demo",
+  upstream_version: "1.0.0",
+  upstream_digest: `sha256:${"a".repeat(64)}`,
+  upstream_relation: "distill",
+};
+
 function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string, unknown> } = {}): Artifact {
+  const overrideMetadata = overrides.frontmatter?.metadata;
   const frontmatter = {
     name: "vc:demo",
     description: "Demo skill for linting. Use when exercising the skill lint rules in tests.",
     ...overrides.frontmatter,
+    metadata: {
+      ...VALID_PROVENANCE,
+      ...(typeof overrideMetadata === "object" && overrideMetadata !== null ? overrideMetadata : {}),
+    },
   };
   return {
     type: "skill",
@@ -105,6 +117,91 @@ describe("lintSkill: frontmatter field allowlist", () => {
     expect(nested.errors).toEqual([]);
     const topLevel = lintSkill(makeSkill({ frontmatter: { category: "core-loop" } }), []);
     expect(topLevel.errors.some((e) => e.includes("category"))).toBe(true);
+  });
+});
+
+describe("lintSkill: provenance", () => {
+  it("requires all four provenance fields", () => {
+    const skill = makeSkill();
+    skill.frontmatter = {
+      name: "vc:demo",
+      description: "Demo skill for linting. Use when exercising the skill lint rules in tests.",
+    };
+    const res = lintSkill(skill, []);
+    expect(res.errors.some((e) => e.includes("upstream_relation"))).toBe(true);
+  });
+
+  it("rejects malformed digests and non-string values", () => {
+    const malformed = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_digest: "sha256:nope" } } }),
+      [],
+    );
+    expect(malformed.errors.some((e) => e.includes("upstream_digest"))).toBe(true);
+    const numeric = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_version: 1 } } }),
+      [],
+    );
+    expect(numeric.errors.some((e) => e.includes("upstream_version"))).toBe(true);
+  });
+
+  it("requires a consistent all-none sentinel", () => {
+    const res = lintSkill(
+      makeSkill({
+        frontmatter: {
+          metadata: {
+            upstream: "none",
+            upstream_version: "none",
+            upstream_digest: "none",
+            upstream_relation: "distill",
+          },
+        },
+      }),
+      [],
+    );
+    expect(res.errors.some((e) => e.includes("all equal \"none\""))).toBe(true);
+  });
+
+  it("accepts the all-none sentinel and a valid fork", () => {
+    const none = lintSkill(
+      makeSkill({
+        frontmatter: {
+          metadata: {
+            upstream: "none",
+            upstream_version: "none",
+            upstream_digest: "none",
+            upstream_relation: "none",
+          },
+        },
+      }),
+      [],
+    );
+    expect(none.errors).toEqual([]);
+    const fork = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_relation: "fork" } } }),
+      [],
+    );
+    expect(fork.errors).toEqual([]);
+  });
+
+  it("rejects unknown upstream relations", () => {
+    const res = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_relation: "copy" } } }),
+      [],
+    );
+    expect(res.errors.some((e) => e.includes("upstream_relation"))).toBe(true);
+  });
+
+  it("accepts complete SemVer and rejects numeric identifiers with leading zeroes", () => {
+    const valid = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_version: "1.2.3-alpha.1+build.5" } } }),
+      [],
+    );
+    expect(valid.errors).toEqual([]);
+    const invalid = lintSkill(
+      makeSkill({ frontmatter: { metadata: { upstream_version: "01.2.3" } } }),
+      [],
+    );
+    expect(invalid.errors.some((error) => error.includes("upstream_version"))).toBe(true);
   });
 });
 

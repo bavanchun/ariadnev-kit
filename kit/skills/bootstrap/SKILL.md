@@ -6,6 +6,10 @@ argument-hint: "<requirements> [--fast|--parallel]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:bootstrap"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:43e70033b4bf3b83fcbaae2b11438fc14b5004ba563606a91be0c89e4788c017"
+  upstream_relation: "distill"
 ---
 
 # Bootstrap

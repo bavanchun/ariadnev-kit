@@ -6,6 +6,10 @@ argument-hint: "init | update | audit | decision [scope]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:docs"
+  upstream_version: "1.4.0"
+  upstream_digest: "sha256:c1524d140a67f0ac89472db64839162083238443e70039d0480f7f9ab1dd1194"
+  upstream_relation: "distill"
 ---
 
 # Docs

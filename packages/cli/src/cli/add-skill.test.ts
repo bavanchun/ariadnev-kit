@@ -20,6 +20,12 @@ describe("renderSkillTemplate", () => {
     const { data } = parseFrontmatter(md);
     expect(data.name).toBe("vc:my-skill");
     expect(data.description).toBe("Use this fixture skill when testing generated skill content.");
+    expect(data.metadata).toMatchObject({
+      upstream: "none",
+      upstream_version: "none",
+      upstream_digest: "none",
+      upstream_relation: "none",
+    });
     expect(md).toContain("## Output format");
     expect(md).toContain("## Quality gates");
     expect(md).toContain("## Workflow position");

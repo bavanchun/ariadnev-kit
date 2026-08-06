@@ -20,6 +20,16 @@ Output.
 
 Related: none.
 `;
+const NONE_PROVENANCE = `metadata:
+  upstream: "none"
+  upstream_version: "none"
+  upstream_digest: "none"
+  upstream_relation: "none"`;
+
+function withProvenance(content: string): string {
+  if (/^\s+upstream_relation:/m.test(content)) return content;
+  return content.replace(/\n---\n/, `\n${NONE_PROVENANCE}\n---\n`);
+}
 
 describe("loadKit (real kit/)", () => {
   const kit = loadKit(repoKitRoot);
@@ -61,7 +71,7 @@ describe("loadKit validation (negative cases)", () => {
     mkdirSync(join(root, "skills", dir), { recursive: true });
     writeFileSync(
       join(root, "skills", dir, "SKILL.md"),
-      `---\n${frontmatter}\n---\n\n# body\n${REQUIRED_SKILL_SECTIONS}`,
+      `---\n${frontmatter}\n${NONE_PROVENANCE}\n---\n\n# body\n${REQUIRED_SKILL_SECTIONS}`,
     );
   }
 
@@ -94,7 +104,7 @@ describe("loadKit validation (negative cases)", () => {
     mkdirSync(join(root, "skills", "foo2"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo2", "SKILL.md"),
-      `---\nname: vc:foo2\ndescription: ${desc}\n---\n# foo2\n${REQUIRED_SKILL_SECTIONS}`,
+      `---\nname: vc:foo2\ndescription: ${desc}\n${NONE_PROVENANCE}\n---\n# foo2\n${REQUIRED_SKILL_SECTIONS}`,
     );
     // duplicate is hard to trigger with name==dir invariant; ensure valid kit loads
     expect(loadKit(root).skills.length).toBe(2);
@@ -111,7 +121,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
 
   function writeSkillFile(root: string, dir: string, content: string) {
     mkdirSync(join(root, "skills", dir), { recursive: true });
-    writeFileSync(join(root, "skills", dir, "SKILL.md"), content);
+    writeFileSync(join(root, "skills", dir, "SKILL.md"), withProvenance(content));
   }
 
   const okDescription = "Demo skill for lint tests. Use when validating the kit CI gate rules.";

@@ -3,6 +3,7 @@
 // unit-testable without a filesystem. Spec: docs/vc-skill-authoring-spec.md.
 
 import type { Artifact } from "./kit-types.js";
+import { validateSkillProvenance } from "./skill-provenance.js";
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
@@ -93,6 +94,7 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
       errors.push(`${label}: unknown frontmatter field "${field}"`);
     }
   }
+  errors.push(...validateSkillProvenance(artifact.frontmatter.metadata, label));
 
   const description = artifact.frontmatter.description;
   if (typeof description === "string") {

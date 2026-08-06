@@ -6,6 +6,10 @@ argument-hint: "<task description or path to plan.md / phase-*.md>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:cook"
+  upstream_version: "2.3.0"
+  upstream_digest: "sha256:7f0f95ea13c5e2832533eb5584c8d7276d75a7a48ac1fa9cd4781c7863192e34"
+  upstream_relation: "distill"
 ---
 
 # Cook

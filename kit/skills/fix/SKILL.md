@@ -6,6 +6,10 @@ argument-hint: "<error message, failing test, or bug description>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:fix"
+  upstream_version: "2.2.0"
+  upstream_digest: "sha256:8d530048e1a977f21926a1c50a7ba5e83742d9bd31afd1795d6c38afba3b6167"
+  upstream_relation: "distill"
 ---
 
 # Fix

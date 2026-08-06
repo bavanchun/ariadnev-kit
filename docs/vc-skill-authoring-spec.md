@@ -26,10 +26,37 @@ Naming: `<slug>` is kebab-case; frontmatter `name` must equal `vc:<slug>`.
 | `user-invocable` | no | boolean; expose as `/vc:<slug>` slash command |
 | `disable-model-invocation` | no | boolean; slash-only skills |
 | `allowed-tools` | no | list of tool names the skill needs |
-| `metadata` | no | free-form object (`author`, `version`, `maxLines`, …) |
+| `metadata` | yes | provenance fields below, plus optional authoring data (`author`, `version`, `maxLines`, …) |
 | `version`, `license` | no | strings |
 
 Any other top-level field is an **error**. Put extra data under `metadata`.
+
+### Upstream provenance
+
+Every skill declares four string-valued metadata fields:
+
+| Field | Contract |
+|---|---|
+| `upstream` | immediate source id as `ak:<slug>`, or `"none"` for an original skill |
+| `upstream_version` | pinned semantic version, or `"none"` |
+| `upstream_digest` | `sha256:<64 lowercase hex>` over the authored source tree, or `"none"` |
+| `upstream_relation` | `distill`, `fork`, or `none` |
+
+The `none` case is an all-or-nothing sentinel: all four fields must equal
+`"none"`. A fork remains traceable but is exempt from distillation coverage;
+use it only for an intentionally divergent lineage.
+
+Run `bun packages/cli/scripts/pin-upstream.ts <ak-skill-dir>` to calculate the
+version, digest, and candidate claims without network access. The canonical
+digest covers paths and raw bytes for every authored regular file. It excludes
+only `.git/`, `node_modules/`, `__pycache__/`, `dist/`, `build/`, `coverage/`,
+`*.pyc`, and `.DS_Store`; symlinks are rejected. The executable contract and
+edge cases live in `packages/cli/src/kit/upstream-digest.ts` and its tests.
+
+`kit/distill-decisions.json` is the audit record for claim-tracked
+distillations. Keep each extracted claim classified as covered or explicitly
+rejected with a reason before enabling strict coverage. This static record is
+an omission ratchet, not proof of behavioral parity.
 
 ### Writing the description
 
@@ -143,6 +170,7 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 - [ ] No heading duplicated between SKILL.md and references
 - [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
 - [ ] Every `vc:<slug>` reference resolves to an existing kit skill
+- [ ] All four provenance fields are strings and match the pinned source; original skills use the all-`"none"` sentinel
 - [ ] No secrets, tokens, or machine-specific absolute paths
 - [ ] `pnpm test` green (the lint gate runs in `kit-fixtures.test.ts`)
 - [ ] `vcskill install --dry-run` shows the skill landing where expected

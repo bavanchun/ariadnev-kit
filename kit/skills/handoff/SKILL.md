@@ -7,6 +7,10 @@ metadata:
   author: vchun
   version: "1.0.0"
   category: support
+  upstream: "ak:handoff"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:188b70d4300d21f88fa684ba3b50bb5c39116e9968e91029fcdac869f07fef8d"
+  upstream_relation: "distill"
 ---
 
 # Handoff

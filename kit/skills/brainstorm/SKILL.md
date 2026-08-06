@@ -6,6 +6,10 @@ argument-hint: "<topic or problem statement>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:brainstorm"
+  upstream_version: "2.6.0"
+  upstream_digest: "sha256:45c7006ad451cf0472cf4139ef8979e83c338ee13ada4caf0b2491ab46b5c6a3"
+  upstream_relation: "distill"
 ---
 
 # Brainstorm

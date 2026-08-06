@@ -7,6 +7,10 @@ metadata:
   author: vchun
   version: "1.0.0"
   attribution: "Dimension-decomposition pattern adapted from autoresearch by Udit Goenka (MIT)"
+  upstream: "ak:scenario"
+  upstream_version: "1.2.0"
+  upstream_digest: "sha256:d85385d66bdf885ae8801533b1f83a378dad0043ca1707e62c99a2b7e1a740d6"
+  upstream_relation: "distill"
 ---
 
 # Scenario

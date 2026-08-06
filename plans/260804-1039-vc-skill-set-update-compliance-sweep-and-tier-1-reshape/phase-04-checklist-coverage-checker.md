@@ -42,7 +42,7 @@ The standalone command never changes semantics during the rollout. `warn` versus
 
 ## Related Code Files
 
-- Create: `packages/cli/src/kit/claim-extract.ts` — pure: source text → normalized claim list
+- Modify: `packages/cli/src/kit/claim-extract.ts` and its Phase-3 tests — calibrate the existing pure source-text extractor against the first two real skills
 - Create: `packages/cli/src/kit/claim-coverage.ts` — pure: claims + vc content → per-claim status
 - Create: `packages/cli/src/cli/coverage-command.ts` — strict `vcskill coverage [--skill <name>]` adapter over the pure result
 - Create: tests for each of the above
@@ -55,8 +55,8 @@ The standalone command never changes semantics during the rollout. `warn` versus
 
 ## Implementation Steps
 
-1. Failing tests for `claim-extract.ts`: normative lines extracted; prose ignored; numbered steps captured; output stable across runs.
-2. Implement `claim-extract.ts`.
+1. Extend `claim-extract.ts` tests with real-source calibration cases: normative lines extracted; prose ignored; numbered steps captured; output stable across runs.
+2. Refine `claim-extract.ts` only where those calibration cases expose noise or missed rule shapes.
 3. Failing tests for `claim-coverage.ts`: claim present → covered; claim absent → unmatched; rejected claim → skipped; unclassified claim → fail.
 4. Implement `claim-coverage.ts`.
 5. Add the standalone `vcskill coverage` adapter reading the registry + kit; it always exits non-zero on unclassified or unmatched-and-not-rejected findings. Test command summary, `ok`, and process exit behavior.

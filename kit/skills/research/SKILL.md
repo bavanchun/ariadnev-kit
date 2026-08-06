@@ -6,6 +6,10 @@ argument-hint: "<topic or technology to research>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:research"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:eaf54e59aa70604a48cbac2072b9c7f629bed15ed1c0b0f6f5455f9196336d4c"
+  upstream_relation: "distill"
 ---
 
 # Research

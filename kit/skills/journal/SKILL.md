@@ -6,6 +6,10 @@ argument-hint: "[what happened]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:journal"
+  upstream_version: "1.1.0"
+  upstream_digest: "sha256:ac5fd2438c86289e96c8fbe957f4f47997845a8e4c32e15cfa1e935d8de44b8f"
+  upstream_relation: "distill"
 ---
 
 # Journal

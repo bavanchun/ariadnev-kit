@@ -7,6 +7,10 @@ metadata:
   author: vchun
   version: "1.0.0"
   attribution: "Multi-persona debate pattern adapted from autoresearch by Udit Goenka (MIT)"
+  upstream: "ak:predict"
+  upstream_version: "1.1.0"
+  upstream_digest: "sha256:48aca7378bc2a0c1a9ae0507eebb4a46a1deb6c703735a2f9d841c7f16d1aecb"
+  upstream_relation: "distill"
 ---
 
 # Predict

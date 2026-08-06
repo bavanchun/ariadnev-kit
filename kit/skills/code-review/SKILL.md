@@ -7,6 +7,10 @@ metadata:
   author: vchun
   version: "1.0.0"
   category: core-loop
+  upstream: "ak:code-review"
+  upstream_version: "2.0.0"
+  upstream_digest: "sha256:cf92cb5492cf065925bf475c3a6692f33e9f1c04cda075691ab3460939fd443a"
+  upstream_relation: "distill"
 ---
 
 # Code Review

@@ -6,6 +6,10 @@ argument-hint: "<what you're stuck on>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:problem-solving"
+  upstream_version: "2.0.0"
+  upstream_digest: "sha256:5f11a581dc800b272adb744a6138dd384df1abe804e05a5c11b7e77faaa6c127"
+  upstream_relation: "distill"
 ---
 
 # Problem Solving

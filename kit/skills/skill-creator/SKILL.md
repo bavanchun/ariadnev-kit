@@ -6,6 +6,10 @@ argument-hint: "<skill name or description>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:skill-creator"
+  upstream_version: "4.0.0"
+  upstream_digest: "sha256:f083c0535a5ec89e7fea6daca5907db8f391443ede368689bacca439949e4385"
+  upstream_relation: "distill"
 ---
 
 # Skill Creator

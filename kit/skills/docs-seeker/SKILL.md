@@ -6,6 +6,10 @@ argument-hint: "<library or framework> [topic]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:docs-seeker"
+  upstream_version: "3.1.0"
+  upstream_digest: "sha256:d421e61848442c50fbdbb807b163080d954382da886e67433dc53f8b0fe7c571"
+  upstream_relation: "distill"
 ---
 
 # Docs Seeker

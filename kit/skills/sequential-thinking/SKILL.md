@@ -6,6 +6,10 @@ argument-hint: "<problem to reason through>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:sequential-thinking"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:858bc6ee48c33352fb98407195551afea20d474f0d1ef1f1dfc8d12f8e3715b3"
+  upstream_relation: "distill"
 ---
 
 # Sequential Thinking

@@ -9,6 +9,11 @@ import { renderMatrixBlock } from "../providers/matrix-drift.js";
 const GOOD_FRONTMATTER = `---
 name: vc:foo
 description: Use this fixture skill to exercise the validate command reference check.
+metadata:
+  upstream: "none"
+  upstream_version: "none"
+  upstream_digest: "none"
+  upstream_relation: "none"
 ---
 
 # Foo
@@ -126,7 +131,7 @@ describe("runValidate", () => {
       mkdirSync(dir, { recursive: true });
       writeFileSync(
         join(dir, "SKILL.md"),
-        `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n${REQUIRED_SECTIONS}`,
+        `---\nname: vc:${slug}\ndescription: ${description}\nmetadata:\n  upstream: "none"\n  upstream_version: "none"\n  upstream_digest: "none"\n  upstream_relation: "none"\n---\n\n# ${slug}\n${REQUIRED_SECTIONS}`,
       );
     }
     const DESC_A = "Use this to migrate database schema changes safely with rollback support and checks.";
