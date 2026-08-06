@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Benchmark all vc skills"
-status: todo
+status: completed
 priority: P2
 effort: "0.5-1d"
 dependencies: [5]
@@ -62,13 +62,23 @@ outcomes. The report must state both limits before ranking or recommendations.
 
 ## Success Criteria
 
-- [ ] Exactly 26 unique canonical skills appear in the report; no missing or duplicate row
-- [ ] All 26 individual tier-1 eval runs exit zero
-- [ ] Tier-3 status is recorded per skill as a real score or explicit `not run`; no fabricated score
-- [ ] All eight claim-tracked skills pass strict standalone coverage
-- [ ] Every row includes structural and provenance fields; non-applicable coverage is explicit
-- [ ] Report names reproducible commands and distinguishes static, prose-judge, and behavioral proof
-- [ ] Any failure is diagnosed, fixed, and rerun before completion
+- [x] Exactly 26 unique canonical skills appear in the report; no missing or duplicate row
+- [x] All 26 individual tier-1 eval runs exit zero
+- [x] Tier-3 status is recorded per skill as a real score or explicit `not run`; no fabricated score
+- [x] All eight claim-tracked skills pass strict standalone coverage
+- [x] Every row includes structural and provenance fields; non-applicable coverage is explicit
+- [x] Report names reproducible commands and distinguishes static, prose-judge, and behavioral proof
+- [x] Any failure is diagnosed, fixed, and rerun before completion
+
+## Completion Record — 2026-08-06
+
+The [benchmark report](../reports/benchmark-260806-1531-vc-skills.md) contains
+exactly one row for each canonical skill. All 26 tier-1 processes and all 8
+strict coverage processes exit zero. Tier 3 is explicitly `not run` in every
+row because `VCSKILL_EVAL_CMD` was unavailable; no behavioral claim is made.
+
+After final review fixed unknown skill filters in `27b2b8d`, the full 26-skill
+eval set was rerun against that commit and remained 26/26 green.
 
 ## Risk Assessment
 

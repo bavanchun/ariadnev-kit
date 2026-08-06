@@ -1,6 +1,6 @@
 # Benchmark Report — all 26 vc skills
 
-Date: 2026-08-06 · Commit: `d105bb2f9945a18373f36a995fcd4741bc2bbab5` · Branch: `main`
+Date: 2026-08-06 · Commit: `27b2b8d6c107cd84f8c0fe1c50fb68fdf5340362` · Branch: `main`
 CLI: vcskill 0.9.0 · Node v26.0.0 · pnpm 11.0.9
 
 ## Proof boundary

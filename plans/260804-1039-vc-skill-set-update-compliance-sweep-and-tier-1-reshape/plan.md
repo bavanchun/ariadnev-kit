@@ -1,7 +1,7 @@
 ---
 title: "vc skill-set update compliance sweep and tier-1 reshape"
 description: "Bring all 26 vc skills to their stated bar, add canonical whole-tree upstream provenance, reshape the 8 most-compressed skills, and benchmark every vc skill with an honest static scorecard."
-status: in-progress
+status: completed
 priority: P1
 effort: "2-3w"
 tags: [kit, skills, distillation, quality-gates]
@@ -39,11 +39,11 @@ Evidence: `plans/reports/scout-260804-0853-vcskill-kit-state-and-harness.md`, `s
 | # | Phase | Status |
 |---|-------|--------|
 | 1 | [Phase 1: Compliance sweep](./phase-01-start.md) | Completed |
-| 2 | [Phase 2: Enforce the bar in validate](./phase-02-enforce-the-bar-in-validate.md) | Pending |
-| 3 | [Phase 3: Provenance fields and distill-decisions registry](./phase-03-provenance-fields-and-distill-decisions-registry.md) | Pending |
-| 4 | [Phase 4: Checklist coverage checker](./phase-04-checklist-coverage-checker.md) | Pending |
-| 5 | [Phase 5: Reshape the eight most compressed skills](./phase-05-reshape-the-eight-most-compressed-skills.md) | Pending |
-| 6 | [Phase 6: Benchmark all vc skills](./phase-06-benchmark-all-vc-skills.md) | Pending |
+| 2 | [Phase 2: Enforce the bar in validate](./phase-02-enforce-the-bar-in-validate.md) | Completed |
+| 3 | [Phase 3: Provenance fields and distill-decisions registry](./phase-03-provenance-fields-and-distill-decisions-registry.md) | Completed |
+| 4 | [Phase 4: Checklist coverage checker](./phase-04-checklist-coverage-checker.md) | Completed |
+| 5 | [Phase 5: Reshape the eight most compressed skills](./phase-05-reshape-the-eight-most-compressed-skills.md) | Completed |
+| 6 | [Phase 6: Benchmark all vc skills](./phase-06-benchmark-all-vc-skills.md) | Completed |
 
 Dependency chain is strict: 1 → 2 (enforcement would fail on a non-compliant kit), 3 → 4 (the checker reads the registry), 2+4 → 5 (reshaping without a gate has no acceptance evidence), 5 → 6 (benchmark the delivered skill set, not an intermediate tree).
 
@@ -70,20 +70,20 @@ Dependency chain is strict: 1 → 2 (enforcement would fail on a non-compliant k
 
 ## Success Criteria
 
-- [ ] `vcskill validate` passes 26/26 with the 4-section bar enforced (baseline: 8/26)
-- [ ] Zero unresolved `vc:*` skill references; lint fails on introduction of a new one under finding kind `skillref` (distinct from the pre-existing `dangling`/`orphan` kinds, which mean reference-file links)
-- [ ] `vcskill add-skill` still emits a loadable skill after section and provenance enforcement; a failed post-write verification leaves no partial scaffold directory
+- [x] `vcskill validate` passes 26/26 with the 4-section bar enforced (baseline: 8/26)
+- [x] Zero unresolved `vc:*` skill references; lint fails on introduction of a new one under finding kind `skillref` (distinct from the pre-existing `dangling`/`orphan` kinds, which mean reference-file links)
+- [x] `vcskill add-skill` still emits a loadable skill after section and provenance enforcement; a failed post-write verification leaves no partial scaffold directory
 - [x] Heading vocabulary single-valued: `## Output format` only — across all 26
       `kit/skills/*/SKILL.md` (Phase 1). Residual `## Output Format` in 2 agents
       and 1 git reference file is out of Phase 1's scope; Phase 2 decides the
       lint's scope.
-- [ ] All 26 skills carry `metadata.upstream`, `upstream_version`, `upstream_digest`, and `upstream_relation`; no-upstream skills use the explicit all-`"none"` sentinel
-- [ ] Canonical upstream digest is path-sensitive and covers scripts/workflows/assets/config/tests/licenses as well as Markdown; cache/generated exclusions are explicit and tested
-- [ ] `kit/distill-decisions.json` exists with extracted claims + rejected claims per distilled skill
-- [ ] Strict standalone `vcskill coverage --skill <name>` runs offline and exits zero for all 8 reshaped skills; aggregate `vcskill validate` maps the same findings to warnings during rollout and errors only after the eight-skill gate is complete
-- [ ] Each of the 8 reshaped skills has ≥1 `references/*.md` and a SKILL.md that routes rather than contains
-- [ ] All 26 skills have an individual benchmark row recording tier-1 result, tier-3 result or explicit `not run`, structural metrics, provenance, and coverage applicability
-- [ ] `pnpm test` green; coverage thresholds unchanged or better
+- [x] All 26 skills carry `metadata.upstream`, `upstream_version`, `upstream_digest`, and `upstream_relation`; no-upstream skills use the explicit all-`"none"` sentinel
+- [x] Canonical upstream digest is path-sensitive and covers scripts/workflows/assets/config/tests/licenses as well as Markdown; cache/generated exclusions are explicit and tested
+- [x] `kit/distill-decisions.json` exists with extracted claims + rejected claims per distilled skill
+- [x] Strict standalone `vcskill coverage --skill <name>` runs offline and exits zero for all 8 reshaped skills; aggregate `vcskill validate` maps the same findings to warnings during rollout and errors only after the eight-skill gate is complete
+- [x] Each of the 8 reshaped skills has ≥1 `references/*.md` and a SKILL.md that routes rather than contains
+- [x] All 26 skills have an individual benchmark row recording tier-1 result, tier-3 result or explicit `not run`, structural metrics, provenance, and coverage applicability
+- [x] `pnpm test` green; coverage thresholds unchanged or better
 
 ## Risks
 
@@ -158,5 +158,19 @@ reshape gate. The benchmark reuses `vcskill eval --skill` per skill, records
 deterministic structural/provenance/coverage evidence, and runs tier 3 only when
 `VCSKILL_EVAL_CMD` is configured. It does not weaken the existing golden-task
 non-goal or label static evidence as behavioral parity.
+
+### Session 4 — 2026-08-06
+
+All six phases are complete. Final delivery evidence: 26/26 individual tier-1
+evals pass, all 8 claim-tracked skills pass strict coverage, aggregate coverage
+is error-level, and the full lint/test/build/coverage/validate gates pass. Tier 3
+was explicitly not run because `VCSKILL_EVAL_CMD` was not configured.
+
+The final code review found one real filter defect: an unknown `eval --skill`
+previously validated an empty subset and exited zero. Commit `27b2b8d` adds a
+failing regression test and makes the request fail clearly; all 26 canonical
+benchmarks were rerun afterward. See the
+[benchmark report](../reports/benchmark-260806-1531-vc-skills.md) for per-skill
+evidence and proof limits.
 
 <!-- slug: vc-skill-set-update-compliance-sweep-and-tier-1-reshape -->

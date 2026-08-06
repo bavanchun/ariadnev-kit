@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Enforce the bar in validate"
-status: todo
+status: completed
 priority: P1
 effort: "1-2d"
 dependencies: [1]

@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Checklist coverage checker"
-status: todo
+status: completed
 priority: P1
 effort: "3-4d"
 dependencies: [3]

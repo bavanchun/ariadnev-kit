@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Provenance fields and distill-decisions registry"
-status: todo
+status: completed
 priority: P1
 effort: "2-3d"
 dependencies: [2]

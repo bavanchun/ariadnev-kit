@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Reshape the eight most compressed skills"
-status: todo
+status: completed
 priority: P2
 effort: "1-2w"
 dependencies: [2, 4]
@@ -61,18 +61,29 @@ Per-skill method: pin current canonical upstream tree (Phase 3 output) → revie
 
 ## Success Criteria
 
-- [ ] All 8 have ≥1 `references/*.md`
-- [ ] All 8 SKILL.md bodies are ~100–150 lines and route rather than contain
-- [ ] Strict `vcskill coverage --skill <name>` exits zero for all 8 — zero unclassified claims, zero unmatched-but-not-rejected claims
-- [ ] During rollout, aggregate `vcskill validate` surfaces those same finding identities as warnings without changing the strict standalone result
-- [ ] After all 8 are clean, only the aggregate validate coverage mapping is flipped from `warn` to `error`, and the flip is committed
+- [x] All 8 have ≥1 `references/*.md`
+- [x] All 8 SKILL.md bodies are ~100–150 lines and route rather than contain
+- [x] Strict `vcskill coverage --skill <name>` exits zero for all 8 — zero unclassified claims, zero unmatched-but-not-rejected claims
+- [x] During rollout, aggregate `vcskill validate` surfaces those same finding identities as warnings without changing the strict standalone result
+- [x] After all 8 are clean, only the aggregate validate coverage mapping is flipped from `warn` to `error`, and the flip is committed
 
 <!-- Updated: Validation Session 2 - standalone coverage stays strict; only aggregate validate is warn-first -->
-- [ ] No reference chain deeper than one level from SKILL.md
-- [ ] `vcskill validate` clean throughout; the Phase 2 bar still holds
-- [ ] One skill per commit, each independently revertible
-- [ ] `pnpm test` green at every commit
-- [ ] Authoring spec records the standard shape
+- [x] No reference chain deeper than one level from SKILL.md
+- [x] `vcskill validate` clean throughout; the Phase 2 bar still holds
+- [x] One skill per commit, each independently revertible
+- [x] `pnpm test` green at every commit
+- [x] Authoring spec records the standard shape
+
+## Completion Record — 2026-08-06
+
+The eight skills landed independently in the planned order (`d818c69` through
+`49687c2`). Their routers are 119–143 lines with 2–5 directly linked reference
+files each. Strict coverage passes with no unclassified or unmatched claims;
+the final classifications total 206 covered and 101 explicitly rejected claims.
+
+Commit `d105bb2` promoted aggregate coverage from the tested rollout-warning
+policy to the default error gate. The authoring spec now requires router-thin,
+direct-reference structure and documents the ratchet's proof boundary.
 
 ## Risk Assessment
 
