@@ -1,6 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { lintSkill, DESCRIPTION_MIN, DESCRIPTION_MAX, SKILL_MAX_LINES, SKILL_MAX_LINES_CEILING, REFERENCE_MAX_LINES } from "./skill-lint.js";
+import {
+  lintSkill,
+  DESCRIPTION_MIN,
+  DESCRIPTION_MAX,
+  SKILL_MAX_LINES,
+  SKILL_MAX_LINES_CEILING,
+  REFERENCE_MAX_LINES,
+  REQUIRED_SECTIONS,
+} from "./skill-lint.js";
 import type { Artifact } from "./kit-types.js";
+
+const REQUIRED_BODY = `# Demo
+
+Short body.
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`;
 
 function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string, unknown> } = {}): Artifact {
   const frontmatter = {
@@ -12,7 +37,7 @@ function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string,
     type: "skill",
     name: "demo",
     frontmatter,
-    body: overrides.body ?? "# Demo\n\nShort body.\n",
+    body: overrides.body ?? REQUIRED_BODY,
     raw: overrides.raw ?? "---\nname: vc:demo\n---\n# Demo\n\nShort body.\n",
     sourcePath: "/kit/skills/demo/SKILL.md",
   };
@@ -83,6 +108,24 @@ describe("lintSkill: frontmatter field allowlist", () => {
   });
 });
 
+describe("lintSkill: required sections", () => {
+  for (const section of REQUIRED_SECTIONS) {
+    it(`rejects a skill missing ${section}`, () => {
+      const body = REQUIRED_BODY.replace(`${section}\n\n`, "");
+      const res = lintSkill(makeSkill({ body }), []);
+      expect(res.errors).toContain(
+        `/kit/skills/demo/SKILL.md: skill "demo" missing required section "${section}"`,
+      );
+    });
+  }
+
+  it("matches required section names case-sensitively", () => {
+    const body = REQUIRED_BODY.replace("## Output format", "## Output Format");
+    const res = lintSkill(makeSkill({ body }), []);
+    expect(res.errors.some((e) => e.includes('"## Output format"'))).toBe(true);
+  });
+});
+
 describe("lintSkill: size limits", () => {
   it(`rejects SKILL.md over ${SKILL_MAX_LINES} lines`, () => {
     const raw = Array.from({ length: SKILL_MAX_LINES + 1 }, (_, i) => `line ${i}`).join("\n");
@@ -117,7 +160,7 @@ describe("lintSkill: size limits", () => {
 describe("lintSkill: duplicate heading heuristic (warning only)", () => {
   it("warns when SKILL.md and a reference share a heading", () => {
     const res = lintSkill(
-      makeSkill({ body: "# Demo\n\n## Commit Standards\n\ntext\n" }),
+      makeSkill({ body: `${REQUIRED_BODY}\n## Commit Standards\n\ntext\n` }),
       [{ name: "commits.md", content: "## Commit Standards\n\nmore text\n" }],
     );
     expect(res.errors).toEqual([]);
@@ -126,7 +169,7 @@ describe("lintSkill: duplicate heading heuristic (warning only)", () => {
 
   it("does not warn on distinct headings", () => {
     const res = lintSkill(
-      makeSkill({ body: "# Demo\n\n## Workflow\n" }),
+      makeSkill({ body: REQUIRED_BODY }),
       [{ name: "ref.md", content: "## Details\n" }],
     );
     expect(res.warnings).toEqual([]);

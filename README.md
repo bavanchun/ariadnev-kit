@@ -81,7 +81,7 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
-| `vcskill validate [--check]` | Lint the kit source (frontmatter, sizes, reference integrity); `--check` also fails if the README provider matrix drifted |
+| `vcskill validate [--check]` | Lint the kit source (frontmatter, required sections, file links, and `vc:*` skill references); `--check` also fails if the README provider matrix drifted |
 | `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `vcskill eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `VCSKILL_EVAL_CMD` is set |
 | `vcskill query [installs\|doctor\|history]` | Show the local history log (`~/.vcskill/history.jsonl`) of installs, doctor runs, and updates |
@@ -100,6 +100,8 @@ workflow, an `## Output format` contract, `## Quality gates` self-checks, and a
 vocabulary (`unit`/`integration`/`e2e`/`platform`) are shared across skills, not
 siloed in `vc:cook`. See
 [`docs/vc-skill-authoring-spec.md`](docs/vc-skill-authoring-spec.md).
+The three named headings and every cross-skill `vc:<slug>` reference are
+enforced by `vcskill validate`, not left to convention.
 
 - **Core loop skills**: `vc:brainstorm`, `vc:plan`, `vc:cook` (embedded
   test/review gates + risk-lane routing), `vc:fix` (root-cause loop),

@@ -12,6 +12,32 @@ description: Use this fixture skill to exercise the validate command reference c
 ---
 
 # Foo
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`;
+
+const REQUIRED_SECTIONS = `
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
 `;
 
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
@@ -67,6 +93,25 @@ describe("runValidate", () => {
     );
   });
 
+  it("flags an unresolved vc skill reference under kind skillref", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nUse vc:missing.\n`);
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "foo", kind: "skillref", message: expect.stringContaining("vc:missing") }),
+    );
+  });
+
+  it("checks vc skill references inside linked reference files", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nSee references/used.md.\n`, {
+      "used.md": "# Used\n\nContinue with vc:missing.\n",
+    });
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ kind: "skillref", message: expect.stringContaining("references/used.md") }),
+    );
+  });
+
   it("reports a lint error as a single (kit) finding and fails", () => {
     // name mismatch → loadKit throws KitValidationError
     writeSkill(tmp, `---\nname: vc:wrong\ndescription: A fixture whose name does not match its directory slug value.\n---\n\n# Foo\n`);
@@ -79,7 +124,10 @@ describe("runValidate", () => {
     function writeNamedSkill(kitRoot: string, slug: string, description: string): void {
       const dir = join(kitRoot, "skills", slug);
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "SKILL.md"), `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n`);
+      writeFileSync(
+        join(dir, "SKILL.md"),
+        `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n${REQUIRED_SECTIONS}`,
+      );
     }
     const DESC_A = "Use this to migrate database schema changes safely with rollback support and checks.";
     const DESC_B = "Use this to migrate database schema changes safely with rollback support and guards.";

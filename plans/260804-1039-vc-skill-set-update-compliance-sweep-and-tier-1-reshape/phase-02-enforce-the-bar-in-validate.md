@@ -64,17 +64,17 @@ Deliberately **not** in scope: a `vcskill graph` command. Deriving and rendering
 
 ## Success Criteria
 
-- [ ] New tests fail before implementation, pass after
-- [ ] `vcskill validate` reports 26/26 clean on the real kit
-- [ ] Introducing a skill without `## Quality gates` fails validate with a message naming the file and section
-- [ ] Introducing a `vc:nonexistent` reference fails validate under kind `skillref`, whether it appears in SKILL.md or a reference file
-- [ ] Existing `dangling` / `orphan` findings still mean reference-file links — regression test proves the semantics did not shift
-- [ ] Cross-skill resolution runs after the full inventory loads; no `Kit` / `Artifact` public type change is needed
-- [ ] `vcskill add-skill` creates a skill that passes the strict section lint, and a forced verification failure leaves no partial directory
-- [ ] `skill-lint.ts` and `skill-crossrefs.ts` each stay under 200 LOC
+- [x] New tests fail before implementation, pass after
+- [x] `vcskill validate` reports 26/26 clean on the real kit
+- [x] Introducing a skill without `## Quality gates` fails validate with a message naming the file and section
+- [x] Introducing a `vc:nonexistent` reference fails validate under kind `skillref`, whether it appears in SKILL.md or a reference file
+- [x] Existing `dangling` / `orphan` findings still mean reference-file links — regression test proves the semantics did not shift
+- [x] Cross-skill resolution runs after the full inventory loads; no `Kit` / `Artifact` public type change is needed
+- [x] `vcskill add-skill` creates a skill that passes the strict section lint, and a forced verification failure leaves no partial directory
+- [x] `skill-lint.ts` and `skill-crossrefs.ts` each stay under 200 LOC
 
 <!-- Updated: Validation Session 1 - new finding kind `skillref`; documented existing checkReferenceIntegrity/level infrastructure -->
-- [ ] `pnpm test` green; coverage thresholds unchanged or better
+- [x] `pnpm test` green; coverage thresholds unchanged or better
 
 ## Risk Assessment
 

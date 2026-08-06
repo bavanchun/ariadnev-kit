@@ -72,6 +72,9 @@ section in one file and linking from the other.
 - Start with one paragraph: what the skill does and does not handle.
 - Prefer tables and numbered steps over prose.
 - Link references with a trigger condition: `For merge conflicts, read references/workflow-merge.md`.
+- Every `vc:<slug>` named in SKILL.md or `references/*.md` must resolve to a
+  skill in the same kit; `vcskill validate` checks this after loading the full
+  inventory.
 - Write in English; imperative voice addressed to the agent.
 - No provider-specific absolute paths — use `.claude/...`-relative canonical
   paths; the adapt engine rewrites them per provider.
@@ -80,8 +83,9 @@ section in one file and linking from the other.
 
 Every skill in `kit/skills/` must clear this seven-point bar. `vc:cook` is the
 reference implementation; measure new and rewritten skills against it. The lint
-gate enforces frontmatter and size; the rest is an authoring contract reviewers
-check by reading.
+gate enforces frontmatter, size, and the exact `## Output format`,
+`## Quality gates`, and `## Workflow position` headings. Workflow depth and
+proof/risk quality remain authoring contracts reviewers check by reading.
 
 1. **Trigger-precise frontmatter.** `description` states *what it does* + *when
    to fire* (see "Writing the description"). A reader deciding whether to invoke
@@ -137,6 +141,8 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 - [ ] SKILL.md ≤ 300 lines; every reference ≤ 300 lines
 - [ ] Each `references/*.md` is linked from SKILL.md with a "read when …" condition
 - [ ] No heading duplicated between SKILL.md and references
+- [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
+- [ ] Every `vc:<slug>` reference resolves to an existing kit skill
 - [ ] No secrets, tokens, or machine-specific absolute paths
 - [ ] `pnpm test` green (the lint gate runs in `kit-fixtures.test.ts`)
 - [ ] `vcskill install --dry-run` shows the skill landing where expected

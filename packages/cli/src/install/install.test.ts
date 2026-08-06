@@ -27,6 +27,18 @@ function makeAdaptFixtureKit(root: string) {
       "",
       "Run the helper at `.claude/skills/sample-skill/scripts/run.ts`.",
       "",
+      "## Output format",
+      "",
+      "Output.",
+      "",
+      "## Quality gates",
+      "",
+      "- Check.",
+      "",
+      "## Workflow position",
+      "",
+      "Related: none.",
+      "",
     ].join("\n"),
   );
   writeFileSync(join(root, "skills", "sample-skill", "scripts", "run.ts"), "export {};\n");

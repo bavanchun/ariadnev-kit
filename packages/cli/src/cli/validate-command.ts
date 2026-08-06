@@ -6,6 +6,7 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
+import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -13,7 +14,7 @@ import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/descript
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "matrix" | "collision";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "matrix" | "collision";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -107,19 +108,41 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const skillsToCheck = opts.skillFilter
     ? kit.skills.filter((s) => matchesFilter(s.name, opts.skillFilter!))
     : kit.skills;
+  const knownSkillNames = kit.skills.map((skill) => skill.name);
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
-    const names = existsSync(refsDir)
+    const referenceFiles = existsSync(refsDir)
       ? readdirSync(refsDir)
           .filter((f) => f.endsWith(".md"))
-          .map((f) => `references/${f}`)
+          .map((file) => ({
+            name: `references/${file}`,
+            content: readFileSync(join(refsDir, file), "utf8"),
+          }))
       : [];
+    const names = referenceFiles.map((file) => file.name);
     const { dangling, orphans } = checkReferenceIntegrity(skill.body, names);
     for (const d of dangling) {
       findings.push({ skill: skill.name, kind: "dangling", message: `links ${d} but it does not exist` });
     }
     for (const o of orphans) {
       findings.push({ skill: skill.name, kind: "orphan", message: `${o} exists but is never linked from SKILL.md` });
+    }
+    const unresolved = findUnresolvedSkillReferences(
+      [
+        { source: skill.sourcePath, content: skill.body },
+        ...referenceFiles.map((file) => ({
+          source: join(dirname(skill.sourcePath), file.name),
+          content: file.content,
+        })),
+      ],
+      knownSkillNames,
+    );
+    for (const ref of unresolved) {
+      findings.push({
+        skill: skill.name,
+        kind: "skillref",
+        message: `${ref.source} references unknown skill ${ref.reference}`,
+      });
     }
   }
 
