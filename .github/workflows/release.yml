@@ -90,7 +90,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.rel.outputs.version }}
         run: |
-          NOTES="Standalone binaries for macOS/Linux/Windows. Install: \`curl -fsSL https://raw.githubusercontent.com/bavanchun/vcskill/main/install.sh | bash\`. Verify with checksums.txt."
+          NOTES="Standalone binaries for macOS/Linux/Windows. Install: \`curl -fsSL https://vcskill.vchun.dev/install | bash\`. Verify with checksums.txt."
           # Idempotent: create the release if it doesn't exist yet, otherwise
           # (re-run, or a release the changesets action already opened) just
           # upload/replace the assets.

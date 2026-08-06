@@ -6,6 +6,10 @@ argument-hint: "[what happened]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:journal"
+  upstream_version: "1.1.0"
+  upstream_digest: "sha256:ac5fd2438c86289e96c8fbe957f4f47997845a8e4c32e15cfa1e935d8de44b8f"
+  upstream_relation: "distill"
 ---
 
 # Journal
@@ -70,6 +74,19 @@ Why this wasn't caught the first time: <one line>
 
 Propose the fix; do not silently edit the rule mid-task without this record
 — per `intake-and-context.md`'s harness-delta principle.
+
+## Output format
+
+The entry file is the deliverable; its internal shape is `## Entry template`
+above. Report back to the caller:
+
+```
+📓 <path written>
+- Status: Resolved | Ongoing | Blocked
+- Root cause: <one line>
+- Lesson: <the actionable takeaway>
+- Harness delta: <file + change, or "none">
+```
 
 ## Quality gates
 

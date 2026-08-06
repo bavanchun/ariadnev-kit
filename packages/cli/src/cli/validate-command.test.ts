@@ -2,22 +2,55 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runValidate, loadCollisionAllowlist } from "./validate-command.js";
+import { runValidate } from "./validate-command.js";
+import { runCoverage } from "./coverage-command.js";
+import { writeUnclassifiedCoverageFixture } from "./coverage-test-fixture.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
-import { renderMatrixBlock } from "../providers/matrix-drift.js";
 
 const GOOD_FRONTMATTER = `---
 name: vc:foo
 description: Use this fixture skill to exercise the validate command reference check.
+metadata:
+  upstream: "none"
+  upstream_version: "none"
+  upstream_digest: "none"
+  upstream_relation: "none"
 ---
 
 # Foo
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
 `;
 
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
   const dir = join(kitRoot, "skills", "foo");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "SKILL.md"), body);
+  writeFileSync(
+    join(kitRoot, "distill-decisions.json"),
+    JSON.stringify({
+      schema_version: 1,
+      skills: {
+        foo: {
+          upstream: "none",
+          upstream_version: "none",
+          upstream_digest: "none",
+          upstream_relation: "none",
+          pinned_at: "2026-08-06",
+        },
+      },
+    }),
+  );
   const names = Object.keys(refs);
   if (names.length > 0) {
     mkdirSync(join(dir, "references"), { recursive: true });
@@ -67,6 +100,25 @@ describe("runValidate", () => {
     );
   });
 
+  it("flags an unresolved vc skill reference under kind skillref", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nUse vc:missing.\n`);
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "foo", kind: "skillref", message: expect.stringContaining("vc:missing") }),
+    );
+  });
+
+  it("checks vc skill references inside linked reference files", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nSee references/used.md.\n`, {
+      "used.md": "# Used\n\nContinue with vc:missing.\n",
+    });
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ kind: "skillref", message: expect.stringContaining("references/used.md") }),
+    );
+  });
+
   it("reports a lint error as a single (kit) finding and fails", () => {
     // name mismatch → loadKit throws KitValidationError
     writeSkill(tmp, `---\nname: vc:wrong\ndescription: A fixture whose name does not match its directory slug value.\n---\n\n# Foo\n`);
@@ -75,86 +127,36 @@ describe("runValidate", () => {
     expect(result.findings[0].kind).toBe("lint");
   });
 
-  describe("collision allowlist", () => {
-    function writeNamedSkill(kitRoot: string, slug: string, description: string): void {
-      const dir = join(kitRoot, "skills", slug);
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "SKILL.md"), `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n`);
-    }
-    const DESC_A = "Use this to migrate database schema changes safely with rollback support and checks.";
-    const DESC_B = "Use this to migrate database schema changes safely with rollback support and guards.";
-
-    it("flags a near-duplicate pair as an error collision by default", () => {
-      writeNamedSkill(tmp, "alpha", DESC_A);
-      writeNamedSkill(tmp, "beta", DESC_B);
-      const result = runValidate({ kitRoot: tmp });
-      expect(result.findings.some((f) => f.kind === "collision" && (f.level ?? "error") === "error")).toBe(true);
+  it("maps coverage findings to errors by default and supports an explicit rollout warning policy", () => {
+    writeUnclassifiedCoverageFixture(tmp, "foo");
+    const standalone = runCoverage({ kitRoot: tmp, skill: "foo" });
+    const rollout = runValidate({
+      kitRoot: tmp,
+      skillFilter: ["foo"],
+      coverageLevel: "warn",
     });
+    const strict = runValidate({ kitRoot: tmp, skillFilter: ["foo"] });
 
-    it("suppresses the pair when it is allowlisted with a reason", () => {
-      writeNamedSkill(tmp, "alpha", DESC_A);
-      writeNamedSkill(tmp, "beta", DESC_B);
-      writeFileSync(
-        join(tmp, "collision-allowlist.json"),
-        JSON.stringify([{ a: "vc:alpha", b: "vc:beta", reason: "adjacent by design" }]),
-      );
-      const result = runValidate({ kitRoot: tmp });
-      expect(result.findings.some((f) => f.kind === "collision")).toBe(false);
-    });
+    expect(standalone.ok).toBe(false);
+    const rolloutFindings = rollout.findings.filter((finding) => finding.kind === "coverage");
+    expect(rolloutFindings).toHaveLength(standalone.findings.length);
+    expect(rolloutFindings.map((finding) => `${finding.skill}: ${finding.message}`)).toEqual(
+      standalone.findings.map(
+        (finding) =>
+          `${finding.skill}: ${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
+      ),
+    );
+    expect(rolloutFindings.every((finding) => finding.level === "warn")).toBe(true);
+    expect(rollout.ok).toBe(true);
+    expect(strict.findings.filter((finding) => finding.kind === "coverage")).toHaveLength(
+      standalone.findings.length,
+    );
+    expect(
+      strict.findings
+        .filter((finding) => finding.kind === "coverage")
+        .every((finding) => finding.level === "error"),
+    ).toBe(true);
+    expect(strict.ok).toBe(false);
   });
 
-  describe("loadCollisionAllowlist", () => {
-    it("returns [] when the file is absent", () => {
-      expect(loadCollisionAllowlist(tmp)).toEqual([]);
-    });
-
-    it("returns [] for malformed JSON", () => {
-      writeFileSync(join(tmp, "collision-allowlist.json"), "{not json");
-      expect(loadCollisionAllowlist(tmp)).toEqual([]);
-    });
-
-    it("returns [] when the top level is not an array", () => {
-      writeFileSync(join(tmp, "collision-allowlist.json"), JSON.stringify({ a: 1 }));
-      expect(loadCollisionAllowlist(tmp)).toEqual([]);
-    });
-
-    it("drops entries missing a non-empty reason or string endpoints", () => {
-      writeFileSync(
-        join(tmp, "collision-allowlist.json"),
-        JSON.stringify([
-          { a: "vc:x", b: "vc:y", reason: "kept" },
-          { a: "vc:x", b: "vc:y", reason: "  " },
-          { a: "vc:x", b: 2, reason: "bad endpoint" },
-          null,
-        ]),
-      );
-      expect(loadCollisionAllowlist(tmp)).toEqual([{ a: "vc:x", b: "vc:y", reason: "kept" }]);
-    });
-  });
-
-  describe("--check (provider matrix drift)", () => {
-    const realKit = () => resolveKitRoot(process.cwd());
-
-    it("passes when the README matrix is in sync", () => {
-      const readme = join(tmp, "README.md");
-      writeFileSync(readme, `# vcskill\n\n${renderMatrixBlock()}\n`);
-      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
-      expect(result.ok).toBe(true);
-      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
-    });
-
-    it("fails with a matrix finding when the README block is stale", () => {
-      const readme = join(tmp, "README.md");
-      const stale = renderMatrixBlock().replace(".claude/skills/", ".claude/WRONG/");
-      writeFileSync(readme, `# vcskill\n\n${stale}\n`);
-      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
-      expect(result.ok).toBe(false);
-      expect(result.findings).toContainEqual(expect.objectContaining({ kind: "matrix" }));
-    });
-
-    it("does not touch the matrix without --check", () => {
-      const result = runValidate({ kitRoot: realKit() });
-      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
-    });
-  });
 });

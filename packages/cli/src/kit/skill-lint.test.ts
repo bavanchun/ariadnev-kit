@@ -1,18 +1,55 @@
 import { describe, it, expect } from "vitest";
-import { lintSkill, DESCRIPTION_MIN, DESCRIPTION_MAX, SKILL_MAX_LINES, SKILL_MAX_LINES_CEILING, REFERENCE_MAX_LINES } from "./skill-lint.js";
+import {
+  lintSkill,
+  DESCRIPTION_MIN,
+  DESCRIPTION_MAX,
+  SKILL_MAX_LINES,
+  SKILL_MAX_LINES_CEILING,
+  REFERENCE_MAX_LINES,
+  REQUIRED_SECTIONS,
+} from "./skill-lint.js";
 import type { Artifact } from "./kit-types.js";
 
+const REQUIRED_BODY = `# Demo
+
+Short body.
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`;
+
+const VALID_PROVENANCE = {
+  upstream: "ak:demo",
+  upstream_version: "1.0.0",
+  upstream_digest: `sha256:${"a".repeat(64)}`,
+  upstream_relation: "distill",
+};
+
 function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string, unknown> } = {}): Artifact {
+  const overrideMetadata = overrides.frontmatter?.metadata;
   const frontmatter = {
     name: "vc:demo",
     description: "Demo skill for linting. Use when exercising the skill lint rules in tests.",
     ...overrides.frontmatter,
+    metadata: {
+      ...VALID_PROVENANCE,
+      ...(typeof overrideMetadata === "object" && overrideMetadata !== null ? overrideMetadata : {}),
+    },
   };
   return {
     type: "skill",
     name: "demo",
     frontmatter,
-    body: overrides.body ?? "# Demo\n\nShort body.\n",
+    body: overrides.body ?? REQUIRED_BODY,
     raw: overrides.raw ?? "---\nname: vc:demo\n---\n# Demo\n\nShort body.\n",
     sourcePath: "/kit/skills/demo/SKILL.md",
   };
@@ -23,7 +60,6 @@ describe("lintSkill: description rules", () => {
     const res = lintSkill(makeSkill({ frontmatter: { description: "Use it." } }), []);
     expect(res.errors.some((e) => e.includes("description"))).toBe(true);
   });
-
   it(`rejects descriptions longer than ${DESCRIPTION_MAX} chars`, () => {
     const res = lintSkill(
       makeSkill({ frontmatter: { description: `Use when ${"x".repeat(DESCRIPTION_MAX)}` } }),
@@ -31,7 +67,6 @@ describe("lintSkill: description rules", () => {
     );
     expect(res.errors.some((e) => e.includes("description"))).toBe(true);
   });
-
   it("rejects descriptions without a trigger verb", () => {
     const res = lintSkill(
       makeSkill({ frontmatter: { description: "A collection of git workflow conventions and pipelines." } }),
@@ -83,6 +118,36 @@ describe("lintSkill: frontmatter field allowlist", () => {
   });
 });
 
+describe("lintSkill: provenance", () => {
+  it("requires all four provenance fields", () => {
+    const skill = makeSkill();
+    skill.frontmatter = {
+      name: "vc:demo",
+      description: "Demo skill for linting. Use when exercising the skill lint rules in tests.",
+    };
+    const res = lintSkill(skill, []);
+    expect(res.errors.some((e) => e.includes("upstream_relation"))).toBe(true);
+  });
+});
+
+describe("lintSkill: required sections", () => {
+  for (const section of REQUIRED_SECTIONS) {
+    it(`rejects a skill missing ${section}`, () => {
+      const body = REQUIRED_BODY.replace(`${section}\n\n`, "");
+      const res = lintSkill(makeSkill({ body }), []);
+      expect(res.errors).toContain(
+        `/kit/skills/demo/SKILL.md: skill "demo" missing required section "${section}"`,
+      );
+    });
+  }
+
+  it("matches required section names case-sensitively", () => {
+    const body = REQUIRED_BODY.replace("## Output format", "## Output Format");
+    const res = lintSkill(makeSkill({ body }), []);
+    expect(res.errors.some((e) => e.includes('"## Output format"'))).toBe(true);
+  });
+});
+
 describe("lintSkill: size limits", () => {
   it(`rejects SKILL.md over ${SKILL_MAX_LINES} lines`, () => {
     const raw = Array.from({ length: SKILL_MAX_LINES + 1 }, (_, i) => `line ${i}`).join("\n");
@@ -117,7 +182,7 @@ describe("lintSkill: size limits", () => {
 describe("lintSkill: duplicate heading heuristic (warning only)", () => {
   it("warns when SKILL.md and a reference share a heading", () => {
     const res = lintSkill(
-      makeSkill({ body: "# Demo\n\n## Commit Standards\n\ntext\n" }),
+      makeSkill({ body: `${REQUIRED_BODY}\n## Commit Standards\n\ntext\n` }),
       [{ name: "commits.md", content: "## Commit Standards\n\nmore text\n" }],
     );
     expect(res.errors).toEqual([]);
@@ -126,7 +191,7 @@ describe("lintSkill: duplicate heading heuristic (warning only)", () => {
 
   it("does not warn on distinct headings", () => {
     const res = lintSkill(
-      makeSkill({ body: "# Demo\n\n## Workflow\n" }),
+      makeSkill({ body: REQUIRED_BODY }),
       [{ name: "ref.md", content: "## Details\n" }],
     );
     expect(res.warnings).toEqual([]);

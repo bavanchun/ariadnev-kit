@@ -6,6 +6,10 @@ argument-hint: "[path] [--secrets-only|--deps-only]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:security-scan"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:a8202cc3fa8e5e678ecdb6c8d54b0e7e7320aa1c630e8425ac5ed0e11aaba376"
+  upstream_relation: "distill"
 ---
 
 # Security Scan
@@ -45,7 +49,7 @@ security, compliance audits.
 | Medium | Possible credential/pattern, needs a human look |
 | Low | Style/hardening suggestion, not exploitable as-is |
 
-## Output
+## Output format
 
 ```markdown
 # Security Scan Report

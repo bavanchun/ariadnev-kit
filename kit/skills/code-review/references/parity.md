@@ -1,31 +1,39 @@
-# Parity: vc:code-review vs ak-code-review
+# Adaptation: vc:code-review vs ak-code-review
 
-Source baseline: `ak-code-review` v2.0.0 (decision 0003, AgentKit baseline).
+Pinned source: `ak:code-review` v2.0.0. The vc version keeps the upstream review
+order and evidence discipline while fitting vc's read-only reviewer boundary.
 
-## Kept
+## Retained
 
-| From ak-code-review | Why |
-|---|---|
-| Input-mode resolution (PR / commit / pending / codebase) | Core value — reviewer must know *what* it reviews |
-| Evidence-based, no-rubber-stamp stance | The reason the skill exists; distrust AI-assisted polish |
-| Spec-compliance → quality → verification ordering | Catches "does the wrong thing correctly" before nitpicking |
-| Edge-case scouting before review | Real defects hide in unscouted data/error paths |
-| Subagent delegation for heavy analysis | Maps to the `vc-reviewer` agent |
+- input resolution for PR, commit, pending, codebase, and parallel audit;
+- YAGNI/KISS/DRY and distrust of AI-assisted polish;
+- spec-compliance Stage 1 before quality Stage 2;
+- edge-case scouting before findings;
+- upstream `checklists/base.md` as the always-loaded
+  `review-checklist.md`, with API and web overlays;
+- `file:line` + problem + failure + fix finding structure;
+- fresh verification before verdicts;
+- tracked `scout → review → fix → verify` integration and plan sync.
 
-## Dropped (with reason)
+## Adapted
 
-| Dropped | Reason |
-|---|---|
-| `codebase parallel` multi-reviewer mode + `parallel-review-workflow.md` | YAGNI for a personal kit; a single scoped audit covers the case. Re-add if throughput demands it |
-| 11 separate reference files (checklists, reception, task-management, …) | Over-fragmented; folded the essentials into SKILL.md + one shared rubric to stay under the size gate and reduce orphan risk |
-| `when_to_use` / `category` / `keywords` top-level frontmatter | Not in the vc frontmatter allowlist; taxonomy moved to `metadata.category` |
-| Receiving-feedback + requesting-review protocols | Belong to the author, not the reviewer; out of this skill's trigger |
+- The reviewer remains report-only. Accepted Critical/Important findings route
+  to `vc:fix`; the controller then returns fresh evidence for re-review.
+- Runtime task tracking is optional and disposable; the active plan is durable.
+- The many small upstream references are grouped by decision point so SKILL.md
+  links directly to one-level, non-chained guidance.
+- Upstream optional reviewer agents are never trusted as evidence; cited code
+  and command output are rechecked by the controller.
 
-## Improvement (parity-or-better)
+## Rejected extraction fragments
 
-- **Risk-lane integration.** Findings are tied to vc's shared risk lanes and proof
-  vocabulary (`unit`/`integration`/`e2e`/`platform`, `cook/references/risk-lanes.md`)
-  so a review verdict routes directly into the same gate `vc:cook`/`vc:test` use —
-  ak-code-review has no equivalent shared proof taxonomy.
-- **Shared severity rubric** (`severity-rubric.md`) reused verbatim by `vc:review-pr`,
-  so the two reviewers cannot drift on what "Important" means.
+Registry claims consisting only of “never:” or “always before:” have no
+independent operational meaning after extraction. Their substantive child rules
+are retained in the pipeline, checklist, and evidence references instead of
+pretending the fragments themselves are verifiable behavior.
+
+## Improvement
+
+The shared severity rubric aligns local review with `vc:review-pr`, and every
+defect names the `unit`, `integration`, `e2e`, or `platform` proof expected from
+the downstream fix.

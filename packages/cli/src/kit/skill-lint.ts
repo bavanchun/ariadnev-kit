@@ -3,12 +3,18 @@
 // unit-testable without a filesystem. Spec: docs/vc-skill-authoring-spec.md.
 
 import type { Artifact } from "./kit-types.js";
+import { validateSkillProvenance } from "./skill-provenance.js";
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
 export const SKILL_MAX_LINES = 300;
 export const SKILL_MAX_LINES_CEILING = 400;
 export const REFERENCE_MAX_LINES = 300;
+export const REQUIRED_SECTIONS = [
+  "## Output format",
+  "## Quality gates",
+  "## Workflow position",
+] as const;
 
 /** Description must tell the model when to fire the skill, not just what it is. */
 const TRIGGER_VERB = /\b(use|invoke|run|activate|trigger)\b/i;
@@ -50,6 +56,14 @@ function headings(markdown: string): Map<string, string> {
   return out;
 }
 
+function levelTwoHeadings(markdown: string): Set<string> {
+  const out = new Set<string>();
+  for (const match of markdown.matchAll(/^##\s+(.+?)\s*$/gm)) {
+    out.add(`## ${match[1].trim()}`);
+  }
+  return out;
+}
+
 function resolveMaxLines(artifact: Artifact, errors: string[]): number {
   const metadata = artifact.frontmatter.metadata;
   const override =
@@ -80,6 +94,7 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
       errors.push(`${label}: unknown frontmatter field "${field}"`);
     }
   }
+  errors.push(...validateSkillProvenance(artifact.frontmatter.metadata, label));
 
   const description = artifact.frontmatter.description;
   if (typeof description === "string") {
@@ -103,6 +118,12 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
   }
 
   const skillHeadings = headings(artifact.body);
+  const exactSections = levelTwoHeadings(artifact.body);
+  for (const section of REQUIRED_SECTIONS) {
+    if (!exactSections.has(section)) {
+      errors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
+    }
+  }
   for (const ref of references) {
     const refLines = countLines(ref.content);
     if (refLines > REFERENCE_MAX_LINES) {

@@ -5,16 +5,17 @@
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows-informational)](#install)
 [![License: MIT](https://img.shields.io/github/license/bavanchun/vcskill?color=blue)](LICENSE)
 
-Author agent skills, subagents, commands, and rules **once** in canonical Claude
-format, then install them to any AI coding provider with one command.
+Install the curated vc workflow kit across coding-agent targets from one
+local-first CLI. Its Agent Skills, specialist agents, and Claude Code hooks pass
+repository quality gates; a data-driven adapt engine writes each artifact only
+where its target path and format are verified, otherwise it skips and logs.
 
-A data-driven adapt engine rewrites paths, tool names, and file formats per
-provider. Local-first; no account or Node runtime required — vcskill ships as a
-single self-contained binary with the kit baked in.
+The standalone vcskill CLI is self-contained and needs no Node runtime. Optional
+Claude Code hooks are separate `.cjs` processes and require `node` when enabled.
 
 ## Install
 
-A one-line install of the standalone binary — **no Node needed**.
+A one-line install of the standalone CLI binary — **no Node needed for the CLI**.
 
 **macOS / Linux**
 
@@ -81,7 +82,8 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
-| `vcskill validate [--check]` | Lint the kit source (frontmatter, sizes, reference integrity); `--check` also fails if the README provider matrix drifted |
+| `vcskill validate [--check]` | Lint frontmatter, sections, links, skill references, and claim coverage; unresolved coverage fails validation, while `--check` also fails on README matrix drift |
+| `vcskill coverage [--skill <name>]` | Strict offline omission ratchet; fails on unclassified or unmatched upstream claims, while fork/original skills are not applicable |
 | `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `vcskill eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `VCSKILL_EVAL_CMD` is set |
 | `vcskill query [installs\|doctor\|history]` | Show the local history log (`~/.vcskill/history.jsonl`) of installs, doctor runs, and updates |
@@ -90,16 +92,22 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 
 ## What's in the kit
 
-26 skills + 13 agents + 6 hooks today, growing toward full AgentKit parity in
-waves — every `ak-*` skill distilled,
-each earning its place by gate-passing + a parity-or-better proof vs its source
-(see [`docs/decisions/0003-comprehensive-distillation-identity.md`](docs/decisions/0003-comprehensive-distillation-identity.md)),
-not by keeping the count small. Every skill meets one cook-grade bar — a real
-workflow, an `## Output format` contract, `## Quality gates` self-checks, and a
-`## Workflow position` so the kit reads as one graph. Risk lanes and proof
-vocabulary (`unit`/`integration`/`e2e`/`platform`) are shared across skills, not
-siloed in `vc:cook`. See
-[`docs/vc-skill-authoring-spec.md`](docs/vc-skill-authoring-spec.md).
+26 skills + 13 agents + 6 hooks today, growing toward broader AgentKit coverage
+in waves. Each upstream-backed skill records its source version and canonical
+source-tree digest; claim-tracked distillations also pass an offline omission
+ratchet. These are static structure and traceability guarantees, not proof of
+behavioral parity.
+
+Every skill meets one cook-grade bar — a real workflow, an `## Output format`
+contract, `## Quality gates` self-checks, and a `## Workflow position` so the kit
+reads as one graph. Risk lanes and proof vocabulary
+(`unit`/`integration`/`e2e`/`platform`) are shared across skills, not siloed in
+`vc:cook`. The three named headings and every cross-skill `vc:<slug>` reference
+are enforced by `vcskill validate`, not left to convention. See
+[`docs/vc-skill-authoring-spec.md`](docs/vc-skill-authoring-spec.md) for the
+machine-enforced authoring contract and
+[`docs/decisions/0003-comprehensive-distillation-identity.md`](docs/decisions/0003-comprehensive-distillation-identity.md)
+for the expansion rationale.
 
 - **Core loop skills**: `vc:brainstorm`, `vc:plan`, `vc:cook` (embedded
   test/review gates + risk-lane routing), `vc:fix` (root-cause loop),
@@ -151,10 +159,14 @@ run `pnpm --filter vcskill generate:matrix` and `vcskill validate --check` gates
 Cells marked `skip` are unverified target paths — vcskill never guesses; it
 skips and logs them in the install summary. See `src/providers/spec-verified.ts`.
 
-## Authoring
+## Maintainer authoring
 
-The canonical source lives in `kit/` (Claude Agent Skills format). Skill naming
-rule: a skill in `kit/skills/<slug>/SKILL.md` must declare `name: vc:<slug>`.
+The canonical source lives in `kit/` (Agent Skills format). Run authoring
+commands from a source checkout so they update that tree. The standalone
+binary's embedded kit is extracted to a versioned cache; it is the install
+distribution, not a durable custom-kit workspace.
+
+A skill in `kit/skills/<slug>/SKILL.md` must declare `name: vc:<slug>`.
 
 ```bash
 vcskill add-skill my-skill --description "When to use this skill"

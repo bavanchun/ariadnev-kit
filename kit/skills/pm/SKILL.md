@@ -6,6 +6,10 @@ argument-hint: "[plan dir] [--report]"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:project-management"
+  upstream_version: "1.0.0"
+  upstream_digest: "sha256:c7c8aa4d27fb1ce1a850283108f6ccf78d8603cf91e18249ea6bdc935bdd5c73"
+  upstream_relation: "distill"
 ---
 
 # PM
@@ -36,7 +40,7 @@ is there. When plan and repo disagree, the repo wins — update the plan.
 4. **Report** — summary to the user; for session handoffs or `--report`,
    write `plans/reports/pm-{yymmdd-hhmm}-{slug}-status-report.md`.
 
-## Status report format
+## Output format
 
 ```markdown
 # Status: <plan title>
@@ -63,3 +67,13 @@ Or "none".
 - [ ] All phase files audited, not only the most recent
 - [ ] plan.md table, phase frontmatter, and checkboxes mutually consistent
 - [ ] Next actions are concrete enough to start without re-reading history
+
+## Workflow position
+
+**Typically follows:** `vc:cook` (a phase just landed and the plan must catch
+up), `vc:plan` (a plan exists to track), or the start of a session that resumes
+someone else's work.
+**Typically precedes:** `vc:cook <next phase>` (the next action it names), or
+`vc:handoff` when the session ends here.
+**Related:** `vc:plan` authors the files `vc:pm` keeps truthful; `vc:handoff`
+compacts conversation state, `vc:pm` reconciles the durable plan files.

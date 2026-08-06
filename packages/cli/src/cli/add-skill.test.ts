@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync, existsSync, cpSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, existsSync, cpSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,10 +13,22 @@ const srcKit = join(here, "..", "..", "..", "..", "kit");
 
 describe("renderSkillTemplate", () => {
   it("renders parseable SKILL.md with vc: prefix", () => {
-    const md = renderSkillTemplate({ slug: "my-skill", description: "Do a thing." });
+    const md = renderSkillTemplate({
+      slug: "my-skill",
+      description: "Use this fixture skill when testing generated skill content.",
+    });
     const { data } = parseFrontmatter(md);
     expect(data.name).toBe("vc:my-skill");
-    expect(data.description).toBe("Do a thing.");
+    expect(data.description).toBe("Use this fixture skill when testing generated skill content.");
+    expect(data.metadata).toMatchObject({
+      upstream: "none",
+      upstream_version: "none",
+      upstream_digest: "none",
+      upstream_relation: "none",
+    });
+    expect(md).toContain("## Output format");
+    expect(md).toContain("## Quality gates");
+    expect(md).toContain("## Workflow position");
   });
   it("rejects invalid slug", () => {
     expect(() => renderSkillTemplate({ slug: "Bad_Slug", description: "x" })).toThrow();
@@ -50,5 +62,20 @@ describe("runAddSkill", () => {
   });
   it("rejects invalid name", () => {
     expect(() => runAddSkill({ name: "Bad Name", description: "x", kitRoot })).toThrow(/invalid/);
+  });
+
+  it("removes only its new directory when post-write validation fails", () => {
+    const broken = join(kitRoot, "skills", "broken");
+    mkdirSync(broken, { recursive: true });
+    writeFileSync(
+      join(broken, "SKILL.md"),
+      "---\nname: vc:wrong\ndescription: Use this invalid fixture to force load failure.\n---\n# Broken\n",
+    );
+
+    expect(() =>
+      runAddSkill({ name: "foo", description: gateOkDescription, kitRoot }),
+    ).toThrow();
+    expect(existsSync(join(kitRoot, "skills", "foo"))).toBe(false);
+    expect(existsSync(broken)).toBe(true);
   });
 });

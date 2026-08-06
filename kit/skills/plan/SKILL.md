@@ -1,78 +1,133 @@
 ---
 name: vc:plan
-description: Create phased implementation plans as plain files under plans/. Use for feature planning, roadmaps, architecture rollouts, or any multi-phase work.
+description: Create evidence-backed phased implementation plans as plain files under plans/. Use for roadmaps, architecture rollouts, or multi-phase delivery after the approach is chosen.
 user-invocable: true
 argument-hint: "<feature or goal to plan>"
 metadata:
   author: vchun
   version: "1.0.0"
+  upstream: "ak:plan"
+  upstream_version: "1.4.0"
+  upstream_digest: "sha256:4f7da347843b5569555ea86a020c87a9503323c22714ea703f0979374dcbd520"
+  upstream_relation: "distill"
 ---
 
 # Plan
 
-Produce an executable, phased plan as plain markdown files — created with the
-Write tool, no external CLI required. `vc:cook` consumes the output directly.
+Turn an accepted outcome into an executable, evidence-backed delivery plan.
+The deliverable is `plan.md` plus phase files under the project `plans/`
+directory. Those Markdown files are canonical; GitHub is neither required nor
+canonical, and no AgentKit CLI, database, dashboard, or publishing service is
+required.
 
-Handles: feature planning, phased rollouts, technical roadmaps.
-Does not handle: option exploration (`vc:brainstorm` first when the approach
-is undecided), implementation (`vc:cook`).
+Handles: implementation sequencing, architecture rollouts, risky refactors,
+and multi-phase roadmaps.
 
-Trade-off, on purpose: plans are plain files, so there is no kanban or status
-CLI — status lives in frontmatter and the phase table, synced by hand or by
-`vc:cook` / `vc:pm`.
+Does not handle: open-ended option selection (`vc:brainstorm`), implementation
+(`vc:cook`), plan archival, HTML presentation, or external publication.
 
-## Preconditions
+## Opening contract
 
-- The approach is decided (brainstorm report exists, or the user states it).
-  If the approach is still open, stop and run `vc:brainstorm`.
-- Scout the codebase enough to name real files in each phase — a plan that
-  says "relevant modules" is not executable.
+Before writing files, capture or reuse:
 
-## Workflow
+- **Outcome:** what must be true when the plan is complete;
+- **Constraints:** compatibility, safety, ownership, time, and project rules;
+- **Non-goals:** adjacent work deliberately excluded;
+- **Acceptance criteria:** observable evidence for the whole plan.
 
-1. **Gather** — read the brainstorm report / user input; scout touched areas;
-   list constraints and acceptance criteria for the whole effort.
-2. **Slice into phases** — each phase independently completable, testable,
-   and revertible. Order by dependency, then by risk (risky first).
-   3-6 phases is the sweet spot; one phase = one `vc:cook` session.
-3. **Write files** with the Write tool (templates in
-   `references/plan-file-templates.md`):
-   - `plans/{yymmdd-hhmm}-{slug}/plan.md` — the hub
-   - `plans/{yymmdd-hhmm}-{slug}/phase-NN-{slug}.md` — one per phase
-4. **Self-check** against the quality gates below; fix before presenting.
-5. **Present** — show the phase table + acceptance criteria; adjust from
-   feedback; then hand off to `vc:cook <plan path>`.
+The approach must already be chosen. If materially different solutions remain,
+route to `vc:brainstorm`; do not hide architecture selection inside a phase.
+This skill creates plans only and must not implement code.
 
-## Sync-back guard
+## Planning depth
 
-The plan is a living document. Whoever executes a phase must:
-- flip that phase file's `status` (pending → in-progress → completed)
-- update the phase table in `plan.md`
-- tick acceptance-criteria checkboxes only with evidence (test run, file)
+Choose depth from evidence, not labels:
 
-A plan whose checkboxes disagree with the repo is worse than no plan — when
-in doubt, verify against the code before ticking.
+| Depth | Use when | Required addition |
+|---|---|---|
+| Fast | Small, clear, low-risk change | Focused scout; minimal phases |
+| Standard | Cross-module work or meaningful dependencies | Research, architecture, and contract checks |
+| Deep | Five-plus affected areas or high blast radius | Per-phase inventories, test matrices, and interface checks |
+| Parallel-ready | Independent work with disjoint ownership | Dependency graph, execution strategy, and file-ownership matrix |
+
+Read [intake and planning depth](references/intake-and-modes.md) before choosing
+scope or research effort. Parallel-ready means the files express safe groups;
+it does not promise an unsupported parallel execution command.
+
+## Authoritative workflow
+
+1. **Preflight.** Resolve the active goal, inspect unfinished plans for overlap,
+   and read repository instructions plus owning documentation. Read existing
+   `plan.md` and every existing phase stub before editing any of them.
+2. **Challenge scope.** Identify reusable code, the minimum viable change, and
+   load-bearing assumptions. Confirm only a material choice that evidence cannot
+   settle. See [intake and planning depth](references/intake-and-modes.md).
+3. **Research and scout.** Verify current files, symbols, callers, tests,
+   manifests, and external contracts. Record unresolved facts as `[UNVERIFIED]`;
+   never invent a path or API.
+4. **Design and slice.** Apply YAGNI, KISS, then DRY. Compare credible trade-offs
+   on their worst plausible case; split independently testable, revertible
+   phases by dependency and risk. Follow
+   [solution and phase design](references/solution-and-phases.md).
+5. **Write.** Create `plans/{yymmdd-hhmm}-{slug}/plan.md` and
+   `phase-NN-{slug}.md` files using
+   [the plan templates](references/plan-file-templates.md). Keep the hub short
+   and the execution detail in phase files.
+6. **Attack and verify.** Fact-check claims against source, apply adversarial
+   lenses, adjudicate only evidence-backed findings, and validate implicit user
+   decisions. Follow [verification and red team](references/verification-and-red-team.md).
+7. **Consistency sweep.** Re-read the hub and every phase after edits; reconcile
+   stale terms, dependencies, contracts, criteria, risks, and logs. Do not
+   recommend cooking while any contradiction remains.
+8. **Track and hand off.** Mirror work into a live task surface only when one is
+   actually available; Markdown remains authoritative. Follow
+   [task tracking and sync-back](references/task-and-sync-back.md), then present
+   the exact absolute plan path for `vc:cook`.
+
+## Hard boundaries
+
+- Create plans only under the project plan root; never in an arbitrary user
+  directory. A global plan requires an explicit project convention or request.
+- Never put or publish secrets, tokens, raw logs, private environment values,
+  customer data, or machine-local details in a plan. Persist repo-relative links;
+  reserve an absolute local path for the final handoff.
+- Missing cross-plan references warn as `not found`; they do not erase or invent
+  dependencies. Ambiguous dependency direction is a user decision.
+- Runtime tasks are an optional projection. Never infer support from a client
+  name or cached tool list, and never let runtime state override plan files.
+- Do not claim a phase complete without fresh evidence mapped to its success
+  criteria. Do not write “update all callers”; state the count and list them.
+
+## Output format
+
+```markdown
+Plan: <absolute path>/plan.md
+Scope: <fast | standard | deep | parallel-ready>
+Phases: <count and dependency order>
+Acceptance: <whole-plan criteria>
+Verification: <claims checked; unresolved facts/contradictions>
+Next: vc:cook <absolute path>/plan.md
+```
 
 ## Quality gates
 
-- [ ] Every phase lists concrete file paths to create/modify/delete
-- [ ] Every phase has its own success criteria (testable, not vibes)
-- [ ] Dependencies between phases stated explicitly
-- [ ] Whole-plan acceptance criteria are checkboxes in `plan.md`
-- [ ] Risks named with mitigations, not just listed
-- [ ] Each phase carries Stop Conditions when it has real risk (the finding
-      that must halt and ask the user — see the phase template)
-- [ ] No phase requires work from a later phase to be testable
-
-When ordering phases by risk, classify each phase by risk lane (tiny / normal /
-high-risk — the `intake-and-context` rule) so the plan front-loads the
-high-risk work and marks where `vc:cook` must stop for confirmation.
+- [ ] Opening outcome, constraints, non-goals, and acceptance criteria are explicit.
+- [ ] Existing plans, repository rules, source, tests, and contracts were inspected.
+- [ ] Every phase names concrete files, dependencies, implementation steps,
+      regression commands, rollback/stop conditions, and testable success criteria.
+- [ ] High-risk work is front-loaded or guarded by an observable stop condition.
+- [ ] Every factual claim is verified, cited, or marked `[UNVERIFIED]`.
+- [ ] Adversarial findings carry `file:line` evidence and are deduplicated.
+- [ ] User decisions are preserved; unresolved contradictions equal zero.
+- [ ] Hub, phases, optional runtime tasks, and final status agree.
 
 ## Workflow position
 
-**Typically follows:** `vc:brainstorm` (an approach is decided and needs
-phasing), or a direct multi-phase request.
-**Typically precedes:** `vc:cook <plan path>` (executes a phase) and `vc:pm`
-(tracks sync-back).
-**Related:** `vc:brainstorm` decides *what* approach; `vc:plan` sequences *how*
-to build it. Don't plan an undecided approach — brainstorm first.
+**Typically follows:** `vc:brainstorm` for an accepted approach and `vc:scout`
+for owning evidence.
+
+**Typically precedes:** `vc:cook <absolute-plan-path>/plan.md`; `vc:pm` may
+track progress and reconcile durable state.
+
+**Related:** `vc:code-review` reviews implemented code, while this skill's
+red-team gate reviews whether the plan is factual, complete, and executable.
