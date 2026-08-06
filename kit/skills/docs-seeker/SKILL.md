@@ -35,7 +35,7 @@ that's `vc:research`.
    README and any `llms.txt` at its root via `WebFetch`.
 4. Extract only what answers the question — don't dump the whole page back.
 
-## Output
+## Output format
 
 ```
 <answer, grounded in fetched docs>

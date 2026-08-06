@@ -90,16 +90,9 @@ Never write secrets, API keys, passwords, tokens, private keys, recovery phrases
    - MOC should group notes by concept, pipeline, project, and safety.
    - Keep MOC short, navigational, and curated.
 
-9. **Quality gates**
-   - Confirm no durable note was created in root vault.
-   - Confirm no note is too long for its purpose.
-   - Confirm broad topics are split into linked docs.
-   - Confirm tags are meaningful, not spam.
-   - Confirm links resolve to existing files or intentional future notes.
-   - Confirm note can stand alone without chat context.
-   - Check Git diff before final answer.
+9. **Self-check** — run the quality gates below before answering.
 
-## Output Rules
+## Output format
 
 When finished, report:
 
@@ -108,6 +101,15 @@ When finished, report:
 - key tags added
 - unresolved links, if any
 - whether changes were committed, only if user asked
+
+## Quality gates
+
+- [ ] No durable note was created in the root vault
+- [ ] No note is too long for its purpose; broad topics split into linked docs
+- [ ] Tags are meaningful, not spam
+- [ ] Links resolve to existing files or intentional future notes
+- [ ] Each note stands alone without chat context
+- [ ] Git diff checked before the final answer
 
 ## Workflow position
 

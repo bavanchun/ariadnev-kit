@@ -173,7 +173,7 @@ See `references/workflow-prc.md` for complete details.
 
 **Designed for solo repos.** Team repos with required reviews/CI gates will fail at merge step — use `cp` + `pr` manually.
 
-## Output Format
+## Output format
 
 ```
 ✓ branch: feat/<name> (or current)
@@ -225,6 +225,20 @@ See `references/workflow-prc.md` for complete details.
 - `references/branch-management.md` — Naming, lifecycle
 - `references/gh-cli-guide.md` — GitHub CLI reference
 - `co-authors.json` — Co-author identities (--solo / --team data)
+
+## Quality gates
+
+- [ ] Branch check ran first — `cm`/`cp` never commit on `main`/`master`/`dev`/
+      `develop`; `prc` auto-branched instead
+- [ ] Secret scan passed before staging; a detection blocked the commit and
+      named the files
+- [ ] Subject is conventional (`type(scope): description`); unrelated concerns
+      split into separate commits
+- [ ] Co-author footer present iff `--solo`/`--team` was requested and
+      `co-authors.json` resolved
+- [ ] `prc` reports a merged PR only after `gh pr merge` succeeded — a
+      protection/CI block keeps the PR open and exits non-zero
+- [ ] Every `✓` line in the output maps to a command that actually ran
 
 ## Workflow position
 

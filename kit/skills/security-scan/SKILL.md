@@ -45,7 +45,7 @@ security, compliance audits.
 | Medium | Possible credential/pattern, needs a human look |
 | Low | Style/hardening suggestion, not exploitable as-is |
 
-## Output
+## Output format
 
 ```markdown
 # Security Scan Report

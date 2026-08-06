@@ -71,6 +71,19 @@ Why this wasn't caught the first time: <one line>
 Propose the fix; do not silently edit the rule mid-task without this record
 — per `intake-and-context.md`'s harness-delta principle.
 
+## Output format
+
+The entry file is the deliverable; its internal shape is `## Entry template`
+above. Report back to the caller:
+
+```
+📓 <path written>
+- Status: Resolved | Ongoing | Blocked
+- Root cause: <one line>
+- Lesson: <the actionable takeaway>
+- Harness delta: <file + change, or "none">
+```
+
 ## Quality gates
 
 Before considering the entry done:

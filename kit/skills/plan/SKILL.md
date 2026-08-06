@@ -53,6 +53,21 @@ The plan is a living document. Whoever executes a phase must:
 A plan whose checkboxes disagree with the repo is worse than no plan — when
 in doubt, verify against the code before ticking.
 
+## Output format
+
+The plan directory is the deliverable; the file shapes are in
+`references/plan-file-templates.md`. Present it as:
+
+```
+📋 plans/{yymmdd-hhmm}-{slug}/
+
+| # | Phase | Files touched | Depends on | Risk lane |
+|---|-------|---------------|------------|-----------|
+
+Acceptance criteria: <the checkbox list written into plan.md>
+Next: vc:cook plans/{yymmdd-hhmm}-{slug}/phase-01-<slug>.md
+```
+
 ## Quality gates
 
 - [ ] Every phase lists concrete file paths to create/modify/delete

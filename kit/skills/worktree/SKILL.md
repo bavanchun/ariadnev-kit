@@ -48,7 +48,7 @@ perf/optimize → `perf`; otherwise → `feat`. Slugify the description
 5. Report the path and remind the caller to run the project's install
    command there — this skill doesn't guess which one applies.
 
-## Output
+## Output format
 
 ```
 Worktree: <path>
@@ -61,3 +61,13 @@ Next: cd <path> && <install command for this stack>
 - [ ] Base branch stated explicitly, not silently assumed
 - [ ] `remove`/`prune` with actual data loss potential confirmed with the caller first
 - [ ] No secrets copied between worktrees (`.env` excluded, only `.example` templates copied)
+
+## Workflow position
+
+**Typically follows:** `vc:plan` (a phase needs isolation from the current
+checkout) or a decision to run implementation streams in parallel.
+**Typically precedes:** `vc:cook` / `vc:fix` inside the new worktree, then
+`vc:git` to commit and push from there.
+**Related:** `vc:git` owns branches and commits; `vc:worktree` owns the
+checkouts those branches live in. Cleanup (`prune`) usually follows a merged
+`vc:ship` run.

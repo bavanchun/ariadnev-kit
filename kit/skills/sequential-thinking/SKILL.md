@@ -84,7 +84,7 @@ Before marking `[FINAL]`:
 ## Workflow position
 
 **Typically follows:** a problem where jumping to a conclusion already failed
-once — inside `vc:fix`, `vc:debug`, or a tangled `vc:plan`.
+once — inside `vc:fix`, `vc:scout`, or a tangled `vc:plan`.
 **Typically precedes:** the action the reasoning justifies (`vc:cook`, `vc:fix`)
 or `vc:plan` once the path is clear.
 **Related:** `vc:problem-solving` reframes a *stuck* state; this skill *reasons*

@@ -60,3 +60,23 @@ For anything beyond a one-line mechanical fix, run the root-cause loop.
 - Fix: <files changed>
 - Regression guard: <test name/path>
 ```
+
+## Quality gates
+
+- [ ] The failure was reproduced on demand; the exact command + output captured
+- [ ] The cause is proven, not inferred — instrumentation, isolation, or a test
+      that fails for the stated reason
+- [ ] The fix is the smallest change addressing that cause; no `as any`, no
+      uncommented lint disable
+- [ ] The cause explains every observed symptom, not just the loudest one
+- [ ] A regression test stays in the suite and the nearby suite is green
+- [ ] After three failed hypotheses, stopped and widened instead of poking
+
+## Workflow position
+
+**Typically follows:** a failing test, CI run, or bug report — often handed over
+by `vc:test` (a suite went red) or `vc:cook` (a gate caught a regression).
+**Typically precedes:** `vc:code-review` (review the fix), `vc:git` (commit as
+`fix: <cause>`), `vc:journal` (record a hard-won root cause).
+**Related:** `vc:cook` for feature work; `vc:scout` to widen the search when
+hypotheses run out; `vc:brainstorm` when the "bug" is really a design problem.

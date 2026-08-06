@@ -97,7 +97,7 @@ mode, not a hypothetical). So:
 - After editing, verify links and file references resolve.
 - Every claim is derived from the repo, not from what projects "usually" have.
 
-## Output
+## Output format
 
 Report which docs changed and why, which were deliberately left alone
 (update rule not triggered), any doc pruned, and any drift found but not fixed

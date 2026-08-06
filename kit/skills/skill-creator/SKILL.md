@@ -44,11 +44,35 @@ concrete improvement — before writing the skill body. This is the same
 discipline applied across the vc agent/skill roster; see any
 `plans/reports/parity-*.md` for the format.
 
-## Checklist before shipping
+## Output format
+
+The skill directory is the deliverable. Report:
+
+```
+🧩 kit/skills/<slug>/
+- Files: SKILL.md (<n> lines) + references/<name>.md (<n> lines)
+- Description: "<frontmatter description as written>"
+- Gates: pnpm test <result> · vcskill install --dry-run → <landed path>
+- Parity: <capability table link, or "n/a — original skill">
+```
+
+## Quality gates
 
 - [ ] `name: vc:<dir-slug>` matches the directory
 - [ ] Description 20–200 chars, states what + when, has a trigger verb
 - [ ] SKILL.md ≤300 lines; every reference ≤300 lines
 - [ ] No heading duplicated between SKILL.md and its references
+- [ ] SKILL.md carries `## Output format`, `## Quality gates`, and
+      `## Workflow position` — the cook-grade bar applies to the skill you write
 - [ ] `pnpm test` green (lint gate passes on the real kit)
 - [ ] `vcskill install --dry-run` shows it landing correctly
+
+## Workflow position
+
+**Typically follows:** a gap found while working — a repeated instruction worth
+making durable, or a `vc:journal` harness-delta entry naming a missing skill.
+**Typically precedes:** `vc:docs` (record the spec/README change the new skill
+implies) and `vc:git` (commit it).
+**Related:** `vc:docs` maintains `docs/vc-skill-authoring-spec.md`, the spec this
+skill applies; `vc:cook` is the reference implementation to measure a new skill
+against.

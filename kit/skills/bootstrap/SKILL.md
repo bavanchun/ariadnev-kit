@@ -40,7 +40,7 @@ Does not handle: adding a feature to an established codebase — use
 5. **Wrap up** — `vc:docs` init mode for the new `docs/` structure,
    `vc:journal` for a short session note.
 
-## Output
+## Output format
 
 ```
 Stack: <locked choices>
@@ -54,3 +54,13 @@ Docs initialized: <yes/no>
 - [ ] Stack confirmed via `AskUserQuestion` before any scaffold file exists
 - [ ] Plan exists before implementation starts (same hard gate as `vc:cook`)
 - [ ] `docs/` initialized only with files the project actually needs
+
+## Workflow position
+
+**Typically follows:** nothing — this is the entry point for a project that does
+not exist yet. `vc:brainstorm` may precede it when the product idea itself is
+still open.
+**Typically precedes:** `vc:plan` (phases the locked stack), then
+`vc:cook <plan path>` (builds it), then `vc:docs` and `vc:journal` to wrap up.
+**Related:** `vc:cook` — use it directly instead when the codebase already
+exists; bootstrap's git-init and stack-lock gates only apply to a blank slate.
