@@ -397,10 +397,10 @@
       "upstream_relation": "distill",
       "pinned_at": "2026-08-06",
       "claims": [
-        {"id":"c001","text":"signal what next thought should address","status":"unclassified"},
-        {"id":"c002","text":"revision caught security issue: tenant id visibility → dynamic adjustment: 5→7 thoughts as complexity emerged → comprehensive: authentication, authorization, multi-tenancy, revocation","status":"unclassified"},
-        {"id":"c003","text":"scope revision crucial: original \"need global state\" reframed to specific state categories → separation of concerns: different state types need different solutions → hypothesis verification: confirmed websocket support before finalizing → simpler is better: avoided over-engineering with heavy redux solution","status":"unclassified"},
-        {"id":"c004","text":"branching for hypothesis testing: explored n+1 vs index hypotheses in parallel → verification before solution: tested both hypotheses systematically → data-driven decisions: used profiling data to guide investigation → dynamic adjustment: expanded thought count when complexity emerged → elimination method: ruled out n+1, confirmed index issue","status":"unclassified"}
+        {"id":"c001","text":"signal what next thought should address","status":"covered"},
+        {"id":"c002","text":"revision caught security issue: tenant id visibility → dynamic adjustment: 5→7 thoughts as complexity emerged → comprehensive: authentication, authorization, multi-tenancy, revocation","status":"covered"},
+        {"id":"c003","text":"scope revision crucial: original \"need global state\" reframed to specific state categories → separation of concerns: different state types need different solutions → hypothesis verification: confirmed websocket support before finalizing → simpler is better: avoided over-engineering with heavy redux solution","status":"covered"},
+        {"id":"c004","text":"branching for hypothesis testing: explored n+1 vs index hypotheses in parallel → verification before solution: tested both hypotheses systematically → data-driven decisions: used profiling data to guide investigation → dynamic adjustment: expanded thought count when complexity emerged → elimination method: ruled out n+1, confirmed index issue","status":"covered"}
       ]
     },
     "ship": {
