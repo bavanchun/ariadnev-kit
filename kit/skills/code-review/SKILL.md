@@ -2,7 +2,7 @@
 name: vc:code-review
 description: Review code changes for bugs, regressions, and risky patterns with evidence-based, ranked findings. Use for a diff, a PR number, a commit, or a whole-codebase audit — outside a cook cycle.
 user-invocable: true
-argument-hint: "[#PR | <commit> | --pending | codebase]"
+argument-hint: "[#PR | <commit> | --pending | codebase [parallel]]"
 metadata:
   author: vchun
   version: "1.0.0"
@@ -15,82 +15,118 @@ metadata:
 
 # Code Review
 
-Evidence-based review of code you may not have written. Every finding cites
-`file:line` and a concrete failure, ranked by severity — no rubber-stamps, no
-style nitpicks dressed up as blockers.
+Review an explicit target for requirement gaps, production defects,
+regressions, and unjustified complexity. Findings must be reproducible and
+ranked; a clean review is earned, not padded with stylistic suggestions.
 
-Handles: a pending diff, a single commit, a GitHub PR, or a whole-codebase
-audit. For reviewing a PR with GitHub actions (fix/reply/merge) use
-`vc:review-pr`; this skill is the general reviewer. Fixing what it finds is
-`vc:fix`; this skill only reports.
+This skill is read-only. Route accepted fixes to `vc:fix`, then review fresh
+evidence. Use `vc:review-pr` instead when GitHub reply/merge actions are wanted.
 
-## Resolve the input mode first — know WHAT you review
+## Resolve input mode first
 
-| Argument | Mode | Diff source |
+| Argument | Mode | Evidence source |
 |---|---|---|
-| `#123` / PR URL | PR | `gh pr diff 123` |
-| `<7+ hex>` | Commit | `git show <sha>` |
-| `--pending` *(default)* | Pending | `git diff HEAD` (staged + unstaged) |
-| `codebase` | Audit | full scan, scoped to the named area |
+| `#123` / PR URL | PR | `gh pr view` metadata + `gh pr diff` |
+| 7–40 hex characters | Commit | commit metadata + full `git show` diff |
+| `--pending` | Pending | staged and unstaged changes versus `HEAD` |
+| `codebase [scope]` | Audit | scoped source/test/config scan |
+| `codebase parallel` | Parallel audit | independent read-only reviewer scopes, then join |
+| no argument + recent context | Default | the concrete changes already in context |
 
-No argument and no diff in context → ask the user which target (`AskUserQuestion`).
+No argument, no recent changes, or ambiguous input → ask for the review target.
+Read [input and pipeline](references/input-and-review-pipeline.md) for command
+resolution, errors, scouting, reviewer handoff, and tracked fix cycles.
 
-## Workflow
+## Review order
 
-1. **Resolve mode** and load the diff. For modified files, read the *whole* file,
-   not just the hunk — context is where regressions hide.
-2. **Classify risk** by the shared lanes (`cook/references/risk-lanes.md`): count
-   auth / data-model / public-contract / external-system / existing-behavior
-   flags. A high-risk diff gets a deeper pass and an explicit regression walk of
-   every caller of a changed function.
-3. **Scout edge cases** before judging — invoke `vc:scout` on the changed files
-   for data flows, error paths, and boundary conditions the diff ignores.
-4. **Review** via the `vc-reviewer` agent for heavy analysis; pass it the diff,
-   the stated intent, and the risk lane. Judge three things in order:
-   spec-match (does it do what was asked?) → correctness/security → maintainability.
-5. **Rank findings** by severity (`references/severity-rubric.md`) and state a
-   verdict. Do not invent suggestions to look thorough.
+1. **Load intent and rules.** Read repository instructions, the target diff,
+   whole modified files, and the accepted plan/spec when one exists.
+2. **Stage 1 — spec compliance.** Map every requirement and acceptance criterion
+   to implementation evidence. This must pass before Stage 2.
+3. **Scout edge cases.** Trace affected files, callers, data flows, error paths,
+   boundary conditions, races, and compatibility surfaces.
+4. **Stage 2 — code quality.** Apply YAGNI, KISS, then DRY; check correctness,
+   security, reliability, performance, and maintainability.
+5. **Apply the baseline checklist.** Always read
+   [review checklist](references/review-checklist.md); use API/web overlays only
+   when the project surface matches.
+6. **Rank and prove findings.** Use
+   [severity rubric](references/severity-rubric.md). Every finding includes
+   `file:line`, problem, concrete failure path, and recommended fix.
+7. **Verify the verdict.** Read [spec and evidence](references/spec-and-evidence.md)
+   and name fresh commands/results or state exactly what remains unverified.
 
-## Hard rules
+## Review stance
 
-- Evidence before claims: every finding names `file:line` + the concrete failure
-  (input → wrong output), never "this looks fragile".
-- Assume the code may be AI-assisted — distrust polished shape, confident
-  comments, and happy-path-only tests. Verify behavior, not vibes.
-- Separate blocker from taste: only correctness/security/regression block; style
-  is a suggestion.
-- Report only — no edits. Route fixes to `vc:fix`, then re-review.
+- YAGNI, KISS, DRY always; technical correctness over social comfort.
+- Assume reviewed code may be AI-assisted. Do not trust polished shape,
+  confident comments, or happy-path tests; verify behavior, project-rule
+  compliance, and scope discipline from evidence.
+- Red flags include “should”, “probably”, “seems to”, satisfaction before
+  verification, and trusting agent reports.
+- Read the full relevant file and diff before flagging a local pattern; nearby
+  code may already address it.
+- Separate defects from preferences. Do not invent findings to look thorough.
+- Respect verified project and user decisions. Push back on review concerns that
+  lack new evidence rather than reversing accepted scope silently.
+
+## Scope depth
+
+For changed public contracts, inspect every caller or list the search used to
+establish there are none. For auth, data model, external systems, concurrency,
+or migration changes, trace both success and failure paths and require the
+appropriate integration/e2e/platform proof.
+
+Parallel audit is only for disjoint subsystem scopes. Every reviewer receives
+the same intent, rules, edge cases, and evidence format. Join all results before
+ranking; never duplicate or count an unverified agent report as a finding.
 
 ## Output format
 
+```markdown
+Verdict: Approve | Request changes | Comment
+Scope: <mode, range, files, +A/-D, risk>
+Spec compliance: PASS | FAIL — <requirement evidence/gaps>
+
+Findings (severity order):
+- [Critical|Important|Suggestion] <file:line> — <problem>
+  Failure: <input/state → wrong behavior>
+  Fix: <cause-aligned correction>
+  Proof: <unit|integration|e2e|platform check>
+
+Verification: <fresh commands and results, or unverified reason>
+Residual risks: <items or "none">
 ```
-<verdict emoji> Verdict: Approve | Request changes | Comment
-Scope: <mode> · <N files, +A/-D> · risk lane: tiny|normal|high-risk
 
-Findings (most severe first):
-- [Critical] <file:line> — <failure: input → wrong result>
-- [Important] <file:line> — <issue + why it matters>
-- [Suggestion] <file:line> — <optional improvement>
+No actionable finding means `Approve`; suggestions-only means `Comment`; any
+Critical or Important finding means `Request changes`.
 
-Verification: <tests/build/lint run, or "unverified — <why>">
-```
-
-Proof/risk: findings that assert a bug must name the proof layer that would
-catch it (`unit`/`integration`/`e2e`/`platform`, see `cook/references/risk-lanes.md`).
+Proof/risk: review findings are hypotheses until tied to source behavior or a
+reproduction. A downstream fix is complete only after the original failure and
+relevant regression suite pass with fresh evidence.
 
 ## Quality gates
 
 Before returning, confirm:
-- Every finding cites `file:line` and a concrete failure — zero vibes-only items.
-- Verdict follows the rubric: any Critical/Important ⇒ not Approve.
-- Each changed public contract (signature, schema, export, env var) is checked
-  for callers, or explicitly noted as none.
-- Verification line states what was actually run, or why it could not be.
+
+1. Review target and intent are unambiguous.
+2. Spec compliance passed before quality review, or the review stopped on gaps.
+3. Edge cases and indirect callers were scouted before judging the diff.
+4. Every finding has `file:line`, problem, failure path, fix, and proof layer.
+5. Severity and verdict follow the shared rubric; style never blocks.
+6. Suppressed/no-op/already-fixed patterns were not reported.
+7. Verification is fresh command output, not “should pass” or an agent claim.
+8. The skill made no edits and named `vc:fix` as the owner of accepted changes.
 
 ## Workflow position
 
-**Typically follows:** `vc:cook` (review after implementing), `vc:fix` (review after a fix)
-**Typically precedes:** `vc:ship` (ship once review passes), `vc:git` (commit reviewed work)
-**Related:** `vc:review-pr` (GitHub PR review with fix/reply/merge), `vc:scout` (edge-case scout), `vc:test` (run tests before reviewing)
+**Typically follows:** `vc:cook` or `vc:fix` after implementation and focused
+tests; can also start from an explicit diff, commit, PR, or audit scope.
 
-Parity vs the AgentKit source: `references/parity.md`.
+**Typically precedes:** `vc:fix` for accepted findings, then re-review and
+`vc:ship`/`vc:git` after a clean verdict.
+
+**Related:** `vc:review-pr` for PR actions, `vc:scout` for edge-case discovery,
+and `vc:test` for execution proof.
+
+Adaptation decisions: [parity notes](references/parity.md).
