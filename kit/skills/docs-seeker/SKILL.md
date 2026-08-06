@@ -14,61 +14,106 @@ metadata:
 
 # Docs Seeker
 
-Fetch current documentation instead of trusting training data for anything
-that moves — library APIs, framework conventions, CLI flags, pricing.
+Find the smallest set of current, authoritative documentation that answers a
+library, framework, CLI, or API question. Verify moving facts instead of
+answering from training data.
 
-Handles: current-docs lookup for a named library/framework/API.
-Does not handle: general web research across multiple sources/products —
-that's `vc:research`.
+Handles: pinpoint API lookup, version-specific behavior, setup flags, current
+framework conventions, and documentation gaps.
 
-## Rules
+Does not handle: comparing several products or forming a broad technology
+recommendation. Route that work to `vc:research`.
 
-- Never answer a library-API question from memory alone when the library
-  updates faster than training data — verify, then answer.
-- State the version/date checked in the answer, so staleness is visible
-  later (same discipline as `vc:research`'s evidence rule).
-- Prefer the official docs domain over blog posts or Stack Overflow.
+## Intake
+
+Extract before searching:
+
+- target library or framework;
+- requested topic or API;
+- installed/requested version, runtime, and language when stated;
+- whether the user needs one answer or a general documentation map.
+
+If a missing version would materially change the answer, inspect the project
+manifest or ask. Otherwise search latest and label that choice.
+
+## Search modes
+
+| Mode | Trigger | First target |
+|---|---|---|
+| Topic | A feature, component, error, or symbol is named | The exact official topic/API page |
+| Library | Broad setup or overview request | Official getting-started and API index |
+| Repository | Official docs are absent, stale, or incomplete | Tagged README, docs, examples, and tests |
+
+For source precedence, language/version handling, plugins, incomplete docs,
+and conflicts, read [source selection](references/source-selection.md).
+
+For Context7/`llms.txt`, 404s, empty results, timeouts, and repository fallback,
+read [fallback playbook](references/fallback-playbook.md).
 
 ## Workflow
 
-1. If a `context7`-style MCP documentation tool is available in the session,
-   use it first — it's built for exactly this.
-2. Otherwise, `WebSearch` for `"<library> <topic> docs"`, then `WebFetch` the
-   official doc page(s) found.
-3. For a GitHub-hosted project with no clear doc site, check the repo's
-   README and any `llms.txt` at its root via `WebFetch`.
-4. Extract only what answers the question — don't dump the whole page back.
+1. **Frame** one answerable documentation question and select a search mode.
+2. **Resolve version** from the request or project; avoid mixing latest and
+   versioned pages without saying so.
+3. **Fetch narrowly** through an available current-doc provider, official
+   search, or direct official page. Topic queries should not load a whole site.
+4. **Escalate progressively** only when the preferred source is unavailable:
+   official docs → official repository → clearly labelled secondary evidence.
+5. **Cross-check** examples against the documented version and runtime. When
+   prose and code disagree, preserve both facts and explain the likely cause.
+6. **Answer directly** with the relevant behavior or example, then cite source,
+   version, and check date. Do not dump fetched pages.
+
+## Evidence rules
+
+- Official latest documentation is the default only when no version is pinned.
+- A versioned official page outranks a latest page for a version-pinned project.
+- Repository code can fill a documentation gap, but label conclusions as
+  inferred from code and name the tag or commit inspected.
+- Community sources can explain an issue; they do not silently override the
+  official contract.
+- If no current source supports the answer, state that limitation. Never turn
+  remembered behavior into a verified claim.
 
 ## Output format
 
+```markdown
+Answer: <concise, task-specific result>
+
+Evidence:
+- <official URL or repository path> — <version/tag>, checked <YYYY-MM-DD>
+
+Caveats: <version conflict, language fallback, inference, or "none">
 ```
-<answer, grounded in fetched docs>
 
-Verified against: <doc URL(s)>, checked <date>
-```
+For a general library request, add a short map of critical pages. For a topic
+request, return only the pages and snippets needed to act.
 
-If nothing current could be found, say so explicitly rather than falling
-back to unverified memory.
-
-Proof/risk: N/A — this skill fetches and reports, changes nothing.
+Proof/risk: this skill is read-only. Its proof is source traceability and
+version alignment; it does not prove that copied code works in the user's
+project, so implementation still needs `vc:test` or the caller's test gate.
 
 ## Quality gates
 
-Before answering:
+Before answering, confirm:
 
-1. The answer is grounded in a fetched doc, not memory — with the URL and the
-   date/version checked stated.
-2. The source is the official docs domain (or the project's own repo), not a
-   secondhand blog, when an official source exists.
-3. Only the part that answers the question is returned — not a dumped page.
-4. If no current source was found, that's stated plainly — never a silent
-   fallback to unverified recall.
+1. Every moving claim is grounded in a fetched current source.
+2. Source version matches the requested or installed version, or the mismatch
+   is explicit.
+3. Official docs or the official repository were checked before community
+   sources.
+4. Inference from code, incomplete docs, conflicts, and language fallback are
+   labelled rather than flattened into certainty.
+5. Citations point to the exact pages or repository paths used, with check date.
+6. The response answers the question without reproducing an entire document.
 
 ## Workflow position
 
-**Typically follows:** any skill that hit "does this API still work this way" —
-`vc:cook`, `vc:fix`, `vc:ask`, or `vc:research` needing one precise doc fact.
-**Typically precedes:** returning to the skill that asked, now with a verified
-fact.
-**Related:** `vc:research` for open evaluation across options/products; this
-skill for a pinpoint lookup on a library you already use.
+**Typically follows:** `vc:cook`, `vc:fix`, `vc:ask`, or `vc:research` reaching
+a current-API question.
+
+**Typically precedes:** returning the verified fact to that caller; `vc:test`
+when a fetched example is implemented.
+
+**Related:** `vc:research` for open comparison across options; this skill for a
+pinpoint lookup on a library already selected.

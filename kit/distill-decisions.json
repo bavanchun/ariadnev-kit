@@ -95,15 +95,15 @@
       "upstream_relation": "distill",
       "pinned_at": "2026-08-06",
       "claims": [
-        {"id":"c001","text":"always execute scripts in this order:","status":"unclassified"},
-        {"id":"c002","text":"scripts first - execute scripts instead of manual url construction → zero-token overhead - scripts run without context loading → automatic fallback - scripts handle topic → general → error chains → progressive disclosure - load workflows/references only when needed → agent distribution - scripts recommend parallel agent strategy","status":"unclassified"},
-        {"id":"c003","text":"identify target language from user → search for language-specific llms.txt","status":"unclassified"},
-        {"id":"c004","text":"fallback to english if not found → note language limitations in report","status":"unclassified"},
-        {"id":"c005","text":"focus on core framework first → ask user which plugins needed → launch targeted search for specific plugins → note available plugins in report → don't document everything upfront","status":"unclassified"},
-        {"id":"c006","text":"note status upfront in report → combine available docs + repo analysis → check tests/ and examples/ directories → clearly mark \"inferred from code\" → link to github issues for updates","status":"unclassified"},
-        {"id":"c007","text":"identify primary official source → note version differences → present both approaches with context → recommend official/latest → explain why conflict exists","status":"unclassified"},
-        {"id":"c008","text":"official docs (latest version) → official docs (versioned) → github readme → community tutorials → stack overflow","status":"unclassified"},
-        {"id":"c009","text":"fetch-docs.js tries context7.com → if 404, script suggests websearch for llms.txt → if still unavailable: repository analysis","status":"unclassified"}
+        {"id":"c001","text":"always execute scripts in this order:","status":"rejected","why":"The vc distribution does not bundle the upstream discovery scripts, so requiring their execution would describe unavailable behavior."},
+        {"id":"c002","text":"scripts first - execute scripts instead of manual url construction → zero-token overhead - scripts run without context loading → automatic fallback - scripts handle topic → general → error chains → progressive disclosure - load workflows/references only when needed → agent distribution - scripts recommend parallel agent strategy","status":"rejected","why":"Script-specific zero-token execution and automatic agent distribution depend on AgentKit runtime assets that vcskill does not ship; progressive fallback is retained without those claims."},
+        {"id":"c003","text":"identify target language from user → search for language-specific llms.txt","status":"covered"},
+        {"id":"c004","text":"fallback to english if not found → note language limitations in report","status":"covered"},
+        {"id":"c005","text":"focus on core framework first → ask user which plugins needed → launch targeted search for specific plugins → note available plugins in report → don't document everything upfront","status":"covered"},
+        {"id":"c006","text":"note status upfront in report → combine available docs + repo analysis → check tests/ and examples/ directories → clearly mark \"inferred from code\" → link to github issues for updates","status":"covered"},
+        {"id":"c007","text":"identify primary official source → note version differences → present both approaches with context → recommend official/latest → explain why conflict exists","status":"covered"},
+        {"id":"c008","text":"official docs (latest version) → official docs (versioned) → github readme → community tutorials → stack overflow","status":"covered"},
+        {"id":"c009","text":"fetch-docs.js tries context7.com → if 404, script suggests websearch for llms.txt → if still unavailable: repository analysis","status":"covered"}
       ]
     },
     "fix": {
