@@ -2,7 +2,7 @@
   "name": "vcskill",
   "version": "0.9.0",
   "private": true,
-  "description": "Author agent skills once in canonical Claude format, install to any AI provider.",
+  "description": "Install a curated, quality-gated workflow kit across coding-agent targets.",
   "type": "module",
   "license": "MIT",
   "author": "VChun",

@@ -29,7 +29,7 @@ function record(kind: HistoryKind, fields: EventInput): void {
 function banner(): string {
   const style = { color: outColor() };
   return [
-    `${wordmark(style)}  ${faint("— author agent skills once, install to any provider", style)}`,
+    `${wordmark(style)}  ${faint("— curated workflows, quality-gated across coding agents", style)}`,
     "",
     `  ${coral("vc", style)} <command>   ·   try  ${coral("vc install", style)}  ·  ${coral("vc doctor", style)}  ·  ${coral("vc list", style)}`,
   ].join("\n");
@@ -39,7 +39,7 @@ export function buildProgram(): Command {
   const program = new Command();
   program
     .name("vcskill")
-    .description("Author agent skills once, install to any AI provider.")
+    .description("Install a curated, quality-gated workflow kit across coding-agent targets.")
     .version(packageVersion())
     .option("--home <dir>", "override home root", homedir())
     .option("--cwd <dir>", "override project root", process.cwd())
