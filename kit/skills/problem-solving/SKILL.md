@@ -14,79 +14,106 @@ metadata:
 
 # Problem Solving
 
-For when direct effort stopped working. Pick the technique that matches the
-stuck-pattern, apply it explicitly, and produce a next concrete action —
-this skill ends with a decision, not a meditation.
+Break a genuine stuck state by matching its symptom to a reframing technique,
+showing the work, and ending with one actionable move. This is not a substitute
+for ordinary debugging or planning when the path is already clear.
 
-## Diagnose the stuck-pattern first
+## Diagnose before choosing
 
-| Symptom | Technique |
-|---|---|
-| Same fix attempted 3+ times, still failing | **Assumption audit** |
-| Solution keeps growing branches and special cases | **Simplification cascade** |
-| Can't choose between options for days | **Inversion** |
-| Problem feels too big to start | **Decomposition ladder** |
-| "It should work" but doesn't | **Reality reconstruction** |
-| Requirements feel contradictory | **Constraint interrogation** |
+Name the observed stuck pattern, not the preferred technique:
 
-## Techniques
+| Symptom | Primary technique | Load |
+|---|---|---|
+| Same behavior implemented many ways; special cases keep growing | Simplification cascade | [patterns and simplification](references/patterns-and-simplification.md) |
+| The same shape appears across three or more domains | Meta-pattern recognition | [patterns and simplification](references/patterns-and-simplification.md) |
+| Solution feels forced; “must be done this way” | Inversion exercise | [inversion and collision](references/inversion-and-collision.md) |
+| Conventional approaches are exhausted; breakthrough needed | Collision-zone thinking | [inversion and collision](references/inversion-and-collision.md) |
+| Production limits or edge behavior are unknown | Scale game | [scale and recovery](references/scale-and-recovery.md) |
+| No symptom fits or the first technique fails | Stuck recovery | [scale and recovery](references/scale-and-recovery.md) |
 
-**Assumption audit** — list every assumption the current approach rests on
-(env, API behavior, data shape, ordering). Rank by "least verified". Verify
-the top one empirically before another fix attempt. Repeated failure almost
-always lives in an unverified assumption, not in effort.
+A wrong result, failing test, or unexplained runtime behavior belongs first to
+`vc:fix`. Use this skill only when the investigation itself is stuck or a
+problem needs reframing.
 
-**Simplification cascade** — ask in order: (1) can we delete the feature
-causing the complexity? (2) solve for the 80% case only? (3) use a boring
-existing tool instead? (4) hardcode what we're making configurable? Stop at
-the first "yes" and try that version.
+## Workflow
 
-**Inversion** — instead of "what's the best option", ask "which option would
-be clearly stupid, and why?" The reasons expose the criteria that actually
-matter; score remaining options on those criteria only.
+1. **Identify stuck-type.** Record the symptom, attempts already made, and the
+   evidence that progress has stalled.
+2. **Load the detailed reference.** Read only the specific technique linked by
+   the dispatch table; do not preload every method.
+3. **Apply systematically.** Follow the technique's process and write down its
+   intermediate artifact: assumptions, collision, abstract pattern, or scale
+   table.
+4. **Document insights.** Separate what worked, what failed, and what changed
+   in the mental model.
+5. **Choose one next action.** Make it small and observable enough to start now.
+6. **Combine if needed.** If the first attempt fails, select a second technique
+   because of a newly observed symptom, not to avoid committing to a result.
 
-**Decomposition ladder** — write the end state, then the last step before
-it, then the step before that, until you reach something doable today. Do
-that thing. (Backward decomposition beats forward planning when the path is
-foggy.)
+## Combining techniques
 
-**Reality reconstruction** — throw away the mental model; rebuild only from
-observed facts: real output, real logs, real code read line by line. Mark
-every "I think" and turn each into a check. Pairs with `vc:fix`'s root-cause
-loop for bugs.
+Useful sequences include:
 
-**Constraint interrogation** — for each constraint ask: who set it, is it
-still true, what does violating it actually cost? Most deadlocks contain one
-assumed constraint nobody owns.
+- meta-pattern → simplification: abstract the repeated shape, then collapse its
+  implementations;
+- collision → inversion: borrow a model, then question the model's assumptions;
+- scale → simplification: expose what breaks at extremes, then remove machinery
+  irrelevant at the real scale;
+- meta-pattern → scale: test whether a supposedly universal pattern survives
+  both minimum and maximum conditions.
+
+Use one technique at a time. Preserve the output from the first so the second
+has evidence to build on rather than restarting the discussion.
+
+## Decision discipline
+
+- Treat “should”, “probably”, and “must” as prompts for a check or inversion.
+- Do not call a metaphor an answer until its boundary has been tested.
+- Do not extract an abstraction merely because two names look similar; require
+  one clean domain-independent rule and verify every existing case fits.
+- A scale game is a thought experiment until measurements exist. Convert its
+  highest-risk break point into a real test when implementation depends on it.
+- Dropping or shrinking the problem is a valid result when the evidence says
+  the original scope is not worth solving.
 
 ## Output format
 
-1. Named stuck-pattern and chosen technique.
-2. The technique's work, shown (the list, the ladder, the audit table).
-3. One next action, concrete enough to start now — or the honest conclusion
-   that the task should be dropped/rescoped, said plainly.
+```markdown
+Stuck type: <observed symptom>
+Technique: <selected technique and why it fits>
 
-Proof/risk: N/A — this skill produces a direction, not a change. The next
-action it names inherits the proof burden when a change skill picks it up.
+Work:
+<assumption list, collision map, pattern table, or scale extremes>
+
+Insight: <what changed>
+Next action: <one concrete, observable step>
+If it fails: <next technique or rescope condition>
+```
+
+Proof/risk: this skill produces a direction, not a code change. Any proposed
+technical behavior remains a hypothesis until the downstream workflow runs the
+appropriate unit, integration, e2e, or platform proof.
 
 ## Quality gates
 
 Before returning, confirm:
 
-1. The chosen technique matches the actual stuck-pattern — not the one easiest
-   to apply.
-2. The technique's work is *shown*, not asserted (the assumption list, the
-   ladder, the inversion) — so the reasoning is checkable.
-3. The output genuinely moves the state: a next action that can start now, or an
-   explicit "drop/rescope this". Restating the problem in new words is failure.
-4. If the stuck-pattern is "same fix 3+ times", an assumption was actually
-   verified empirically — not just re-examined in the head.
+1. The chosen technique matches an observed symptom from the dispatch table.
+2. The technique's intermediate work is shown, not summarized as “considered.”
+3. Assumptions and “should scale” claims are labelled as unverified until
+   checked empirically.
+4. Failed attempts and metaphor/abstraction boundaries remain visible.
+5. The next action can start now and has an observable result, or the output
+   explicitly recommends dropping/rescoping the problem.
+6. A second technique is justified by new evidence from the first attempt.
 
 ## Workflow position
 
-**Typically follows:** any skill that hit a wall — `vc:fix` circling a bug,
-`vc:cook` over-branching, `vc:brainstorm` unable to choose.
-**Typically precedes:** returning to whatever was stuck (`vc:fix`, `vc:cook`),
-or `vc:brainstorm` when the unstuck insight reopens the design question.
-**Related:** `vc:sequential-thinking` — reach for that when the problem needs
-step-by-step *reasoning*; reach here when it needs *reframing* to get unstuck.
+**Typically follows:** `vc:fix`, `vc:cook`, or `vc:brainstorm` reaching a real
+stuck state after direct work stopped producing evidence.
+
+**Typically precedes:** returning to the originating workflow with a concrete
+experiment, or `vc:brainstorm` when the reframing changes the design space.
+
+**Related:** `vc:sequential-thinking` for step-by-step reasoning when the frame
+is sound; this skill when the frame itself is blocking progress.
