@@ -16,7 +16,7 @@ import { runCoverage } from "./coverage-command.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "matrix" | "collision" | "coverage";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "coverage";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -108,6 +108,11 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const skillsToCheck = opts.skillFilter
     ? kit.skills.filter((s) => matchesSkillFilter(s.name, opts.skillFilter!))
     : kit.skills;
+  for (const requested of opts.skillFilter ?? []) {
+    if (!kit.skills.some((skill) => matchesSkillFilter(skill.name, [requested]))) {
+      findings.push({ skill: requested, kind: "missing-skill", message: "skill not found in kit" });
+    }
+  }
   const knownSkillNames = kit.skills.map((skill) => skill.name);
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
