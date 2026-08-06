@@ -30,7 +30,9 @@ function fixture() {
 }
 
 function run(root, args = []) {
-  return spawnSync("bun", [script, root, ...args], { encoding: "utf8" });
+  const result = spawnSync("bun", [script, root, ...args], { encoding: "utf8" });
+  if (result.error) throw result.error;
+  return result;
 }
 
 test("pin-upstream emits version, canonical digest, and extracted claims", () => {
