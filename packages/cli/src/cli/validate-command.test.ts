@@ -36,6 +36,21 @@ function writeSkill(kitRoot: string, body: string, refs: Record<string, string> 
   const dir = join(kitRoot, "skills", "foo");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "SKILL.md"), body);
+  writeFileSync(
+    join(kitRoot, "distill-decisions.json"),
+    JSON.stringify({
+      schema_version: 1,
+      skills: {
+        foo: {
+          upstream: "none",
+          upstream_version: "none",
+          upstream_digest: "none",
+          upstream_relation: "none",
+          pinned_at: "2026-08-06",
+        },
+      },
+    }),
+  );
   const names = Object.keys(refs);
   if (names.length > 0) {
     mkdirSync(join(dir, "references"), { recursive: true });
@@ -112,15 +127,15 @@ describe("runValidate", () => {
     expect(result.findings[0].kind).toBe("lint");
   });
 
-  it("maps strict coverage findings to warnings during rollout and errors under strict policy", () => {
+  it("maps coverage findings to errors by default and supports an explicit rollout warning policy", () => {
     writeUnclassifiedCoverageFixture(tmp, "foo");
     const standalone = runCoverage({ kitRoot: tmp, skill: "foo" });
-    const rollout = runValidate({ kitRoot: tmp, skillFilter: ["foo"] });
-    const strict = runValidate({
+    const rollout = runValidate({
       kitRoot: tmp,
       skillFilter: ["foo"],
-      coverageLevel: "error",
+      coverageLevel: "warn",
     });
+    const strict = runValidate({ kitRoot: tmp, skillFilter: ["foo"] });
 
     expect(standalone.ok).toBe(false);
     const rolloutFindings = rollout.findings.filter((finding) => finding.kind === "coverage");
@@ -136,6 +151,11 @@ describe("runValidate", () => {
     expect(strict.findings.filter((finding) => finding.kind === "coverage")).toHaveLength(
       standalone.findings.length,
     );
+    expect(
+      strict.findings
+        .filter((finding) => finding.kind === "coverage")
+        .every((finding) => finding.level === "error"),
+    ).toBe(true);
     expect(strict.ok).toBe(false);
   });
 

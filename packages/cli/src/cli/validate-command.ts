@@ -39,11 +39,11 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
-  /** Aggregate-only rollout policy. Standalone coverage is always strict. */
+  /** Aggregate-only policy override. Standalone coverage is always strict. */
   coverageLevel?: "warn" | "error";
 }
 
-export const VALIDATE_COVERAGE_LEVEL = "warn" as const;
+export const VALIDATE_COVERAGE_LEVEL = "error" as const;
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
 // cwd — robust whether this runs from src (tsx/bun), the bundled dist, or the
