@@ -1,0 +1,70 @@
+import type { Command } from "commander";
+import { PROVIDER_IDS } from "../providers/index.js";
+import { emit } from "./emit.js";
+import { runInstall } from "./install-command.js";
+import { nowStamp } from "./timestamp.js";
+import { runUninstall } from "./uninstall-command.js";
+import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
+
+function splitProviders(value: string): string[] {
+  return value.split(",").map((provider) => provider.trim()).filter(Boolean);
+}
+
+export function registerInstallCommands(program: Command, context: CommandRegistrationContext): void {
+  program
+    .command("install")
+    .description("Install the kit to one or more providers")
+    .option("--provider <list>", "comma-separated provider ids", splitProviders)
+    .option("--global", "install to ~/ instead of ./", false)
+    .action(async (opts: { provider?: string[]; global?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
+      let providers = opts.provider ?? [];
+      if (providers.length === 0 && !global.yes && process.stdout.isTTY) {
+        const { promptProviders } = await import("./prompt-providers.js");
+        providers = (await promptProviders()).providers;
+      }
+      if (providers.length === 0) providers = [...PROVIDER_IDS].slice(0, 1);
+      let applyHookSettings = false;
+      if (providers.includes("claude-code") && !global.yes && !global.dryRun && process.stdout.isTTY) {
+        const { confirmHookSettingsMerge } = await import("./prompt-providers.js");
+        applyHookSettings = await confirmHookSettingsMerge();
+      }
+      const { summary, results } = runInstall({
+        providers,
+        scope,
+        dryRun: !!global.dryRun,
+        home: global.home,
+        cwd: global.cwd,
+        timestamp: nowStamp(),
+        applyHookSettings,
+        vcskillVersion: context.version,
+      });
+      emit(summary);
+      if (!global.dryRun) {
+        context.record("install", { provider: providers.join(","), scope, count: results.length });
+      }
+    });
+
+  program
+    .command("uninstall")
+    .description("Remove a previously installed kit (receipt-based, preserves user-modified files)")
+    .option("--provider <list>", "comma-separated provider ids (default: every provider in the receipt)", splitProviders)
+    .option("--global", "uninstall from ~/ instead of ./", false)
+    .action((opts: { provider?: string[]; global?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
+      const { summary } = runUninstall({
+        providers: opts.provider ?? [],
+        scope,
+        dryRun: !!global.dryRun,
+        home: global.home,
+        cwd: global.cwd,
+        timestamp: nowStamp(),
+      });
+      emit(summary);
+      if (!global.dryRun) {
+        context.record("uninstall", { provider: (opts.provider ?? []).join(","), scope });
+      }
+    });
+}

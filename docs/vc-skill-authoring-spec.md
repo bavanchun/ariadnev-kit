@@ -58,6 +58,20 @@ distillations. Keep each extracted claim classified as covered or explicitly
 rejected with a reason before enabling strict coverage. This static record is
 an omission ratchet, not proof of behavioral parity.
 
+`vcskill coverage [--skill <name>]` is always strict and runs from the checked-in
+kit without AgentKit or network access. An unclassified claim, a rejected claim
+without `why`, or a covered claim with no keyword anchor exits non-zero. Forks,
+original skills, and distillations without tracked claims are reported as not
+applicable. `vcskill validate` consumes the same finding identities but maps
+them to warnings during the eight-skill rollout; only that aggregate severity
+changes after every tracked skill passes.
+
+When a source changes, run the pin helper with `--previous <entry.json>` to emit
+only `new_claims` for classification. Exact extraction and overlap behavior is
+owned by `packages/cli/src/kit/claim-extract.ts` and
+`packages/cli/src/kit/claim-coverage.ts`; the gate detects dropped anchors, not
+semantic equivalence or task success.
+
 ### Writing the description
 
 The description is the trigger — it is the only part the model sees before

@@ -68,17 +68,33 @@ The standalone command never changes semantics during the rollout. `warn` versus
 
 ## Success Criteria
 
-- [ ] `vcskill coverage --skill docs-seeker` runs with no `ak` installed and no network
-- [ ] Standalone `vcskill coverage` has stable strict semantics: a deleted, unclassified, or unmatched-and-not-rejected claim causes a non-zero exit throughout the rollout
-- [ ] A claim marked `rejected` with a reason does not fail
-- [ ] An unclassified claim fails with a message naming the skill and claim id
-- [ ] `fork` and `none` relations are exempt (tested)
-- [ ] Re-pin against a bumped upstream lists only new claims for classification
-- [ ] `claim-extract.ts` and `claim-coverage.ts` are pure, ≥95% covered, under 200 LOC each
-- [ ] Registry size measured after 2 skills and recorded in the plan
-- [ ] Aggregate `vcskill validate` emits the same findings under kind `coverage` at `level: "warn"` in this batch; tests distinguish this adapter policy from the strict standalone command
-- [ ] Flip-to-`error` criterion applies only to aggregate validate and is documented
-- [ ] `pnpm test` green
+- [x] `vcskill coverage --skill docs-seeker` runs with no `ak` installed and no network
+- [x] Standalone `vcskill coverage` has stable strict semantics: a deleted, unclassified, or unmatched-and-not-rejected claim causes a non-zero exit throughout the rollout
+- [x] A claim marked `rejected` with a reason does not fail
+- [x] An unclassified claim fails with a message naming the skill and claim id
+- [x] `fork` and `none` relations are exempt (tested)
+- [x] Re-pin against a bumped upstream lists only new claims for classification
+- [x] `claim-extract.ts` and `claim-coverage.ts` are pure, ≥95% covered, under 200 LOC each
+- [x] Registry size measured after 2 skills and recorded in the plan
+- [x] Aggregate `vcskill validate` emits the same findings under kind `coverage` at `level: "warn"` in this batch; tests distinguish this adapter policy from the strict standalone command
+- [x] Flip-to-`error` criterion applies only to aggregate validate and is documented
+- [x] `pnpm test` green
+
+## Calibration Results — 2026-08-06
+
+The first two real-source calibrations kept `DEFAULT_COVERAGE_THRESHOLD = 0.35`:
+
+| Skill | Extracted claims | Current vc anchors at 0.35 | Registry entry size |
+|---|---:|---:|---:|
+| `docs-seeker` | 9 | 3 | 18 lines / 1,914 compact bytes |
+| `problem-solving` | 17 | 4 | 26 lines / 3,708 compact bytes |
+
+The low pre-reshape match rates are expected and useful: both skills were
+selected because their current bodies deleted source detail. A lower threshold
+would green missing procedures through common words; a higher threshold would
+make short, faithful paraphrases brittle. Both entries remain far below the
+recorded ~200-line architecture revisit trigger. These are static anchor
+measurements, not claim classifications or behavioral scores.
 
 <!-- Updated: Validation Session 2 - strict standalone command; warn-first only in aggregate validate; flip validate integration after all 8 pass -->
 

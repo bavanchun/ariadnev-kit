@@ -29,8 +29,8 @@ function fixture() {
   return root;
 }
 
-function run(root) {
-  return spawnSync("bun", [script, root], { encoding: "utf8" });
+function run(root, args = []) {
+  return spawnSync("bun", [script, root, ...args], { encoding: "utf8" });
 }
 
 test("pin-upstream emits version, canonical digest, and extracted claims", () => {
@@ -103,6 +103,31 @@ test("pin-upstream rejects a symlink used as the source root", () => {
     assert.match(result.stderr, /symlink is not allowed/);
   } finally {
     rmSync(linkedRoot, { force: true });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("re-pin diff emits only claims absent from the previous entry", () => {
+  const root = fixture();
+  const previous = `${root}-previous.json`;
+  try {
+    writeFileSync(
+      previous,
+      JSON.stringify({
+        claims: [{ id: "c001", text: "agents must validate input.", status: "covered" }],
+      }),
+    );
+    writeFileSync(
+      join(root, "SKILL.md"),
+      "---\nname: ak:fixture\nmetadata:\n  version: \"1.2.4\"\n---\n\nAgents MUST validate input.\nAgents SHOULD record evidence.\n",
+    );
+    const result = run(root, ["--previous", previous]);
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.claims, undefined);
+    assert.deepEqual(output.new_claims.map((claim) => claim.text), ["agents should record evidence."]);
+  } finally {
+    rmSync(previous, { force: true });
     rmSync(root, { recursive: true, force: true });
   }
 });

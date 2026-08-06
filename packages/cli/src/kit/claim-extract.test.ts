@@ -40,6 +40,10 @@ Supporting prose.
     expect(extractClaims(source)).toEqual([]);
   });
 
+  it("ignores a document whose leading frontmatter never closes", () => {
+    expect(extractClaims("---\ndescription: Agents MUST run this example.\n")).toEqual([]);
+  });
+
   it("normalizes markdown and deduplicates stably", () => {
     const source = `- **Rule:** Use [official docs](https://example.com) ALWAYS.
 - **Rule:** Use [official docs](https://example.com) ALWAYS.

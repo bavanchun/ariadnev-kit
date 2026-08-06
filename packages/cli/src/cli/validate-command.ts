@@ -7,6 +7,8 @@ import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
+import { matchesSkillFilter } from "../kit/skill-filter.js";
+import { runCoverage } from "./coverage-command.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -14,7 +16,7 @@ import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "matrix" | "collision";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "matrix" | "collision" | "coverage";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -37,13 +39,11 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
+  /** Aggregate-only rollout policy. Standalone coverage is always strict. */
+  coverageLevel?: "warn" | "error";
 }
 
-/** Does a skill name match a user-supplied filter entry (bare or vc:-prefixed)? */
-export function matchesFilter(name: string, filter: string[]): boolean {
-  const bare = name.replace(/^vc:/, "");
-  return filter.some((f) => f === name || f === bare || `vc:${f}` === name);
-}
+export const VALIDATE_COVERAGE_LEVEL = "warn" as const;
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
 // cwd — robust whether this runs from src (tsx/bun), the bundled dist, or the
@@ -106,7 +106,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
 
   const findings: ValidateFinding[] = [];
   const skillsToCheck = opts.skillFilter
-    ? kit.skills.filter((s) => matchesFilter(s.name, opts.skillFilter!))
+    ? kit.skills.filter((s) => matchesSkillFilter(s.name, opts.skillFilter!))
     : kit.skills;
   const knownSkillNames = kit.skills.map((skill) => skill.name);
   for (const skill of skillsToCheck) {
@@ -144,6 +144,19 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
         message: `${ref.source} references unknown skill ${ref.reference}`,
       });
     }
+  }
+
+  const coverage = runCoverage({
+    kitRoot: root,
+    skillNames: skillsToCheck.map((skill) => skill.name),
+  });
+  for (const finding of coverage.findings) {
+    findings.push({
+      skill: finding.skill,
+      kind: "coverage",
+      level: opts.coverageLevel ?? VALIDATE_COVERAGE_LEVEL,
+      message: `${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
+    });
   }
 
   // Cross-skill description confusability (routing-collision guard).

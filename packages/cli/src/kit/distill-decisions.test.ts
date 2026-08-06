@@ -2,34 +2,14 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { parseDistillRegistry } from "./distill-registry.js";
 import { loadKit } from "./load-kit.js";
-
-interface Claim {
-  id: string;
-  text: string;
-  status: "covered" | "rejected" | "unclassified";
-  why?: string;
-}
-
-interface RegistryEntry {
-  upstream: string;
-  upstream_version: string;
-  upstream_digest: string;
-  upstream_relation: "distill" | "fork" | "none";
-  pinned_at: string;
-  claims?: Claim[];
-}
-
-interface Registry {
-  schema_version: number;
-  skills: Record<string, RegistryEntry>;
-}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const kitRoot = join(here, "..", "..", "..", "..", "kit");
-const registry = JSON.parse(
+const registry = parseDistillRegistry(
   readFileSync(join(kitRoot, "distill-decisions.json"), "utf8"),
-) as Registry;
+);
 const tracked = new Set([
   "bootstrap",
   "code-review",

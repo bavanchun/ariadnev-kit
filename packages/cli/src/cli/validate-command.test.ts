@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runValidate, loadCollisionAllowlist } from "./validate-command.js";
+import { runCoverage } from "./coverage-command.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
 import { renderMatrixBlock } from "../providers/matrix-drift.js";
 
@@ -123,6 +124,33 @@ describe("runValidate", () => {
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings[0].kind).toBe("lint");
+  });
+
+  it("maps strict coverage findings to warnings during rollout and errors under strict policy", () => {
+    const realKit = resolveKitRoot(process.cwd());
+    const standalone = runCoverage({ kitRoot: realKit, skill: "docs-seeker" });
+    const rollout = runValidate({ kitRoot: realKit, skillFilter: ["docs-seeker"] });
+    const strict = runValidate({
+      kitRoot: realKit,
+      skillFilter: ["docs-seeker"],
+      coverageLevel: "error",
+    });
+
+    expect(standalone.ok).toBe(false);
+    const rolloutFindings = rollout.findings.filter((finding) => finding.kind === "coverage");
+    expect(rolloutFindings).toHaveLength(standalone.findings.length);
+    expect(rolloutFindings.map((finding) => `${finding.skill}: ${finding.message}`)).toEqual(
+      standalone.findings.map(
+        (finding) =>
+          `${finding.skill}: ${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
+      ),
+    );
+    expect(rolloutFindings.every((finding) => finding.level === "warn")).toBe(true);
+    expect(rollout.ok).toBe(true);
+    expect(strict.findings.filter((finding) => finding.kind === "coverage")).toHaveLength(
+      standalone.findings.length,
+    );
+    expect(strict.ok).toBe(false);
   });
 
   describe("collision allowlist", () => {

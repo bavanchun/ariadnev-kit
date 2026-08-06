@@ -73,14 +73,47 @@ export function pinUpstream(root: string) {
   };
 }
 
+interface PreviousClaim {
+  text: string;
+}
+
+function readPreviousClaims(path: string): PreviousClaim[] {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (typeof parsed !== "object" || parsed === null || !Array.isArray((parsed as { claims?: unknown }).claims)) {
+    throw new Error("previous entry must be a JSON object with claims[]");
+  }
+  const claims = (parsed as { claims: unknown[] }).claims;
+  if (!claims.every((claim) => typeof claim === "object" && claim !== null && typeof (claim as PreviousClaim).text === "string")) {
+    throw new Error("previous entry claims must contain string text fields");
+  }
+  return claims as PreviousClaim[];
+}
+
+export function findNewClaims<T extends PreviousClaim>(current: T[], previous: PreviousClaim[]): T[] {
+  const known = new Set(previous.map((claim) => claim.text));
+  return current.filter((claim) => !known.has(claim.text));
+}
+
 if (import.meta.main) {
   const root = process.argv[2];
+  const previousFlag = process.argv.indexOf("--previous");
+  const previousPath = previousFlag === -1 ? undefined : process.argv[previousFlag + 1];
   if (!root) {
-    console.error(`usage: ${basename(process.argv[1])} <ak-skill-dir>`);
+    console.error(`usage: ${basename(process.argv[1])} <ak-skill-dir> [--previous <entry.json>]`);
     process.exit(2);
   }
   try {
-    console.log(JSON.stringify(pinUpstream(root), null, 2));
+    if (previousFlag !== -1 && !previousPath) throw new Error("--previous requires an entry JSON path");
+    const pinned = pinUpstream(root);
+    if (!previousPath) {
+      console.log(JSON.stringify(pinned, null, 2));
+    } else {
+      const { claims, ...provenance } = pinned;
+      console.log(JSON.stringify({
+        ...provenance,
+        new_claims: findNewClaims(claims, readPreviousClaims(previousPath)),
+      }, null, 2));
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

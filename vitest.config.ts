@@ -13,6 +13,7 @@ export default defineConfig({
         "packages/cli/src/security/**/*.ts",
         "packages/cli/src/eval/**/*.ts",
         "packages/cli/src/history/**/*.ts",
+        "packages/cli/src/kit/claim-*.ts",
         "packages/cli/src/telemetry/**/*.ts",
       ],
       exclude: ["**/*.test.ts", "**/__fixtures__/**"],
