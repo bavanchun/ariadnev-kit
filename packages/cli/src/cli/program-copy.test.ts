@@ -19,4 +19,13 @@ describe("program positioning", () => {
     expect(output).toContain("curated workflows, quality-gated across coding agents");
     expect(output).not.toContain("install to any provider");
   });
+
+  it("documents the explicit behavioral suite and runner contract", () => {
+    const command = buildProgram().commands.find((candidate) => candidate.name() === "eval");
+    const help = command?.helpInformation() ?? "";
+    expect(help).toContain("--suite");
+    expect(help).toContain("--runner <json-argv>");
+    expect(help).toContain("--skill-repeats <count>");
+    expect(help).toContain("tier-2 behavioral");
+  });
 });

@@ -38,6 +38,7 @@ export const CAPABILITIES = [
   "update.selfupdate.v1",
   "backups.restore.v1",
   "history.query.v1",
+  "graph.run.v1",
   "telemetry.optout.v1",
 ] as const;
 
@@ -58,6 +59,7 @@ export const KNOWN_COMMANDS = [
   "list",
   "add-skill",
   "migrate",
+  "run",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {

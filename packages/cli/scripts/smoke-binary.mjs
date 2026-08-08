@@ -17,7 +17,7 @@ import { hostAssetName } from "./binary-targets.mjs";
  * Pure assertion over what the binary printed. Returns { ok, failures[] } so it
  * is unit-testable without spawning anything.
  */
-export function checkSmokeOutput({ versionOut, validateOut, expectedVersion }) {
+export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion }) {
   const failures = [];
 
   if (versionOut.trim() !== expectedVersion.trim()) {
@@ -39,9 +39,27 @@ export function checkSmokeOutput({ versionOut, validateOut, expectedVersion }) {
     failures.push("validate reported errors (expected a clean pass)");
   }
 
+  for (const token of ["resume", "status", "cancel", "--runtime <provider>", "--validate", "--json"]) {
+    if (!runHelpOut.includes(token)) failures.push(`run --help is missing ${token}`);
+  }
+
+  try {
+    const graph = JSON.parse(graphValidateOut);
+    if (graph.schemaVersion !== 1 || graph.action !== "validate" || graph.status !== "valid" || graph.ok !== true) {
+      failures.push("packaged graph validation returned an incompatible envelope");
+    }
+    if (graph.workflow !== "read-only-delivery" || graph.graph?.id !== "read-only-delivery"
+      || !Number.isInteger(graph.graph?.nodes) || graph.graph.nodes < 1
+      || !Number.isInteger(graph.graph?.edges) || graph.graph.edges < 1) {
+      failures.push("packaged canonical graph resources are missing or empty");
+    }
+  } catch {
+    failures.push("packaged graph validation did not return JSON");
+  }
+
   // A build-machine absolute path in output means a dev path was baked into the
   // binary instead of resolving at runtime.
-  if (/\/Users\//.test(versionOut) || /\/Users\//.test(validateOut)) {
+  if ([versionOut, validateOut, runHelpOut, graphValidateOut].some((output) => /\/Users\//.test(output))) {
     failures.push("output leaked an absolute dev path (/Users/…)");
   }
 
@@ -67,19 +85,23 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
   let versionOut = "";
   let validateOut = "";
+  let runHelpOut = "";
+  let graphValidateOut = "";
   try {
     versionOut = run(bin, ["--version"]);
     validateOut = run(bin, ["validate"]);
+    runHelpOut = run(bin, ["run", "--help"]);
+    graphValidateOut = run(bin, ["run", "read-only-delivery", "--validate", "--json"]);
   } catch (err) {
     console.error(`smoke: binary failed to execute: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
   }
 
-  const { ok, failures } = checkSmokeOutput({ versionOut, validateOut, expectedVersion });
+  const { ok, failures } = checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion });
   if (!ok) {
     console.error(`smoke FAILED for ${bin}:`);
     for (const f of failures) console.error(`  - ${f}`);
     process.exit(1);
   }
-  console.log(`smoke OK: ${bin} (v${expectedVersion.trim()}, kit loads, no leaked paths)`);
+  console.log(`smoke OK: ${bin} (v${expectedVersion.trim()}, kit and graph lifecycle load, no leaked paths)`);
 }

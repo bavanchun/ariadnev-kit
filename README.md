@@ -82,18 +82,46 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill backups list [--global]` | List timestamped backups with file counts |
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
-| `vcskill validate [--check]` | Lint frontmatter, sections, links, skill references, and claim coverage; unresolved coverage fails validation, while `--check` also fails on README matrix drift |
+| `vcskill validate [--check]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift |
 | `vcskill coverage [--skill <name>]` | Strict offline omission ratchet; fails on unclassified or unmatched upstream claims, while fork/original skills are not applicable |
 | `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `vcskill eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `VCSKILL_EVAL_CMD` is set |
+| `vcskill eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
+| `vcskill run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
+| `vcskill run resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
 | `vcskill query [installs\|doctor\|history]` | Show the local history log (`~/.vcskill/history.jsonl`) of installs, doctor runs, and updates |
 | `vcskill add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `vcskill migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
+### Graph execution
+
+The first public execution surface is local and read-only. Validate without a
+provider, probe with global `--dry-run`, or run explicitly on Codex/Claude Code:
+
+```bash
+vc run read-only-delivery --validate --json
+vc --dry-run run read-only-delivery --runtime claude-code --json
+vc run read-only-delivery --runtime claude-code --instruction "Find routing ownership and cite evidence" --json
+```
+
+Runs are event-sourced under `~/.vcskill/runs/`, with private state snapshots,
+checkpoint/resume, cancellation, runtime/version pinning, and stable JSON
+envelopes. Run storage must remain outside the inspected workspace. Active
+safe-change execution stays denied until a public side-effect/approval adapter
+exists. See [the graph execution architecture](docs/graph-execution-architecture.md).
+
+The proof boundary is explicit. `validate` proves static graph contracts;
+fixture suites prove routing, trajectory, recovery, authority, and duplicate-
+effect behavior; local benchmarks bound orchestration and retrieval overhead;
+and capability-gated Codex/Claude probes prove only the pinned runtime that
+actually ran. None of these claims prove general provider parity or safe
+arbitrary workspace mutation. The release gate and reproducible commands are
+documented in [the release guide](docs/release-and-publish-guide.md).
+
 ## What's in the kit
 
-26 skills + 13 agents + 6 hooks today, growing toward broader AgentKit coverage
-in waves. Each upstream-backed skill records its source version and canonical
+26 skills + 13 agents + 6 hooks today. Broader AgentKit expansion remains paused
+until a later benchmark justifies it. Each upstream-backed skill records its source version and canonical
 source-tree digest; claim-tracked distillations also pass an offline omission
 ratchet. These are static structure and traceability guarantees, not proof of
 behavioral parity.

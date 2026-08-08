@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
-import { getResolver } from "../providers/index.js";
+import { getResolver, USER_FACING_PROVIDER_IDS } from "../providers/index.js";
 import { planInstall } from "./install-plan.js";
 import { installKit } from "./install-execute.js";
 
@@ -100,6 +100,16 @@ beforeEach(() => {
 afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
 describe("planInstall (pure)", () => {
+  it("keeps workflow specs out of every provider install plan", () => {
+    expect(kit.workflows).toHaveLength(3);
+    for (const provider of USER_FACING_PROVIDER_IDS) {
+      const resolver = getResolver(provider);
+      expect(planInstall(kit, resolver, ctx)).toEqual(
+        planInstall({ ...kit, workflows: [] }, resolver, ctx),
+      );
+    }
+  });
+
   it("emits adapted skill + skips unverified codex... none; antigravity skips agents", () => {
     const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit0"));
     const ops = planInstall(fixtureKit, getResolver("antigravity"), ctx);

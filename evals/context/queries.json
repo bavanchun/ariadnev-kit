@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "vcskill-context-v1",
+  "seed": 260808,
+  "topK": 6,
+  "cases": [
+    {
+      "id": "direct.graph-control-plane",
+      "kind": "direct",
+      "query": "provider-neutral graph IR local execution control plane decision",
+      "relevance": [
+        { "path": "docs/decisions/0004-graph-native-control-plane.md", "grade": 3 },
+        { "path": "docs/graph-execution-architecture.md", "grade": 2 }
+      ],
+      "requiredPaths": ["docs/decisions/0004-graph-native-control-plane.md"]
+    },
+    {
+      "id": "direct.repository-scout",
+      "kind": "direct",
+      "query": "locate modules callers tests docs and public contracts without editing",
+      "relevance": [
+        { "path": "kit/skills/scout/SKILL.md", "grade": 3 },
+        { "path": "evals/scenarios/golden/read-only-repository-answer.json", "grade": 2 }
+      ],
+      "requiredPaths": ["kit/skills/scout/SKILL.md"]
+    },
+    {
+      "id": "direct.root-cause-fix",
+      "kind": "direct",
+      "query": "prove root cause before fixing a retry failure and rerun tests",
+      "relevance": [
+        { "path": "kit/skills/fix/SKILL.md", "grade": 3 },
+        { "path": "evals/scenarios/golden/root-cause-bugfix.json", "grade": 2 },
+        { "path": "kit/workflows/bugfix-delivery.json", "grade": 1 }
+      ],
+      "requiredPaths": ["kit/skills/fix/SKILL.md"]
+    },
+    {
+      "id": "direct.release-gate",
+      "kind": "direct",
+      "query": "merge target run tests review commit push and open pull request",
+      "relevance": [
+        { "path": "kit/skills/ship/SKILL.md", "grade": 3 },
+        { "path": "evals/scenarios/golden/release-to-pr.json", "grade": 2 },
+        { "path": "kit/skills/git/SKILL.md", "grade": 1 }
+      ],
+      "requiredPaths": ["kit/skills/ship/SKILL.md"]
+    },
+    {
+      "id": "direct.current-docs-research",
+      "kind": "direct",
+      "query": "research current external framework documentation and cite primary sources",
+      "relevance": [
+        { "path": "kit/skills/research/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/docs-seeker/SKILL.md", "grade": 2 },
+        { "path": "evals/scenarios/golden/current-docs-research.json", "grade": 2 }
+      ],
+      "requiredPaths": ["kit/skills/research/SKILL.md"]
+    },
+    {
+      "id": "direct.security-audit",
+      "kind": "direct",
+      "query": "scan repository secrets dependencies and code vulnerabilities with evidence",
+      "relevance": [
+        { "path": "kit/skills/security-scan/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": ["kit/skills/security-scan/SKILL.md"]
+    },
+    {
+      "id": "relation.safe-change-contracts",
+      "kind": "relationship",
+      "query": "retrieve every skill contract invoked by safe-change-delivery",
+      "relevance": [
+        { "path": "kit/workflows/safe-change-delivery.json", "grade": 2 },
+        { "path": "kit/skills/cook/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/test/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/code-review/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": [
+        "kit/skills/cook/SKILL.md",
+        "kit/skills/test/SKILL.md",
+        "kit/skills/code-review/SKILL.md"
+      ]
+    },
+    {
+      "id": "relation.read-only-contracts",
+      "kind": "relationship",
+      "query": "retrieve every skill contract connected as a handler to read-only-delivery",
+      "relevance": [
+        { "path": "kit/workflows/read-only-delivery.json", "grade": 2 },
+        { "path": "kit/skills/scout/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/ask/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": ["kit/skills/scout/SKILL.md", "kit/skills/ask/SKILL.md"]
+    },
+    {
+      "id": "relation.bugfix-contracts",
+      "kind": "relationship",
+      "query": "retrieve all skill contracts invoked by bugfix-delivery",
+      "relevance": [
+        { "path": "kit/workflows/bugfix-delivery.json", "grade": 2 },
+        { "path": "kit/skills/scout/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/fix/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/test/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/code-review/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": [
+        "kit/skills/scout/SKILL.md",
+        "kit/skills/fix/SKILL.md",
+        "kit/skills/test/SKILL.md",
+        "kit/skills/code-review/SKILL.md"
+      ]
+    },
+    {
+      "id": "relation.safe-feature-subjects",
+      "kind": "relationship",
+      "query": "retrieve every skill contract linked as a subject of golden.safe-feature-delivery",
+      "relevance": [
+        { "path": "evals/scenarios/golden/safe-feature-delivery.json", "grade": 2 },
+        { "path": "kit/skills/cook/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/test/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/code-review/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": [
+        "kit/skills/cook/SKILL.md",
+        "kit/skills/test/SKILL.md",
+        "kit/skills/code-review/SKILL.md"
+      ]
+    },
+    {
+      "id": "relation.release-subjects",
+      "kind": "relationship",
+      "query": "retrieve every skill contract linked as a subject of golden.release-to-pr",
+      "relevance": [
+        { "path": "evals/scenarios/golden/release-to-pr.json", "grade": 2 },
+        { "path": "kit/skills/ship/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/git/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": ["kit/skills/ship/SKILL.md", "kit/skills/git/SKILL.md"]
+    },
+    {
+      "id": "relation.architecture-subjects",
+      "kind": "relationship",
+      "query": "retrieve every skill contract linked as a subject of golden.architecture-brainstorm-to-plan",
+      "relevance": [
+        { "path": "evals/scenarios/golden/architecture-brainstorm-to-plan.json", "grade": 2 },
+        { "path": "kit/skills/brainstorm/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/plan/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": ["kit/skills/brainstorm/SKILL.md", "kit/skills/plan/SKILL.md"]
+    },
+    {
+      "id": "relation.research-subjects",
+      "kind": "relationship",
+      "query": "retrieve every skill contract linked as a subject of golden.current-docs-research",
+      "relevance": [
+        { "path": "evals/scenarios/golden/current-docs-research.json", "grade": 2 },
+        { "path": "kit/skills/docs-seeker/SKILL.md", "grade": 3 },
+        { "path": "kit/skills/research/SKILL.md", "grade": 3 }
+      ],
+      "requiredPaths": ["kit/skills/docs-seeker/SKILL.md", "kit/skills/research/SKILL.md"]
+    }
+  ]
+}
