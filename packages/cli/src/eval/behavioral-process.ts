@@ -5,6 +5,7 @@ import process from "node:process";
 import type { BehavioralLauncher, BehavioralLaunchResult } from "./behavioral-runner.js";
 
 const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024;
+const DEFAULT_TERMINATION_GRACE_MS = 1_000;
 const SAFE_ENVIRONMENT_KEYS = [
   "PATH", "Path", "PATHEXT", "SystemRoot", "SYSTEMROOT", "ComSpec", "COMSPEC", "WINDIR",
   "TEMP", "TMP", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "NO_COLOR",
@@ -20,6 +21,7 @@ export interface BehavioralProcessOptions {
   credentialEnvironment?: BehavioralCredentialEnvironment[];
   runnerHome?: string;
   maxOutputBytes?: number;
+  terminationGraceMs?: number;
 }
 
 export function createBehavioralProcessEnvironment(
@@ -52,28 +54,26 @@ function signalTree(child: ChildProcessWithoutNullStreams, force: boolean): void
   process.kill(-child.pid, force ? "SIGKILL" : "SIGTERM");
 }
 
-function terminate(child: ChildProcessWithoutNullStreams): void {
-  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
+function signalTreeBestEffort(child: ChildProcessWithoutNullStreams, force: boolean): void {
   try {
-    signalTree(child, false);
+    signalTree(child, force);
   } catch {
-    child.kill("SIGTERM");
-  }
-  const hardStop = setTimeout(() => {
-    if (child.exitCode !== null || child.signalCode !== null) return;
     try {
-      signalTree(child, true);
+      child.kill(force ? "SIGKILL" : "SIGTERM");
     } catch {
-      child.kill("SIGKILL");
+      // The process exited between the group signal and direct fallback.
     }
-  }, 1_000);
-  hardStop.unref();
+  }
 }
 
 export function createBehavioralProcessLauncher(options: BehavioralProcessOptions): BehavioralLauncher {
   if (!options.executable.trim()) throw new Error("behavioral executable is required");
   const maxBytes = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
   if (!Number.isInteger(maxBytes) || maxBytes < 1) throw new Error("maxOutputBytes must be a positive integer");
+  const terminationGraceMs = options.terminationGraceMs ?? DEFAULT_TERMINATION_GRACE_MS;
+  if (!Number.isInteger(terminationGraceMs) || terminationGraceMs < 1) {
+    throw new Error("terminationGraceMs must be a positive integer");
+  }
   const environment = createBehavioralProcessEnvironment(
     options.sourceEnvironment ?? process.env,
     options.credentialEnvironment,
@@ -111,30 +111,53 @@ export function createBehavioralProcessLauncher(options: BehavioralProcessOption
         let bytes = 0;
         let malformed = false;
         let settled = false;
+        let terminating = false;
+        let graceElapsed = false;
+        let closedResult: BehavioralLaunchResult | undefined;
+        let hardStop: ReturnType<typeof setTimeout> | undefined;
         const done = (result: BehavioralLaunchResult) => {
           if (settled) return;
           settled = true;
+          if (hardStop) clearTimeout(hardStop);
           signal.removeEventListener("abort", abort);
           resolve(result);
         };
-        const abort = () => terminate(child);
+        const terminate = () => {
+          if (terminating) return;
+          terminating = true;
+          signalTreeBestEffort(child, false);
+          hardStop = setTimeout(() => {
+            graceElapsed = true;
+            signalTreeBestEffort(child, true);
+            if (closedResult) done(closedResult);
+          }, terminationGraceMs);
+        };
+        const settleAfterCleanup = (result: BehavioralLaunchResult) => {
+          if (terminating && !graceElapsed) {
+            closedResult = result;
+            return;
+          }
+          if (!terminating) signalTreeBestEffort(child, true);
+          done(result);
+        };
+        const abort = () => terminate();
         signal.addEventListener("abort", abort, { once: true });
         if (signal.aborted) abort();
         child.stdout.on("data", (chunk: Buffer) => {
           bytes += chunk.length;
           if (bytes > maxBytes) {
             malformed = true;
-            terminate(child);
+            terminate();
           } else output.push(chunk);
         });
         child.stderr.resume();
         child.once("error", (error: NodeJS.ErrnoException) => {
-          done(error.code === "ENOENT" ? { kind: "unavailable" } : { kind: "crashed" });
+          settleAfterCleanup(error.code === "ENOENT" ? { kind: "unavailable" } : { kind: "crashed" });
         });
         child.once("close", (code, childSignal) => {
-          if (malformed) done({ kind: "malformed" });
-          else if (code === 0) done({ kind: "completed", output: Buffer.concat(output).toString("utf8") });
-          else done({
+          if (malformed) settleAfterCleanup({ kind: "malformed" });
+          else if (code === 0) settleAfterCleanup({ kind: "completed", output: Buffer.concat(output).toString("utf8") });
+          else settleAfterCleanup({
             kind: "crashed",
             ...(typeof code === "number" && code >= 0 ? { exitCode: code } : {}),
             ...(childSignal ? { signal: childSignal } : {}),
