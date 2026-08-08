@@ -118,6 +118,7 @@
     { "id": "assess-failed", "from": "assess", "to": "failed", "type": "failure" },
     { "id": "assess-cancelled", "from": "assess", "to": "cancelled", "type": "cancel" },
     { "id": "change-approved", "from": "approve", "to": "apply", "type": "approval" },
+    { "id": "approval-failed", "from": "approve", "to": "failed", "type": "failure" },
     { "id": "approval-cancelled", "from": "approve", "to": "cancelled", "type": "cancel" },
     { "id": "apply-ok", "from": "apply", "to": "test", "type": "success" },
     { "id": "apply-retry", "from": "apply", "to": "apply", "type": "retry" },

@@ -109,6 +109,7 @@
     { "id": "diagnose-failed", "from": "diagnose", "to": "failed", "type": "failure" },
     { "id": "diagnose-cancelled", "from": "diagnose", "to": "cancelled", "type": "cancel" },
     { "id": "change-approved", "from": "approve", "to": "fix", "type": "approval" },
+    { "id": "approval-failed", "from": "approve", "to": "failed", "type": "failure" },
     { "id": "approval-cancelled", "from": "approve", "to": "cancelled", "type": "cancel" },
     { "id": "fix-ok", "from": "fix", "to": "test", "type": "success" },
     { "id": "fix-retry", "from": "fix", "to": "fix", "type": "retry" },
