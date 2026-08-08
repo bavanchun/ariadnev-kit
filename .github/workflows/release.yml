@@ -1,102 +1,98 @@
 name: Release
 
-# Changesets manages the "Version Packages" PR (bump + CHANGELOG). When that PR
-# merges, the package version changes on main — this workflow detects that,
-# cross-compiles the standalone binary for all platforms, and publishes them to
-# a GitHub Release. No npm: vcskill ships as a binary via curl|bash / brew.
-
 on:
   push:
     branches: [main]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
-permissions:
-  contents: write # create the Version PR, tags, and GitHub Releases
-  pull-requests: write # open/update the Version Packages PR
+permissions: {}
 
 jobs:
-  release:
-    name: Version or Release
+  version-pr:
+    name: Version PR
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release: ${{ steps.meta.outputs.release }}
+      version: ${{ steps.meta.outputs.version }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+      generated_at: ${{ steps.meta.outputs.generated_at }}
+      source_date_epoch: ${{ steps.meta.outputs.source_date_epoch }}
+      candidate_artifact_name: ${{ steps.meta.outputs.candidate_artifact_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth: 0 # need HEAD~1 to detect a version change
-
+          fetch-depth: 0
+          persist-credentials: false
       - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
         with:
           version: 9
-
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "20"
           cache: pnpm
-
       - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.3.14"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Opens/updates the "Version Packages" PR while changesets exist. No
-      # publish command → this never pushes to npm; it only manages the PR.
       - name: Changesets version PR
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d
         with:
           version: pnpm run version-packages
+          commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Fire the binary release only on the commit that bumped the version
-      # (i.e. the Version Packages PR merge). Compare the version at the PUSHED
-      # commit ($SHA) against its parent — NOT `HEAD`. The changesets action above
-      # commits its version bump locally in the runner, moving `HEAD` off the
-      # pushed commit; reading `HEAD` there would falsely see the bumped version
-      # on any feature merge that still has pending changesets and publish a
-      # release prematurely (tagged at the pre-bump commit). $SHA is immutable and
-      # only differs from its parent on the actual Version-PR merge, so the tag
-      # lands on the commit whose source is that version.
-      - name: Detect release
-        id: rel
+      - name: Detect exact release source
+        id: meta
         env:
           SHA: ${{ github.sha }}
         run: |
           ver() { git show "$1:packages/cli/package.json" 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version)}catch{console.log('')}})"; }
-          CUR=$(ver "$SHA")
-          PREV=$(ver "$SHA~1")
-          echo "version=$CUR" >> "$GITHUB_OUTPUT"
-          if [ -n "$CUR" ] && [ "$CUR" != "$PREV" ]; then echo "release=true" >> "$GITHUB_OUTPUT"; else echo "release=false" >> "$GITHUB_OUTPUT"; fi
+          CUR=$(ver "$SHA"); PREV=$(ver "$SHA~1")
+          {
+            [ -n "$CUR" ] && [ "$CUR" != "$PREV" ] && echo "release=true" || echo "release=false"
+            echo "version=$CUR"
+            echo "source_sha=$SHA"
+            echo "generated_at=$(git show -s --format=%cI "$SHA")"
+            echo "source_date_epoch=$(git show -s --format=%ct "$SHA")"
+            echo "candidate_artifact_name=vcskill-candidate-${SHA}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Cross-compile binaries
-        if: steps.rel.outputs.release == 'true'
-        run: node packages/cli/scripts/build-binaries.mjs
+  candidate-build:
+    needs: [version-pr]
+    if: needs.version-pr.outputs.release == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release-candidate-build.yml
+    with:
+      source_sha: ${{ needs.version-pr.outputs.source_sha }}
+      version: ${{ needs.version-pr.outputs.version }}
+      generated_at: ${{ needs.version-pr.outputs.generated_at }}
+      source_date_epoch: ${{ needs.version-pr.outputs.source_date_epoch }}
+      candidate_artifact_name: ${{ needs.version-pr.outputs.candidate_artifact_name }}
 
-      # Run the freshly-built host binary (linux-x64 on this runner) and assert it
-      # actually works: version matches, embedded kit loads, no baked-in dev path.
-      # Only the host-arch artifact can execute here; the break class is shared.
-      - name: Smoke-test binary
-        if: steps.rel.outputs.release == 'true'
-        run: node packages/cli/scripts/smoke-binary.mjs
-
-      - name: Publish GitHub Release
-        if: steps.rel.outputs.release == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.rel.outputs.version }}
-        run: |
-          NOTES="Standalone binaries for macOS/Linux/Windows. Install: \`curl -fsSL https://vcskill.vchun.dev/install | bash\`. Verify with checksums.txt."
-          # Idempotent: create the release if it doesn't exist yet, otherwise
-          # (re-run, or a release the changesets action already opened) just
-          # upload/replace the assets.
-          if gh release view "vcskill@${VERSION}" >/dev/null 2>&1; then
-            gh release upload "vcskill@${VERSION}" packages/cli/dist/release/* --clobber
-          else
-            gh release create "vcskill@${VERSION}" packages/cli/dist/release/* \
-              --title "vcskill@${VERSION}" --notes "$NOTES"
-          fi
+  candidate-publish:
+    needs: [version-pr, candidate-build]
+    if: needs.version-pr.outputs.release == 'true'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/release-candidate-publish.yml
+    with:
+      source_sha: ${{ needs.version-pr.outputs.source_sha }}
+      version: ${{ needs.version-pr.outputs.version }}
+      candidate_run_id: ${{ github.run_id }}
+      candidate_run_attempt: ${{ github.run_attempt }}
+      candidate_artifact_id: ${{ needs.candidate-build.outputs.candidate_artifact_id }}
+      candidate_artifact_name: ${{ needs.candidate-build.outputs.candidate_artifact_name }}
+      candidate_artifact_digest: ${{ needs.candidate-build.outputs.candidate_artifact_digest }}

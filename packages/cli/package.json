@@ -36,9 +36,15 @@
     "build": "tsup",
     "generate:embedded": "node scripts/generate-embedded-kit.mjs",
     "generate:matrix": "bun scripts/generate-provider-matrix.ts",
-    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill"
+    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill",
+    "build:release": "node scripts/build-binaries.mjs",
+    "docs-bundle:generate": "bun scripts/generate-docs-bundle.ts",
+    "test:build-binaries": "node --test scripts/build-binaries.test.mjs",
+    "verify:web-consumer-lock": "node scripts/verify-web-consumer-lock.mjs"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "@clack/prompts": "^0.8.2",
     "commander": "^12.1.0",
     "gray-matter": "^4.0.3",
@@ -47,6 +53,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "fflate": "^0.8.2",
+    "yaml": "^2.8.1",
     "tsup": "^8.3.5"
   }
 }

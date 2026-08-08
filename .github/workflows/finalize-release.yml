@@ -1,0 +1,135 @@
+name: Finalize Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id: { description: GitHub release database ID, required: true, type: string }
+      tag: { description: Exact release tag, required: true, type: string }
+      source_sha: { description: Exact pushed source SHA, required: true, type: string }
+      candidate_run_id: { description: Candidate workflow run ID, required: true, type: string }
+      candidate_run_attempt: { description: Candidate workflow run attempt, required: true, type: string }
+      candidate_artifact_id: { description: Candidate artifact ID, required: true, type: string }
+      candidate_artifact_name: { description: Candidate artifact name, required: true, type: string }
+      candidate_artifact_digest: { description: Candidate artifact digest, required: true, type: string }
+
+permissions: {}
+
+concurrency:
+  group: core-release-production-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    environment: core-release-production
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      finalization_attestation: ${{ steps.finalize.outputs.finalization_attestation }}
+    steps:
+      - name: Finalize held draft release
+        id: finalize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_VERSION: 2026-03-10
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EXACT_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_REF_TYPE: ${{ github.ref_type }}
+          FINALIZATION_RUN_ID: ${{ github.run_id }}
+          FINALIZATION_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CANDIDATE_RUN_ATTEMPT: ${{ inputs.candidate_run_attempt }}
+          CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
+          CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
+          CANDIDATE_ARTIFACT_DIGEST: ${{ inputs.candidate_artifact_digest }}
+        run: |
+          node <<'NODE'
+          const { spawnSync, execFileSync } = require("node:child_process");
+          const { createHash } = require("node:crypto");
+          const { appendFileSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+          const env = process.env, repo = env.GITHUB_REPOSITORY, releaseId = env.RELEASE_ID;
+          const tag = env.RELEASE_TAG, sha = env.SOURCE_SHA, runId = env.CANDIDATE_RUN_ID, attempt = env.CANDIDATE_RUN_ATTEMPT;
+          const artifactId = env.CANDIDATE_ARTIFACT_ID, artifactName = env.CANDIDATE_ARTIFACT_NAME, artifactDigest = env.CANDIDATE_ARTIFACT_DIGEST;
+          const fail = (message) => { throw new Error(message); };
+          const ok = (condition, message) => condition || fail(message);
+          const digest = (bytes) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+          const runGh = (args, { binary = false, input } = {}) => spawnSync("gh", args, { encoding: binary ? null : "utf8", input });
+          const baseArgs = ["api", "-H", `X-GitHub-Api-Version: ${env.GITHUB_API_VERSION}`];
+          const api = (path, { method, body, binary = false, accept } = {}) => {
+            const args = [...baseArgs];
+            if (accept) args.push("-H", `Accept: ${accept}`);
+            if (method) args.push("--method", method);
+            if (body) args.push("--input", "-");
+            args.push(path);
+            const result = runGh(args, { binary, input: body ? JSON.stringify(body) : undefined });
+            if (result.status !== 0) fail("GitHub API request failed");
+            return binary ? result.stdout : JSON.parse(result.stdout || "{}");
+          };
+          const maybe = (path) => { const result = runGh([...baseArgs, path]); if (result.status === 0) return JSON.parse(result.stdout || "{}"); if (/\bHTTP 404\b/.test(String(result.stderr))) return null; fail("GitHub API preflight failed"); };
+          ok(/^[0-9]+$/.test(releaseId) && /^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ID) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ATTEMPT), "invalid numeric identity");
+          ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^vcskill@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "exact ref identity required");
+          ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest) && artifactName === `vcskill-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate identity drift");
+          ok(api(`repos/${repo}/immutable-releases`).enabled === true, "immutable releases must be enabled");
+          const candidateRun = api(`repos/${repo}/actions/runs/${runId}`);
+          ok(candidateRun.path === ".github/workflows/release.yml" && candidateRun.event === "push" && candidateRun.head_sha === sha && String(candidateRun.run_attempt) === attempt && candidateRun.status === "completed" && candidateRun.conclusion === "success", "candidate run drift");
+          const artifact = api(`repos/${repo}/actions/artifacts/${artifactId}`);
+          ok(String(artifact.id) === artifactId && artifact.name === artifactName && artifact.digest === artifactDigest && !artifact.expired && String(artifact.workflow_run?.id) === runId && artifact.workflow_run?.head_sha === sha, "artifact envelope drift");
+          ok(artifact.size_in_bytes > 0 && artifact.size_in_bytes <= 536870912 && !Number.isNaN(Date.parse(artifact.created_at)) && Date.parse(artifact.expires_at) > Date.now(), "artifact bounds drift");
+          const tagRef = api(`repos/${repo}/git/ref/tags/${tag}`);
+          ok(tagRef.object?.type === "tag", "annotated candidate tag required");
+          const tagObject = api(`repos/${repo}/git/tags/${tagRef.object.sha}`);
+          ok(tagObject.object?.type === "commit" && tagObject.object.sha === sha, "tag target drift");
+          const marker = "vcskill-candidate-envelope-v1\n";
+          ok(String(tagObject.message || "").startsWith(marker), "candidate envelope missing from tag");
+          const envelope = JSON.parse(tagObject.message.slice(marker.length));
+          ok(envelope.schemaVersion === 1 && envelope.schema === "https://vcskill.dev/schemas/candidate-envelope.schema.json" && envelope.repository === repo && envelope.runId === runId && envelope.runAttempt === attempt, "candidate envelope schema drift");
+          ok(envelope.artifactId === artifactId && envelope.artifactName === artifactName && envelope.artifactDigest === artifactDigest && envelope.artifactSize === artifact.size_in_bytes && envelope.createdAt === artifact.created_at && envelope.expiresAt === artifact.expires_at && envelope.workflowPath === ".github/workflows/release.yml" && envelope.headSha === sha && Array.isArray(envelope.rejectedArtifacts), "candidate envelope data drift");
+          ok(envelope.rejectedArtifacts.length <= 32 && new Set(envelope.rejectedArtifacts.map((entry) => entry.artifactId)).size === envelope.rejectedArtifacts.length && envelope.rejectedArtifacts.every((entry) => /^[0-9]+$/.test(entry.artifactId) && entry.artifactId !== artifactId && entry.artifactName === `vcskill-candidate-${sha}-run-${entry.runId}-attempt-${entry.runAttempt}` && /^[0-9]+$/.test(entry.runId) && /^[0-9]+$/.test(entry.runAttempt) && /^sha256:[a-f0-9]{64}$/.test(entry.artifactDigest)), "rejected candidate envelope drift");
+          const zip = api(`repos/${repo}/actions/artifacts/${artifactId}/zip`, { binary: true });
+          ok(digest(zip) === artifactDigest, "artifact zip digest drift");
+          mkdirSync("candidate", { recursive: true }); writeFileSync("candidate/candidate.zip", zip);
+          const listing = execFileSync("unzip", ["-Z1", "candidate/candidate.zip"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+          ok(listing.length <= 32 && listing.every((name) => /^[A-Za-z0-9][A-Za-z0-9._@+-]*$/.test(name)), "unsafe candidate inventory");
+          const sizes = execFileSync("unzip", ["-l", "candidate/candidate.zip"], { encoding: "utf8" }).split("\n").map((line) => /^\s*(\d+)\s+(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})\s+\d{2}:\d{2}\s+(.+)$/.exec(line)).filter(Boolean).map((match) => Number(match[1]));
+          ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 536870912, "candidate expands beyond the byte limit");
+          execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
+          const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
+          ok(attestation.schemaVersion === 1 && attestation.schema === "https://vcskill.dev/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
+          ok(attestation.workflow?.runId === runId && attestation.workflow?.runAttempt === attempt && attestation.workflow?.path === ".github/workflows/release.yml" && attestation.workflow?.ref === `${repo}/.github/workflows/release.yml@refs/heads/main` && attestation.workflow?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.workflow?.digest), "attestation workflow drift");
+          ok(attestation.product?.sha === sha && attestation.product?.tag === tag && tag === `vcskill@${attestation.product?.version}`, "attestation product drift");
+          ok(attestation.generator?.path === "packages/cli/scripts/generate-docs-bundle.ts" && attestation.generator?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.generator?.digest), "attestation generator drift");
+          ok(attestation.consumer?.repository === "bavanchun/vcskill-web" && /^[a-f0-9]{40}$/.test(attestation.consumer?.commitSha) && attestation.consumer?.lockPath === ".github/release/web-consumer-lock.json", "attestation consumer drift");
+          for (const field of ["lockDigest", "contractDigest", "invocationDigest", "resultDigest", "outputDigest", "previousDescriptorDigest"]) ok(/^sha256:[a-f0-9]{64}$/.test(attestation.consumer?.[field]), `attestation ${field} drift`);
+          const sourceFiles = [{ path: attestation.workflow.path, expected: attestation.workflow.digest }, { path: attestation.generator.path, expected: attestation.generator.digest }, { path: attestation.consumer.lockPath, expected: attestation.consumer.lockDigest }];
+          const rawSource = (path) => api(`repos/${repo}/contents/${path}?ref=${sha}`, { binary: true, accept: "application/vnd.github.raw+json" });
+          for (const file of sourceFiles) ok(/^sha256:[a-f0-9]{64}$/.test(file.expected) && digest(rawSource(file.path)) === file.expected, `source digest drift: ${file.path}`);
+          const finalizerWorkflowDigest = digest(rawSource(".github/workflows/finalize-release.yml"));
+          const assets = [...(attestation.releaseAssets || [])].sort((left, right) => left.name.localeCompare(right.name));
+          const required = ["checksums.txt", "docs-bundle-manifest-v1.schema.json", "docs-bundle.manifest.json", "docs-bundle.tar.gz", "vcskill-darwin-arm64", "vcskill-darwin-x64", "vcskill-linux-arm64", "vcskill-linux-x64", "vcskill-windows-x64.exe"];
+          ok(JSON.stringify(assets.map((entry) => entry.name)) === JSON.stringify(required) && JSON.stringify([...listing].sort()) === JSON.stringify(["release-artifact-attestation.json", ...required].sort()), "release asset inventory drift");
+          for (const asset of assets) { const bytes = readFileSync(`candidate/${asset.name}`); ok(asset.size === bytes.length && asset.digest === digest(bytes), `candidate asset drift: ${asset.name}`); }
+          const checksumLines = readFileSync("candidate/checksums.txt", "utf8").trim().split("\n").map((line) => /^([a-f0-9]{64})  ([A-Za-z0-9][A-Za-z0-9._@+-]*)$/.exec(line));
+          ok(checksumLines.every(Boolean) && JSON.stringify(checksumLines.map((match) => match[2]).sort()) === JSON.stringify(required.filter((name) => name !== "checksums.txt")), "checksums inventory drift");
+          for (const match of checksumLines) ok(assets.find((asset) => asset.name === match[2])?.digest === `sha256:${match[1]}`, `checksum drift: ${match[2]}`);
+          const downloadAsset = (id) => api(`repos/${repo}/releases/assets/${id}`, { binary: true, accept: "application/octet-stream" });
+          const verifyAssets = (release) => { ok((release.assets || []).length === assets.length, "remote asset count drift"); for (const asset of assets) { const remote = release.assets.find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); } };
+          const release = api(`repos/${repo}/releases/${releaseId}`), byTag = api(`repos/${repo}/releases/tags/${tag}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
+          ok(String(byTag.id) === releaseId && release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha, "held draft drift");
+          ok(!latestBefore || String(latestBefore.id) !== releaseId, "held draft is already latest");
+          verifyAssets(release);
+          api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, make_latest: "true" } });
+          const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = api(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
+          ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
+          ok(!Number.isNaN(Date.parse(after.updated_at)), "published release timestamp drift");
+          verifyAssets(after);
+          const finalization = { schemaVersion: 1, schema: "https://vcskill.dev/schemas/finalization-attestation.schema.json", runId: env.FINALIZATION_RUN_ID, runAttempt: env.FINALIZATION_RUN_ATTEMPT, repository: repo, releaseId, tag, sourceSha: sha, candidateEnvelopeDigest: digest(Buffer.from(JSON.stringify(envelope))), finalizerWorkflowDigest, releaseAssetSetDigest: digest(Buffer.from(JSON.stringify(assets))), verifiedReleaseUpdatedAt: after.updated_at };
+          const finalizationJson = JSON.stringify(finalization);
+          appendFileSync(env["GITHUB_OUTPUT"], `finalization_attestation=${finalizationJson}\n`);
+          if (env["GITHUB_STEP_SUMMARY"]) appendFileSync(env["GITHUB_STEP_SUMMARY"], `Finalized immutable release ${tag} from candidate artifact ${artifactId}.\n\nFinalization attestation: \`${finalizationJson}\`\n`);
+          NODE

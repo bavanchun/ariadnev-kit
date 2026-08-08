@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vcskill.dev/schemas/candidate-envelope.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "schema", "repository", "runId", "runAttempt", "artifactId", "artifactName", "artifactDigest", "artifactSize", "createdAt", "expiresAt", "workflowPath", "headSha", "rejectedArtifacts"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "schema": { "const": "https://vcskill.dev/schemas/candidate-envelope.schema.json" },
+    "repository": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
+    "runId": { "type": "string", "pattern": "^[0-9]+$" },
+    "runAttempt": { "type": "string", "pattern": "^[0-9]+$" },
+    "artifactId": { "type": "string", "pattern": "^[0-9]+$" },
+    "artifactName": { "type": "string", "pattern": "^[A-Za-z0-9._@-]+$" },
+    "artifactDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "artifactSize": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "workflowPath": { "const": ".github/workflows/release.yml" },
+    "headSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "rejectedArtifacts": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifactId", "artifactName", "artifactDigest", "runId", "runAttempt"],
+        "properties": {
+          "artifactId": { "type": "string", "pattern": "^[0-9]+$" },
+          "artifactName": { "type": "string", "pattern": "^[A-Za-z0-9._@-]+$" },
+          "artifactDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "runId": { "type": "string", "pattern": "^[0-9]+$" },
+          "runAttempt": { "type": "string", "pattern": "^[0-9]+$" }
+        }
+      }
+    }
+  }
+}
