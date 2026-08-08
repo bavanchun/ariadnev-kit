@@ -14,6 +14,25 @@ function workspace() {
   roots.push(root);
   return root;
 }
+
+async function waitForExit(pid: number): Promise<void> {
+  const deadline = Date.now() + 3_000;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // The process exited between the final probe and cleanup.
+  }
+  throw new Error(`process ${pid} was not reaped`);
+}
+
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
 });
@@ -100,6 +119,7 @@ describe("createBehavioralProcessLauncher", () => {
       executable: process.execPath,
       args: ["-e", "process.stdout.write('x'.repeat(1000))"],
       maxOutputBytes: 10,
+      terminationGraceMs: 25,
     });
     await expect(launcher.launch({ prompt: "", workspaceRoot: workspace() }, new AbortController().signal))
       .resolves.toEqual({ kind: "malformed" });
@@ -113,13 +133,14 @@ describe("createBehavioralProcessLauncher", () => {
       args: ["-e", [
         "const {spawn}=require('node:child_process')",
         "const {writeFileSync}=require('node:fs')",
-        "const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'})",
+        "const child=spawn(process.execPath,['-e',\"require('node:fs').writeFileSync('grandchild.ready','1');process.on('SIGTERM',()=>{});setInterval(()=>{},1000)\"],{stdio:'ignore'})",
         "writeFileSync('grandchild.pid',String(child.pid))",
         "setInterval(()=>{},1000)",
       ].join(";")],
+      terminationGraceMs: 25,
     });
     const pending = launcher.launch({ prompt: "", workspaceRoot: root }, controller.signal);
-    for (let attempt = 0; attempt < 100 && !existsSync(join(root, "grandchild.pid")); attempt += 1) {
+    for (let attempt = 0; attempt < 100 && !existsSync(join(root, "grandchild.ready")); attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
     const pid = Number(readFileSync(join(root, "grandchild.pid"), "utf8"));
@@ -127,6 +148,6 @@ describe("createBehavioralProcessLauncher", () => {
     const result = await pending;
     expect(result.kind).toBe("crashed");
     expect(result.kind === "crashed" && result.signal).toMatch(/SIGTERM|SIGKILL/);
-    expect(() => process.kill(pid, 0)).toThrow();
+    await waitForExit(pid);
   });
 });

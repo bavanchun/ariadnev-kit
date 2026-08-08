@@ -78,6 +78,14 @@ describe("embedded-kit", () => {
     expect(getKitRoot(process.cwd())).toBe(join(cache, EMBEDDED_VERSION, "kit"));
   });
 
+  it("keeps the generated cache version aligned with package metadata", () => {
+    const packageJson = JSON.parse(
+      readFileSync(join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { version: string };
+
+    expect(EMBEDDED_VERSION).toBe(packageJson.version);
+  });
+
   it("drift guard: the generated map exactly matches the live kit + flat-root assets", () => {
     // Rebuild what the generator would embed, compare byte-for-byte. Fails if a
     // kit file was added/changed without re-running generate-embedded-kit.mjs.
