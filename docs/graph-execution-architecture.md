@@ -141,6 +141,19 @@ remain available across graph upgrades, while resume still refuses incompatible
 graph or runner identity. Cancellation is idempotent, including when a run is
 already terminal.
 
+### Upgrade and paused-run policy
+
+V1 has no automatic run-state migration. A paused run is bound to its compiled
+graph digest and runner contract, plus the original runtime version and model.
+After an incompatible vcskill upgrade, `resume` fails with an actionable refusal:
+use the original vcskill version to finish the run or start a new run. `status`
+and emergency `cancel` continue to operate from the stored manifest even when
+the currently installed graph has changed.
+
+Never move a release tag or reinterpret persisted events to repair an
+incompatible run. If a future release adds migration, it must be explicit,
+versioned, idempotent, reversible, and tested against frozen old-state fixtures.
+
 ## Context retrieval boundary
 
 Local context lookup uses a lexical metadata index plus a bounded deterministic

@@ -410,7 +410,9 @@ export async function runWorkflowCommand(
 
   const { graph, workflow } = compileWorkflow(deps.kitRoot, manifest.workflow);
   if (!sameRunContext(createGraphRunContext({ graph, runId: id }), manifest.context)) {
-    throw new Error("run graph or runner contract drift detected");
+    throw new Error(
+      "run graph or runner contract drift detected; resume with the original vcskill version or start a new run (status and cancel remain available)",
+    );
   }
   const instruction = requiredInstruction(input.instruction);
   assertRunStorageOutsideWorkspace(deps.runsRoot, workspaceRoot);

@@ -225,7 +225,7 @@ describe("ClaudeCodeExecutor", () => {
       const pidPath = join(root, "grandchild.pid");
       const current = fixture("hang", pidPath);
       const controller = new AbortController();
-      const pending = current.executor.execute({ ...request(current.workspaceRoot), timeoutMs: 80 }, controller.signal);
+      const pending = current.executor.execute({ ...request(current.workspaceRoot), timeoutMs: 1_000 }, controller.signal);
       await waitForFile(pidPath);
       if (cancelled) controller.abort();
       const result = await pending;

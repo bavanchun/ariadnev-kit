@@ -110,10 +110,18 @@ envelopes. Run storage must remain outside the inspected workspace. Active
 safe-change execution stays denied until a public side-effect/approval adapter
 exists. See [the graph execution architecture](docs/graph-execution-architecture.md).
 
+The proof boundary is explicit. `validate` proves static graph contracts;
+fixture suites prove routing, trajectory, recovery, authority, and duplicate-
+effect behavior; local benchmarks bound orchestration and retrieval overhead;
+and capability-gated Codex/Claude probes prove only the pinned runtime that
+actually ran. None of these claims prove general provider parity or safe
+arbitrary workspace mutation. The release gate and reproducible commands are
+documented in [the release guide](docs/release-and-publish-guide.md).
+
 ## What's in the kit
 
-26 skills + 13 agents + 6 hooks today. Broader AgentKit expansion is paused
-through the graph-execution benchmark cycle. Each upstream-backed skill records its source version and canonical
+26 skills + 13 agents + 6 hooks today. Broader AgentKit expansion remains paused
+until a later benchmark justifies it. Each upstream-backed skill records its source version and canonical
 source-tree digest; claim-tracked distillations also pass an offline omission
 ratchet. These are static structure and traceability guarantees, not proof of
 behavioral parity.

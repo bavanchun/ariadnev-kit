@@ -244,7 +244,7 @@ describe("run workflow command", () => {
       runtime: "codex",
       workspaceRoot: current.root,
       instruction: "Find the router.",
-    }, current.deps)).rejects.toThrow(/graph.*drift/i);
+    }, current.deps)).rejects.toThrow(/graph.*drift.*original vcskill version.*start a new run/i);
   });
 
   it("refuses to resume stale state after workspace content drift", async () => {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-08T14:36:26.735Z",
+  "generatedAt": "2026-08-08T14:43:19.249Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "vcskill-context-v1",
-    "corpusDigest": "sha256:65412f31f0de60178f8a979d0937dabfdb5fade5acea987afc0ac3faf0ad0a57",
+    "corpusDigest": "sha256:a02d03691049c7d014c1d346feee608e817dd4d0e4143549a1aebbcf41a919a5",
     "queryDigest": "sha256:f0d7b422da83a695a1b71a30a07f2aa616427172d1adc393b67c109d8f7e90d3",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -37,19 +37,19 @@
       "name": "local lexical metadata index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.6073397494819714,
+        "retrievalQuality": 0.594569844281829,
         "taskSuccessRate": 0.6153846153846154,
         "provenanceRate": 1,
         "meanContextTokens": 540,
         "perQuery": [
           {
             "id": "direct.graph-control-plane",
-            "retrievalQuality": 1,
+            "retrievalQuality": 0.8339912323981488,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
-              "docs/decisions/0004-graph-native-control-plane.md",
               "docs/graph-execution-architecture.md",
+              "docs/decisions/0004-graph-native-control-plane.md",
               "kit/skills/plan/SKILL.md",
               "kit/skills/fix/SKILL.md",
               "kit/workflows/safe-change-delivery.json",
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 1.417083,
-            "p95Ms": 1.785417,
-            "maxMs": 1.861958
+            "p50Ms": 1.479541,
+            "p95Ms": 1.8325,
+            "maxMs": 1.885958
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.105083,
-            "p95Ms": 0.129417,
-            "maxMs": 0.1755
+            "p50Ms": 0.114333,
+            "p95Ms": 0.151792,
+            "maxMs": 0.346791
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.099083,
-            "p95Ms": 0.117042,
-            "maxMs": 0.630209
+            "p50Ms": 0.10375,
+            "p95Ms": 0.121292,
+            "maxMs": 0.610541
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 114516
+        "indexBytes": 115220
       },
       "externalDependencies": []
     },
@@ -261,19 +261,19 @@
       "name": "deterministic artifact relationship graph plus lexical index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.8749957015420438,
+        "retrievalQuality": 0.8622257963419013,
         "taskSuccessRate": 1,
         "provenanceRate": 1,
         "meanContextTokens": 540,
         "perQuery": [
           {
             "id": "direct.graph-control-plane",
-            "retrievalQuality": 1,
+            "retrievalQuality": 0.8339912323981488,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
-              "docs/decisions/0004-graph-native-control-plane.md",
               "docs/graph-execution-architecture.md",
+              "docs/decisions/0004-graph-native-control-plane.md",
               "kit/skills/code-review/SKILL.md",
               "kit/skills/brainstorm/SKILL.md",
               "kit/skills/cook/SKILL.md",
@@ -454,30 +454,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.008542,
-            "p95Ms": 2.379167,
-            "maxMs": 2.538334
+            "p50Ms": 2.079334,
+            "p95Ms": 2.426167,
+            "maxMs": 2.510708
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.531917,
-            "p95Ms": 0.605333,
-            "maxMs": 1.003917
+            "p50Ms": 0.555416,
+            "p95Ms": 0.631167,
+            "maxMs": 1.015666
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.513333,
-            "p95Ms": 0.559875,
-            "maxMs": 0.928292
+            "p50Ms": 0.54275,
+            "p95Ms": 0.591083,
+            "maxMs": 0.877083
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 120756,
+        "indexBytes": 121460,
         "edges": 65
       },
       "externalDependencies": []

@@ -49,6 +49,13 @@ jobs:
       - name: Test + Coverage gate
         run: pnpm run coverage
 
+      - name: Deterministic graph-harness benchmarks
+        run: |
+          bun packages/cli/scripts/benchmark-event-store.ts > "$RUNNER_TEMP/event-store-benchmark.json"
+          bun packages/cli/scripts/benchmark-graph-runner.ts > "$RUNNER_TEMP/graph-runner-benchmark.json"
+          bun packages/cli/scripts/benchmark-safe-change-runner.ts > "$RUNNER_TEMP/safe-change-benchmark.json"
+          bun packages/cli/scripts/benchmark-context.mjs > "$RUNNER_TEMP/context-graph-benchmark.json"
+
       - name: Test scripts + hooks (node:test)
         # Node 20's test runner does not expand glob patterns (that landed in
         # Node 21), so enumerate the files with find for version-independence.

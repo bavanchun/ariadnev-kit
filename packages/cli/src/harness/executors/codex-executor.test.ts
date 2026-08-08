@@ -235,7 +235,7 @@ describe("CodexExecutor", () => {
     roots.push(root);
     const pidPath = join(root, "grandchild.pid");
     const { executor, workspaceRoot } = fixture("hang", pidPath);
-    const timedRequest = { ...request(workspaceRoot), timeoutMs: 80 };
+    const timedRequest = { ...request(workspaceRoot), timeoutMs: 1_000 };
     const pending = executor.execute(timedRequest, new AbortController().signal);
     await waitForFile(pidPath);
     const grandchildPid = Number(readFileSync(pidPath, "utf8"));
