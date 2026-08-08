@@ -1,14 +1,19 @@
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readdirSync, readlinkSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
 import { performance } from "node:perf_hooks";
 import { scoreTrajectoryConformance, type TrajectoryConformanceReportV1 } from "../eval/trajectory-conformance.js";
 import type { CompiledGraphNodeV1, CompiledGraphV1 } from "../graph/compile-graph.js";
-import type { GraphEdgeV1 } from "../graph/graph-types.js";
+import type { AuthorityCapability, GraphEdgeV1 } from "../graph/graph-types.js";
 import { resumeRun, type CheckpointStore } from "./events/checkpoint-store.js";
 import { type EventStore } from "./events/event-store.js";
 import { sameRunContext, validateRunEventContext, type RunEventContextV1, type RunEventPayloadV1 } from "./events/event-types.js";
 import type { RunStateV1 } from "./events/run-state.js";
+import { runSideEffect } from "./effects/run-side-effect.js";
+import type { SideEffectExecutorV1 } from "./effects/side-effect-lease.js";
+import {
+  captureWorkspaceSnapshot,
+  diffWorkspaceSnapshots,
+  type RollbackEvidenceV1,
+} from "./effects/workspace-drift.js";
 import {
   createExecutorRequest,
   type ExecutorCapabilityV1,
@@ -18,15 +23,31 @@ import {
   type GraphExecutorV1,
   type JsonValueV1,
 } from "./executors/executor.js";
+import {
+  type ApprovalGrantV1,
+  type ApprovalRequestV1,
+  type ApprovalValidationReasonV1,
+} from "./policy/approval-gate.js";
+import {
+  createCapabilityPolicy,
+  evaluateCapabilityPolicy,
+  type CapabilityPolicyModeV1,
+} from "./policy/capability-policy.js";
 import { createShadowRun } from "./shadow/shadow-run.js";
 import type { ShadowEventV1 } from "./shadow/shadow-events.js";
 
 export const GRAPH_RUNNER_VERSION = "1.0.0";
 const NODE_ATTEMPT_VERSION = "1.0.0";
 const IDEMPOTENCY_VERSION = "1.0.0";
-const FORBIDDEN_READ_ONLY_CAPABILITIES = new Set(["workspace:write", "external:mutate", "publish", "delete"]);
 
-export type GraphRunStatusV1 = "completed" | "failed" | "cancelled" | "policy-denied" | "unsupported";
+export type GraphRunStatusV1 =
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "policy-denied"
+  | "unsupported"
+  | "approval-required"
+  | "reconciliation-required";
 
 export type GraphRunMetricsV1 = Readonly<{
   nodesExecuted: number;
@@ -51,6 +72,15 @@ export type GraphRunResultV1 = Readonly<{
   trajectory: TrajectoryConformanceReportV1;
   workspaceMutations: readonly string[];
   policyViolations: readonly string[];
+  approvalRequest: ApprovalRequestV1 | null;
+  approvalFailure: ApprovalValidationReasonV1 | null;
+  reconciliationRequired: Readonly<{
+    nodeId: string;
+    attempt: number;
+    idempotencyKey: string;
+    status: "uncertain" | "confirmed";
+  }> | null;
+  rollbackEvidence: readonly RollbackEvidenceV1[];
   executor: ExecutorProbeV1 | null;
   executorFailure: ExecutorFailureV1 | null;
   resume: Readonly<{
@@ -68,6 +98,17 @@ export interface RunGraphInputV1 {
   workspaceRoot: string;
   instruction: string;
   initialState?: Readonly<Record<string, JsonValueV1>>;
+  policy?: Readonly<{ mode: CapabilityPolicyModeV1; grants?: readonly AuthorityCapability[] }>;
+  sideEffectExecutor?: SideEffectExecutorV1;
+  workspaceScope?: readonly string[];
+  externalScope?: readonly string[];
+  approval?: ApprovalGrantV1;
+  reconciliation?: Readonly<{
+    idempotencyKey: string;
+    outcome: "committed" | "not-applied";
+    evidenceRefs: readonly string[];
+    transientStateWrites: Readonly<Record<string, JsonValueV1>>;
+  }>;
   signal?: AbortSignal;
 }
 
@@ -100,22 +141,11 @@ export function createGraphRunContext(input: {
   });
 }
 
-function policyViolations(graph: CompiledGraphV1): string[] {
-  const violations: string[] = [];
-  for (const node of graph.nodes) {
-    for (const capability of node.authority.capabilities) {
-      if (FORBIDDEN_READ_ONLY_CAPABILITIES.has(capability)) violations.push(`node ${node.id} requires ${capability}`);
-    }
-    if (node.authority.effect !== "none") violations.push(`node ${node.id} declares ${node.authority.effect} effects`);
-  }
-  return [...new Set(violations)].sort();
-}
-
 function requiredCapabilities(graph: CompiledGraphV1): ExecutorCapabilityV1[] {
   const required = new Set<ExecutorCapabilityV1>(["execution:cancel", "execution:structured-output"]);
   for (const node of graph.nodes) {
+    if (node.authority.effect !== "none") continue;
     for (const capability of node.authority.capabilities) required.add(capability);
-    if (node.authority.approval === "required") required.add("graph:approval");
     if (node.retry.maxAttempts > 1) required.add("graph:retry");
     if (node.routing) required.add("graph:routing");
   }
@@ -133,36 +163,6 @@ function requestCapabilities(node: CompiledGraphNodeV1): ExecutorCapabilityV1[] 
   if (node.retry.maxAttempts > 1) capabilities.add("graph:retry");
   if (node.routing) capabilities.add("graph:routing");
   return [...capabilities].sort();
-}
-
-function workspaceSnapshot(root: string): Map<string, string> {
-  if (!isAbsolute(root)) throw new Error("workspace root must be absolute");
-  const snapshot = new Map<string, string>();
-  const visit = (directory: string) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
-      const absolute = join(directory, entry.name);
-      const path = relative(root, absolute).split("\\").join("/");
-      const stat = lstatSync(absolute);
-      if (stat.isDirectory() && !stat.isSymbolicLink()) {
-        snapshot.set(`${path}/`, `directory:${stat.mode & 0o777}`);
-        visit(absolute);
-      } else if (stat.isFile()) {
-        const digest = createHash("sha256").update(readFileSync(absolute)).digest("hex");
-        snapshot.set(path, `file:${stat.mode & 0o777}:${stat.size}:${digest}`);
-      } else if (stat.isSymbolicLink()) {
-        snapshot.set(path, `symlink:${readlinkSync(absolute)}`);
-      } else {
-        snapshot.set(path, `special:${stat.mode}`);
-      }
-    }
-  };
-  visit(root);
-  return snapshot;
-}
-
-function snapshotDifference(before: Map<string, string>, after: Map<string, string>): string[] {
-  const paths = new Set([...before.keys(), ...after.keys()]);
-  return [...paths].filter((path) => before.get(path) !== after.get(path)).sort();
 }
 
 function normalEdge(graph: CompiledGraphV1, node: CompiledGraphNodeV1, state: Readonly<Record<string, JsonValueV1>>): GraphEdgeV1 | undefined {
@@ -232,7 +232,21 @@ function validateInitialState(graph: CompiledGraphV1, state: Readonly<Record<str
   return { ...state };
 }
 
+function writesMatch(expected: readonly string[], writes: Readonly<Record<string, JsonValueV1>>): boolean {
+  return JSON.stringify(Object.keys(writes).sort()) === JSON.stringify([...expected].sort());
+}
+
 export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1> {
+  input = {
+    ...input,
+    graph: structuredClone(input.graph),
+    ...(input.initialState ? { initialState: structuredClone(input.initialState) } : {}),
+    ...(input.policy ? { policy: structuredClone(input.policy) } : {}),
+    ...(input.workspaceScope ? { workspaceScope: Object.freeze([...input.workspaceScope]) } : {}),
+    ...(input.externalScope ? { externalScope: Object.freeze([...input.externalScope]) } : {}),
+    ...(input.approval ? { approval: structuredClone(input.approval) } : {}),
+    ...(input.reconciliation ? { reconciliation: structuredClone(input.reconciliation) } : {}),
+  };
   const startedAt = performance.now();
   const signal = input.signal ?? new AbortController().signal;
   const expectedContext = createGraphRunContext({ graph: input.graph, runId: input.eventStore.context.runId });
@@ -241,8 +255,23 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
   const state = validateInitialState(input.graph, input.initialState ?? {});
   const mutations = new Set<string>();
   const evidence = new Set<string>();
-  const violations = policyViolations(input.graph);
+  const policy = createCapabilityPolicy(input.policy ?? { mode: "read-only" });
+  const violations = input.graph.nodes.flatMap((node) => evaluateCapabilityPolicy({ node, policy }).violations);
+  if (input.graph.nodes.some((node) => node.authority.effect === "workspace") && policy.mode === "workspace-change"
+    && (!input.workspaceScope || input.workspaceScope.length === 0)) {
+    violations.push("workspace effects require an explicit workspace scope");
+  }
+  if (input.graph.nodes.some((node) => node.authority.effect === "external") && policy.mode === "workspace-change"
+    && (!input.externalScope || input.externalScope.length === 0)) {
+    violations.push("external effects require an explicit external scope");
+  }
+  for (const node of input.graph.nodes.filter((candidate) => candidate.authority.effect !== "none")) {
+    if (input.sideEffectExecutor && !input.sideEffectExecutor.effects.includes(node.authority.effect as "workspace" | "external")) {
+      violations.push(`side-effect executor does not support ${node.authority.effect} effects`);
+    }
+  }
   const shadow = createShadowRun({ graph: input.graph, runId: input.eventStore.context.runId, sink: { append: () => undefined } });
+  const rollbackEvidence: RollbackEvidenceV1[] = [];
   const tokens: TokenAccumulator = {
     input: 0, cached: 0, output: 0, reasoning: 0,
     inputComplete: true, cachedComplete: true, outputComplete: true, reasoningComplete: true,
@@ -252,6 +281,9 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
   let retries = 0;
   let executorProbe: ExecutorProbeV1 | null = null;
   let executorFailure: ExecutorFailureV1 | null = null;
+  let approvalRequest: ApprovalRequestV1 | null = null;
+  let approvalFailure: ApprovalValidationReasonV1 | null = null;
+  let reconciliationRequired: GraphRunResultV1["reconciliationRequired"] = null;
   let control = input.eventStore.state();
   const startingNodeId = control?.currentNodeId ?? input.graph.entry;
   let resumed = control !== null;
@@ -291,11 +323,32 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
       events,
       trajectory: scoreTrajectoryConformance({ graph: input.graph, events, expectedTerminal }),
       workspaceMutations: Object.freeze([...mutations].sort()),
-      policyViolations: Object.freeze([...violations]),
+      policyViolations: Object.freeze([...new Set(violations)].sort()),
+      approvalRequest,
+      approvalFailure,
+      reconciliationRequired,
+      rollbackEvidence: Object.freeze([...rollbackEvidence]),
       executor: executorProbe,
       executorFailure,
       resume: Object.freeze({ resumed, startingNodeId, recoveredRunningAttempt }),
     });
+  };
+
+  const completeNode = (
+    node: CompiledGraphNodeV1,
+    writes: Readonly<Record<string, JsonValueV1>>,
+  ): "advanced" | "invalid" => {
+    if (!control || !writesMatch(node.state.writes, writes)) return "invalid";
+    Object.assign(state, writes);
+    const edge = normalEdge(input.graph, node, state);
+    if (!edge) return "invalid";
+    shadow.record({ kind: "node-completed", nodeId: node.id, outcome: "success", source: "harness", adapter: `${executorProbe?.provider ?? "effect"}-v1`, elapsedMs: performance.now() - startedAt });
+    for (const proofId of node.proof.produces) {
+      shadow.record({ kind: "proof-recorded", nodeId: node.id, proofId, source: "harness", adapter: `${executorProbe?.provider ?? "effect"}-v1`, elapsedMs: performance.now() - startedAt });
+    }
+    shadow.record({ kind: "edge-selected", edgeId: edge.id, source: "harness", adapter: `${executorProbe?.provider ?? "effect"}-v1`, elapsedMs: performance.now() - startedAt });
+    persist({ type: "node-completed", nodeId: node.id, attempt: control.attempt, nextNodeId: edge.to });
+    return "advanced";
   };
 
   if (violations.length > 0) return finish("policy-denied");
@@ -312,9 +365,13 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
     if (control.status === "cancelled") return finish("cancelled", "cancelled");
     if (control.status === "failed") return finish("failed", "failure");
     if (control.status === "running") {
-      persist({ type: "node-retry-scheduled", nodeId: control.currentNodeId, attempt: control.attempt, reason: "transient" });
       recoveredRunningAttempt = true;
-      retries += 1;
+      const recoveredNode = nodes.get(control.currentNodeId);
+      if (!recoveredNode) throw new Error(`compiled graph node ${control.currentNodeId} is missing`);
+      if (recoveredNode.authority.effect === "none") {
+        persist({ type: "node-retry-scheduled", nodeId: control.currentNodeId, attempt: control.attempt, reason: "transient" });
+        retries += 1;
+      }
     } else if (control.status === "waiting") {
       persist({ type: "node-resumed", nodeId: control.currentNodeId, attempt: control.attempt });
     }
@@ -347,7 +404,76 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
       return finish("failed", node.handler.ref);
     }
 
-    const before = workspaceSnapshot(input.workspaceRoot);
+    if (node.authority.effect !== "none") {
+      const sideResult = await runSideEffect({
+        graph: input.graph,
+        node,
+        control,
+        runDirectory: input.eventStore.runDirectory,
+        workspaceRoot: input.workspaceRoot,
+        workspaceScope: input.workspaceScope ?? [],
+        externalScope: input.externalScope ?? [],
+        instruction: input.instruction,
+        state,
+        executor: input.sideEffectExecutor,
+        approval: input.approval,
+        reconciliation: input.reconciliation,
+        signal,
+        persist,
+      });
+      approvalRequest = sideResult.approvalRequest;
+      approvalFailure = sideResult.approvalFailure;
+      if (sideResult.executorInvoked) nodesExecuted += 1;
+      providerElapsedMs += sideResult.elapsedMs;
+      for (const ref of sideResult.evidenceRefs) evidence.add(ref);
+      for (const path of sideResult.mutations) mutations.add(path);
+      rollbackEvidence.push(...sideResult.rollbackEvidence);
+      violations.push(...sideResult.violations);
+      if (sideResult.kind === "unsupported") return finish("unsupported");
+      if (sideResult.kind === "approval-required") {
+        persist({ type: "node-waiting", nodeId: node.id, attempt: control.attempt, reason: "approval" });
+        return finish("approval-required");
+      }
+      if (sideResult.kind === "reconciliation-required") {
+        reconciliationRequired = Object.freeze(sideResult.reconciliation);
+        return finish("reconciliation-required");
+      }
+      reconciliationRequired = null;
+      if (sideResult.kind === "completed") {
+        if (completeNode(node, sideResult.writes) === "invalid") {
+          persist({ type: "run-failed", nodeId: node.id, attempt: control.attempt, reason: "validation" });
+          return finish("failed");
+        }
+        continue;
+      }
+      if (sideResult.kind === "retry") {
+        retries += 1;
+        if (await abortedDelay(sideResult.delayMs, signal)) {
+          persist({ type: "run-cancelled", nodeId: node.id, attempt: control.attempt, reason: "user" });
+          return finish("cancelled");
+        }
+        continue;
+      }
+      if (sideResult.kind === "cancelled") {
+        const edge = outcomeEdge(input.graph, node.id, "cancel");
+        if (!edge) {
+          persist({ type: "run-cancelled", nodeId: node.id, attempt: control.attempt, reason: "user" });
+          return finish("cancelled");
+        }
+        persist({ type: "node-completed", nodeId: node.id, attempt: control.attempt, nextNodeId: edge.to });
+        continue;
+      }
+      routedFailureReason = sideResult.reason;
+      const edge = outcomeEdge(input.graph, node.id, "failure");
+      if (!edge) {
+        persist({ type: "run-failed", nodeId: node.id, attempt: control.attempt, reason: routedFailureReason });
+        return finish("failed");
+      }
+      persist({ type: "node-completed", nodeId: node.id, attempt: control.attempt, nextNodeId: edge.to });
+      continue;
+    }
+
+    const before = captureWorkspaceSnapshot(input.workspaceRoot);
     const result = await input.executor.execute(createExecutorRequest({
       runId: input.eventStore.context.runId,
       attempt: control.attempt,
@@ -365,7 +491,7 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
     providerElapsedMs += result.elapsedMs;
     addUsage(tokens, result);
     for (const ref of result.evidenceRefs) evidence.add(ref);
-    const changed = snapshotDifference(before, workspaceSnapshot(input.workspaceRoot));
+    const changed = diffWorkspaceSnapshots(before, captureWorkspaceSnapshot(input.workspaceRoot)).changedPaths;
     for (const path of changed) mutations.add(path);
     if (changed.length > 0) {
       violations.push(`node ${node.id} mutated a read-only workspace`);
@@ -375,24 +501,9 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
     }
 
     if (result.status === "completed") {
-      const writes = Object.keys(result.transientStateWrites).sort();
-      const expectedWrites = [...node.state.writes].sort();
-      if (JSON.stringify(writes) !== JSON.stringify(expectedWrites)) {
+      if (completeNode(node, result.transientStateWrites) === "invalid") {
         routedFailureReason = "validation";
       } else {
-        Object.assign(state, result.transientStateWrites);
-        const edge = normalEdge(input.graph, node, state);
-        if (!edge) {
-          shadow.record({ kind: "node-completed", nodeId: node.id, outcome: "failure", source: "harness", adapter: `${executorProbe.provider}-v1`, elapsedMs: performance.now() - startedAt });
-          persist({ type: "run-failed", nodeId: node.id, attempt: control.attempt, reason: "validation" });
-          return finish("failed");
-        }
-        shadow.record({ kind: "node-completed", nodeId: node.id, outcome: "success", source: "harness", adapter: `${executorProbe.provider}-v1`, elapsedMs: performance.now() - startedAt });
-        for (const proofId of node.proof.produces) {
-          shadow.record({ kind: "proof-recorded", nodeId: node.id, proofId, source: "harness", adapter: `${executorProbe.provider}-v1`, elapsedMs: performance.now() - startedAt });
-        }
-        shadow.record({ kind: "edge-selected", edgeId: edge.id, source: "harness", adapter: `${executorProbe.provider}-v1`, elapsedMs: performance.now() - startedAt });
-        persist({ type: "node-completed", nodeId: node.id, attempt: control.attempt, nextNodeId: edge.to });
         continue;
       }
     }
