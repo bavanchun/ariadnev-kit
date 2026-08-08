@@ -42,6 +42,8 @@ describe("embedded-kit", () => {
     expect(existsSync(join(root, "skills"))).toBe(true);
     expect(existsSync(join(root, "skills", "cook", "SKILL.md"))).toBe(true);
     expect(existsSync(join(root, "hooks", "session-init", "hook.cjs"))).toBe(true);
+    expect(existsSync(join(root, "workflows", "schema", "workflow.schema.json"))).toBe(true);
+    expect(existsSync(join(root, "workflows", "read-only-delivery.json"))).toBe(true);
   });
 
   it("materializes portable-manifest.json at the flat root", () => {

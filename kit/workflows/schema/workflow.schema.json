@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vcskill.dev/schemas/workflow-v1.json",
+  "title": "vcskill Graph IR V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "description", "versions", "entry", "state", "nodes", "edges"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "versions": { "$ref": "#/$defs/versions" },
+    "entry": { "$ref": "#/$defs/id" },
+    "state": { "$ref": "#/$defs/state" },
+    "nodes": { "type": "array", "minItems": 1, "maxItems": 128, "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "minItems": 1, "maxItems": 512, "items": { "$ref": "#/$defs/edge" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9.-]{0,63}$" },
+    "version": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$" },
+    "stringList": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 80 } },
+    "versions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["graph", "skills", "policy", "evaluator"],
+      "properties": {
+        "graph": { "$ref": "#/$defs/version" }, "skills": { "$ref": "#/$defs/version" },
+        "policy": { "$ref": "#/$defs/version" }, "evaluator": { "$ref": "#/$defs/version" }
+      }
+    },
+    "state": {
+      "type": "object", "additionalProperties": false, "required": ["fields"],
+      "properties": { "fields": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/stateField" } } }
+    },
+    "stateField": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "scope", "owner", "redaction", "required"],
+      "properties": {
+        "name": { "$ref": "#/$defs/id" }, "type": { "enum": ["string", "number", "boolean", "object", "array"] },
+        "scope": { "enum": ["run", "workflow"] }, "owner": { "$ref": "#/$defs/id" },
+        "redaction": { "$ref": "#/$defs/redactionClass" }, "required": { "type": "boolean" }
+      }
+    },
+    "node": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "type", "handler", "state", "authority", "proof", "timeoutMs", "retry", "redaction"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "type": { "$ref": "#/$defs/nodeType" },
+        "handler": { "$ref": "#/$defs/handler" }, "state": { "$ref": "#/$defs/nodeState" },
+        "authority": { "$ref": "#/$defs/authority" }, "proof": { "$ref": "#/$defs/proof" },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 3600000 },
+        "retry": { "$ref": "#/$defs/retry" }, "redaction": { "$ref": "#/$defs/redaction" },
+        "routing": { "$ref": "#/$defs/routing" }
+      }
+    },
+    "nodeType": { "enum": ["skill", "agent", "tool", "function", "gate", "human", "terminal"] },
+    "handler": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "ref"],
+      "properties": { "kind": { "$ref": "#/$defs/nodeType" }, "ref": { "type": "string", "pattern": "^[a-z][a-z0-9.:-]{0,79}$" } }
+    },
+    "nodeState": {
+      "type": "object", "additionalProperties": false, "required": ["reads", "writes"],
+      "properties": { "reads": { "$ref": "#/$defs/stringList" }, "writes": { "$ref": "#/$defs/stringList" } }
+    },
+    "capability": { "enum": ["state:read", "state:write", "workspace:read", "workspace:write", "process:execute", "network:read", "external:mutate", "publish", "delete"] },
+    "authority": {
+      "type": "object", "additionalProperties": false,
+      "required": ["capabilities", "effect", "approval", "idempotency"],
+      "properties": {
+        "capabilities": { "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/capability" } },
+        "effect": { "enum": ["none", "workspace", "external"] }, "approval": { "enum": ["none", "required"] },
+        "idempotency": { "enum": ["none", "required"] }, "idempotencyKey": { "$ref": "#/$defs/id" }
+      },
+      "allOf": [{ "if": { "properties": { "idempotency": { "const": "required" } } }, "then": { "required": ["idempotencyKey"], "properties": { "idempotencyKey": true } } }]
+    },
+    "proof": {
+      "type": "object", "additionalProperties": false, "required": ["requires", "produces"],
+      "properties": { "requires": { "$ref": "#/$defs/stringList" }, "produces": { "$ref": "#/$defs/stringList" } }
+    },
+    "retry": {
+      "type": "object", "additionalProperties": false, "required": ["maxAttempts", "backoffMs", "on"],
+      "properties": {
+        "maxAttempts": { "type": "integer", "minimum": 1, "maximum": 10 }, "backoffMs": { "type": "integer", "minimum": 0, "maximum": 300000 },
+        "on": { "type": "array", "maxItems": 3, "uniqueItems": true, "items": { "enum": ["transient", "timeout", "conflict"] } }
+      }
+    },
+    "redactionClass": { "enum": ["public", "internal", "sensitive"] },
+    "redaction": {
+      "type": "object", "additionalProperties": false, "required": ["input", "output", "logs"],
+      "properties": { "input": { "$ref": "#/$defs/redactionClass" }, "output": { "$ref": "#/$defs/redactionClass" }, "logs": { "enum": ["metadata-only", "redacted"] } }
+    },
+    "routing": {
+      "type": "object", "additionalProperties": false, "required": ["strategy", "allowedTargets", "fallback"],
+      "properties": {
+        "strategy": { "const": "model" },
+        "allowedTargets": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "fallback": { "$ref": "#/$defs/id" }
+      }
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["id", "from", "to", "type"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "from": { "$ref": "#/$defs/id" }, "to": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["success", "failure", "conditional", "retry", "handoff", "approval", "cancel"] },
+        "condition": { "$ref": "#/$defs/condition" }
+      },
+      "allOf": [{ "if": { "properties": { "type": { "const": "conditional" } } }, "then": { "required": ["condition"], "properties": { "condition": true } } }]
+    },
+    "condition": {
+      "type": "object", "additionalProperties": false, "required": ["field", "operator", "value"],
+      "properties": {
+        "field": { "$ref": "#/$defs/id" }, "operator": { "enum": ["equals", "not-equals"] },
+        "value": { "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "null" }] }
+      }
+    }
+  }
+}
