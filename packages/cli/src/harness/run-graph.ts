@@ -109,6 +109,10 @@ export interface RunGraphInputV1 {
     evidenceRefs: readonly string[];
     transientStateWrites: Readonly<Record<string, JsonValueV1>>;
   }>;
+  persistState?: (snapshot: Readonly<{
+    sequence: number;
+    state: Readonly<Record<string, JsonValueV1>>;
+  }>) => void;
   signal?: AbortSignal;
 }
 
@@ -141,7 +145,7 @@ export function createGraphRunContext(input: {
   });
 }
 
-function requiredCapabilities(graph: CompiledGraphV1): ExecutorCapabilityV1[] {
+export function requiredExecutorCapabilities(graph: CompiledGraphV1): ExecutorCapabilityV1[] {
   const required = new Set<ExecutorCapabilityV1>(["execution:cancel", "execution:structured-output"]);
   for (const node of graph.nodes) {
     if (node.authority.effect !== "none") continue;
@@ -291,6 +295,10 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
   let routedFailureReason: "provider" | "validation" | "exhausted" = "provider";
 
   const persist = (payload: RunEventPayloadV1): RunStateV1 => {
+    input.persistState?.(Object.freeze({
+      sequence: (control?.lastSequence ?? 0) + 1,
+      state: Object.freeze(structuredClone(state)),
+    }));
     input.eventStore.append(payload);
     const current = input.eventStore.state();
     if (!current) throw new Error("execution event append did not produce state");
@@ -352,7 +360,11 @@ export async function runGraph(input: RunGraphInputV1): Promise<GraphRunResultV1
   };
 
   if (violations.length > 0) return finish("policy-denied");
-  executorProbe = input.executor.probe(requiredCapabilities(input.graph));
+  const probeStartedAt = performance.now();
+  executorProbe = input.executor.probe(requiredExecutorCapabilities(input.graph));
+  // Capability probing invokes the provider runtime and is therefore provider
+  // time, not graph-orchestration overhead.
+  providerElapsedMs += performance.now() - probeStartedAt;
   if (executorProbe.status === "unsupported") return finish("unsupported");
 
   if (control === null) {

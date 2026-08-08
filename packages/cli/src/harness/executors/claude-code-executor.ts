@@ -1,6 +1,6 @@
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { chmodSync, lstatSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { chmodSync, lstatSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { parseStrictJson } from "../../eval/strict-json.js";
@@ -21,17 +21,33 @@ import {
 const ADAPTER_VERSION = "1.0.0";
 const DEFAULT_OUTPUT_LIMIT = 2 * 1024 * 1024;
 const DEFAULT_TERMINATION_GRACE_MS = 500;
-const REQUIRED_HELP_FLAGS = ["--json", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--sandbox", "--output-schema", "--cd"];
+const REQUIRED_HELP_FLAGS = [
+  "--print",
+  "--output-format",
+  "--json-schema",
+  "--permission-mode",
+  "--no-session-persistence",
+  "--settings",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "--tools",
+  "--allowedTools",
+  "--model",
+  "--safe-mode",
+  "--no-chrome",
+  "--disable-slash-commands",
+];
+const READ_ONLY_TOOLS = "Read,Glob,Grep";
 const ENVIRONMENT_ALLOWLIST = [
-  "PATH", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE", "TERM",
+  "PATH", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "USER", "LOGNAME", "SHELL",
   "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+  "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL",
 ] as const;
 
-export const READ_ONLY_CODEX_CAPABILITIES: readonly ExecutorCapabilityV1[] = Object.freeze([
+export const READ_ONLY_CLAUDE_CODE_CAPABILITIES: readonly ExecutorCapabilityV1[] = Object.freeze([
   "state:read",
   "state:write",
   "workspace:read",
-  "process:execute",
   "graph:interrupt",
   "graph:retry",
   "graph:routing",
@@ -39,12 +55,13 @@ export const READ_ONLY_CODEX_CAPABILITIES: readonly ExecutorCapabilityV1[] = Obj
   "execution:structured-output",
 ]);
 
-export interface CodexExecutorOptions {
+export interface ClaudeCodeExecutorOptions {
   executable?: string;
   baseArgs?: readonly string[];
   expectedRuntimeVersion: string;
   model: string;
-  codexHome?: string;
+  claudeConfigDir?: string;
+  authenticationHome?: string;
   sourceEnvironment?: NodeJS.ProcessEnv;
   maxOutputBytes?: number;
   terminationGraceMs?: number;
@@ -58,7 +75,7 @@ type ProcessOutcome = Readonly<{
   spawnError?: string;
 }>;
 
-type ParsedCodexOutput = Readonly<{
+type ParsedClaudeOutput = Readonly<{
   writes: Readonly<Record<string, JsonValueV1>>;
   evidenceRefs: readonly string[];
   usage: ExecutorUsageV1;
@@ -71,27 +88,6 @@ type RuntimeContractProbe = Readonly<{
 
 function sourceProcessEnvironment(): NodeJS.ProcessEnv {
   return Reflect.get(process, "env") as NodeJS.ProcessEnv;
-}
-
-function supportedProbe(input: {
-  runtimeVersion: string | null;
-  model: string;
-  required: readonly ExecutorCapabilityV1[];
-  reason?: ExecutorProbeV1["reason"];
-}): ExecutorProbeV1 {
-  const available = READ_ONLY_CODEX_CAPABILITIES;
-  const missing = input.required.filter((capability) => !available.includes(capability));
-  const reason = input.reason ?? (missing.length > 0 ? "capability-missing" : undefined);
-  return createExecutorProbe({
-    provider: "codex",
-    adapterVersion: ADAPTER_VERSION,
-    runtimeVersion: input.runtimeVersion,
-    model: input.model,
-    status: reason === undefined ? "supported" : "unsupported",
-    available,
-    missing,
-    ...(reason !== undefined ? { reason } : {}),
-  });
 }
 
 function boundedPositive(value: number | undefined, fallback: number, label: string): number {
@@ -111,18 +107,32 @@ function isRegularDirectory(path: string | undefined): path is string {
 }
 
 function runtimeVersion(output: string): string | null {
-  return output.match(/(?:codex-cli\s+)?(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?)/)?.[1] ?? null;
+  return output.match(/(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?)/)?.[1] ?? null;
 }
 
-function privateSchema(allowedWrites: readonly string[]): { root: string; path: string } {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-codex-schema-"));
-  chmodSync(root, 0o700);
-  const path = join(root, "output-schema.json");
-  const writeProperties = Object.fromEntries(allowedWrites.map((name) => [name, {
-    type: "string",
-    description: "A JSON-encoded state value.",
-  }]));
-  const schema = {
+function supportedProbe(input: {
+  runtimeVersion: string | null;
+  model: string;
+  required: readonly ExecutorCapabilityV1[];
+  reason?: ExecutorProbeV1["reason"];
+}): ExecutorProbeV1 {
+  const available = READ_ONLY_CLAUDE_CODE_CAPABILITIES;
+  const missing = input.required.filter((capability) => !available.includes(capability));
+  const reason = input.reason ?? (missing.length > 0 ? "capability-missing" : undefined);
+  return createExecutorProbe({
+    provider: "claude-code",
+    adapterVersion: ADAPTER_VERSION,
+    runtimeVersion: input.runtimeVersion,
+    model: input.model,
+    status: reason === undefined ? "supported" : "unsupported",
+    available,
+    missing,
+    ...(reason !== undefined ? { reason } : {}),
+  });
+}
+
+function outputSchema(allowedWrites: readonly string[]) {
+  return {
     type: "object",
     additionalProperties: false,
     required: ["schemaVersion", "writes", "evidenceRefs"],
@@ -132,7 +142,10 @@ function privateSchema(allowedWrites: readonly string[]): { root: string; path: 
         type: "object",
         additionalProperties: false,
         required: [...allowedWrites],
-        properties: writeProperties,
+        properties: Object.fromEntries(allowedWrites.map((name) => [name, {
+          type: "string",
+          description: "A JSON-encoded state value.",
+        }])),
       },
       evidenceRefs: {
         type: "array",
@@ -141,26 +154,25 @@ function privateSchema(allowedWrites: readonly string[]): { root: string; path: 
       },
     },
   };
-  writeFileSync(path, `${JSON.stringify(schema)}\n`, { mode: 0o600 });
-  chmodSync(path, 0o600);
-  return { root, path };
 }
 
 function safeEnvironment(input: {
   source: NodeJS.ProcessEnv;
   workspaceRoot: string;
-  codexHome?: string;
+  claudeConfigDir?: string;
+  authenticationHome?: string;
 }): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {};
   for (const key of ENVIRONMENT_ALLOWLIST) {
     const value = input.source[key];
     if (value !== undefined) environment[key] = value;
   }
-  environment.HOME = input.workspaceRoot;
-  environment.USERPROFILE = input.workspaceRoot;
-  environment.CODEX_HOME = input.codexHome
-    ?? input.source.CODEX_HOME
-    ?? join(input.source.HOME ?? homedir(), ".codex");
+  environment.HOME = input.authenticationHome ?? input.workspaceRoot;
+  environment.USERPROFILE = input.authenticationHome ?? input.workspaceRoot;
+  if (input.claudeConfigDir) environment.CLAUDE_CONFIG_DIR = input.claudeConfigDir;
+  environment.CLAUDE_CODE_SKIP_PROMPT_HISTORY = "1";
+  environment.CLAUDE_CODE_SAFE_MODE = "1";
+  environment.DISABLE_AUTOUPDATER = "1";
   return environment;
 }
 
@@ -178,35 +190,6 @@ function instructionFor(request: ExecutorRequestV1): string {
   ].join("\n");
 }
 
-function terminateProcessTree(child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals): void {
-  if (!child.pid) return;
-  try {
-    if (process.platform === "win32") {
-      const args = ["/PID", String(child.pid), "/T", ...(signal === "SIGKILL" ? ["/F"] : [])];
-      const killed = spawnSync("taskkill", args, { shell: false, stdio: "ignore", windowsHide: true });
-      if (killed.error || killed.status !== 0) child.kill(signal);
-    } else process.kill(-child.pid, signal);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== "ESRCH") child.kill(signal);
-  }
-}
-
-function parseUsage(value: unknown): ExecutorUsageV1 {
-  const usage = typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-  const count = (key: string): number | null => Number.isInteger(usage[key]) && (usage[key] as number) >= 0
-    ? usage[key] as number
-    : null;
-  return {
-    inputTokens: count("input_tokens"),
-    cachedInputTokens: count("cached_input_tokens"),
-    outputTokens: count("output_tokens"),
-    reasoningTokens: count("reasoning_output_tokens"),
-  };
-}
-
 function safeEvidenceRef(workspaceRoot: string, value: unknown): string {
   if (typeof value !== "string" || value.length === 0 || value.includes("\0") || isAbsolute(value) || value.includes("\\")) {
     throw new Error("evidence ref must be a safe workspace-relative path");
@@ -219,7 +202,7 @@ function safeEvidenceRef(workspaceRoot: string, value: unknown): string {
   return inside;
 }
 
-function parseModelPayload(input: unknown, request: ExecutorRequestV1): Pick<ParsedCodexOutput, "writes" | "evidenceRefs"> {
+function parseModelPayload(input: unknown, request: ExecutorRequestV1): Pick<ParsedClaudeOutput, "writes" | "evidenceRefs"> {
   if (typeof input !== "object" || input === null || Array.isArray(input)) throw new Error("model output must be an object");
   const payload = input as Record<string, unknown>;
   const fields = ["schemaVersion", "writes", "evidenceRefs"];
@@ -236,7 +219,7 @@ function parseModelPayload(input: unknown, request: ExecutorRequestV1): Pick<Par
   const writes = Object.fromEntries(actual.map((field) => {
     const encoded = encodedWrites[field];
     if (typeof encoded !== "string") throw new Error(`model output write ${field} must be JSON-encoded`);
-    return [field, parseStrictJson(encoded, `Codex state write ${field}`) as JsonValueV1];
+    return [field, parseStrictJson(encoded, `Claude Code state write ${field}`) as JsonValueV1];
   }));
   if (!Array.isArray(payload.evidenceRefs)) throw new Error("model output evidenceRefs must be an array");
   const evidenceRefs = payload.evidenceRefs.map((ref) => safeEvidenceRef(request.workspaceRoot, ref));
@@ -244,26 +227,36 @@ function parseModelPayload(input: unknown, request: ExecutorRequestV1): Pick<Par
   return { writes, evidenceRefs };
 }
 
-function parseCodexJsonl(stdout: string, request: ExecutorRequestV1): ParsedCodexOutput {
-  let message: string | undefined;
-  let usage: ExecutorUsageV1 = { inputTokens: null, cachedInputTokens: null, outputTokens: null, reasoningTokens: null };
-  const lines = stdout.split("\n").filter((line) => line.length > 0);
-  if (lines.length === 0) throw new Error("Codex produced no JSONL events");
-  for (const [index, line] of lines.entries()) {
-    const event = parseStrictJson(line, `Codex JSONL event ${index + 1}`) as Record<string, unknown>;
-    if (typeof event !== "object" || event === null || Array.isArray(event)) throw new Error("Codex JSONL event must be an object");
-    if (event.type === "item.completed") {
-      const item = event.item;
-      if (typeof item === "object" && item !== null && !Array.isArray(item)) {
-        const current = item as Record<string, unknown>;
-        if (current.type === "agent_message" && typeof current.text === "string") message = current.text;
-      }
-    }
-    if (event.type === "turn.completed") usage = parseUsage(event.usage);
+function nonNegativeInteger(value: unknown): number | null {
+  return Number.isInteger(value) && (value as number) >= 0 ? value as number : null;
+}
+
+function parseUsage(value: unknown): ExecutorUsageV1 {
+  const usage = typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const regular = nonNegativeInteger(usage.input_tokens);
+  const cacheCreation = nonNegativeInteger(usage.cache_creation_input_tokens);
+  return {
+    inputTokens: regular === null ? null : regular + (cacheCreation ?? 0),
+    cachedInputTokens: nonNegativeInteger(usage.cache_read_input_tokens),
+    outputTokens: nonNegativeInteger(usage.output_tokens),
+    reasoningTokens: null,
+  };
+}
+
+function parseClaudeJson(stdout: string, request: ExecutorRequestV1): ParsedClaudeOutput {
+  const envelope = parseStrictJson(stdout.trim(), "Claude Code JSON result") as unknown;
+  if (typeof envelope !== "object" || envelope === null || Array.isArray(envelope)) {
+    throw new Error("Claude Code JSON result must be an object");
   }
-  if (message === undefined) throw new Error("Codex JSONL is missing the final agent message");
-  const payload = parseModelPayload(parseStrictJson(message, "Codex final agent message"), request);
-  return { ...payload, usage };
+  const object = envelope as Record<string, unknown>;
+  if (object.is_error === true || object.subtype === "error") throw new Error("Claude Code reported an error result");
+  if (!Object.prototype.hasOwnProperty.call(object, "structured_output")) {
+    throw new Error("Claude Code JSON result is missing structured_output");
+  }
+  const payload = parseModelPayload(object.structured_output, request);
+  return { ...payload, usage: parseUsage(object.usage) };
 }
 
 function failureResult(input: {
@@ -285,28 +278,44 @@ function failureResult(input: {
   });
 }
 
-export class CodexExecutor implements GraphExecutorV1 {
-  readonly provider = "codex";
+function terminateProcessTree(child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals): void {
+  if (!child.pid) return;
+  try {
+    if (process.platform === "win32") {
+      const args = ["/PID", String(child.pid), "/T", ...(signal === "SIGKILL" ? ["/F"] : [])];
+      const killed = spawnSync("taskkill", args, { shell: false, stdio: "ignore", windowsHide: true });
+      if (killed.error || killed.status !== 0) child.kill(signal);
+    } else process.kill(-child.pid, signal);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ESRCH") child.kill(signal);
+  }
+}
+
+export class ClaudeCodeExecutor implements GraphExecutorV1 {
+  readonly provider = "claude-code";
   private readonly executable: string;
   private readonly baseArgs: readonly string[];
   private readonly expectedRuntimeVersion: string;
   private readonly model: string;
-  private readonly codexHome?: string;
+  private readonly claudeConfigDir?: string;
+  private readonly authenticationHome?: string;
   private readonly sourceEnvironment: NodeJS.ProcessEnv;
   private readonly maxOutputBytes: number;
   private readonly terminationGraceMs: number;
   private readonly active = new Set<ChildProcessWithoutNullStreams>();
   private runtimeContractProbe?: RuntimeContractProbe;
 
-  constructor(options: CodexExecutorOptions) {
-    this.executable = options.executable ?? "codex";
+  constructor(options: ClaudeCodeExecutorOptions) {
+    this.executable = options.executable ?? "claude";
     this.baseArgs = Object.freeze([...(options.baseArgs ?? [])]);
     this.expectedRuntimeVersion = options.expectedRuntimeVersion;
     this.model = options.model;
-    this.codexHome = options.codexHome;
+    this.claudeConfigDir = options.claudeConfigDir;
+    this.authenticationHome = options.authenticationHome;
     this.sourceEnvironment = options.sourceEnvironment ?? sourceProcessEnvironment();
-    this.maxOutputBytes = boundedPositive(options.maxOutputBytes, DEFAULT_OUTPUT_LIMIT, "Codex maxOutputBytes");
-    this.terminationGraceMs = boundedPositive(options.terminationGraceMs, DEFAULT_TERMINATION_GRACE_MS, "Codex terminationGraceMs");
+    this.maxOutputBytes = boundedPositive(options.maxOutputBytes, DEFAULT_OUTPUT_LIMIT, "Claude Code maxOutputBytes");
+    this.terminationGraceMs = boundedPositive(options.terminationGraceMs, DEFAULT_TERMINATION_GRACE_MS, "Claude Code terminationGraceMs");
   }
 
   get activeProcessCount(): number {
@@ -319,10 +328,10 @@ export class CodexExecutor implements GraphExecutorV1 {
 
   private inspectRuntimeContract(): RuntimeContractProbe {
     if (this.runtimeContractProbe) return this.runtimeContractProbe;
-    const temporaryHome = isRegularDirectory(this.codexHome) ? undefined : mkdtempSync(join(tmpdir(), "vcskill-codex-probe-"));
+    const temporaryHome = isRegularDirectory(this.claudeConfigDir) ? undefined : mkdtempSync(join(tmpdir(), "vcskill-claude-probe-"));
     if (temporaryHome) chmodSync(temporaryHome, 0o700);
-    const probeHome = this.codexHome && temporaryHome === undefined ? this.codexHome : temporaryHome!;
-    const environment = safeEnvironment({ source: this.sourceEnvironment, workspaceRoot: probeHome, codexHome: probeHome });
+    const configDir = this.claudeConfigDir && temporaryHome === undefined ? this.claudeConfigDir : temporaryHome!;
+    const environment = safeEnvironment({ source: this.sourceEnvironment, workspaceRoot: configDir, claudeConfigDir: configDir });
     try {
       const version = spawnSync(this.executable, [...this.baseArgs, "--version"], {
         encoding: "utf8",
@@ -340,11 +349,11 @@ export class CodexExecutor implements GraphExecutorV1 {
         this.runtimeContractProbe = Object.freeze({ runtimeVersion: detected, reason: "runtime-version-drift" });
         return this.runtimeContractProbe;
       }
-      const help = spawnSync(this.executable, [...this.baseArgs, "exec", "--help"], {
+      const help = spawnSync(this.executable, [...this.baseArgs, "--help"], {
         encoding: "utf8",
         shell: false,
         timeout: 5_000,
-        maxBuffer: 64 * 1024,
+        maxBuffer: 128 * 1024,
         env: environment,
       });
       if (help.error || help.status !== 0 || REQUIRED_HELP_FLAGS.some((flag) => !help.stdout.includes(flag))) {
@@ -367,30 +376,20 @@ export class CodexExecutor implements GraphExecutorV1 {
         probe,
         elapsedMs: performance.now() - startedAt,
         code: "policy-unsupported",
-        message: `Codex executor is unsupported: ${probe.reason ?? "capability-missing"}`,
+        message: `Claude Code executor is unsupported: ${probe.reason ?? "capability-missing"}`,
         transient: false,
       });
     }
     if (signal.aborted) {
       return failureResult({ status: "cancelled", probe, elapsedMs: 0, code: "cancelled", message: "execution cancelled", transient: false });
     }
-    if (!this.codexHome) {
+    if (!isRegularDirectory(this.claudeConfigDir) && !isRegularDirectory(this.authenticationHome)) {
       return failureResult({
         status: "unsupported",
         probe,
         elapsedMs: performance.now() - startedAt,
         code: "policy-unsupported",
-        message: "Codex execution requires a controller-owned isolated home",
-        transient: false,
-      });
-    }
-    if (!isRegularDirectory(this.codexHome)) {
-      return failureResult({
-        status: "unsupported",
-        probe,
-        elapsedMs: performance.now() - startedAt,
-        code: "policy-unsupported",
-        message: "isolated Codex home must be a regular directory",
+        message: "Claude Code execution requires an isolated config directory or a regular authentication home",
         transient: false,
       });
     }
@@ -409,75 +408,72 @@ export class CodexExecutor implements GraphExecutorV1 {
         transient: false,
       });
     }
-    const schema = privateSchema(request.allowedStateWrites);
+    const args = [
+      ...this.baseArgs,
+      "-p",
+      "--output-format", "json",
+      "--json-schema", JSON.stringify(outputSchema(request.allowedStateWrites)),
+      "--permission-mode", "dontAsk",
+      "--no-session-persistence",
+      "--settings", "{}",
+      "--strict-mcp-config",
+      "--mcp-config", JSON.stringify({ mcpServers: {} }),
+      "--tools", READ_ONLY_TOOLS,
+      "--allowedTools", READ_ONLY_TOOLS,
+      "--safe-mode",
+      "--no-chrome",
+      "--disable-slash-commands",
+      "--model", this.model,
+    ];
+    const outcome = await this.runProcess({
+      args,
+      cwd: workspaceRoot,
+      environment: safeEnvironment({
+        source: this.sourceEnvironment,
+        workspaceRoot,
+        ...(this.claudeConfigDir ? { claudeConfigDir: this.claudeConfigDir } : {}),
+        ...(this.authenticationHome ? { authenticationHome: this.authenticationHome } : {}),
+      }),
+      stdin: instructionFor(request),
+      timeoutMs: request.timeoutMs,
+      signal,
+    });
+    const elapsedMs = performance.now() - startedAt;
+    if (outcome.forced === "cancelled") {
+      return failureResult({ status: "cancelled", probe, elapsedMs, code: "cancelled", message: "execution cancelled", transient: false });
+    }
+    if (outcome.forced === "timeout") {
+      return failureResult({ status: "timed-out", probe, elapsedMs, code: "timeout", message: "execution timed out", transient: true });
+    }
+    if (outcome.forced === "output-limit") {
+      return failureResult({ status: "output-limit", probe, elapsedMs, code: "output-limit", message: "provider output exceeded the configured bound", transient: false });
+    }
+    if (outcome.spawnError !== undefined) {
+      return failureResult({ status: "failed", probe, elapsedMs, code: "provider-spawn", message: "Claude Code process could not be started", transient: true });
+    }
+    if (outcome.code !== 0) {
+      return failureResult({ status: "failed", probe, elapsedMs, code: "provider-exit", message: `Claude Code exited with status ${outcome.code ?? outcome.signal ?? "unknown"}`, transient: true });
+    }
     try {
-      const args = [
-        ...this.baseArgs,
-        "-a", "never",
-        "-c", "agents.enabled=false",
-        "-c", "shell_environment_policy.inherit=none",
-        "--disable", "plugins",
-        "--disable", "apps",
-        "--disable", "multi_agent",
-        "--disable", "multi_agent_v2",
-        "exec",
-        "--json",
-        "--ephemeral",
-        "--ignore-user-config",
-        "--ignore-rules",
-        "--sandbox", "read-only",
-        "--model", this.model,
-        "--output-schema", schema.path,
-        "--cd", workspaceRoot,
-        "-",
-      ];
-      const outcome = await this.runProcess({
-        args,
-        cwd: workspaceRoot,
-        environment: safeEnvironment({ source: this.sourceEnvironment, workspaceRoot, codexHome: this.codexHome }),
-        stdin: instructionFor(request),
-        timeoutMs: request.timeoutMs,
-        signal,
+      const parsed = parseClaudeJson(outcome.stdout, request);
+      return createExecutorResult({
+        status: "completed",
+        probe,
+        elapsedMs,
+        evidenceRefs: parsed.evidenceRefs,
+        usage: parsed.usage,
+        transientStateWrites: parsed.writes,
       });
-      const elapsedMs = performance.now() - startedAt;
-      if (outcome.forced === "cancelled") {
-        return failureResult({ status: "cancelled", probe, elapsedMs, code: "cancelled", message: "execution cancelled", transient: false });
-      }
-      if (outcome.forced === "timeout") {
-        return failureResult({ status: "timed-out", probe, elapsedMs, code: "timeout", message: "execution timed out", transient: true });
-      }
-      if (outcome.forced === "output-limit") {
-        return failureResult({ status: "output-limit", probe, elapsedMs, code: "output-limit", message: "provider output exceeded the configured bound", transient: false });
-      }
-      if (outcome.spawnError !== undefined) {
-        return failureResult({ status: "failed", probe, elapsedMs, code: "provider-spawn", message: "Codex process could not be started", transient: true });
-      }
-      if (outcome.code !== 0) {
-        return failureResult({ status: "failed", probe, elapsedMs, code: "provider-exit", message: `Codex exited with status ${outcome.code ?? outcome.signal ?? "unknown"}`, transient: true });
-      }
-      try {
-        const parsed = parseCodexJsonl(outcome.stdout, request);
-        return createExecutorResult({
-          status: "completed",
-          probe,
-          elapsedMs,
-          evidenceRefs: parsed.evidenceRefs,
-          usage: parsed.usage,
-          transientStateWrites: parsed.writes,
-        });
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : "unknown validation failure";
-        return failureResult({
-          status: "failed",
-          probe,
-          elapsedMs,
-          code: "malformed-output",
-          message: `Codex returned malformed structured output: ${reason}`,
-          transient: false,
-        });
-      }
-    } finally {
-      rmSync(schema.root, { recursive: true, force: true });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown validation failure";
+      return failureResult({
+        status: "failed",
+        probe,
+        elapsedMs,
+        code: "malformed-output",
+        message: `Claude Code returned malformed structured output: ${reason}`,
+        transient: false,
+      });
     }
   }
 
@@ -522,7 +518,6 @@ export class CodexExecutor implements GraphExecutorV1 {
         this.active.delete(child);
         resolveOutcome(outcome);
       };
-
       const force = (reason: NonNullable<ProcessOutcome["forced"]>) => {
         if (forced !== undefined) return;
         forced = reason;

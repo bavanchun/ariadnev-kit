@@ -7,6 +7,7 @@ import { emit, emitError, setEmitTransform } from "./cli/emit.js";
 import type { CommandRegistrationContext } from "./cli/command-registration-context.js";
 import { registerCatalogCommands } from "./cli/register-catalog-commands.js";
 import { registerInstallCommands } from "./cli/register-install-commands.js";
+import { registerHarnessCommands } from "./cli/register-harness-commands.js";
 import { registerMaintenanceCommands } from "./cli/register-maintenance-commands.js";
 import { registerQualityCommands } from "./cli/register-quality-commands.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
@@ -55,6 +56,7 @@ export function buildProgram(): Command {
   registerMaintenanceCommands(program, context);
   registerQualityCommands(program, context);
   registerCatalogCommands(program, context);
+  registerHarnessCommands(program);
 
   program.addHelpText("beforeAll", () => `${banner()}\n`);
   program.action(() => emit(banner()));

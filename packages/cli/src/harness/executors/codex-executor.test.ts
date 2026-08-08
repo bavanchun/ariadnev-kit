@@ -162,6 +162,16 @@ describe("CodexExecutor", () => {
     expect(executor.activeProcessCount).toBe(0);
   });
 
+  it("reuses one pinned runtime-contract probe for the executor lifetime", () => {
+    const current = fixture();
+    expect(current.executor.probe(["workspace:read"])).toMatchObject({ status: "supported" });
+    rmSync(current.runtime);
+    expect(current.executor.probe(["workspace:read"])).toMatchObject({
+      status: "supported",
+      runtimeVersion: "0.147.0",
+    });
+  });
+
   it("passes adversarial instructions only through stdin without shell interpolation", async () => {
     const { executor, root, workspaceRoot } = fixture();
     const marker = join(root, "shell-injection-marker");
