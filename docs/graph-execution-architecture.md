@@ -141,9 +141,24 @@ remain available across graph upgrades, while resume still refuses incompatible
 graph or runner identity. Cancellation is idempotent, including when a run is
 already terminal.
 
+## Context retrieval boundary
+
+Local context lookup uses a lexical metadata index plus a bounded deterministic
+artifact graph. The graph derives only source-declared workflow handlers,
+scenario subjects, `vc:*` references, and relative documentation links. Results
+carry repository-relative provenance and a content digest; refresh replaces the
+in-memory index so updates and deletions cannot retain stale bytes, and private
+artifacts are excluded before edges are built.
+
+This layer has no graph database, vector store, embedding/model call, temporal
+memory, or provider-side persistence. The lexical index remains the rollback
+path. Adoption evidence and the threshold decision are recorded in
+[decision 0005](decisions/0005-context-graph-adoption.md).
+
 ## References
 
 - [Graph-native control-plane decision](decisions/0004-graph-native-control-plane.md)
+- [Context graph adoption decision](decisions/0005-context-graph-adoption.md)
 - [Claude Code CLI reference](https://code.claude.com/docs/en/cli-usage)
 - [Claude Code headless mode](https://code.claude.com/docs/en/headless)
 - [Claude Code permission modes](https://code.claude.com/docs/en/permission-modes)
