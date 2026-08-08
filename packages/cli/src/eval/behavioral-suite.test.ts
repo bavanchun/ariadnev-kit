@@ -33,6 +33,9 @@ describe("runBehavioralSuite", () => {
 
     expect(result.population).toEqual({ skillScenarios: 26, skillCells: 52, deepTasks: 14, runs: 66 });
     expect(result.report.cells).toHaveLength(66);
+    expect(result.report.cells.every((cell) =>
+      cell.comparison.status === "not-comparable"
+      && cell.comparison.reason === "trusted-observation-source-unavailable")).toBe(true);
     expect(result.runs).toHaveLength(66);
     expect(result.runs.every((run) => !Object.hasOwn(run, "output"))).toBe(true);
     expect(launch.mock.calls.length).toBeGreaterThan(0);

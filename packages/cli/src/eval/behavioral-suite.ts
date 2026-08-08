@@ -118,7 +118,11 @@ export async function runBehavioralSuite(options: BehavioralSuiteOptions) {
     report: buildBehavioralReport({
       baseline: options.identity.kit.version,
       runs,
-      comparisons: [],
+      comparisons: [...new Set(runs.map((run) => run.cellId))].map((cellId) => ({
+        cellId,
+        status: "not-comparable",
+        reason: "trusted-observation-source-unavailable",
+      })),
       expectedSkillCells: skillScenarios.reduce((total, scenario) => total + Object.keys(scenario.cases).length, 0),
     }),
   };
