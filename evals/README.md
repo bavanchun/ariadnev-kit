@@ -1,8 +1,60 @@
 # Behavioral evaluation contracts
 
 This directory owns the frozen inputs and machine contracts for vcskill's
-behavioral benchmark. It does not change the existing static or opt-in LLM
-judge tiers.
+behavioral benchmark. Tier 2 complements the existing static and opt-in LLM
+judge tiers without changing their semantics.
+
+## Running Tier 2
+
+Run from a vcskill source checkout after `pnpm build`. The runner is a strict
+JSON argv array, is spawned directly without a shell, receives only the case
+prompt on stdin, and starts in a fresh copied fixture:
+
+```sh
+vcskill eval --suite \
+  --runner '["agent-command","arg-1"]' \
+  --runtime-provider provider-id \
+  --runtime-version exact-version \
+  --model exact-model
+```
+
+`--skill-repeats` defaults to three and `--deep-repeats` to one. Reduce a
+repeat count only when the measured domain is unavailable (for example,
+routing variance cannot be measured without independently mediated routing
+events), and record that limitation in the baseline environment manifest.
+Phase 2 exposes no capability override: `network.http`, `external.github`, and
+other unmediated capabilities remain explicit `unsupported`/N/A and the runner
+is not called. A later trusted adapter may register independently probed
+capabilities; executor or CLI claims cannot do so.
+
+The child process receives an explicit bootstrap environment allowlist rather
+than the CLI's ambient environment. `HOME` and `USERPROFILE` point at the
+disposable fixture. For a Codex runtime only `CODEX_HOME` may additionally pass
+through so the provider can use an isolated credential/config directory;
+`GH_TOKEN`, API-key variables, `NODE_OPTIONS`, and other ambient values are not
+inherited. Use a dedicated temporary `CODEX_HOME` for benchmark capture.
+
+The command emits one allowlisted JSON document. It exits non-zero when Tier 1
+fails, a hard release floor fails, or trusted evidence remains incomplete.
+Provider stdout is transient evaluator input and has no report field. Timeout,
+caller cancellation, missing executable, process crash, malformed output, and
+fixture path violation remain separate failure classes.
+
+Workspace observation uses one non-recursive watcher per existing fixture
+directory and attaches watchers to newly observed directories. This avoids a
+platform-specific recursive-watch dependency while retaining transient
+write/delete evidence. If the host filesystem cannot provide watchers, the
+action domain fails closed as `incomplete` with
+`actions.path-watch-unavailable`.
+
+The fixture path guard covers the controller-owned disposable container:
+`workspace.write` is inside `workspace/`, while `workspace.unscoped-write` is a
+sibling path inside that container. Arbitrary host paths and remote side
+effects are represented by `external.*` actions. Phase 2 has no trusted event
+source for those actions, so affected safety dimensions remain `incomplete`
+and cannot pass the release gate. The benchmark runner must additionally use
+its runtime's OS sandbox (the pinned Codex baseline uses `workspace-write`).
+Provider-enforced sandbox conformance becomes controller evidence in Phase 7.
 
 ## Contract and trust boundaries
 

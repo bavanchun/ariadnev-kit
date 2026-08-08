@@ -24,7 +24,13 @@ export interface ExecutionControllerOptions {
   preflight: CapabilityPreflightV1;
   signal: AbortSignal;
   now?: () => number;
-  abortStatus?: "cancelled" | "timed-out";
+  abortStatus?: "cancelled" | "timed-out" | (() => "cancelled" | "timed-out");
+}
+
+function abortedStatus(options: ExecutionControllerOptions): "cancelled" | "timed-out" {
+  return typeof options.abortStatus === "function"
+    ? options.abortStatus()
+    : options.abortStatus ?? "cancelled";
 }
 
 function controlled(
@@ -52,18 +58,18 @@ export async function executeScenario(
   const now = options.now ?? (() => performance.now());
   const start = now();
   if (options.signal.aborted) {
-    return controlled(options.run, options.preflight, options.abortStatus ?? "cancelled", 0, undefined);
+    return controlled(options.run, options.preflight, abortedStatus(options), 0, undefined);
   }
   try {
     const transientOutput = await executor.execute(input, options.signal);
     const elapsed = now() - start;
     if (options.signal.aborted) {
-      return controlled(options.run, options.preflight, options.abortStatus ?? "cancelled", elapsed, transientOutput);
+      return controlled(options.run, options.preflight, abortedStatus(options), elapsed, transientOutput);
     }
     return controlled(options.run, options.preflight, "completed", elapsed, transientOutput);
   } catch {
     const elapsed = now() - start;
-    const status = options.signal.aborted ? options.abortStatus ?? "cancelled" : "failed";
+    const status = options.signal.aborted ? abortedStatus(options) : "failed";
     return controlled(options.run, options.preflight, status, elapsed, undefined);
   }
 }
