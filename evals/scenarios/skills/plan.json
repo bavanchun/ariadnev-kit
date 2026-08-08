@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.plan.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Executable implementation plan",
+  "subjects": {
+    "skills": [
+      "vc:plan"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "Turn the accepted graph-harness design into dependency-ordered phases with files, tests, risks, and commits.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "plan.phases"
+          ]
+        },
+        "routing": {
+          "vc:plan": "required",
+          "vc:brainstorm": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "The desired runner behavior is still unclear; explore options and obtain an accepted design first.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "design.acceptance"
+          ]
+        },
+        "routing": {
+          "vc:brainstorm": "required",
+          "vc:plan": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "synthetic-git-repository",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}
