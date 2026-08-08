@@ -27,10 +27,15 @@ surface area without improving execution evidence.
 5. Graph input is untrusted. Parsing is strict and size-bounded, rejects unknown
    fields and duplicate keys/IDs, resolves state and edge references, and fails
    closed on unsupported versions or undeclared side-effect authority.
-6. The first canonical workflows are read-only delivery, root-cause bugfix, and
+6. Compilation is pure and fail-closed: it resolves handlers and runtime
+   capabilities, rejects structural, authority, recovery, state, and proof
+   defects, then emits deterministic JSON, Mermaid, and prose projections from
+   one normalized graph. Static findings expose identifiers and path witnesses,
+   never state or prompt values.
+7. The first canonical workflows are read-only delivery, root-cause bugfix, and
    safe-change delivery. Static compilation, shadow conformance, event-sourced
    recovery, and runtime adapters remain separate proof layers.
-7. Local files are the default backend. A graph database, semantic context graph,
+8. Local files are the default backend. A graph database, semantic context graph,
    cloud scheduler, or visual editor is adopted only after a matched benchmark
    proves material outcome or safety gain over the simpler baseline.
 

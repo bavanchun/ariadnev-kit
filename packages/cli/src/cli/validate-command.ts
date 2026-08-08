@@ -9,6 +9,8 @@ import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/descript
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
 import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { runCoverage } from "./coverage-command.js";
+import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
+import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -16,7 +18,7 @@ import { runCoverage } from "./coverage-command.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "coverage";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "coverage" | "graph";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -162,6 +164,20 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       level: opts.coverageLevel ?? VALIDATE_COVERAGE_LEVEL,
       message: `${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
     });
+  }
+
+  const graphRegistry = graphRegistryForKit(kit);
+  for (const workflow of kit.workflows) {
+    const compiled = compileGraph(workflow.graph, graphRegistry, PORTABLE_GRAPH_CAPABILITY_CONTRACT);
+    for (const graphFinding of compiled.findings) {
+      const witness = graphFinding.path ? ` [path: ${graphFinding.path.join(" -> ")}]` : "";
+      findings.push({
+        skill: `workflow:${workflow.name}`,
+        kind: "graph",
+        level: graphFinding.severity === "error" ? "error" : "warn",
+        message: `${graphFinding.id}: ${graphFinding.message}${witness}`,
+      });
+    }
   }
 
   // Cross-skill description confusability (routing-collision guard).
