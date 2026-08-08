@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -50,6 +50,31 @@ describe("createBehavioralProcessLauncher", () => {
   it("rejects unreviewed credential environment keys", () => {
     expect(() => createBehavioralProcessEnvironment({ GH_TOKEN: "secret" }, ["GH_TOKEN"]))
       .toThrow(/unsupported/);
+  });
+
+  it("uses only an explicit receipt-backed isolated runner home", async () => {
+    const ambient = workspace();
+    const isolated = workspace();
+    const work = workspace();
+    mkdirSync(join(isolated, ".vcskill"), { recursive: true });
+    writeFileSync(join(isolated, ".vcskill", "receipt.json"), "{}");
+    const launcher = createBehavioralProcessLauncher({
+      executable: process.execPath,
+      args: ["-e", "process.stdout.write(String(process.env.HOME))"],
+      sourceEnvironment: { HOME: ambient },
+      runnerHome: isolated,
+    });
+    await expect(launcher.launch({ prompt: "", workspaceRoot: work }, new AbortController().signal))
+      .resolves.toEqual({ kind: "completed", output: realpathSync(isolated) });
+    expect(() => createBehavioralProcessLauncher({
+      executable: process.execPath,
+      sourceEnvironment: { HOME: ambient },
+      runnerHome: ambient,
+    })).toThrow(/ambient user home/);
+    expect(() => createBehavioralProcessLauncher({
+      executable: process.execPath,
+      runnerHome: work,
+    })).toThrow(/install receipt/);
   });
 
   it("feeds the prompt on stdin without a shell", async () => {

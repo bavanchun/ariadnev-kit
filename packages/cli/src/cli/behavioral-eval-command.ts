@@ -30,6 +30,7 @@ export interface BehavioralEvalDeps {
     evalRoot: string;
     kitRoot: string;
     runtime: { provider: string; version: string; model: string };
+    runnerHome?: string;
   }): Promise<SuiteResult>;
 }
 export interface BehavioralEvalOptions {
@@ -42,6 +43,7 @@ export interface BehavioralEvalOptions {
   deepRepeats: number;
   concurrency?: number;
   kitRoot: string;
+  runnerHome?: string;
   evalRoot?: string;
   deps?: BehavioralEvalDeps;
 }
@@ -105,6 +107,7 @@ export function realBehavioralEvalDeps(): BehavioralEvalDeps {
           executable: executable ?? "",
           args,
           credentialEnvironment: credentialEnvironment(options.runtime.provider),
+          runnerHome: options.runnerHome,
         }),
       });
     },
@@ -125,6 +128,7 @@ export async function runBehavioralEval(options: BehavioralEvalOptions): Promise
     skillRepeats: options.skillRepeats,
     deepRepeats: options.deepRepeats,
     concurrency: options.concurrency,
+    runnerHome: options.runnerHome,
   });
   const output = {
     schemaVersion: 1,
@@ -142,6 +146,7 @@ export async function runBehavioralEval(options: BehavioralEvalOptions): Promise
         concurrency: options.concurrency ?? 1,
         capabilities: [...options.availableCapabilities].sort(),
         credentialEnvironment: credentialEnvironment(options.runtime.provider),
+        runnerHome: options.runnerHome ? "isolated-vcskill-install" : "fixture",
       },
     },
     population: suite.population,

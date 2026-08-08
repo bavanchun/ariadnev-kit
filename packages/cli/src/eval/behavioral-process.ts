@@ -1,4 +1,6 @@
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { existsSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import process from "node:process";
 import type { BehavioralLauncher, BehavioralLaunchResult } from "./behavioral-runner.js";
 
@@ -16,6 +18,7 @@ export interface BehavioralProcessOptions {
   args?: string[];
   sourceEnvironment?: NodeJS.ProcessEnv;
   credentialEnvironment?: BehavioralCredentialEnvironment[];
+  runnerHome?: string;
   maxOutputBytes?: number;
 }
 
@@ -75,13 +78,31 @@ export function createBehavioralProcessLauncher(options: BehavioralProcessOption
     options.sourceEnvironment ?? process.env,
     options.credentialEnvironment,
   );
+  let runnerHome: string | undefined;
+  if (options.runnerHome !== undefined) {
+    if (!isAbsolute(options.runnerHome)) throw new Error("behavioral runner home must be absolute");
+    runnerHome = realpathSync(options.runnerHome);
+    if (!statSync(runnerHome).isDirectory()) throw new Error("behavioral runner home must be a directory");
+    const ambientHome = options.sourceEnvironment?.HOME ?? options.sourceEnvironment?.USERPROFILE
+      ?? process.env.HOME ?? process.env.USERPROFILE;
+    if (ambientHome && existsSync(ambientHome) && realpathSync(ambientHome) === runnerHome) {
+      throw new Error("behavioral runner home must not be the ambient user home");
+    }
+    if (!existsSync(join(runnerHome, ".vcskill", "receipt.json"))) {
+      throw new Error("behavioral runner home must contain a vcskill install receipt");
+    }
+  }
   return {
     launch(input, signal): Promise<BehavioralLaunchResult> {
       if (signal.aborted) return Promise.resolve({ kind: "crashed", signal: "SIGTERM" });
       return new Promise((resolve) => {
         const child = spawn(options.executable, options.args ?? [], {
           cwd: input.workspaceRoot,
-          env: { ...environment, HOME: input.workspaceRoot, USERPROFILE: input.workspaceRoot },
+          env: {
+            ...environment,
+            HOME: runnerHome ?? input.workspaceRoot,
+            USERPROFILE: runnerHome ?? input.workspaceRoot,
+          },
           detached: process.platform !== "win32",
           stdio: ["pipe", "pipe", "pipe"],
           shell: false,

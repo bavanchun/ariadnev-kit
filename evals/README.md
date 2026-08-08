@@ -34,6 +34,13 @@ through so the provider can use an isolated credential/config directory;
 `GH_TOKEN`, API-key variables, `NODE_OPTIONS`, and other ambient values are not
 inherited. Use a dedicated temporary `CODEX_HOME` for benchmark capture.
 
+By default, the child `HOME` is the disposable fixture. A benchmark that needs
+installed provider skills may set `VCSKILL_BEHAVIORAL_HOME` to a dedicated
+absolute home created by `vcskill install`. The launcher requires its
+`.vcskill/receipt.json` marker and rejects the ambient user home. Reports retain
+only `isolated-vcskill-install` or `fixture`, never the path. For Codex, point
+`CODEX_HOME` inside the same dedicated home.
+
 The command emits one allowlisted JSON document. It exits non-zero when Tier 1
 fails, a hard release floor fails, or trusted evidence remains incomplete.
 Provider stdout is transient evaluator input and has no report field. Timeout,

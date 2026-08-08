@@ -86,6 +86,7 @@ export function registerQualityCommands(program: Command, context: CommandRegist
           deepRepeats: positive(opts.deepRepeats, "--deep-repeats"),
           concurrency: positive(opts.concurrency, "--concurrency"),
           kitRoot: getKitRoot(dirname(fileURLToPath(import.meta.url))),
+          runnerHome: process.env.VCSKILL_BEHAVIORAL_HOME,
         });
         emit(summary);
         context.record("eval", { status: ok ? "ok" : "fail" });
