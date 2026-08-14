@@ -12,6 +12,7 @@ export default defineConfig({
         "packages/cli/src/doctor/audit-score.ts",
         "packages/cli/src/doctor/audit.ts",
         "packages/cli/src/doctor/audit-scripts.ts",
+        "packages/cli/src/skill-env/**/*.ts",
         "packages/cli/src/security/**/*.ts",
         "packages/cli/src/eval/**/*.ts",
         "packages/cli/src/graph/**/*.ts",

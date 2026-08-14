@@ -1,7 +1,8 @@
 ---
 phase: 7
 title: "Skill runtime env"
-status: pending
+status: partial
+completed: 2026-08-15  # engine xong; phần phụ thuộc nội dung chờ phase 11/12
 priority: P1
 effort: "5d"
 dependencies: [2]
@@ -82,15 +83,76 @@ rewrite shebang — rewrite shebang làm hỏng byte-identical với nguồn và
 
 ## Success Criteria
 
-- [ ] 12 skill thiếu khai báo có khai báo được sinh và **đã review**
-- [ ] Lockfile pin phiên bản + hash; cài lại hai lần cho cùng tập package
-- [ ] `verify` mặc định không import code bên thứ ba; `--deep` chạy trong tiến trình con có timeout
-- [ ] `av skill verify` báo `ok` cho cả 22 skill, và `ok` nghĩa là script chạy được thật
-- [ ] `document-skills` (không khai báo ở nguồn) chạy được sau khi cài
-- [ ] venv không nằm trong thư mục đóng dấu version; `av update` không mồ côi nó
-- [ ] GC gỡ được venv không còn tham chiếu
-- [ ] Script cài ra chạy được qua `av skill run`
-- [ ] `pnpm test` xanh, `src/skill-env/` coverage ≥ 85%
+- [x] Bản nháp khai báo đã sinh cho **mọi** skill mang Python (không chỉ 12) — chờ người review
+- [x] Định dạng lockfile pin phiên bản + hash, từ chối range/thiếu hash/trùng gói
+- [ ] **Lockfile thật chưa sinh được** — cần requirements thật trong kit + resolve qua mạng (phase 11/12)
+- [x] `verify` mặc định không import code bên thứ ba; `--deep` chạy trong tiến trình con có timeout 30s
+- [ ] `av skill verify` báo `ok` cho cả 22 skill — 22 skill đó chưa có trong kit
+- [ ] `document-skills` chạy được sau khi cài — skill chưa có trong kit
+- [x] venv nằm ngoài thư mục đóng dấu version (XDG_DATA_HOME, không phải cache)
+- [x] GC gỡ được venv không còn tham chiếu; giữ venv dùng chung khi còn skill trỏ tới
+- [x] Script chạy được qua `av skill run` — kiểm bằng interpreter thật
+- [x] `pnpm test` xanh (839 test), `src/skill-env/` coverage **99.28%**
+
+## Kết quả thực thi (2026-08-15)
+
+### Tiền đề của phase sai về quy mô — có số liệu
+
+Phase giả định 22 skill Python cần một venv chung ~383MB. Quét import toàn bộ cây nguồn
+(`scan-python-imports.mjs`, kết quả đầy đủ ở
+`plans/reports/scan-260814-2355-python-dependency-draft.md`):
+
+| Nhóm | Số skill | Cần venv? |
+|---|---|---|
+| Chỉ thư viện chuẩn | 8 | Không |
+| Chỉ khai báo `pytest*` | 9 | Không |
+| Có dependency runtime thật | 5 | Có |
+
+**17/22 skill không cần gói Python nào để chạy.** Và 8 trong 10 file `requirements.txt` ở
+nguồn **chỉ** khai báo `pytest`/`pytest-cov`/`pytest-mock` — thứ bộ test cần, không phải thứ
+script cần. Đọc chúng như khai báo runtime sẽ dựng môi trường chứa một test runner mà skill
+không bao giờ import.
+
+Nên thiết kế đổi theo: `read-requirements.ts` **tách runtime khỏi dev**, và
+`needsEnvironment()` trả `false` cho cả hai nhóm đầu. Venv key theo digest của **tập
+dependency**, không theo skill — hai skill trùng dependency dùng chung một venv, và venv chỉ
+bị GC khi *mọi* skill trỏ tới nó biến mất.
+
+### Phần không làm được bây giờ, và vì sao
+
+Kit hiện có **0 file Python**. Cả 22 skill Python tới ở phase 11/12, nhưng phase này khai
+`dependencies: [2]`. Hệ quả cụ thể:
+
+- **Không sinh được lockfile thật.** Resolve cần requirements thật trong kit + mạng. Định
+  dạng lock, validate, digest, và sinh `--require-hashes` requirements thì đã xong và có test.
+- Không kiểm được `verify` báo `ok` cho 22 skill, `document-skills` chạy sau khi cài, hay
+  dung lượng venv sau khi cài đủ — cả ba đều cần nội dung chưa tới.
+
+Đã **không** bịa lockfile giả để tick tiêu chí. Engine kiểm bằng lock thật của `six` (gói
+thuần Python, hash thật từ PyPI): dựng venv, `--require-hashes` qua, `verify` xanh, `--deep`
+import được, `av skill run` chạy script thật.
+
+### `unknown` không được chặn `run` — lỗi thiết kế do test bắt
+
+Test đầu tiên của `run` đỏ: skill chỉ dùng thư viện chuẩn mà không có file khai báo bị xếp
+`undeclared` → `verify` trả `unknown` → `run` từ chối chạy. Tức là **8 skill sẽ không dùng
+được**.
+
+Sửa: chỉ `missing` và `corrupt` mới chặn — đó là trạng thái ta *biết* hỏng và *biết* cách
+sửa. `unknown` nghĩa là "không ai khai báo", không phải "hỏng"; script vẫn chạy và để chính
+interpreter lên tiếng nếu thiếu import thật.
+
+### Không rewrite shebang, không chmod
+
+`av skill run <skill> <script>` chọn interpreter lúc chạy: venv của skill nếu có, còn lại là
+python hệ thống. File cài ra giữ nguyên byte như nguồn — không đụng phase 4, và cũng là thứ
+làm skill có venv chạy được mà không phải sửa file nào.
+
+### venv để ngoài cache đóng dấu version
+
+`XDG_DATA_HOME/ariadnev/envs/<digest>`, không phải `XDG_CACHE_HOME`. Hai lý do: đặt trong
+cache đóng dấu version thì mỗi `av update` bỏ lại toàn bộ venv và mọi skill Python về
+`missing`; và cache là thư mục hệ thống được phép xoá, trong khi dựng lại venv cần mạng.
 
 ## Risk Assessment
 

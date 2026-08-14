@@ -4,6 +4,7 @@ import type { Command } from "commander";
 import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
 import { runAudit } from "./audit-command.js";
 import { runContract } from "./contract-command.js";
+import { runSkillEnv, type SkillEnvAction } from "./skill-env-command.js";
 import { emit } from "./emit.js";
 import { parseBehavioralCommand, runBehavioralEval } from "./behavioral-eval-command.js";
 import { realEvalDeps, runEval } from "./eval-command.js";
@@ -44,6 +45,32 @@ export function registerQualityCommands(program: Command, context: CommandRegist
       });
       emit(output);
       context.record("audit", { scope, status: exitCode === 0 ? "ok" : "drift" });
+      if (exitCode !== 0) process.exitCode = exitCode;
+    });
+
+  program
+    .command("skill")
+    .description("Manage the Python environment a skill's scripts need, and run those scripts")
+    .argument("<action>", "install | verify | repair | upgrade | remove | run")
+    .argument("[name]", "skill name (omit for verify/upgrade across every skill)")
+    .argument("[args...]", "for run: script path, then its own arguments")
+    .option("--deep", "verify RECORD's files and import the packages in a child process", false)
+    .option("--json", "emit JSON instead of the text report", false)
+    .action((action: string, name: string | undefined, args: string[], opts: { deep?: boolean; json?: boolean }) => {
+      const actions: SkillEnvAction[] = ["install", "verify", "repair", "upgrade", "remove", "run"];
+      if (!actions.includes(action as SkillEnvAction)) {
+        throw new Error(`unknown skill action: ${action} (expected ${actions.join(" | ")})`);
+      }
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = runSkillEnv({
+        action: action as SkillEnvAction,
+        skill: name,
+        args,
+        deep: !!opts.deep,
+        json: !!opts.json,
+        dryRun: !!global.dryRun,
+      });
+      if (output) emit(output);
       if (exitCode !== 0) process.exitCode = exitCode;
     });
 
