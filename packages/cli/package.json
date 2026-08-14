@@ -1,6 +1,6 @@
 {
   "name": "vcskill",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "description": "Install a curated, quality-gated workflow kit across coding-agent targets.",
   "type": "module",
