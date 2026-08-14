@@ -61,15 +61,15 @@ workflow without a stable boundary. For intent and resource decisions, read
 6. **Write.** Use imperative, concrete steps with decision rules, exact output,
    quality gates, proof/risk, and workflow position. Every reference must be
    linked directly from `SKILL.md` with a read-when condition; remove placeholders.
-7. **Record claims.** Classify extracted claims in `kit/decisions.json` so
-   coverage can adjudicate them; retain any applicable attribution obligations.
+7. **Record provenance.** Note the source and pin date in the skill's `metadata`
+   and retain any applicable attribution obligations.
 8. **Evaluate and iterate.** Test static structure, should-trigger and
    should-not-trigger prompts, functional outcomes, safety boundaries, and—when
    meaningful—a without-skill baseline. Follow
    [validation and iteration](references/validation-and-iteration.md).
-9. **Regenerate and gate.** Refresh the embedded kit, run strict coverage when
-   claim-tracked, run validate and the full test suite, then inspect install
-   dry-run output. Fix failures; never skip or weaken a gate.
+9. **Regenerate and gate.** Refresh the embedded kit, run validate and the full
+   test suite, then inspect install dry-run output. Fix failures; never skip or
+   weaken a gate.
 
 ## Hard boundaries
 

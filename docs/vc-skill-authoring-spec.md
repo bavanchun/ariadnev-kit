@@ -31,25 +31,21 @@ Naming: `<slug>` is kebab-case; frontmatter `name` must equal `vc:<slug>`.
 
 Any other top-level field is an **error**. Put extra data under `metadata`.
 
-### Claims ledger
+### Claims ledger (retired)
 
-`kit/decisions.json` is the audit record for claim-tracked skills. Each entry
-records `pinned_at` plus optional `claims[]`. Keep every claim classified as
-covered or explicitly rejected with a `why` reason before shipping. This
-static record is an omission ratchet, not proof of behavioral parity.
+The kit once carried a claims ledger and a `coverage` command that measured how
+much of a source skill survived compression into its kit counterpart. Skills are
+now carried in full rather than compressed, so a compression measure has nothing
+left to measure, and the whole system — ledger, checker, and command — was
+removed.
 
-`vcskill coverage [--skill <name>]` is always strict and runs from the
-checked-in kit without network access. An unclassified claim, a rejected
-claim without `why`, or a covered claim with no keyword anchor exits
-non-zero. Skills without tracked claims are reported as not applicable.
-`vcskill validate` consumes the same finding identities and treats
-unresolved coverage as an error, so standalone and aggregate gates now
-block the same omissions.
+The historical record is kept at `docs/decisions-ledger-historical.json` for
+reference: it documents why individual claims were once dropped or routed
+elsewhere. It gates nothing. `packages/cli/scripts/wave-rollup.mjs` still reads
+it if you want the rollup.
 
-Extraction and overlap behavior is owned by
-`packages/cli/src/kit/claim-extract.ts` and
-`packages/cli/src/kit/claim-coverage.ts`; the gate detects dropped anchors,
-not semantic equivalence or task success.
+Install-time integrity is covered instead by the install receipt and its
+per-file hashes.
 
 ### Writing the description
 

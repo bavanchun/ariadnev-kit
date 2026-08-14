@@ -8,7 +8,6 @@ import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
 import { matchesSkillFilter } from "../kit/skill-filter.js";
-import { runCoverage } from "./coverage-command.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 
@@ -18,7 +17,7 @@ import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "coverage" | "graph";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "graph";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -41,11 +40,7 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
-  /** Aggregate-only policy override. Standalone coverage is always strict. */
-  coverageLevel?: "warn" | "error";
 }
-
-export const VALIDATE_COVERAGE_LEVEL = "error" as const;
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
 // cwd — robust whether this runs from src (tsx/bun), the bundled dist, or the
@@ -151,19 +146,6 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
         message: `${ref.source} references unknown skill ${ref.reference}`,
       });
     }
-  }
-
-  const coverage = runCoverage({
-    kitRoot: root,
-    skillNames: skillsToCheck.map((skill) => skill.name),
-  });
-  for (const finding of coverage.findings) {
-    findings.push({
-      skill: finding.skill,
-      kind: "coverage",
-      level: opts.coverageLevel ?? VALIDATE_COVERAGE_LEVEL,
-      message: `${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
-    });
   }
 
   const graphRegistry = graphRegistryForKit(kit);

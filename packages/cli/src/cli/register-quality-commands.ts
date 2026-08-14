@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 import type { Command } from "commander";
 import type { CommandRegistrationContext } from "./command-registration-context.js";
 import { runContract } from "./contract-command.js";
-import { runCoverage } from "./coverage-command.js";
 import { emit } from "./emit.js";
 import { parseBehavioralCommand, runBehavioralEval } from "./behavioral-eval-command.js";
 import { realEvalDeps, runEval } from "./eval-command.js";
@@ -13,20 +12,10 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 export function registerQualityCommands(program: Command, context: CommandRegistrationContext): void {
   program
     .command("validate")
-    .description("Lint the kit source (frontmatter, sizes, references, claim coverage) without installing")
+    .description("Lint the kit source (frontmatter, sizes, references, cross-skill routing) without installing")
     .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
     .action((opts: { check?: boolean }) => {
       const { summary, ok } = runValidate({ check: !!opts.check });
-      emit(summary);
-      if (!ok) process.exitCode = 1;
-    });
-
-  program
-    .command("coverage")
-    .description("Strictly check classified claims against skill content")
-    .option("--skill <name>", "only check one skill (bare or vc: prefixed)")
-    .action((opts: { skill?: string }) => {
-      const { summary, ok } = runCoverage({ skill: opts.skill });
       emit(summary);
       if (!ok) process.exitCode = 1;
     });

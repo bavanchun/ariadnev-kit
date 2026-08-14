@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // wave-rollup.mjs — machine-readable Wave 0+ ledger rollup.
 //
-// Produced from kit/decisions.json as the single source of truth so gate
-// reports never drift from the ledger.
+// Reads docs/decisions-ledger-historical.json — the retired Wave 0 claim
+// ledger. The ledger no longer gates anything (the coverage checker it fed was
+// removed when every skill became a verbatim port, making a compression measure
+// meaningless). This script survives as the reader for that historical record.
 //
 // Prints one JSON row per skill with tracked claims:
 //   { skill, total, covered,
@@ -21,7 +23,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..", "..");
-const LEDGER_PATH = join(REPO, "kit", "decisions.json");
+const LEDGER_PATH = join(REPO, "docs", "decisions-ledger-historical.json");
 
 const registry = JSON.parse(readFileSync(LEDGER_PATH, "utf8"));
 

@@ -3,8 +3,6 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runValidate } from "./validate-command.js";
-import { runCoverage } from "./coverage-command.js";
-import { writeUnclassifiedCoverageFixture } from "./coverage-test-fixture.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
 
 const GOOD_FRONTMATTER = `---
@@ -31,17 +29,6 @@ function writeSkill(kitRoot: string, body: string, refs: Record<string, string> 
   const dir = join(kitRoot, "skills", "foo");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "SKILL.md"), body);
-  writeFileSync(
-    join(kitRoot, "decisions.json"),
-    JSON.stringify({
-      schema_version: 1,
-      skills: {
-        foo: {
-          pinned_at: "2026-08-06",
-        },
-      },
-    }),
-  );
   const names = Object.keys(refs);
   if (names.length > 0) {
     mkdirSync(join(dir, "references"), { recursive: true });
@@ -146,38 +133,6 @@ describe("runValidate", () => {
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings[0].kind).toBe("lint");
-  });
-
-  it("maps coverage findings to errors by default and supports an explicit rollout warning policy", () => {
-    writeUnclassifiedCoverageFixture(tmp, "foo");
-    const standalone = runCoverage({ kitRoot: tmp, skill: "foo" });
-    const rollout = runValidate({
-      kitRoot: tmp,
-      skillFilter: ["foo"],
-      coverageLevel: "warn",
-    });
-    const strict = runValidate({ kitRoot: tmp, skillFilter: ["foo"] });
-
-    expect(standalone.ok).toBe(false);
-    const rolloutFindings = rollout.findings.filter((finding) => finding.kind === "coverage");
-    expect(rolloutFindings).toHaveLength(standalone.findings.length);
-    expect(rolloutFindings.map((finding) => `${finding.skill}: ${finding.message}`)).toEqual(
-      standalone.findings.map(
-        (finding) =>
-          `${finding.skill}: ${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
-      ),
-    );
-    expect(rolloutFindings.every((finding) => finding.level === "warn")).toBe(true);
-    expect(rollout.ok).toBe(true);
-    expect(strict.findings.filter((finding) => finding.kind === "coverage")).toHaveLength(
-      standalone.findings.length,
-    );
-    expect(
-      strict.findings
-        .filter((finding) => finding.kind === "coverage")
-        .every((finding) => finding.level === "error"),
-    ).toBe(true);
-    expect(strict.ok).toBe(false);
   });
 
   it("includes stable graph compiler findings in aggregate validation", () => {

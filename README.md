@@ -83,7 +83,6 @@ pnpm --filter vcskill build:binary   # needs Bun; outputs packages/cli/dist/vcsk
 | `vcskill backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `vcskill update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
 | `vcskill validate [--check]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift |
-| `vcskill coverage [--skill <name>]` | Strict offline omission ratchet; fails on unclassified or unmatched claims. Skills without tracked claims are reported as not applicable |
 | `vcskill contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `vcskill eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `VCSKILL_EVAL_CMD` is set |
 | `vcskill eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |

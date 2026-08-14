@@ -1,12 +1,11 @@
 ---
 name: vc:git
-description: "Personal git workflow (forked from ck:git). Use for commits, PRs, branch hygiene, merges, or the full prc pipeline with co-author and achievement-friendly defaults."
+description: "Personal git workflow. Use for commits, PRs, branch hygiene, merges, or the full prc pipeline with co-author and achievement-friendly defaults."
 user-invocable: true
 argument-hint: "cm|cp|pr|prc|merge|feat|fix [--solo|--team] [args]"
 metadata:
   author: vchun
   version: "0.2.0"
-  forked-from: "ck:git@1.0.0"
 ---
 
 # Git Operations (vchun edition)

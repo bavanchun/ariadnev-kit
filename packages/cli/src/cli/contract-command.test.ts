@@ -20,6 +20,15 @@ describe("runContract", () => {
     expect(parsed.schema).toEqual({ min: 1, max: 1 });
   });
 
+  it("declares protocol 2 — the envelope lost a capability token", () => {
+    // Retiring the claim-coverage system removed `coverage.claims.v1` from a
+    // published contract. That is a breaking change for any consumer that
+    // feature-gated on it, so the protocol version must move with it.
+    const parsed = JSON.parse(runContract({ json: true, version: "9.9.9" }).output);
+    expect(parsed.protocol_version).toBe("2");
+    expect(parsed.capabilities).not.toContain("coverage.claims.v1");
+  });
+
   it("emits the Markdown matrix without --json", () => {
     const { output } = runContract({ json: false, version: "9.9.9" });
     expect(output).toContain("| artifact | claude-code |");
@@ -33,5 +42,11 @@ describe("capability anti-rot guard", () => {
       .commands.map((c) => c.name())
       .sort();
     expect(registered).toEqual([...KNOWN_COMMANDS].sort());
+  });
+
+  it("no longer registers a coverage command", () => {
+    const registered = buildProgram().commands.map((c) => c.name());
+    expect(registered).not.toContain("coverage");
+    expect([...KNOWN_COMMANDS]).not.toContain("coverage");
   });
 });

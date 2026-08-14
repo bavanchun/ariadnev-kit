@@ -22,7 +22,7 @@ export interface ContractResult {
 }
 
 // Bump when the `--json` envelope shape changes incompatibly.
-export const PROTOCOL_VERSION = "1";
+export const PROTOCOL_VERSION = "2";
 
 // A curated list of stable capability tokens a machine consumer can feature-gate
 // on. NOT auto-derived — there is no capability registry — so a guard test
@@ -33,7 +33,6 @@ export const CAPABILITIES = [
   "install.receipt.v1",
   "doctor.audit.v1",
   "eval.tier1.v1",
-  "coverage.claims.v1",
   "contract.envelope.v1",
   "update.selfupdate.v1",
   "backups.restore.v1",
@@ -51,7 +50,6 @@ export const KNOWN_COMMANDS = [
   "backups",
   "update",
   "validate",
-  "coverage",
   "contract",
   "eval",
   "query",

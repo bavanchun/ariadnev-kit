@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T10:55:46.127Z",
+  "generatedAt": "2026-08-14T14:25:40.805Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
-    "runtime": "bun-1.3.14",
+    "runtime": "node-v24.15.0",
     "providerVariance": {
       "applicable": false,
       "reason": "Retrieval and deterministic required-path tasks run locally without a model provider."
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "vcskill-context-v1",
-    "corpusDigest": "sha256:04ea618c2577cc77563528317980a51ccb80ccb1b07add62790b27fd8b68399e",
+    "corpusDigest": "sha256:ae17ba172c0c5df016239c8502d3fd0c534eb7f60dec8a31d2c3ec3176631de5",
     "queryDigest": "sha256:f0d7b422da83a695a1b71a30a07f2aa616427172d1adc393b67c109d8f7e90d3",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.977542,
-            "p95Ms": 3.610583,
-            "maxMs": 3.710917
+            "p50Ms": 2.051792,
+            "p95Ms": 2.200417,
+            "maxMs": 2.247
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.23175,
-            "p95Ms": 0.309458,
-            "maxMs": 0.892792
+            "p50Ms": 0.165291,
+            "p95Ms": 0.232375,
+            "maxMs": 0.543584
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.2155,
-            "p95Ms": 0.290625,
-            "maxMs": 0.986166
+            "p50Ms": 0.154208,
+            "p95Ms": 0.196042,
+            "maxMs": 0.914917
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 112817
+        "indexBytes": 112766
       },
       "externalDependencies": []
     },
@@ -454,30 +454,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 4.231125,
-            "p95Ms": 4.913083,
-            "maxMs": 5.442584
+            "p50Ms": 2.787417,
+            "p95Ms": 2.91275,
+            "maxMs": 3.017834
           },
           "query": {
             "samples": 390,
-            "p50Ms": 1.142125,
-            "p95Ms": 1.475875,
-            "maxMs": 2.194958
+            "p50Ms": 0.820375,
+            "p95Ms": 1.032125,
+            "maxMs": 4.052042
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 1.106959,
-            "p95Ms": 1.373542,
-            "maxMs": 2.019834
+            "p50Ms": 0.777084,
+            "p95Ms": 0.862167,
+            "maxMs": 1.138125
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 119057,
+        "indexBytes": 119006,
         "edges": 65
       },
       "externalDependencies": []

@@ -45,16 +45,15 @@ For benign out-of-scope requests, route to the owning skill or explain the
 boundary. Teach explicit refusal only for unsafe, unauthorized, privacy-violating,
 or impossible requests; do not turn every scope mismatch into a security refusal.
 
-## Claims record
+## Provenance record
 
-For any skill whose behavior can be reduced to enumerable claims:
+For any skill re-authored from an outside source:
 
-1. record the pin date in `kit/decisions.json`;
-2. extract candidate operational claims from the authored source;
-3. mark each claim `covered`, or `rejected` with a concrete incompatibility,
-   scope, security, or product-contract reason;
-4. ensure every covered claim has a real anchor in SKILL.md or a direct reference;
-5. rerun strict offline coverage after every edit.
+1. record the source identity and pin date in the skill's `metadata`;
+2. read every authored file at that pin before writing anything;
+3. carry forward any attribution or license obligation the source imposes;
+4. re-pin deliberately — a later source revision is a new review, not a silent
+   refresh.
 
 This registry is an omission ratchet. It does not prove semantic fidelity or
 behavioral parity; outcome evaluation remains separate.
