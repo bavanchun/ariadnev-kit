@@ -46,7 +46,7 @@ function pickBase(ctx: ResolverCtx): string {
   return ctx.scope === "global" ? ctx.home : ctx.cwd;
 }
 
-// Codex installs to the user home regardless of scope (claudekit parity).
+// Codex installs to the user home regardless of scope (reference parity).
 function codexBase(kind: ArtifactKind, ctx: ResolverCtx): string {
   if (kind === "rules") return pickBase(ctx); // AGENTS.md lives at project/home root
   return ctx.home;

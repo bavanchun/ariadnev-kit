@@ -51,6 +51,28 @@ describe("scoreDescriptions", () => {
   });
 });
 
+describe("scoreDescriptions allowlist", () => {
+  const nearDup = [
+    { name: "vc:x", description: "migrate database schema changes safely rollback" },
+    { name: "vc:y", description: "migrate database schema changes safely rollback support" },
+  ];
+
+  it("suppresses an allowlisted pair regardless of entry order", () => {
+    expect(scoreDescriptions(nearDup)).toHaveLength(1); // error without allowlist
+    const allow = [{ a: "vc:y", b: "vc:x", reason: "adjacent by design" }];
+    expect(scoreDescriptions(nearDup, allow)).toHaveLength(0);
+  });
+
+  it("does not suppress pairs that are not allowlisted", () => {
+    const allow = [{ a: "vc:p", b: "vc:q", reason: "unrelated pair" }];
+    expect(scoreDescriptions(nearDup, allow)).toHaveLength(1);
+  });
+
+  it("treats an empty allowlist the same as no allowlist", () => {
+    expect(scoreDescriptions(nearDup, [])).toEqual(scoreDescriptions(nearDup));
+  });
+});
+
 describe("jaccard", () => {
   it("is 1 for identical sets and 0 for disjoint", () => {
     expect(jaccard(new Set(["x", "y"]), new Set(["x", "y"]))).toBe(1);

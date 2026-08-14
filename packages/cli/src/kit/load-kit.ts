@@ -4,13 +4,10 @@ import matter from "gray-matter";
 import type { Artifact, ArtifactType, HookManifest, Kit, KitHook } from "./kit-types.js";
 import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 import { lintAgent } from "./agent-lint.js";
+import { KitValidationError } from "./kit-validation-error.js";
+import { loadWorkflows } from "./load-workflows.js";
 
-export class KitValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "KitValidationError";
-  }
-}
+export { KitValidationError } from "./kit-validation-error.js";
 
 /**
  * Walk up from `start` to find the kit root (a dir holding `skills/`).
@@ -160,13 +157,16 @@ export function loadKit(kitRoot: string): Kit {
   const scriptsDir = join(kitRoot, "scripts");
   const envExample = join(kitRoot, ".env.example");
   const warnings: string[] = [];
+  const skills = loadSkills(kitRoot, warnings);
+  const agents = loadAgents(kitRoot);
   return {
     root: kitRoot,
-    skills: loadSkills(kitRoot, warnings),
-    agents: loadAgents(kitRoot),
+    skills,
+    agents,
     commands: loadFlat(kitRoot, "commands", "command"),
     rules: loadFlat(kitRoot, "rules", "rule"),
     hooks: loadHooks(kitRoot),
+    workflows: loadWorkflows(kitRoot, skills, agents),
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
     warnings,

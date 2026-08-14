@@ -7,6 +7,24 @@ import { loadKit, resolveKitRoot, KitValidationError } from "./load-kit.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoKitRoot = join(here, "..", "..", "..", "..", "kit");
+const REQUIRED_SKILL_SECTIONS = `
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`;
+const NONE_PROVENANCE = "";
+
+function withProvenance(content: string): string {
+  return content;
+}
 
 describe("loadKit (real kit/)", () => {
   const kit = loadKit(repoKitRoot);
@@ -48,7 +66,7 @@ describe("loadKit validation (negative cases)", () => {
     mkdirSync(join(root, "skills", dir), { recursive: true });
     writeFileSync(
       join(root, "skills", dir, "SKILL.md"),
-      `---\n${frontmatter}\n---\n\n# body\n`,
+      `---\n${frontmatter}\n${NONE_PROVENANCE}\n---\n\n# body\n${REQUIRED_SKILL_SECTIONS}`,
     );
   }
 
@@ -81,7 +99,7 @@ describe("loadKit validation (negative cases)", () => {
     mkdirSync(join(root, "skills", "foo2"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo2", "SKILL.md"),
-      `---\nname: vc:foo2\ndescription: ${desc}\n---\n`,
+      `---\nname: vc:foo2\ndescription: ${desc}\n${NONE_PROVENANCE}\n---\n# foo2\n${REQUIRED_SKILL_SECTIONS}`,
     );
     // duplicate is hard to trigger with name==dir invariant; ensure valid kit loads
     expect(loadKit(root).skills.length).toBe(2);
@@ -98,7 +116,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
 
   function writeSkillFile(root: string, dir: string, content: string) {
     mkdirSync(join(root, "skills", dir), { recursive: true });
-    writeFileSync(join(root, "skills", dir, "SKILL.md"), content);
+    writeFileSync(join(root, "skills", dir, "SKILL.md"), withProvenance(content));
   }
 
   const okDescription = "Demo skill for lint tests. Use when validating the kit CI gate rules.";
@@ -131,7 +149,11 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
 
   it("rejects a reference file over 300 lines", () => {
     const root = tmpKit();
-    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n`);
+    writeSkillFile(
+      root,
+      "foo",
+      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}`,
+    );
     mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo", "references", "big.md"),
@@ -157,7 +179,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n\n## Shared Heading\n`,
+      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}\n## Shared Heading\n`,
     );
     mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
     writeFileSync(join(root, "skills", "foo", "references", "ref.md"), "## Shared Heading\n\ntext\n");

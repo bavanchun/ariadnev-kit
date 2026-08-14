@@ -26,10 +26,30 @@ Naming: `<slug>` is kebab-case; frontmatter `name` must equal `vc:<slug>`.
 | `user-invocable` | no | boolean; expose as `/vc:<slug>` slash command |
 | `disable-model-invocation` | no | boolean; slash-only skills |
 | `allowed-tools` | no | list of tool names the skill needs |
-| `metadata` | no | free-form object (`author`, `version`, `maxLines`, …) |
+| `metadata` | yes | provenance fields below, plus optional authoring data (`author`, `version`, `maxLines`, …) |
 | `version`, `license` | no | strings |
 
 Any other top-level field is an **error**. Put extra data under `metadata`.
+
+### Claims ledger
+
+`kit/decisions.json` is the audit record for claim-tracked skills. Each entry
+records `pinned_at` plus optional `claims[]`. Keep every claim classified as
+covered or explicitly rejected with a `why` reason before shipping. This
+static record is an omission ratchet, not proof of behavioral parity.
+
+`vcskill coverage [--skill <name>]` is always strict and runs from the
+checked-in kit without network access. An unclassified claim, a rejected
+claim without `why`, or a covered claim with no keyword anchor exits
+non-zero. Skills without tracked claims are reported as not applicable.
+`vcskill validate` consumes the same finding identities and treats
+unresolved coverage as an error, so standalone and aggregate gates now
+block the same omissions.
+
+Extraction and overlap behavior is owned by
+`packages/cli/src/kit/claim-extract.ts` and
+`packages/cli/src/kit/claim-coverage.ts`; the gate detects dropped anchors,
+not semantic equivalence or task success.
 
 ### Writing the description
 
@@ -48,11 +68,11 @@ deciding to load the skill. Formula: *what it does* + *when to fire*.
 
 Tier model — spend context only when needed:
 
-1. **Tier 1 — `SKILL.md`**: the workflow itself. Decision tables, steps,
-   anti-rationalization rules. Everything needed for the *common* case.
+1. **Tier 1 — `SKILL.md`**: a ~100–150-line router for the common workflow,
+   decision tables, hard boundaries, output, gates, and workflow position.
 2. **Tier 2 — `references/*.md`**: deep detail for specific branches
-   (edge-case playbooks, long checklists, format specs). SKILL.md links to them
-   by relative path and states *when* to read each one.
+   (edge-case playbooks, long checklists, format specs). SKILL.md links directly
+   to every reference with a *when to read* condition; do not nest reference chains.
 3. **Tier 3 — `scripts/`, data files**: executable/parsable artifacts the
    skill invokes; never inlined into markdown.
 
@@ -72,6 +92,9 @@ section in one file and linking from the other.
 - Start with one paragraph: what the skill does and does not handle.
 - Prefer tables and numbered steps over prose.
 - Link references with a trigger condition: `For merge conflicts, read references/workflow-merge.md`.
+- Every `vc:<slug>` named in SKILL.md or `references/*.md` must resolve to a
+  skill in the same kit; `vcskill validate` checks this after loading the full
+  inventory.
 - Write in English; imperative voice addressed to the agent.
 - No provider-specific absolute paths — use `.claude/...`-relative canonical
   paths; the adapt engine rewrites them per provider.
@@ -80,8 +103,9 @@ section in one file and linking from the other.
 
 Every skill in `kit/skills/` must clear this seven-point bar. `vc:cook` is the
 reference implementation; measure new and rewritten skills against it. The lint
-gate enforces frontmatter and size; the rest is an authoring contract reviewers
-check by reading.
+gate enforces frontmatter, size, and the exact `## Output format`,
+`## Quality gates`, and `## Workflow position` headings. Workflow depth and
+proof/risk quality remain authoring contracts reviewers check by reading.
 
 1. **Trigger-precise frontmatter.** `description` states *what it does* + *when
    to fire* (see "Writing the description"). A reader deciding whether to invoke
@@ -104,7 +128,7 @@ check by reading.
 6. **Tight body, references for depth.** SKILL.md carries the common-case
    workflow; a section covering an independent sub-topic (a technique catalogue,
    a format spec, an edge-case playbook) moves to `references/` linked with a
-   "read when …" trigger. Aim ≤120 lines; hard ceiling stays 300.
+   "read when …" trigger. Aim ~100–150 lines; hard ceiling stays 300.
 7. **`## Workflow position`.** Name the skills this one typically follows,
    precedes, and relates to, so the kit reads as one graph, not 21 islands.
 
@@ -137,6 +161,10 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 - [ ] SKILL.md ≤ 300 lines; every reference ≤ 300 lines
 - [ ] Each `references/*.md` is linked from SKILL.md with a "read when …" condition
 - [ ] No heading duplicated between SKILL.md and references
+- [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
+- [ ] Every `vc:<slug>` reference resolves to an existing kit skill
+- [ ] All four provenance fields are strings and match the pinned source; original skills use the all-`"none"` sentinel
+- [ ] Claim-tracked skills classify every claim and pass strict `vcskill coverage --skill <name>`
 - [ ] No secrets, tokens, or machine-specific absolute paths
 - [ ] `pnpm test` green (the lint gate runs in `kit-fixtures.test.ts`)
 - [ ] `vcskill install --dry-run` shows the skill landing where expected

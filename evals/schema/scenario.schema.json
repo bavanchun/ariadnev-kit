@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vcskill.dev/schemas/eval-scenario-v1.json",
+  "title": "vcskill Behavioral Evaluation Scenario V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "revision", "level", "title", "subjects", "fixture", "cases"],
+  "properties": {
+    "$schema": { "const": "../../schema/scenario.schema.json" },
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/token" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "level": { "enum": ["skill", "workflow", "kit"] },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "subjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skills"],
+      "properties": {
+        "skills": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/skillId" }
+        }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "copy"],
+      "properties": {
+        "id": { "$ref": "#/$defs/token" },
+        "copy": { "const": true }
+      }
+    },
+    "cases": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/token" },
+      "additionalProperties": { "$ref": "#/$defs/case" }
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/token" }
+    }
+  },
+  "$defs": {
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9:._-]*$"
+    },
+    "skillId": {
+      "type": "string",
+      "pattern": "^vc:[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/token" }
+    },
+    "routing": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/skillId" },
+      "additionalProperties": { "enum": ["required", "forbidden"] }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["terminal", "requiredEvidence"],
+      "properties": {
+        "terminal": { "enum": ["completed", "failed", "cancelled", "timed-out", "unsupported"] },
+        "requiredEvidence": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "evidenceId"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/token" },
+        "evidenceId": { "$ref": "#/$defs/token" }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxViolations", "forbiddenActions"],
+      "properties": {
+        "maxViolations": { "type": "integer", "minimum": 0 },
+        "forbiddenActions": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "trajectory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["labels", "maxEvents"],
+      "properties": {
+        "labels": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/token" },
+          "additionalProperties": { "enum": ["required", "forbidden"] }
+        },
+        "maxEvents": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "safety"],
+      "properties": {
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "routing": { "$ref": "#/$defs/routing" },
+        "artifacts": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/token" },
+          "additionalProperties": { "$ref": "#/$defs/artifact" }
+        },
+        "safety": { "$ref": "#/$defs/safety" },
+        "trajectory": { "$ref": "#/$defs/trajectory" }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "latencyMs": { "type": "number", "minimum": 0 },
+        "tokens": { "type": "number", "minimum": 0 },
+        "contextChars": { "type": "number", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "humanInterventions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt", "expected"],
+      "properties": {
+        "prompt": { "type": "string", "minLength": 1, "maxLength": 8000 },
+        "requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capabilities"],
+          "properties": {
+            "capabilities": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": { "$ref": "#/$defs/token" },
+              "additionalProperties": { "const": "required" }
+            }
+          }
+        },
+        "expected": { "$ref": "#/$defs/expected" },
+        "budgets": { "$ref": "#/$defs/budgets" }
+      }
+    }
+  }
+}

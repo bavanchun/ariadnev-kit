@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runValidate } from "./validate-command.js";
+import { runCoverage } from "./coverage-command.js";
+import { writeUnclassifiedCoverageFixture } from "./coverage-test-fixture.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
-import { renderMatrixBlock } from "../providers/matrix-drift.js";
 
 const GOOD_FRONTMATTER = `---
 name: vc:foo
@@ -12,12 +13,35 @@ description: Use this fixture skill to exercise the validate command reference c
 ---
 
 # Foo
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
 `;
 
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
   const dir = join(kitRoot, "skills", "foo");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "SKILL.md"), body);
+  writeFileSync(
+    join(kitRoot, "decisions.json"),
+    JSON.stringify({
+      schema_version: 1,
+      skills: {
+        foo: {
+          pinned_at: "2026-08-06",
+        },
+      },
+    }),
+  );
   const names = Object.keys(refs);
   if (names.length > 0) {
     mkdirSync(join(dir, "references"), { recursive: true });
@@ -25,6 +49,36 @@ function writeSkill(kitRoot: string, body: string, refs: Record<string, string> 
       writeFileSync(join(dir, "references", name), content);
     }
   }
+}
+
+function writeInvalidWorkflow(kitRoot: string): void {
+  const workflows = join(kitRoot, "workflows");
+  const schemaDir = join(workflows, "schema");
+  mkdirSync(schemaDir, { recursive: true });
+  const realSchema = join(resolveKitRoot(process.cwd()), "workflows", "schema", "workflow.schema.json");
+  writeFileSync(join(schemaDir, "workflow.schema.json"), readFileSync(realSchema, "utf8"));
+  const node = (id: string, type: "function" | "terminal", ref: string) => ({
+    id,
+    type,
+    handler: { kind: type, ref },
+    state: { reads: [], writes: [] },
+    authority: { capabilities: [], effect: "none", approval: "none", idempotency: "none" },
+    proof: { requires: [], produces: [] },
+    timeoutMs: 1000,
+    retry: { maxAttempts: 1, backoffMs: 0, on: [] },
+    redaction: { input: "internal", output: "internal", logs: "metadata-only" },
+  });
+  writeFileSync(join(workflows, "invalid-recovery.json"), JSON.stringify({
+    schemaVersion: 1,
+    id: "invalid-recovery",
+    title: "Invalid recovery fixture",
+    description: "A valid graph document with a compiler-level recovery defect.",
+    versions: { graph: "1.0.0", skills: "1.0.0", policy: "1.0.0", evaluator: "behavioral-v1" },
+    entry: "start",
+    state: { fields: [] },
+    nodes: [node("start", "function", "normalize-request"), node("complete", "terminal", "success")],
+    edges: [{ id: "start-ok", from: "start", to: "complete", type: "success" }],
+  }));
 }
 
 describe("runValidate", () => {
@@ -67,6 +121,25 @@ describe("runValidate", () => {
     );
   });
 
+  it("flags an unresolved vc skill reference under kind skillref", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nUse vc:missing.\n`);
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "foo", kind: "skillref", message: expect.stringContaining("vc:missing") }),
+    );
+  });
+
+  it("checks vc skill references inside linked reference files", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nSee references/used.md.\n`, {
+      "used.md": "# Used\n\nContinue with vc:missing.\n",
+    });
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ kind: "skillref", message: expect.stringContaining("references/used.md") }),
+    );
+  });
+
   it("reports a lint error as a single (kit) finding and fails", () => {
     // name mismatch → loadKit throws KitValidationError
     writeSkill(tmp, `---\nname: vc:wrong\ndescription: A fixture whose name does not match its directory slug value.\n---\n\n# Foo\n`);
@@ -75,29 +148,48 @@ describe("runValidate", () => {
     expect(result.findings[0].kind).toBe("lint");
   });
 
-  describe("--check (provider matrix drift)", () => {
-    const realKit = () => resolveKitRoot(process.cwd());
-
-    it("passes when the README matrix is in sync", () => {
-      const readme = join(tmp, "README.md");
-      writeFileSync(readme, `# vcskill\n\n${renderMatrixBlock()}\n`);
-      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
-      expect(result.ok).toBe(true);
-      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
+  it("maps coverage findings to errors by default and supports an explicit rollout warning policy", () => {
+    writeUnclassifiedCoverageFixture(tmp, "foo");
+    const standalone = runCoverage({ kitRoot: tmp, skill: "foo" });
+    const rollout = runValidate({
+      kitRoot: tmp,
+      skillFilter: ["foo"],
+      coverageLevel: "warn",
     });
+    const strict = runValidate({ kitRoot: tmp, skillFilter: ["foo"] });
 
-    it("fails with a matrix finding when the README block is stale", () => {
-      const readme = join(tmp, "README.md");
-      const stale = renderMatrixBlock().replace(".claude/skills/", ".claude/WRONG/");
-      writeFileSync(readme, `# vcskill\n\n${stale}\n`);
-      const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
-      expect(result.ok).toBe(false);
-      expect(result.findings).toContainEqual(expect.objectContaining({ kind: "matrix" }));
-    });
-
-    it("does not touch the matrix without --check", () => {
-      const result = runValidate({ kitRoot: realKit() });
-      expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
-    });
+    expect(standalone.ok).toBe(false);
+    const rolloutFindings = rollout.findings.filter((finding) => finding.kind === "coverage");
+    expect(rolloutFindings).toHaveLength(standalone.findings.length);
+    expect(rolloutFindings.map((finding) => `${finding.skill}: ${finding.message}`)).toEqual(
+      standalone.findings.map(
+        (finding) =>
+          `${finding.skill}: ${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
+      ),
+    );
+    expect(rolloutFindings.every((finding) => finding.level === "warn")).toBe(true);
+    expect(rollout.ok).toBe(true);
+    expect(strict.findings.filter((finding) => finding.kind === "coverage")).toHaveLength(
+      standalone.findings.length,
+    );
+    expect(
+      strict.findings
+        .filter((finding) => finding.kind === "coverage")
+        .every((finding) => finding.level === "error"),
+    ).toBe(true);
+    expect(strict.ok).toBe(false);
   });
+
+  it("includes stable graph compiler findings in aggregate validation", () => {
+    writeSkill(tmp, GOOD_FRONTMATTER);
+    writeInvalidWorkflow(tmp);
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(expect.objectContaining({
+      skill: "workflow:invalid-recovery",
+      kind: "graph",
+      message: expect.stringContaining("graph.recovery.failure-edge-missing"),
+    }));
+  });
+
 });

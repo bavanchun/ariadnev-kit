@@ -2,12 +2,12 @@
 
 Date: 2026-07-20
 Mode: brainstorm (problem-first). Flags: none.
-Source reports: `plans/reports/scout-260720-1724-{archon,claudekit-engineer,repository-harness}-standout-deltas-report.md`
+Source reports: `plans/reports/scout-260720-1724-{archon,reference,repository-harness}-standout-deltas-report.md`
 Prior shipped: `plans/reports/brainstorm-260720-1731-installer-selfverify-kit-quality-gates-report.md` → 0.7.0 (6 items already done).
 
 ## Problem statement
 
-User wants vcskill's **CLI** to feel as good as — or better than — 3 competitor kits (Archon, claudekit-engineer, repository-harness). Underlying problem (problem-first): not "am I missing features" (vcskill is already a mechanical near-sibling of Archon), but "does the CLI **look and prove** like a serious, distinctive tool". Two explicit user adds mid-session: a **`vc` short alias** and a **beautiful, distinctive terminal UI** (emphasized twice → headline requirement).
+User wants vcskill's **CLI** to feel as good as — or better than — 3 competitor kits (Archon, reference, repository-harness). Underlying problem (problem-first): not "am I missing features" (vcskill is already a mechanical near-sibling of Archon), but "does the CLI **look and prove** like a serious, distinctive tool". Two explicit user adds mid-session: a **`vc` short alias** and a **beautiful, distinctive terminal UI** (emphasized twice → headline requirement).
 
 ## Verified current state (scout)
 

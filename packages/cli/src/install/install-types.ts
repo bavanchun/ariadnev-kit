@@ -44,7 +44,7 @@ export interface ProviderInstallResult {
   ops: InstallOp[];
 }
 
-// claudekit parity guards — never copy these into a provider tree.
+// reference parity guards — never copy these into a provider tree.
 export const IGNORE_FILES = new Set([".env", ".DS_Store"]);
 export const IGNORE_DIRS = new Set([
   "__tests__",

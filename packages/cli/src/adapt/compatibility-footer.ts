@@ -1,6 +1,6 @@
 import type { ProviderId } from "../providers/spec-verified.js";
 
-// Markers that, when present in the SOURCE, gate footer injection (claudekit parity).
+// Markers that, when present in the SOURCE, gate footer injection (reference parity).
 export const SKILL_MARKERS = [
   "AskUserQuestion",
   "TodoWrite",

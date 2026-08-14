@@ -42,6 +42,8 @@ describe("embedded-kit", () => {
     expect(existsSync(join(root, "skills"))).toBe(true);
     expect(existsSync(join(root, "skills", "cook", "SKILL.md"))).toBe(true);
     expect(existsSync(join(root, "hooks", "session-init", "hook.cjs"))).toBe(true);
+    expect(existsSync(join(root, "workflows", "schema", "workflow.schema.json"))).toBe(true);
+    expect(existsSync(join(root, "workflows", "read-only-delivery.json"))).toBe(true);
   });
 
   it("materializes portable-manifest.json at the flat root", () => {
@@ -74,6 +76,14 @@ describe("embedded-kit", () => {
   it("VCSKILL_EMBEDDED=1 forces the embedded path even with a kit on disk", () => {
     process.env.VCSKILL_EMBEDDED = "1";
     expect(getKitRoot(process.cwd())).toBe(join(cache, EMBEDDED_VERSION, "kit"));
+  });
+
+  it("keeps the generated cache version aligned with package metadata", () => {
+    const packageJson = JSON.parse(
+      readFileSync(join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { version: string };
+
+    expect(EMBEDDED_VERSION).toBe(packageJson.version);
   });
 
   it("drift guard: the generated map exactly matches the live kit + flat-root assets", () => {

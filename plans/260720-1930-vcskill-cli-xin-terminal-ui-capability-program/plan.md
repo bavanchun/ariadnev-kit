@@ -23,7 +23,7 @@ source: skill
 
 ## Overview
 
-Make the vcskill CLI look and prove like a serious tool — on par with or above 3 competitor kits (Archon, claudekit-engineer, repository-harness). Foundation is a **bold, branded terminal UI** cohesive with the `vcskill.vchun.dev` landing page (coral `#ff6b45`, `>_` wordmark, `✓/skip/◆` glyphs, matrix grid) plus a **`vc` short alias**. Then six capability upgrades layered in strict build order. TDD throughout — output layer + doctor are existing behavior with pure-formatter test coverage to preserve.
+Make the vcskill CLI look and prove like a serious tool — on par with or above 3 competitor kits (Archon, reference, repository-harness). Foundation is a **bold, branded terminal UI** cohesive with the `vcskill.vchun.dev` landing page (coral `#ff6b45`, `>_` wordmark, `✓/skip/◆` glyphs, matrix grid) plus a **`vc` short alias**. Then six capability upgrades layered in strict build order. TDD throughout — output layer + doctor are existing behavior with pure-formatter test coverage to preserve.
 
 Source design: [`../reports/brainstorm-260720-1930-cli-xin-terminal-ui-capability-program-report.md`](../reports/brainstorm-260720-1930-cli-xin-terminal-ui-capability-program-report.md)
 Follows (completed): `plans/260720-1731-installer-selfverify-kit-quality-gates` (shipped 0.7.0).

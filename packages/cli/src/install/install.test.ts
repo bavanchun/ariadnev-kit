@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
-import { getResolver } from "../providers/index.js";
+import { getResolver, USER_FACING_PROVIDER_IDS } from "../providers/index.js";
 import { planInstall } from "./install-plan.js";
 import { installKit } from "./install-execute.js";
 
@@ -21,11 +21,25 @@ function makeAdaptFixtureKit(root: string) {
       "---",
       "name: vc:sample-skill",
       "description: Fixture skill for tests. Use when verifying provider adaptation.",
+      "metadata:",
+      '  author: vcskill',
       "---",
       "",
       "# Sample Skill",
       "",
       "Run the helper at `.claude/skills/sample-skill/scripts/run.ts`.",
+      "",
+      "## Output format",
+      "",
+      "Output.",
+      "",
+      "## Quality gates",
+      "",
+      "- Check.",
+      "",
+      "## Workflow position",
+      "",
+      "Related: none.",
       "",
     ].join("\n"),
   );
@@ -83,6 +97,16 @@ beforeEach(() => {
 afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
 describe("planInstall (pure)", () => {
+  it("keeps workflow specs out of every provider install plan", () => {
+    expect(kit.workflows).toHaveLength(3);
+    for (const provider of USER_FACING_PROVIDER_IDS) {
+      const resolver = getResolver(provider);
+      expect(planInstall(kit, resolver, ctx)).toEqual(
+        planInstall({ ...kit, workflows: [] }, resolver, ctx),
+      );
+    }
+  });
+
   it("emits adapted skill + skips unverified codex... none; antigravity skips agents", () => {
     const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit0"));
     const ops = planInstall(fixtureKit, getResolver("antigravity"), ctx);
@@ -288,10 +312,11 @@ describe("executeInstall + dry-run", () => {
 
 describe("full-kit install smoke (v2 roster)", () => {
   const ROSTER = [
-    "ask", "bootstrap", "brainstorm", "cook", "docs", "docs-seeker", "fix",
-    "git", "journal", "obsidian-second-brain-note", "plan", "pm", "predict",
-    "problem-solving", "research", "scenario", "scout", "security-scan",
-    "sequential-thinking", "skill-creator", "worktree",
+    "ask", "bootstrap", "brainstorm", "code-review", "cook", "docs",
+    "docs-seeker", "fix", "git", "handoff", "journal",
+    "obsidian-second-brain-note", "plan", "pm", "predict", "problem-solving",
+    "research", "review-pr", "scenario", "scout", "security-scan",
+    "sequential-thinking", "ship", "skill-creator", "test", "worktree",
   ];
   const AGENTS = [
     "vc-brainstormer", "vc-debugger", "vc-developer", "vc-docs-manager",
@@ -308,7 +333,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "subagent-init",
   ];
 
-  it("kit ships exactly the 21-skill + 13-agent roster + 6 hooks", () => {
+  it("kit ships exactly the 26-skill + 13-agent roster + 6 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);

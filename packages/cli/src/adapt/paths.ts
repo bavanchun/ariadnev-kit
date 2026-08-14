@@ -13,7 +13,7 @@ export const VCSKILL_SUPPORT_DIR = ".agents/vcskill";
 
 /** Codex agent + command dirs (under user home). H3: one constant each. */
 export const CODEX_AGENTS_DIR = ".codex/agents";
-export const CODEX_COMMANDS_DIR = "commands"; // verified vs claudekit adapt_content; flip to "prompts" if live Codex differs
+export const CODEX_COMMANDS_DIR = "commands"; // verified vs reference adapt_content; flip to "prompts" if live Codex differs
 export const CODEX_COMMANDS_PATH = `.codex/${CODEX_COMMANDS_DIR}`;
 
 /** OpenCode plural dirs (verified vs generate-opencode.py). */
