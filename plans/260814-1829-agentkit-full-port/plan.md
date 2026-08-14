@@ -101,7 +101,7 @@ port. Chi tiết ở `phase-01`.
 | 1 | Freeze, rollback ref, gỡ ledger + coverage | P1 | — | 2d | **completed** |
 | 2 | Rebrand → ariadnev (+ release pipeline, dữ liệu đã ghi) | P1 | 1 | 6d | **completed** |
 | 3 | Kit schema + `outputStyle` + `commands` | P1 | 2 | 2d | **completed** |
-| 4 | Đường nội dung nhị phân an toàn đầu-cuối | P1 | 2 | 3d | pending |
+| 4 | Đường nội dung nhị phân an toàn đầu-cuối | P1 | 2 | 3d | **completed** |
 | 5 | Install bền: crash boundary + backup không đụng độ | P1 | 2 | 2d | pending |
 | 6 | `av audit` như reader trên receipt | P1 | 5 | 1d | pending |
 | 7 | Skill runtime env | P1 | 2 | 5d | pending |

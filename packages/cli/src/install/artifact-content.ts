@@ -40,7 +40,10 @@ export function agentContent(agent: Artifact, provider: ProviderId): string {
 export interface FileContent {
   /** Path relative to the skill destination dir. */
   rel: string;
-  content: string;
+  /** Bytes for anything not recognized as text; adapted text otherwise. */
+  content: string | Buffer;
+  /** Executable bit carried through from the source file, when set. */
+  mode?: number;
 }
 
 /**
@@ -48,6 +51,11 @@ export interface FileContent {
  * text file (path/tool-adapted), skipping IGNORE files/dirs. Reads the source
  * tree but writes nothing.
  */
+/** 0o755 when the source file is executable by its owner, otherwise undefined. */
+function executableMode(abs: string): number | undefined {
+  return (statSync(abs).mode & 0o100) !== 0 ? 0o755 : undefined;
+}
+
 export function skillFiles(skill: Artifact, provider: ProviderId): FileContent[] {
   const srcDir = dirname(skill.sourcePath);
   const out: FileContent[] = [];
@@ -63,9 +71,12 @@ export function skillFiles(skill: Artifact, provider: ProviderId): FileContent[]
       const rel = relative(srcDir, abs);
       if (basename(abs) === "SKILL.md" && dir === srcDir) {
         out.push({ rel, content: adaptArtifact(skill, provider) });
+      } else if (isTextFile(entry)) {
+        out.push({ rel, content: adaptText(readFileSync(abs, "utf8"), provider) });
       } else {
-        const raw = readFileSync(abs, "utf8");
-        out.push({ rel, content: isTextFile(entry) ? adaptText(raw, provider) : raw });
+        // Read as bytes and never decode: a font or image that round-trips
+        // through a utf8 string comes out as replacement characters.
+        out.push({ rel, content: readFileSync(abs), mode: executableMode(abs) });
       }
     }
   };

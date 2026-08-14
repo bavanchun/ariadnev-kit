@@ -95,7 +95,10 @@ export function fromPortablePath(p: string, home: string, cwd: string): string {
   return join(cwd, p);
 }
 
-function sha256(content: string): string {
+// Hash the bytes, not a decoded string: two different binary assets both
+// decode to the same run of replacement characters, so a string hash cannot
+// tell them apart and drift detection would miss the difference.
+function sha256(content: string | Buffer): string {
   return createHash("sha256").update(content).digest("hex");
 }
 

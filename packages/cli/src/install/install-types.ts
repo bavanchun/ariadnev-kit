@@ -5,8 +5,17 @@ export interface WriteOp {
   kind: ArtifactKind;
   name: string;
   dest: string;
-  content: string;
+  /** Bytes for binary assets; a string only where the content was adapted as
+   *  text. Decoding a binary asset to a string replaces every invalid sequence
+   *  with U+FFFD, which is unrecoverable. */
+  content: string | Buffer;
+  /** POSIX permission bits to apply after writing. Only 0o644 and 0o755 are
+   *  accepted — an executable bit is a deliberate declaration, never inherited
+   *  from whatever the authoring machine happened to have. */
+  mode?: number;
 }
+
+export const ALLOWED_FILE_MODES = new Set([0o644, 0o755]);
 
 export interface AgentsMdOp {
   action: "agents-md";

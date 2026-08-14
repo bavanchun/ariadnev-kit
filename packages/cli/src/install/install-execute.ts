@@ -23,7 +23,7 @@ export interface ExecuteOpts {
   applyHookSettings?: boolean;
 }
 
-function opContent(op: Exclude<InstallOp, { action: "skip" }>): string {
+function opContent(op: Exclude<InstallOp, { action: "skip" }>): string | Buffer {
   if (op.action === "agents-md") return mergeAgentsBlock(readAgentsMd(op.dest), op.block);
   if (op.action === "hook-settings") return mergeHookSettings(readAgentsMd(op.dest), op.bindings);
   return op.content;
@@ -36,7 +36,7 @@ function applyOp(op: InstallOp, backupRoot: string, opts: ExecuteOpts): { wrote:
   const content = opContent(op);
   if (opts.dryRun) return { wrote: true, backedUp: existed };
   if (existed) backupPath(op.dest, backupRoot, op.kind);
-  atomicWrite(op.dest, content);
+  atomicWrite(op.dest, content, op.action === "write" ? op.mode : undefined);
   return { wrote: true, backedUp: existed };
 }
 

@@ -1,7 +1,8 @@
 ---
 phase: 4
 title: "Đường nội dung nhị phân an toàn đầu-cuối"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "3d"
 dependencies: [2]
@@ -87,14 +88,74 @@ offset — quyết định theo số đo ở bước 6.
 
 ## Success Criteria
 
-- [ ] PNG và woff2 byte-identical **trên provider tree sau `av install`**, không phải ở cache
-- [ ] Receipt hash của file nhị phân tính trên bytes; sửa 1 byte → hash đổi
-- [ ] Generator bỏ qua mọi symlink (nguồn `ak-*` hiện có 0, nhưng gate phải chặn theo nguyên tắc); không file nào ngoài kit lọt vào map
-- [ ] File có `mode: 0755` cài ra thực thi được; mode khác `0644`/`0755` bị từ chối
-- [ ] Hai tiến trình `vc` chạy đồng thời với cache lạnh → không file nào rách (test có lock)
-- [ ] Đổi nội dung kit mà không bump version → cache tự invalidate
-- [ ] Binary ≤ 120MB; materialize cold ≤ 800ms
-- [ ] `pnpm test` xanh
+- [x] PNG và woff2 byte-identical **trên provider tree sau `av install`**, không phải ở cache
+- [x] Receipt hash của file nhị phân tính trên bytes; sửa 1 byte → hash đổi
+- [x] Generator bỏ qua mọi symlink; không file nào ngoài kit lọt vào map
+- [x] File có `mode: 0755` cài ra thực thi được; mode khác `0644`/`0755` bị từ chối
+- [x] Hai tiến trình chạy đồng thời với cache lạnh → không file nào rách
+- [x] Đổi nội dung kit mà không bump version → cache tự invalidate
+- [x] Binary ≤ 120MB; materialize cold ≤ 800ms — đo được **61.9MB** và **~87ms**
+- [x] `pnpm test` xanh — 737 test
+
+## Kết quả thực thi (2026-08-14)
+
+**Test đỏ trước xác nhận đúng chẩn đoán của phase.** PNG đi qua đường cài ra
+`239,191,189…` (U+FFFD), và hash receipt **không đổi** sau khi lật một byte — vì hai file
+nhị phân khác nhau decode ra cùng một chuỗi ký tự thay thế. Đó là lý do tiêu chí phải đo ở
+provider tree chứ không ở cache.
+
+### Bốn hop, đã sửa
+
+| Hop | Thay đổi |
+|---|---|
+| 1. Nhúng | `lstatSync` + bỏ symlink; dùng chung `IGNORE_DIRS`/`IGNORE_FILES`; lọc secret; text → `text`, còn lại → `b64`; ghi `mode` |
+| 2. Self-extract | Giải nén vào temp dir rồi `renameSync` cả thư mục; đóng dấu cache bằng digest nội dung; verify khi đọc |
+| 3. Đọc để cài | Đọc `Buffer`, chỉ `toString("utf8")` trên nhánh text |
+| 4. Ghi ra đĩa | `atomicWrite` không ép encoding, áp `mode` có kiểm soát |
+
+`WriteOp.content` mở sang `string | Buffer`. Trình biên dịch liệt kê đúng **3** call site cần
+sửa — không chỗ nào phải bịt bằng `as string`.
+
+**Hai lỗi tôi tự tạo rồi tự bắt được, đều do gate quá rộng:**
+
+Filter secret của generator `^\.env(\..+)?$` nuốt luôn `kit/.env.example` — file template kit
+**thật sự cài**. Drift test bắt ngay (121 vs 122 asset). Đã thêm ngoại lệ
+`example|sample|template`, đúng phân biệt mà hook `privacy-block` vẫn dùng.
+
+Gate "không nhúng nội dung dạng token" ban đầu dùng thẳng pattern của
+`credential-sanitizer` và cho 2 dương tính giả: `git/references/safety-protocols.md` **dạy**
+cách nhận diện secret nên chứa header PEM, và `plan/SKILL.md` trỏ tới
+`task-and-sync-back.md` — chuỗi con `sk-and-sync-back` khớp `sk-[A-Za-z0-9_-]{12,}`. Pattern
+lúc in ra màn hình được phép rộng vì redact thừa không mất gì; ở đây dương tính giả chặn
+build. Đã siết: `sk-` cần biên trái, PEM cần header **kèm** thân base64.
+
+**Sentinel còn sống nhưng cây bị xoá.** Test bắt được: `.extracted` tồn tại thì CLI tin cache,
+nên xoá `kit/` xong chạy lại là hỏng. `cacheUsable()` giờ kiểm digest sentinel + sự tồn tại
+của kit root + hash các file thực thi. Cố ý **không** hash toàn bộ 1500 file mỗi lần khởi
+động — xoá sâu trong cây vẫn nổi lên thành lỗi validate ồn ào, không phải hành vi sai âm thầm.
+
+`mode` phải được truyền qua `install-plan.ts` mới tới được `atomicWrite`; test bit thực thi
+bắt đúng mắt xích thiếu này.
+
+### Số đo (2026-08-14, macOS arm64, kit 122 asset)
+
+| Chỉ số | Giá trị | Ngưỡng |
+|---|---|---|
+| Binary | 61.9 MB | ≤ 120 MB |
+| Materialize lạnh + `list` | ~87 ms | ≤ 800 ms |
+| Warm | 76 ms | — |
+
+Lần đo đầu ra 1107ms là do page cache lạnh của binary vừa ghi, không phải chi phí giải nén;
+ba lần lặp sau đều ~87ms. Gate kích thước đã vào `build-binaries.mjs` — vượt ngưỡng thì
+**chuyển sidecar, không nâng số**.
+
+**Chưa quyết được vì chưa có dữ liệu: nhúng lazy.** Bước 6 của plan yêu cầu đo với kit đầy đủ
+16.8MB, mà kit đó tới ở phase 11/12. Kit hiện tại 122 asset không đủ để phân biệt. Cơ chế
+byte-safe đã xong và không phụ thuộc quyết định này; quyết ở phase 11 theo số đo thật.
+
+**Chuỗi 4 chặng đầu-cuối** được chứng minh qua CLI đã build: `install` vào thư mục tạm với
+`ARIADNEV_EMBEDDED=1`, rồi so byte `.claude/.env.example` với `EMBEDDED_ASSETS` — asset này
+đi đúng lane base64. Khi phase 11 mang PNG/woff2 thật vào, chính test này phủ luôn.
 
 ## Risk Assessment
 

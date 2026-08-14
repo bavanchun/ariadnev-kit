@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TARGETS } from "./binary-targets.mjs";
@@ -87,6 +87,20 @@ const checksums = [];
 for (const { target, path } of builtAssets) {
   execFileSync("bun", ["build", "--compile", "src/index.ts", "--target", target, "--outfile", relative(pkgDir, path)], { stdio: "inherit", cwd: pkgDir });
 }
+// The kit is base64-embedded in every binary, so kit growth shows up here first.
+// Crossing this ceiling is the signal to move heavy assets to a lazily-fetched
+// sidecar rather than to raise the number.
+const MAX_BINARY_BYTES = 120 * 1024 * 1024;
+for (const { asset, path } of builtAssets) {
+  const size = statSync(path).size;
+  if (size > MAX_BINARY_BYTES) {
+    throw new Error(
+      `${asset} is ${(size / 1048576).toFixed(1)}MB, over the ${MAX_BINARY_BYTES / 1048576}MB ceiling — ` +
+        `move heavy kit assets to a sidecar instead of raising the limit`,
+    );
+  }
+}
+
 const assets = [...builtAssets.map(({ asset, path }) => ({ asset, path })), ...DOCS_ASSETS.map((asset) => ({ asset, path: join(outDir, asset) }))];
 if (new Set(assets.map(({ asset }) => asset)).size !== assets.length) {
   throw new Error("release asset list contains duplicates");

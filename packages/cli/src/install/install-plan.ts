@@ -23,7 +23,7 @@ function planSkills(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[
       continue;
     }
     for (const f of skillFiles(skill, r.id)) {
-      ops.push({ action: "write", kind: "skill", name: skill.name, dest: join(dir, f.rel), content: f.content });
+      ops.push({ action: "write", kind: "skill", name: skill.name, dest: join(dir, f.rel), content: f.content, mode: f.mode });
     }
   }
   return ops;
