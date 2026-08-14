@@ -33,10 +33,12 @@ export const CAPABILITIES = [
   "install.receipt.v1",
   "doctor.audit.v1",
   "eval.tier1.v1",
+  "coverage.claims.v1",
   "contract.envelope.v1",
   "update.selfupdate.v1",
   "backups.restore.v1",
   "history.query.v1",
+  "graph.run.v1",
   "telemetry.optout.v1",
 ] as const;
 
@@ -49,6 +51,7 @@ export const KNOWN_COMMANDS = [
   "backups",
   "update",
   "validate",
+  "coverage",
   "contract",
   "eval",
   "query",
@@ -56,6 +59,7 @@ export const KNOWN_COMMANDS = [
   "list",
   "add-skill",
   "migrate",
+  "run",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {

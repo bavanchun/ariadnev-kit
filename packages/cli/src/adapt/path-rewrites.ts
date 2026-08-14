@@ -20,7 +20,7 @@ const CODEX_RULES: Rule[] = [
   [".claude/rules/", h(`${VCSKILL_SUPPORT_DIR}/rules/`)],
   [".claude/agents/", h(`${CODEX_AGENTS_DIR}/`)],
   [".claude/commands/", h(`${CODEX_COMMANDS_PATH}/`)],
-  // Reduced-scope prefixes ported from claudekit adapt_content for fidelity;
+  // Reduced-scope prefixes ported from reference adapt_content for fidelity;
   // hooks are not shipped in v1 but a body may still reference these paths.
   [".claude/hooks/", h(`${VCSKILL_SUPPORT_DIR}/hooks/`)],
   [".claude/agent-memory/", ".codex/agent-memory/"],

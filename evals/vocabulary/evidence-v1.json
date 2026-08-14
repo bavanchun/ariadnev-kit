@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "evidence": [
+    {
+      "id": "answer.citation",
+      "producer": "evaluator",
+      "proof": "source",
+      "criterion": "The final answer cites a source-relative fixture file and a location that the evaluator verifies exists.",
+      "capabilities": {}
+    },
+    {
+      "id": "answer.direct",
+      "producer": "evaluator",
+      "proof": "outcome",
+      "criterion": "The final response directly answers the supplied technical question without substituting a research report.",
+      "capabilities": {}
+    },
+    {
+      "id": "design.acceptance",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "The design records outcome, constraints, non-goals, acceptance criteria, and an explicit accepted option.",
+      "capabilities": {}
+    },
+    {
+      "id": "docs.sources",
+      "producer": "evaluator",
+      "proof": "source",
+      "criterion": "Documentation claims are linked to the owning source, test, release artifact, or current primary reference.",
+      "capabilities": {
+        "network.http": "required"
+      }
+    },
+    {
+      "id": "docs.updated",
+      "producer": "harness",
+      "proof": "artifact",
+      "criterion": "A proven documentation artifact changes only the owning documentation surface required by the task.",
+      "capabilities": {}
+    },
+    {
+      "id": "fix.root-cause",
+      "producer": "evaluator",
+      "proof": "execution",
+      "criterion": "The report identifies a reproduced causal path and distinguishes it from downstream symptoms before repair.",
+      "capabilities": {}
+    },
+    {
+      "id": "git.commit",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "Repository state contains the requested focused commit and its tree matches the verified staged changes.",
+      "capabilities": {}
+    },
+    {
+      "id": "handoff.context",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The handoff artifact contains the minimum redacted state, decisions, evidence, and next action needed to resume.",
+      "capabilities": {}
+    },
+    {
+      "id": "implementation.verified",
+      "producer": "harness",
+      "proof": "execution",
+      "criterion": "The accepted implementation exists in the fixture and every required focused verification command passes.",
+      "capabilities": {}
+    },
+    {
+      "id": "journal.decision",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The journal records the durable decision, evidence, rejected alternatives, and follow-up lesson.",
+      "capabilities": {}
+    },
+    {
+      "id": "note.linked",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The note artifact includes the requested concept, failure modes, and resolvable links to related notes.",
+      "capabilities": {}
+    },
+    {
+      "id": "plan.phases",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The plan artifact contains dependency-ordered phases with files, tests, risks, rollback, and commit boundaries.",
+      "capabilities": {}
+    },
+    {
+      "id": "plan.progress",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "The plan status surface maps completed work and unresolved criteria without claiming unverified completion.",
+      "capabilities": {}
+    },
+    {
+      "id": "pr.findings",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The pull-request review reports severity-ranked findings with changed-contract and CI evidence.",
+      "capabilities": {
+        "external.github": "required"
+      }
+    },
+    {
+      "id": "prediction.verdict",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "Multiple named expert lenses produce a reconciled verdict with concrete trade-offs and dissent.",
+      "capabilities": {}
+    },
+    {
+      "id": "project.bootstrap-plan",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The bootstrap artifact defines the project structure, commands, dependencies, and verification path from accepted requirements.",
+      "capabilities": {}
+    },
+    {
+      "id": "reasoning.steps",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "The answer exposes a bounded sequence of premises, transitions, and conclusions for the requested proof.",
+      "capabilities": {}
+    },
+    {
+      "id": "repository.map",
+      "producer": "evaluator",
+      "proof": "source",
+      "criterion": "The repository map names owning modules, callers, tests, documentation, and public contracts with relative evidence.",
+      "capabilities": {}
+    },
+    {
+      "id": "research.sources",
+      "producer": "evaluator",
+      "proof": "source",
+      "criterion": "The research brief cites current primary sources, records versions or dates, and separates fact from inference.",
+      "capabilities": {
+        "network.http": "required"
+      }
+    },
+    {
+      "id": "review.findings",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The local review artifact maps acceptance criteria and reports production findings with file-relative evidence.",
+      "capabilities": {}
+    },
+    {
+      "id": "scenarios.matrix",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The scenario matrix states severity, precondition, injected fault, invariant, expected evidence, and proof layer.",
+      "capabilities": {}
+    },
+    {
+      "id": "security.findings",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The security report redacts values, separates confirmed findings from placeholders, and cites each affected location.",
+      "capabilities": {}
+    },
+    {
+      "id": "ship.pr-url",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "The approved publication step returns a pull-request identifier that the harness verifies exists remotely.",
+      "capabilities": {
+        "external.github": "required"
+      }
+    },
+    {
+      "id": "skill.contract",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The skill artifact defines positive and negative triggers, workflow, output contract, safety rules, and deterministic tests.",
+      "capabilities": {}
+    },
+    {
+      "id": "solution.options",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "The analysis compares viable cause-aligned options and recommends the simplest option satisfying accepted constraints.",
+      "capabilities": {}
+    },
+    {
+      "id": "tests.results",
+      "producer": "harness",
+      "proof": "execution",
+      "criterion": "The recorded focused and required broad test commands complete with their exact pass, fail, and skip counts.",
+      "capabilities": {}
+    },
+    {
+      "id": "worktree.path",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "Repository state proves an isolated worktree and branch exist outside the primary workspace for the requested change.",
+      "capabilities": {}
+    }
+  ]
+}

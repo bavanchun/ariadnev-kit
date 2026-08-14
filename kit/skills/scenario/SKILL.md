@@ -50,7 +50,7 @@ explicitly (state why).
 5. Output the table; map each Critical/High row to a concrete test in
    `vc:cook`'s test-gate before calling the feature covered.
 
-## Output
+## Output format
 
 ```markdown
 ## Scenarios: <target>

@@ -2,7 +2,7 @@
 
 - Date: 2026-07-20
 - Mode: brainstorm (no --html/--wiki)
-- Source deltas: `plans/reports/scout-260720-1724-{claudekit-engineer,repository-harness,archon}-standout-deltas-report.md`
+- Source deltas: `plans/reports/scout-260720-1724-{reference,repository-harness,archon}-standout-deltas-report.md`
 - Handoff: `/ck:plan --tdd`
 
 ## Problem statement
@@ -26,7 +26,7 @@ Run the freshly-compiled host-target binary in a scratch git dir; assert: embedd
 - Why peak: guards the exact silent-break class already seen this session.
 - Acceptance: CI step runs the binary, non-zero on any assertion; passes on a good build.
 
-### Phase 2 — Skill-description collision scorer (from claudekit; S)
+### Phase 2 — Skill-description collision scorer (from reference; S)
 New kit-level lint rule: Jaccard token-set similarity across all skill `description`s → flag confusable pairs + routing cycles.
 - **Decision: WARN by default, ERROR only ≥ hard near-duplicate threshold.** (single-author curated kit; avoid CI annoyance.)
 - Touchpoints: `kit/skill-lint.ts` (cross-skill rule — currently per-skill; needs a kit-level pass), surfaced via `validate-command.ts` `findings[]`.
@@ -38,7 +38,7 @@ Generate the README provider×artifact matrix from `resolver.ts` + `spec-verifie
 - Touchpoints: new `packages/cli/scripts/generate-provider-matrix.mjs`, `validate-command.ts` (--check), new `contract-command.ts`, README block markers.
 - Acceptance: editing the README table by hand → `validate --check` fails; regen fixes it; `contract --json` emits schema-stable JSON.
 
-### Phase 4 — managed-hooks self-heal in doctor (claudekit; S)
+### Phase 4 — managed-hooks self-heal in doctor (reference; S)
 `doctor` detects drifted/missing hook event-bindings in `.claude/settings.json` vs the kit's expected set; `doctor --fix` re-merges idempotently (backup first).
 - Touchpoints: `doctor-command.ts`, `doctor/diagnose.ts` (`DiagnoseDeps` already has `readSettingsJson`).
 - Acceptance: remove a binding → doctor reports it; `--fix` restores it; re-run clean; declining leaves a copy-paste snippet.

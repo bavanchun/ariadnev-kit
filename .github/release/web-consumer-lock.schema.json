@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vcskill.dev/schemas/web-consumer-lock-v1.schema.json",
+  "title": "vcskill web consumer lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repository",
+    "commitSha",
+    "contractDigests",
+    "invocation",
+    "previousSource"
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$"
+    },
+    "argvToken": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9._:@%+=,/~:-]+$"
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind"],
+      "properties": {
+        "path": { "$ref": "#/$defs/relativePath" },
+        "kind": { "enum": ["file", "tree"] }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "repository": {
+      "const": "bavanchun/vcskill-web"
+    },
+    "commitSha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "contractDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/relativePath" },
+      "patternProperties": {
+        ".*": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cwd", "argv", "reportPath", "outputs"],
+      "properties": {
+        "cwd": { "$ref": "#/$defs/relativePath" },
+        "argv": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "prefixItems": [
+            { "enum": ["bun", "node", "pnpm"] }
+          ],
+          "items": { "$ref": "#/$defs/argvToken" }
+        },
+        "reportPath": { "$ref": "#/$defs/relativePath" },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/output" }
+        }
+      }
+    },
+    "previousSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "descriptorPath", "descriptorDigest"],
+      "properties": {
+        "tag": {
+          "type": "string",
+          "pattern": "^vcskill@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "descriptorPath": { "$ref": "#/$defs/relativePath" },
+        "descriptorDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

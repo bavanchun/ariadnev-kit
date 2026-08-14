@@ -1,6 +1,6 @@
-# Scout: claudekit-engineer Standout Deltas vs vcskill
+# Scout: reference Standout Deltas vs vcskill
 
-Deep-read of `/Users/vchun/Documents/kit/claudekit-engineer`. Reports ONLY capabilities that are ABSENT or clearly SUPERIOR vs vcskill baseline. Ranked most-valuable first. All paths under kit root unless noted.
+Deep-read of `/Users/vchun/Documents/kit/reference`. Reports ONLY capabilities that are ABSENT or clearly SUPERIOR vs vcskill baseline. Ranked most-valuable first. All paths under kit root unless noted.
 
 ---
 
@@ -65,7 +65,7 @@ Root `portable-manifest.json`: `{version, cliVersion, renames[], providerPathMig
 - **Effort:** M
 
 ### 11. Per-file release manifest (sha256 + git commit timestamps)
-`scripts/generate-release-manifest.cjs` walks kit files, records SHA-256 + `git log` commit ISO timestamp per file, honors `INCLUDE_HIDDEN`/`SKIP_DIRS`, reads sourceDir/runtimeDir from `package.json.claudekit`.
+`scripts/generate-release-manifest.cjs` walks kit files, records SHA-256 + `git log` commit ISO timestamp per file, honors `INCLUDE_HIDDEN`/`SKIP_DIRS`, reads sourceDir/runtimeDir from `package.json.reference`.
 - **Why peak:** vcskill sha256-verifies the *binary* but has no per-file timestamped manifest, so `update`/`migrate` can't do timestamp-aware incremental/3-way merges or detect user-modified files to preserve.
 - **Steal this:** Emit a per-file manifest at build; use it in `update` to skip unchanged files and warn on locally-modified ones.
 - **Effort:** M

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "read-only-delivery",
+  "title": "Read-only repository delivery",
+  "description": "Inspect a repository, answer from evidence, and verify proof without granting mutation authority.",
+  "versions": { "graph": "1.0.0", "skills": "1.0.0", "policy": "1.0.0", "evaluator": "behavioral-v1" },
+  "entry": "intake",
+  "state": {
+    "fields": [
+      { "name": "request", "type": "string", "scope": "run", "owner": "intake", "redaction": "sensitive", "required": true },
+      { "name": "facts", "type": "object", "scope": "run", "owner": "inspect", "redaction": "internal", "required": true },
+      { "name": "answer", "type": "string", "scope": "run", "owner": "answer", "redaction": "sensitive", "required": true },
+      { "name": "proof", "type": "array", "scope": "run", "owner": "verify", "redaction": "internal", "required": true }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "intake", "type": "function", "handler": { "kind": "function", "ref": "normalize-request" },
+      "state": { "reads": [], "writes": ["request"] },
+      "authority": { "capabilities": ["state:write"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["request-normalized"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "inspect", "type": "skill", "handler": { "kind": "skill", "ref": "scout" },
+      "state": { "reads": ["request"], "writes": ["facts"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["request-normalized"], "produces": ["repository-facts"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "answer", "type": "skill", "handler": { "kind": "skill", "ref": "ask" },
+      "state": { "reads": ["request", "facts"], "writes": ["answer"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["repository-facts"], "produces": ["evidence-backed-answer"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "verify", "type": "gate", "handler": { "kind": "gate", "ref": "evidence-complete" },
+      "state": { "reads": ["facts", "answer"], "writes": ["proof"] },
+      "authority": { "capabilities": ["state:read", "state:write"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["evidence-backed-answer"], "produces": ["delivery-verified"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "complete", "type": "terminal", "handler": { "kind": "terminal", "ref": "success" },
+      "state": { "reads": ["answer", "proof"], "writes": [] },
+      "authority": { "capabilities": ["state:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["delivery-verified"], "produces": ["run-completed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "failed", "type": "terminal", "handler": { "kind": "terminal", "ref": "failure" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-failed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "cancelled", "type": "terminal", "handler": { "kind": "terminal", "ref": "cancelled" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-cancelled"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    }
+  ],
+  "edges": [
+    { "id": "intake-ok", "from": "intake", "to": "inspect", "type": "success" },
+    { "id": "intake-failed", "from": "intake", "to": "failed", "type": "failure" },
+    { "id": "intake-cancelled", "from": "intake", "to": "cancelled", "type": "cancel" },
+    { "id": "inspect-ok", "from": "inspect", "to": "answer", "type": "success" },
+    { "id": "inspect-failed", "from": "inspect", "to": "failed", "type": "failure" },
+    { "id": "inspect-cancelled", "from": "inspect", "to": "cancelled", "type": "cancel" },
+    { "id": "answer-ok", "from": "answer", "to": "verify", "type": "success" },
+    { "id": "answer-failed", "from": "answer", "to": "failed", "type": "failure" },
+    { "id": "answer-cancelled", "from": "answer", "to": "cancelled", "type": "cancel" },
+    { "id": "verify-ok", "from": "verify", "to": "complete", "type": "success" },
+    { "id": "verify-failed", "from": "verify", "to": "failed", "type": "failure" },
+    { "id": "verify-cancelled", "from": "verify", "to": "cancelled", "type": "cancel" }
+  ]
+}

@@ -84,3 +84,14 @@ End every cook run with:
 - [ ] `references/test-gate.md` checklist passed
 - [ ] `references/review-gate.md` checklist passed
 - [ ] Plan file synced back (when executing a plan)
+
+## Workflow position
+
+**Typically follows:** `vc:plan` (execute a phase of an accepted plan),
+`vc:brainstorm` (implement the agreed approach), `vc:scout` (the touched area is
+already mapped).
+**Typically precedes:** `vc:ship` (release the finished branch), `vc:pm` (track
+plan sync-back), `vc:git` (commit each unit of work).
+**Related:** `vc:fix` — use it instead when the task is a bug whose cause is not
+yet proven. `vc:code-review` and `vc:test` deepen gates that cook already runs
+inline; reach for them only when a change needs more than the embedded pass.

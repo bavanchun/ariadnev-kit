@@ -5,9 +5,10 @@
 import { spawnSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runValidate, matchesFilter } from "./validate-command.js";
+import { runValidate } from "./validate-command.js";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
+import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { extractJudgeJson, overall, flagged } from "../eval/parse-judge.js";
 import { coral, teal, amber, faint, symbols, type StyleOpts } from "../ui/style.js";
 
@@ -76,7 +77,7 @@ export function runEval(opts: EvalOpts): EvalResult {
 
   const root = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const kit = loadKit(root);
-  const skills = filter ? kit.skills.filter((s) => matchesFilter(s.name, filter)) : kit.skills;
+  const skills = filter ? kit.skills.filter((s) => matchesSkillFilter(s.name, filter)) : kit.skills;
   lines.push("", `${coral("tier-3", style)} — LLM judge`);
 
   for (const s of skills) {

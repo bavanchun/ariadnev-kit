@@ -5,7 +5,12 @@ import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
-import { scoreDescriptions } from "../kit/description-collision.js";
+import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
+import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
+import { matchesSkillFilter } from "../kit/skill-filter.js";
+import { runCoverage } from "./coverage-command.js";
+import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
+import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 
 // `vcskill validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -13,7 +18,7 @@ import { scoreDescriptions } from "../kit/description-collision.js";
 
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "matrix" | "collision";
+  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "coverage" | "graph";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -36,19 +41,41 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
+  /** Aggregate-only policy override. Standalone coverage is always strict. */
+  coverageLevel?: "warn" | "error";
 }
 
-/** Does a skill name match a user-supplied filter entry (bare or vc:-prefixed)? */
-export function matchesFilter(name: string, filter: string[]): boolean {
-  const bare = name.replace(/^vc:/, "");
-  return filter.some((f) => f === name || f === bare || `vc:${f}` === name);
-}
+export const VALIDATE_COVERAGE_LEVEL = "error" as const;
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
 // cwd — robust whether this runs from src (tsx/bun), the bundled dist, or the
 // binary. Outside a checkout the file is absent and --check reports that.
 function defaultReadmePath(): string {
   return join(process.cwd(), "README.md");
+}
+
+// Justified-similar pairs live in `<kitRoot>/collision-allowlist.json` — a flat
+// array of {a,b,reason}. Absent or malformed ⇒ empty (fail-open: the gate just
+// keeps flagging). Entries missing a non-empty reason are ignored so no pair is
+// silenced without a rationale.
+export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry[] {
+  const path = join(kitRoot, "collision-allowlist.json");
+  if (!existsSync(path)) return [];
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is CollisionAllowlistEntry =>
+        typeof e === "object" &&
+        e !== null &&
+        typeof (e as CollisionAllowlistEntry).a === "string" &&
+        typeof (e as CollisionAllowlistEntry).b === "string" &&
+        typeof (e as CollisionAllowlistEntry).reason === "string" &&
+        (e as CollisionAllowlistEntry).reason.trim().length > 0,
+    );
+  } catch {
+    return [];
+  }
 }
 
 function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
@@ -81,15 +108,25 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
 
   const findings: ValidateFinding[] = [];
   const skillsToCheck = opts.skillFilter
-    ? kit.skills.filter((s) => matchesFilter(s.name, opts.skillFilter!))
+    ? kit.skills.filter((s) => matchesSkillFilter(s.name, opts.skillFilter!))
     : kit.skills;
+  for (const requested of opts.skillFilter ?? []) {
+    if (!kit.skills.some((skill) => matchesSkillFilter(skill.name, [requested]))) {
+      findings.push({ skill: requested, kind: "missing-skill", message: "skill not found in kit" });
+    }
+  }
+  const knownSkillNames = kit.skills.map((skill) => skill.name);
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
-    const names = existsSync(refsDir)
+    const referenceFiles = existsSync(refsDir)
       ? readdirSync(refsDir)
           .filter((f) => f.endsWith(".md"))
-          .map((f) => `references/${f}`)
+          .map((file) => ({
+            name: `references/${file}`,
+            content: readFileSync(join(refsDir, file), "utf8"),
+          }))
       : [];
+    const names = referenceFiles.map((file) => file.name);
     const { dangling, orphans } = checkReferenceIntegrity(skill.body, names);
     for (const d of dangling) {
       findings.push({ skill: skill.name, kind: "dangling", message: `links ${d} but it does not exist` });
@@ -97,11 +134,56 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     for (const o of orphans) {
       findings.push({ skill: skill.name, kind: "orphan", message: `${o} exists but is never linked from SKILL.md` });
     }
+    const unresolved = findUnresolvedSkillReferences(
+      [
+        { source: skill.sourcePath, content: skill.body },
+        ...referenceFiles.map((file) => ({
+          source: join(dirname(skill.sourcePath), file.name),
+          content: file.content,
+        })),
+      ],
+      knownSkillNames,
+    );
+    for (const ref of unresolved) {
+      findings.push({
+        skill: skill.name,
+        kind: "skillref",
+        message: `${ref.source} references unknown skill ${ref.reference}`,
+      });
+    }
+  }
+
+  const coverage = runCoverage({
+    kitRoot: root,
+    skillNames: skillsToCheck.map((skill) => skill.name),
+  });
+  for (const finding of coverage.findings) {
+    findings.push({
+      skill: finding.skill,
+      kind: "coverage",
+      level: opts.coverageLevel ?? VALIDATE_COVERAGE_LEVEL,
+      message: `${finding.claimId ? `${finding.claimId} ` : ""}${finding.kind}: ${finding.message}`,
+    });
+  }
+
+  const graphRegistry = graphRegistryForKit(kit);
+  for (const workflow of kit.workflows) {
+    const compiled = compileGraph(workflow.graph, graphRegistry, PORTABLE_GRAPH_CAPABILITY_CONTRACT);
+    for (const graphFinding of compiled.findings) {
+      const witness = graphFinding.path ? ` [path: ${graphFinding.path.join(" -> ")}]` : "";
+      findings.push({
+        skill: `workflow:${workflow.name}`,
+        kind: "graph",
+        level: graphFinding.severity === "error" ? "error" : "warn",
+        message: `${graphFinding.id}: ${graphFinding.message}${witness}`,
+      });
+    }
   }
 
   // Cross-skill description confusability (routing-collision guard).
   const collisions = scoreDescriptions(
     kit.skills.map((s) => ({ name: s.name, description: String(s.frontmatter.description ?? "") })),
+    loadCollisionAllowlist(root),
   );
   for (const c of collisions) {
     findings.push({

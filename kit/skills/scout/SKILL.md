@@ -41,7 +41,7 @@ file analysis (just read the file).
    `plans/reports/scout-{yymmdd-hhmm}-{slug}-report.md` when the scout feeds
    a plan or brainstorm.
 
-## Report format
+## Output format
 
 ```markdown
 # Scout: <question>
@@ -67,3 +67,14 @@ What scouting could not settle, or "none".
 - [ ] Every claim carries a file path (line ref where useful)
 - [ ] Agent scopes did not overlap
 - [ ] Report says what was NOT searched, when scope was cut
+
+## Workflow position
+
+**Typically follows:** any request that names an unfamiliar area — usually the
+first step of `vc:brainstorm`, `vc:plan`, `vc:cook`, or `vc:fix` rather than a
+standalone invocation.
+**Typically precedes:** `vc:brainstorm` (options need grounding), `vc:plan`
+(phases need real file paths), `vc:cook` (match existing patterns), `vc:fix`
+(widen the search after failed hypotheses).
+**Related:** `vc:ask` answers a question about code already located; `vc:scout`
+locates it. Deep analysis of one known file needs neither — just read it.

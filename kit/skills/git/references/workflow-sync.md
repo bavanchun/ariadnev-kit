@@ -30,7 +30,7 @@ collaborators may lose work."
 | Error | Solution |
 |---|---|
 | `rejected - non-fast-forward` | `git pull --rebase`, resolve, push again |
-| `no upstream branch` | `git push -u origin HEAD` |
+| `no tracking branch set` | `git push -u origin HEAD` |
 | `Authentication failed` | check `gh auth status` / SSH keys |
 | `Repository not found` | verify `git remote -v` |
 | `Permission denied` | check repo write access |

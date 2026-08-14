@@ -30,5 +30,17 @@ export function renderSkillTemplate({ slug, description }: SkillTemplateInput): 
     "",
     "1. ...",
     "",
+    "## Output format",
+    "",
+    "Describe the result this skill returns.",
+    "",
+    "## Quality gates",
+    "",
+    "- [ ] The requested outcome is complete.",
+    "",
+    "## Workflow position",
+    "",
+    "Related: none.",
+    "",
   ].join("\n");
 }

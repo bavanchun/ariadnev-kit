@@ -62,7 +62,7 @@ mitigation; Architect finds a fundamental incompatibility; Performance finds
 unacceptable latency/query explosion with no workaround; Devil's Advocate
 exposes a false assumption that invalidates the whole approach.
 
-## Output
+## Output format
 
 ```markdown
 ## Prediction: <proposal>
@@ -83,3 +83,25 @@ exposes a false assumption that invalidates the whole approach.
 
 Feed CAUTION/STOP risk rows into `vc:scenario` for deeper edge-case coverage,
 or into `vc:plan`'s risk assessment when proceeding.
+
+## Quality gates
+
+- [ ] Every persona that touches existing code cites at least one real
+      `file:line` or named pattern — no purely abstract concerns
+- [ ] Personas analyzed independently before the debate step
+- [ ] Each conflict has a resolution weighed against *this* project's
+      constraints, not generic best practice
+- [ ] The verdict follows the STOP triggers; a STOP names the specific
+      unresolved issue
+- [ ] Every CAUTION risk carries a concrete mitigation, not "monitor it"
+
+## Workflow position
+
+**Typically follows:** `vc:brainstorm` (pressure-test the chosen approach before
+committing) or a direct proposal for a high-risk-lane change.
+**Typically precedes:** `vc:plan` (feed the risk rows into its risk assessment),
+`vc:scenario` (expand CAUTION/STOP rows into edge cases), `vc:cook` (implement
+once the verdict is GO).
+**Related:** `vc:brainstorm` picks *which* approach; `vc:predict` stress-tests
+one already on the table. Skip it for tiny/normal lanes — see
+`../cook/references/risk-lanes.md`.

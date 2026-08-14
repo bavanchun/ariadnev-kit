@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json",
+  "title": "vcskill docs bundle manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "schemaId",
+    "bundle",
+    "mode",
+    "publishable",
+    "version",
+    "releaseTag",
+    "sourceSha",
+    "generatorSha",
+    "generatedAt",
+    "sourceDateEpoch",
+    "proofBoundary",
+    "fileCount",
+    "totalBytes",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "schemaId": { "const": "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json" },
+    "bundle": { "const": "vcskill-docs-bundle" },
+    "mode": { "enum": ["final", "provisional"] },
+    "publishable": { "type": "boolean" },
+    "version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" },
+    "releaseTag": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^vcskill@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
+      ]
+    },
+    "sourceSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "generatorSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceDateEpoch": { "type": "integer", "minimum": 0 },
+    "proofBoundary": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "fileCount": { "type": "integer", "minimum": 1, "maximum": 128 },
+    "totalBytes": { "type": "integer", "minimum": 1, "maximum": 4194304 },
+    "payload": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/payloadEntry" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "mode": { "const": "final" } } },
+      "then": {
+        "properties": {
+          "publishable": { "const": true },
+          "releaseTag": { "type": "string", "pattern": "^vcskill@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "mode": { "const": "provisional" } } },
+      "then": {
+        "properties": {
+          "publishable": { "const": false },
+          "releaseTag": { "type": "null" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payloadEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "bytes", "digest"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._/-]+(?<!/)$"
+        },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 524288 },
+        "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

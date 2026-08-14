@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "bugfix-delivery",
+  "title": "Root-cause bugfix delivery",
+  "description": "Diagnose a defect, obtain bounded change authority, implement the cause-aligned fix, and verify it.",
+  "versions": { "graph": "1.0.0", "skills": "1.0.0", "policy": "1.0.0", "evaluator": "behavioral-v1" },
+  "entry": "intake",
+  "state": {
+    "fields": [
+      { "name": "request", "type": "string", "scope": "run", "owner": "intake", "redaction": "sensitive", "required": true },
+      { "name": "facts", "type": "object", "scope": "run", "owner": "inspect", "redaction": "internal", "required": true },
+      { "name": "diagnosis", "type": "object", "scope": "run", "owner": "diagnose", "redaction": "internal", "required": true },
+      { "name": "approval", "type": "object", "scope": "run", "owner": "approve", "redaction": "internal", "required": true },
+      { "name": "patch", "type": "object", "scope": "run", "owner": "fix", "redaction": "sensitive", "required": true },
+      { "name": "test-results", "type": "object", "scope": "run", "owner": "test", "redaction": "internal", "required": true },
+      { "name": "review", "type": "object", "scope": "run", "owner": "review", "redaction": "internal", "required": true }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "intake", "type": "function", "handler": { "kind": "function", "ref": "normalize-request" },
+      "state": { "reads": [], "writes": ["request"] },
+      "authority": { "capabilities": ["state:write"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["request-normalized"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "inspect", "type": "skill", "handler": { "kind": "skill", "ref": "scout" },
+      "state": { "reads": ["request"], "writes": ["facts"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["request-normalized"], "produces": ["repository-facts"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "diagnose", "type": "agent", "handler": { "kind": "agent", "ref": "vc-debugger" },
+      "state": { "reads": ["request", "facts"], "writes": ["diagnosis"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "process:execute"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["repository-facts"], "produces": ["root-cause-proven"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 2, "backoffMs": 1000, "on": ["transient"] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "approve", "type": "human", "handler": { "kind": "human", "ref": "change-approval" },
+      "state": { "reads": ["diagnosis"], "writes": ["approval"] },
+      "authority": { "capabilities": ["state:read", "state:write"], "effect": "none", "approval": "required", "idempotency": "none" },
+      "proof": { "requires": ["root-cause-proven"], "produces": ["change-approved"] }, "timeoutMs": 3600000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "fix", "type": "skill", "handler": { "kind": "skill", "ref": "fix" },
+      "state": { "reads": ["diagnosis", "approval"], "writes": ["patch"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "workspace:write"], "effect": "workspace", "approval": "required", "idempotency": "required", "idempotencyKey": "bugfix-patch" },
+      "proof": { "requires": ["change-approved"], "produces": ["scoped-patch"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 2, "backoffMs": 1000, "on": ["conflict"] },
+      "redaction": { "input": "internal", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "test", "type": "skill", "handler": { "kind": "skill", "ref": "test" },
+      "state": { "reads": ["patch"], "writes": ["test-results"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "process:execute"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["scoped-patch"], "produces": ["tests-passed"] }, "timeoutMs": 600000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "review", "type": "skill", "handler": { "kind": "skill", "ref": "code-review" },
+      "state": { "reads": ["diagnosis", "patch", "test-results"], "writes": ["review"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["root-cause-proven", "tests-passed"], "produces": ["review-passed"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "complete", "type": "terminal", "handler": { "kind": "terminal", "ref": "success" },
+      "state": { "reads": ["patch", "test-results", "review"], "writes": [] },
+      "authority": { "capabilities": ["state:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["review-passed"], "produces": ["run-completed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "failed", "type": "terminal", "handler": { "kind": "terminal", "ref": "failure" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-failed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "cancelled", "type": "terminal", "handler": { "kind": "terminal", "ref": "cancelled" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-cancelled"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    }
+  ],
+  "edges": [
+    { "id": "intake-ok", "from": "intake", "to": "inspect", "type": "success" },
+    { "id": "intake-failed", "from": "intake", "to": "failed", "type": "failure" },
+    { "id": "inspect-handoff", "from": "inspect", "to": "diagnose", "type": "handoff" },
+    { "id": "inspect-failed", "from": "inspect", "to": "failed", "type": "failure" },
+    { "id": "inspect-cancelled", "from": "inspect", "to": "cancelled", "type": "cancel" },
+    { "id": "diagnose-ok", "from": "diagnose", "to": "approve", "type": "success" },
+    { "id": "diagnose-retry", "from": "diagnose", "to": "diagnose", "type": "retry" },
+    { "id": "diagnose-failed", "from": "diagnose", "to": "failed", "type": "failure" },
+    { "id": "diagnose-cancelled", "from": "diagnose", "to": "cancelled", "type": "cancel" },
+    { "id": "change-approved", "from": "approve", "to": "fix", "type": "approval" },
+    { "id": "approval-failed", "from": "approve", "to": "failed", "type": "failure" },
+    { "id": "approval-cancelled", "from": "approve", "to": "cancelled", "type": "cancel" },
+    { "id": "fix-ok", "from": "fix", "to": "test", "type": "success" },
+    { "id": "fix-retry", "from": "fix", "to": "fix", "type": "retry" },
+    { "id": "fix-failed", "from": "fix", "to": "failed", "type": "failure" },
+    { "id": "fix-cancelled", "from": "fix", "to": "cancelled", "type": "cancel" },
+    { "id": "test-ok", "from": "test", "to": "review", "type": "success" },
+    { "id": "test-failed", "from": "test", "to": "failed", "type": "failure" },
+    { "id": "test-cancelled", "from": "test", "to": "cancelled", "type": "cancel" },
+    { "id": "review-ok", "from": "review", "to": "complete", "type": "success" },
+    { "id": "review-failed", "from": "review", "to": "failed", "type": "failure" }
+  ]
+}
