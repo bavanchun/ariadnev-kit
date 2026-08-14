@@ -79,6 +79,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev list [--global]` | Show kit contents + per-provider install state |
 | `ariadnev doctor [--global]` | Health-check the install against its receipt (files, hooks, settings bindings, version) |
 | `ariadnev uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install. Recovers an install interrupted before its receipt was written, and fails rather than reporting success when there is no install record at all |
+| `ariadnev audit [kit\|scripts] [--global] [--json] [--strict]` | Classify every installed file against the receipt (`ok`/`modified`/`missing`/`untracked`), or scan the scripts the kit ships for privilege escalation, remote code execution, and writes outside the skill. Exits 1 on drift; `--strict` also fails on untracked files and flagged scripts |
 | `ariadnev backups list [--global]` | List timestamped backups with file counts |
 | `ariadnev backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `ariadnev update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |

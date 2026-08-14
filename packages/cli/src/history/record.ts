@@ -2,7 +2,7 @@
 // it copies ONLY the enumerated categorical fields onto the event, so free-form
 // or secret data in the caller's payload can never be persisted (red-team).
 
-export type HistoryKind = "install" | "uninstall" | "doctor" | "update" | "eval";
+export type HistoryKind = "install" | "uninstall" | "doctor" | "audit" | "update" | "eval";
 
 export interface HistoryEvent {
   ts: string; // ISO timestamp

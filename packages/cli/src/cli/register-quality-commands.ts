@@ -1,7 +1,8 @@
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Command } from "commander";
-import type { CommandRegistrationContext } from "./command-registration-context.js";
+import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
+import { runAudit } from "./audit-command.js";
 import { runContract } from "./contract-command.js";
 import { emit } from "./emit.js";
 import { parseBehavioralCommand, runBehavioralEval } from "./behavioral-eval-command.js";
@@ -18,6 +19,32 @@ export function registerQualityCommands(program: Command, context: CommandRegist
       const { summary, ok } = runValidate({ check: !!opts.check });
       emit(summary);
       if (!ok) process.exitCode = 1;
+    });
+
+  program
+    .command("audit")
+    .description("Compare installed files against the receipt, or scan the scripts the kit ships")
+    .argument("[target]", "kit (default) | scripts", "kit")
+    .option("--global", "audit the ~/ scope", false)
+    .option("--json", "emit JSON instead of the text report", false)
+    .option("--strict", "count untracked files and flagged scripts as failures", false)
+    .action((target: string, opts: { global?: boolean; json?: boolean; strict?: boolean }) => {
+      if (target !== "kit" && target !== "scripts") {
+        throw new Error(`unknown audit target: ${target} (expected "kit" or "scripts")`);
+      }
+      const global = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
+      const { output, exitCode } = runAudit({
+        target,
+        scope,
+        home: global.home,
+        cwd: global.cwd,
+        json: !!opts.json,
+        strict: !!opts.strict,
+      });
+      emit(output);
+      context.record("audit", { scope, status: exitCode === 0 ? "ok" : "drift" });
+      if (exitCode !== 0) process.exitCode = exitCode;
     });
 
   program
