@@ -45,6 +45,14 @@ function planCommands(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallO
   });
 }
 
+// Output styles are plain Markdown the provider reads verbatim — no adaptation.
+function planOutputStyles(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
+  return kit.outputStyles.map((style): InstallOp => {
+    if (!r.supports.outputStyle) return skip("outputStyle", style.name, `unsupported/unverified (${r.id})`);
+    return { action: "write", kind: "outputStyle", name: style.name, dest: r.targetFor(style, ctx)!, content: style.raw };
+  });
+}
+
 function planRules(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   if (kit.rules.length === 0) return [];
   if (r.rulesMode === "agents-md") {
@@ -125,6 +133,7 @@ export function planInstall(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): In
     ...planSkills(kit, r, ctx),
     ...planAgents(kit, r, ctx),
     ...planCommands(kit, r, ctx),
+    ...planOutputStyles(kit, r, ctx),
     ...planRules(kit, r, ctx),
     ...planHooks(kit, r, ctx),
   ];

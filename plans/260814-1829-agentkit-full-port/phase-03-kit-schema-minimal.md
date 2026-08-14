@@ -1,7 +1,8 @@
 ---
 phase: 3
 title: "Kit schema tối thiểu + frontmatter thật"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "2d"
 dependencies: [2]
@@ -78,16 +79,57 @@ Field nào không phải vocabulary skill thật thì đi qua đó, không nốn
 
 ## Success Criteria
 
-- [ ] `Artifact` không có field mới nào
-- [ ] `load-kit.ts` và `artifact-content.ts` dùng chung một ignore list; test chứng minh
+- [x] `Artifact` không có field mới nào
+- [x] `load-kit.ts` và `artifact-content.ts` dùng chung một ignore list; test chứng minh
       hai bên trả cùng tập file cho một skill có `.venv`/`node_modules`
-- [ ] Frontmatter thật của 103 skill nguồn lint sạch
-- [ ] Không field nào trong whitelist mà grep nguồn không tìm thấy
-- [ ] `document-skills` fixture cài ra đủ 4 sub-skill, mỗi cái có `SKILL.md` riêng
-- [ ] `ArtifactType` có `outputStyle`; ô mới trong ma trận mặc định `false` chờ phase 8
-- [ ] `kit/commands/` tồn tại và loader nạp được command
-- [ ] `av validate` trên kit hiện tại vẫn 26 skills / 13 agents / 6 hooks, all passed
-- [ ] `pnpm test` xanh
+- [x] Frontmatter thật của 103 skill nguồn lint sạch (6 field mới, đo từ nguồn)
+- [x] Không field nào trong whitelist mà grep nguồn không tìm thấy
+- [x] `document-skills` cài ra đủ 4 sub-skill, mỗi cái có `SKILL.md` riêng — **đã chạy được
+      sẵn**, không cần code mới
+- [x] `ArtifactType` có `outputStyle`; ô mới trong ma trận mặc định `false` chờ phase 8
+- [x] `kit/commands/` tồn tại và loader nạp được command
+- [x] `av validate` trên kit hiện tại vẫn 26 skills / 13 agents / 6 hooks, all passed
+- [x] `pnpm test` xanh — 727 test
+
+## Kết quả thực thi (2026-08-14)
+
+**Bước 4 xác nhận `skillFiles()` đã đủ, đúng như giả thuyết của phase.** Đo trực tiếp trên
+hai skill sâu nhất của nguồn:
+
+| Skill | copy được | trên đĩa (đã lọc) | độ sâu > 2 |
+|---|---|---|---|
+| `document-skills` | 131 | 131 | 115 |
+| `cti-expert` | 148 | 177 | 57 |
+
+`document-skills` ra đủ 5 `SKILL.md` (gốc + 4 sub-skill docx/pdf/pptx/xlsx) với cấu trúc lồng
+nguyên vẹn — **không viết dòng code nào cho sub-skill**. 29 file chênh ở `cti-expert` là toàn
+bộ ruột `.git/` của một repo vendored (`vendor/sharetrace`), bị `IGNORE_DIRS` loại đúng.
+
+**Ghi cho phase 11/12:** `cti-expert` nhúng nguyên một git repo trong `vendor/`. Phải quyết
+có mang theo không — 148 file cho một skill là phần lớn khối lượng của cả wave.
+
+**Whitelist frontmatter đo từ nguồn, không chép từ plan cũ.** Grep 103 `SKILL.md`:
+`when_to_use` (100), `keywords` (100), `category` (100), `metadata` (99), `license` (46),
+`allowed-tools` (6), `disable-model-invocation` (5), `related` (2), `maturity` (1),
+`languages` (1). Sáu field đầu chưa có trong `ALLOWED_FIELDS` đã được thêm; không field nào
+ngoài tập đo được.
+
+**Một quyết định cũ bị lật.** Hai test khẳng định `keywords`/`category` phải đi qua
+`metadata`, mang lý do "taxonomy là dữ liệu bổ sung". Quyết định đó có nghĩa khi kit là bản
+viết lại; corpus mang nguyên văn đặt chúng ở top level, nên giữ nguyên luật cũ sẽ làm
+**mọi** skill port vào lint đỏ. Đã đổi hợp đồng và ghi lý do trong test. Cả hai vị trí giờ
+đều hợp lệ; typo (`catgeory`) vẫn là lỗi cứng — có test riêng.
+
+**`outputStyle` đi hết đường:** `ArtifactType`, `ArtifactKind`, `Kit.outputStyles`, loader
+`kit/output-styles/`, `planOutputStyles`, resolver, và một hàng mới trong ma trận provider
+(README đã sinh lại). Mọi ô `false` — installer skip + log — **chờ phase 8**.
+
+Quan sát cho phase 8: nguồn đặt 6 file `coding-level-*.md` ở `~/.claude/output-styles/`, tức
+claude-code **có** thư mục này. Đường dẫn đã ghi trong `resolver.ts` nhưng ô ma trận vẫn
+`false` cho tới khi phase 8 verify thật.
+
+**`kit/commands/term-config.md`** port từ nguồn, thay đường dẫn tuyệt đối `/Users/vchun/...`
+bằng `~/.local/share/chezmoi` — kit không được chứa đường dẫn máy cụ thể.
 
 ## Risk Assessment
 

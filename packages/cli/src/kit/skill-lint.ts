@@ -18,6 +18,8 @@ export const REQUIRED_SECTIONS = [
 /** Description must tell the model when to fire the skill, not just what it is. */
 const TRIGGER_VERB = /\b(use|invoke|run|activate|trigger)\b/i;
 
+// The exact vocabulary the authored skill corpus uses — nothing wider, so a
+// misspelled key is still a hard error rather than silently ignored data.
 const ALLOWED_FIELDS = new Set([
   "name",
   "description",
@@ -28,6 +30,12 @@ const ALLOWED_FIELDS = new Set([
   "metadata",
   "version",
   "license",
+  "when_to_use",
+  "keywords",
+  "category",
+  "related",
+  "maturity",
+  "languages",
 ]);
 
 export interface ReferenceFile {

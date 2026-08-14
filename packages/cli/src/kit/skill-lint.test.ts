@@ -77,11 +77,11 @@ describe("lintSkill: description rules", () => {
 describe("lintSkill: frontmatter field allowlist", () => {
   it("rejects unknown frontmatter fields", () => {
     const res = lintSkill(
-      makeSkill({ frontmatter: { keywords: ["a"], category: "dev" } }),
+      makeSkill({ frontmatter: { widgets: ["a"], flavour: "dev" } }),
       [],
     );
-    expect(res.errors.some((e) => e.includes("keywords"))).toBe(true);
-    expect(res.errors.some((e) => e.includes("category"))).toBe(true);
+    expect(res.errors.some((e) => e.includes("widgets"))).toBe(true);
+    expect(res.errors.some((e) => e.includes("flavour"))).toBe(true);
   });
 
   it("accepts optional known fields", () => {
@@ -102,12 +102,13 @@ describe("lintSkill: frontmatter field allowlist", () => {
   });
 
   // Taxonomy field for the growing kit lives under metadata (nested), so it is
-  // additive and needs no allowlist change; a bare top-level `category` stays rejected.
-  it("accepts metadata.category (taxonomy) but still rejects top-level category", () => {
-    const nested = lintSkill(makeSkill({ frontmatter: { metadata: { category: "core-loop" } } }), []);
-    expect(nested.errors).toEqual([]);
-    const topLevel = lintSkill(makeSkill({ frontmatter: { category: "core-loop" } }), []);
-    expect(topLevel.errors.some((e) => e.includes("category"))).toBe(true);
+  // Taxonomy is accepted in both positions. `metadata.category` was the only
+  // spelling while skills were re-authored here; the authored corpus the kit now
+  // carries verbatim puts `category` and `keywords` at the top level, and
+  // rejecting that would fail every ported skill.
+  it("accepts category nested under metadata or at the top level", () => {
+    expect(lintSkill(makeSkill({ frontmatter: { metadata: { category: "core-loop" } } }), []).errors).toEqual([]);
+    expect(lintSkill(makeSkill({ frontmatter: { category: "core-loop" } }), []).errors).toEqual([]);
   });
 });
 
@@ -176,5 +177,24 @@ describe("lintSkill: duplicate heading heuristic (warning only)", () => {
       [{ name: "ref.md", content: "## Details\n" }],
     );
     expect(res.warnings).toEqual([]);
+  });
+});
+
+describe("frontmatter vocabulary matches the real skill corpus", () => {
+  // These six fields appear across the authored skill corpus. Rejecting them
+  // would make every ported skill fail lint; accepting anything would let a
+  // typo through. The set is exactly what the corpus uses, nothing wider.
+  const CORPUS_FIELDS = ["when_to_use", "keywords", "category", "related", "maturity", "languages"];
+
+  for (const field of CORPUS_FIELDS) {
+    it(`accepts ${field}`, () => {
+      const res = lintSkill(makeSkill({ frontmatter: { [field]: "value" } }), []);
+      expect(res.errors).toEqual([]);
+    });
+  }
+
+  it("still rejects a field outside the vocabulary", () => {
+    const res = lintSkill(makeSkill({ frontmatter: { keywrods: "typo" } }), []);
+    expect(res.errors.join("\n")).toMatch(/keywrods/);
   });
 });

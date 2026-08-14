@@ -5,6 +5,9 @@ import type { Artifact, ArtifactType, HookManifest, Kit, KitHook } from "./kit-t
 import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 import { lintAgent } from "./agent-lint.js";
 import { KitValidationError } from "./kit-validation-error.js";
+// One ignore list for both walkers: if the loader accepted a tree the installer
+// never copies, `validate` would pass on files that can never reach a provider.
+import { IGNORE_DIRS } from "../install/install-types.js";
 import { loadWorkflows } from "./load-workflows.js";
 
 export { KitValidationError } from "./kit-validation-error.js";
@@ -60,6 +63,7 @@ function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
   const out: Artifact[] = [];
   const seen = new Set<string>();
   for (const entry of readdirSync(skillsDir)) {
+    if (IGNORE_DIRS.has(entry)) continue;
     const dir = join(skillsDir, entry);
     const skillMd = join(dir, "SKILL.md");
     if (!statSync(dir).isDirectory() || !existsSync(skillMd)) continue;
@@ -120,7 +124,7 @@ function loadHooks(kitRoot: string): KitHook[] {
   const out: KitHook[] = [];
   for (const entry of readdirSync(hooksDir)) {
     // `_lib` and friends hold shared helpers, not installable hooks.
-    if (entry.startsWith("_")) continue;
+    if (entry.startsWith("_") || IGNORE_DIRS.has(entry)) continue;
     const dir = join(hooksDir, entry);
     if (!statSync(dir).isDirectory()) continue;
     const file = join(dir, "hook.cjs");
@@ -164,6 +168,7 @@ export function loadKit(kitRoot: string): Kit {
     skills,
     agents,
     commands: loadFlat(kitRoot, "commands", "command"),
+    outputStyles: loadFlat(kitRoot, "output-styles", "outputStyle"),
     rules: loadFlat(kitRoot, "rules", "rule"),
     hooks: loadHooks(kitRoot),
     workflows: loadWorkflows(kitRoot, skills, agents),

@@ -37,6 +37,8 @@ interface ProviderConfig {
   skillDir: string; // e.g. ".claude/skills" | ".agents/skills" | ".opencode/skills"
   agentPath: ((name: string) => string) | null; // relative; null => unsupported
   commandPath: ((name: string) => string) | null;
+  /** Relative output-style path; null => this provider has no verified target. */
+  outputStylePath: ((name: string) => string) | null;
   rulePath: ((name: string) => string) | null; // for dir/mdc modes
   scriptsDir: string;
   envFile: string;
@@ -59,6 +61,9 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".claude/skills",
     agentPath: (n) => `.claude/agents/${n}.md`,
     commandPath: (n) => `.claude/commands/${n}.md`,
+    // Observed on disk under ~/.claude/output-styles/. The matrix cell stays
+    // false until it is verified for real, so this path is not used yet.
+    outputStylePath: (n) => `.claude/output-styles/${n}.md`,
     rulePath: (n) => `.claude/rules/${n}.md`,
     scriptsDir: ".claude/scripts",
     envFile: ".claude/.env.example",
@@ -69,6 +74,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".agents/skills",
     agentPath: (n) => `.codex/agents/${n}.toml`,
     commandPath: (n) => `.codex/commands/${n}.md`,
+    outputStylePath: null,
     rulePath: null,
     scriptsDir: ".agents/ariadnev/scripts",
     envFile: ".agents/ariadnev/.env.example",
@@ -79,6 +85,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".agents/skills",
     agentPath: (n) => `.agents/skills/${n}`, // shim: agent installed as skill-like dir
     commandPath: (n) => `.cursor/commands/${n}.md`,
+    outputStylePath: null,
     rulePath: (n) => `.cursor/rules/${n}.mdc`,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
@@ -89,6 +96,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".agents/skills",
     agentPath: null, // unverified → skip
     commandPath: null,
+    outputStylePath: null,
     rulePath: null,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
@@ -99,6 +107,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".opencode/skills",
     agentPath: (n) => `.opencode/agents/${n}.md`,
     commandPath: (n) => `.opencode/commands/${n}.md`,
+    outputStylePath: null,
     rulePath: null,
     scriptsDir: ".opencode/scripts",
     envFile: ".opencode/.env.example",
@@ -109,6 +118,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".agents/skills",
     agentPath: null,
     commandPath: null,
+    outputStylePath: null,
     rulePath: null,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
@@ -119,6 +129,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".test-provider/skills",
     agentPath: null, // intentionally unverified for guide demo
     commandPath: (n) => `.test-provider/commands/${n}.md`,
+    outputStylePath: null,
     rulePath: (n) => `.test-provider/rules/${n}.md`,
     scriptsDir: ".test-provider/scripts",
     envFile: ".test-provider/.env.example",
@@ -130,6 +141,7 @@ const KIND_OF: Record<Artifact["type"], ArtifactKind> = {
   agent: "agent",
   command: "command",
   rule: "rules",
+  outputStyle: "outputStyle",
 };
 
 // Display-path sentinels: stand in for the home/cwd roots so a resolved target
@@ -183,6 +195,10 @@ export function targetTemplate(id: ProviderId, kind: ArtifactKind): string | nul
       return r.supports.env ? toTemplate(r.envTarget(ctx)) : null;
     case "hook":
       return r.supports.hook ? ".claude/hooks/av/*.cjs" : null;
+    case "outputStyle": {
+      const p = mk("outputStyle", "*");
+      return p ? toTemplate(p) : null;
+    }
   }
 }
 
@@ -199,6 +215,7 @@ export function makeResolver(id: ProviderId): ProviderResolver {
       scripts: isVerified(id, "scripts"),
       env: isVerified(id, "env"),
       hook: isVerified(id, "hook"),
+      outputStyle: isVerified(id, "outputStyle") && cfg.outputStylePath !== null,
     },
     targetFor(artifact, ctx) {
       const kind = KIND_OF[artifact.type];
@@ -207,6 +224,7 @@ export function makeResolver(id: ProviderId): ProviderResolver {
       if (artifact.type === "skill") return join(base, cfg.skillDir, artifact.name);
       if (artifact.type === "agent") return cfg.agentPath ? join(base, cfg.agentPath(artifact.name)) : null;
       if (artifact.type === "command") return cfg.commandPath ? join(base, cfg.commandPath(artifact.name)) : null;
+      if (artifact.type === "outputStyle") return cfg.outputStylePath ? join(base, cfg.outputStylePath(artifact.name)) : null;
       // rule
       if (cfg.rulesMode === "agents-md") return null; // merged separately
       return cfg.rulePath ? join(base, cfg.rulePath(artifact.name)) : null;

@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { loadKit, resolveKitRoot, KitValidationError } from "./load-kit.js";
+import { skillFiles } from "../install/artifact-content.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoKitRoot = join(here, "..", "..", "..", "..", "kit");
@@ -21,6 +22,15 @@ Output.
 Related: none.
 `;
 const NONE_PROVENANCE = "";
+const IGNORE_FIXTURE_SKILL = `---
+name: av:demo
+description: Use this fixture skill to prove the loader and installer share one ignore list.
+---
+
+# Demo
+
+See references/used.md.
+${REQUIRED_SKILL_SECTIONS}`;
 
 function withProvenance(content: string): string {
   return content;
@@ -168,9 +178,9 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: av:foo\ndescription: ${okDescription}\ncategory: dev-tools\n---\n# foo\n`,
+      `---\nname: av:foo\ndescription: ${okDescription}\ncatgeory: dev-tools\n---\n# foo\n`,
     );
-    expect(() => loadKit(root)).toThrow(/category/);
+    expect(() => loadKit(root)).toThrow(/catgeory/);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -311,5 +321,33 @@ describe("resolveKitRoot", () => {
   it("locates a directory containing skills/ from a start path", () => {
     const root = resolveKitRoot(repoKitRoot);
     expect(root).toBe(repoKitRoot);
+  });
+});
+
+describe("loader and installer agree on which files exist", () => {
+  it("both skip the same ignored trees inside a skill", () => {
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-ignore-"));
+    const skill = join(root, "skills", "demo");
+    mkdirSync(join(skill, "references"), { recursive: true });
+    mkdirSync(join(skill, ".venv", "lib"), { recursive: true });
+    mkdirSync(join(skill, "node_modules", "pkg"), { recursive: true });
+    mkdirSync(join(skill, "scripts"), { recursive: true });
+    writeFileSync(join(skill, "SKILL.md"), IGNORE_FIXTURE_SKILL);
+    writeFileSync(join(skill, "references", "used.md"), "# Used\n");
+    writeFileSync(join(skill, "scripts", "run.py"), "print('hi')\n");
+    writeFileSync(join(skill, ".venv", "lib", "junk.py"), "junk\n");
+    writeFileSync(join(skill, "node_modules", "pkg", "index.js"), "junk\n");
+    writeFileSync(join(skill, ".env"), "SECRET=1\n");
+
+    const kit = loadKit(root);
+    const copied = skillFiles(kit.skills[0], "claude-code").map((f) => f.rel).sort();
+
+    expect(copied).toEqual(["SKILL.md", "references/used.md", "scripts/run.py"]);
+    // A directory named like an ignored tree is not a skill either.
+    mkdirSync(join(root, "skills", "node_modules"), { recursive: true });
+    writeFileSync(join(root, "skills", "node_modules", "SKILL.md"), IGNORE_FIXTURE_SKILL);
+    expect(loadKit(root).skills.map((s) => s.name)).toEqual(["demo"]);
+
+    rmSync(root, { recursive: true, force: true });
   });
 });

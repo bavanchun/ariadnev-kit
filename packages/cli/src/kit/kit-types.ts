@@ -2,7 +2,7 @@
 
 import type { GraphIRV1 } from "../graph/graph-types.js";
 
-export type ArtifactType = "skill" | "agent" | "command" | "rule";
+export type ArtifactType = "skill" | "agent" | "command" | "rule" | "outputStyle";
 
 export interface Artifact {
   type: ArtifactType;
@@ -50,6 +50,7 @@ export interface Kit {
   skills: Artifact[];
   agents: Artifact[];
   commands: Artifact[];
+  outputStyles: Artifact[];
   rules: Artifact[];
   hooks: KitHook[];
   workflows: KitWorkflow[];
