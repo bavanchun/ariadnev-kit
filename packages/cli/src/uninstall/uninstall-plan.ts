@@ -10,6 +10,7 @@ import {
 } from "../install/install-receipt.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { HookBinding } from "../install/hook-settings-merge.js";
+import type { InstallJournal } from "../install/intent-journal.js";
 import { CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
 
 export class UninstallPlanError extends Error {
@@ -50,6 +51,46 @@ export interface PlanUninstallDeps {
 
 function scopeRoot(scope: "project" | "global", home: string, cwd: string): string {
   return scope === "global" ? home : cwd;
+}
+
+/**
+ * Recovery plan for an install that died before writing its receipt. The
+ * journal records intent, not outcome: a planned path may never have been
+ * written, and the ones that were carry no recorded hash. So this removes only
+ * files that actually exist, and — unlike the receipt path — cannot tell an
+ * untouched file from one the user edited afterwards. The window it covers is
+ * a single interrupted run, which makes that acceptable; it would not be for
+ * the normal uninstall path.
+ *
+ * Merge targets (AGENTS.md, settings.json) are never removed: the install
+ * rewrote them in place rather than creating them, so deleting them would
+ * destroy content that was never ours.
+ */
+export function planUninstallFromJournal(
+  journal: InstallJournal,
+  providerId: ProviderId,
+  home: string,
+  cwd: string,
+  deps: PlanUninstallDeps,
+): UninstallOp[] {
+  const entry = journal.providers.find((p) => p.provider === providerId);
+  if (!entry) return [];
+
+  const ops: UninstallOp[] = [];
+  for (const planned of entry.planned) {
+    const abs = fromPortablePath(planned.path, home, cwd);
+    if (!deps.fileExists(abs)) continue; // never reached before the crash
+    if (planned.action === "write") {
+      ops.push({ action: "remove-file", path: abs });
+    } else {
+      ops.push({
+        action: "preserve-file",
+        path: abs,
+        reason: "merged file from an interrupted install — restore from backups if needed",
+      });
+    }
+  }
+  return ops;
 }
 
 /**

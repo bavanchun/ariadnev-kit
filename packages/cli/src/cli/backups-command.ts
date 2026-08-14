@@ -72,7 +72,12 @@ export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResul
     restored.push(entry.originalPath);
     if (opts.dryRun) continue;
     // Protect current state before overwriting it, same discipline as install/uninstall.
-    backupPath(entry.originalPath, join(backupsParentDir(opts), `pre-restore-${opts.preRestoreTimestamp}`), entry.label);
+    backupPath(
+      entry.originalPath,
+      join(backupsParentDir(opts), `pre-restore-${opts.preRestoreTimestamp}`),
+      entry.label,
+      opts.scope === "global" ? opts.home : opts.cwd,
+    );
     cpSync(join(backupRoot, entry.relPath), entry.originalPath, { recursive: true, force: true });
   }
 

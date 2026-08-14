@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runDoctor } from "./doctor-command.js";
 import { packageVersion } from "../version.js";
+import { readBackupManifest } from "../install/backup.js";
 
 const BINDING_CMD = "node /x/session-init.cjs";
 
@@ -60,8 +61,13 @@ describe("doctor --fix (hook-binding self-heal)", () => {
     const settings = readFileSync(join(cwd, ".claude", "settings.json"), "utf8");
     expect(settings).toContain(BINDING_CMD);
     expect(before.summary).toMatch(/fixed 1 hook binding/);
-    // backup of the pre-fix settings.json was taken
-    expect(existsSync(join(cwd, ".ariadnev", "backups", "20260720-000000", "settings", "settings.json"))).toBe(true);
+    // backup of the pre-fix settings.json was taken. Asserted through the
+    // manifest rather than a hardcoded path: where the copy lives inside the
+    // backup root is backup.ts's business, and it changed once already.
+    const backupRoot = join(cwd, ".ariadnev", "backups", "20260720-000000");
+    const manifest = readBackupManifest(backupRoot);
+    expect(manifest.map((e) => e.originalPath)).toContain(join(cwd, ".claude", "settings.json"));
+    expect(existsSync(join(backupRoot, manifest[0].relPath))).toBe(true);
 
     // second --fix is a no-op (idempotent) and doctor is now healthy
     const after = runDoctor({ ...opts(), fix: true, timestamp: "20260720-000001" });

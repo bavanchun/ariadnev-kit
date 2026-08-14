@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from "node:fs";
-import { join, basename, dirname, resolve } from "node:path";
+import { join, dirname, resolve, relative, isAbsolute } from "node:path";
 
 export interface BackupManifestEntry {
   /** Absolute path the file was copied from, at backup time. */
@@ -25,14 +25,28 @@ export function readBackupManifest(backupRoot: string): BackupManifestEntry[] {
 }
 
 /**
- * Copy an existing target (file or dir) into `<backupRoot>/<label>/<name>`
- * before it gets overwritten, and record the original path in a manifest so
- * `ariadnev backups restore` knows where to copy it back. No-op when the
- * target does not exist.
+ * Where the copy of `target` lives inside a backup root. Mirrors the target's
+ * own directory structure so two files can never share a slot — keying by
+ * basename collapsed every skill's `SKILL.md` onto one path and lost all but
+ * the last. Targets outside the scope root (a project-scope install still
+ * writes home-scoped provider dirs) keep their full path shape under `abs/`.
  */
-export function backupPath(target: string, backupRoot: string, label: string): void {
+function backupRelPath(target: string, scopeRoot: string): string {
+  const rel = relative(resolve(scopeRoot), resolve(target));
+  if (rel !== "" && !rel.startsWith("..") && !isAbsolute(rel)) return join("scope", rel);
+  return join("abs", resolve(target).replace(/^([A-Za-z]):/, "$1").replace(/^[/\\]+/, ""));
+}
+
+/**
+ * Copy an existing target (file or dir) into the backup root before it gets
+ * overwritten, and record the original path in a manifest so
+ * `ariadnev backups restore` knows where to copy it back. No-op when the
+ * target does not exist. `label` classifies the entry for display; it no
+ * longer takes part in the path, so it cannot cause a collision.
+ */
+export function backupPath(target: string, backupRoot: string, label: string, scopeRoot: string): void {
   if (!existsSync(target)) return;
-  const relPath = join(label, basename(target));
+  const relPath = backupRelPath(target, scopeRoot);
   const dest = join(backupRoot, relPath);
   mkdirSync(dirname(dest), { recursive: true });
   if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });

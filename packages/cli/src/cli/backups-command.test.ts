@@ -19,7 +19,7 @@ function makeBackup(timestamp: string, originalRel: string, content: string): st
   mkdirSync(join(original, ".."), { recursive: true });
   writeFileSync(original, content);
   const backupRoot = join(root, ".ariadnev", "backups", timestamp);
-  backupPath(original, backupRoot, "settings");
+  backupPath(original, backupRoot, "settings", root);
   return original;
 }
 
@@ -62,8 +62,8 @@ describe("runBackupsRestore", () => {
     const b = join(root, "b.json");
     writeFileSync(a, "orig-a");
     writeFileSync(b, "orig-b");
-    backupPath(a, backupRoot, "settings");
-    backupPath(b, backupRoot, "settings");
+    backupPath(a, backupRoot, "settings", root);
+    backupPath(b, backupRoot, "settings", root);
     writeFileSync(a, "changed-a");
     writeFileSync(b, "changed-b");
 

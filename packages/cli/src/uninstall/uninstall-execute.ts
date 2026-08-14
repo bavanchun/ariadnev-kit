@@ -5,7 +5,8 @@ import { atomicWrite } from "../install/fs-atomic.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
 import { unmergeHookSettings } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
-import { planUninstall, type PlanUninstallDeps, type UninstallOp } from "./uninstall-plan.js";
+import { planUninstall, planUninstallFromJournal, type PlanUninstallDeps, type UninstallOp } from "./uninstall-plan.js";
+import type { InstallJournal } from "../install/intent-journal.js";
 import type { Receipt } from "../install/install-receipt.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 
@@ -81,7 +82,7 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
         result.settingsUnmerged = true;
         continue;
       }
-      if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "settings");
+      if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "settings", opts.scopeRoot);
       const existing = existsSync(op.path) ? readFileSync(op.path, "utf8") : "";
       atomicWrite(op.path, unmergeHookSettings(existing, op.bindings));
       result.settingsUnmerged = true;
@@ -93,7 +94,7 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
         result.agentsMdCleaned = true;
         continue;
       }
-      if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "agents-md");
+      if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "agents-md", opts.scopeRoot);
       atomicWrite(op.path, removeAgentsBlock(readAgentsMd(op.path)));
       result.agentsMdCleaned = true;
     }
@@ -159,4 +160,35 @@ export function uninstallKit(
   }
 
   return { outcomes, receipt: { ...receipt, installs: nextInstalls } };
+}
+
+/**
+ * Clean up after an install that was interrupted before it wrote a receipt.
+ * Same executor as the receipt path — only the source of the plan differs.
+ */
+export function recoverFromJournal(
+  journal: InstallJournal,
+  providerIds: ProviderId[],
+  ctx: { home: string; cwd: string },
+  opts: UninstallKitOpts,
+): UninstallKitOutcome[] {
+  const dryRun = opts.dryRun ?? false;
+  const root = journal.scope === "global" ? ctx.home : ctx.cwd;
+  const outcomes: UninstallKitOutcome[] = [];
+
+  for (const providerId of providerIds) {
+    const ops = planUninstallFromJournal(journal, providerId, ctx.home, ctx.cwd, realPlanDeps);
+    if (ops.length === 0) continue;
+    const backupsParent = join(root, ".ariadnev", "backups");
+    const result = executeUninstall(ops, {
+      dryRun,
+      allowedRoots: [ctx.home, ctx.cwd],
+      backupRoot: join(backupsParent, opts.timestamp),
+      scopeRoot: root,
+    });
+    outcomes.push({ providerId, result });
+    if (!dryRun) rotateBackups(backupsParent, 3);
+  }
+
+  return outcomes;
 }

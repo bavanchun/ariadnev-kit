@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { isProviderId, type ProviderId } from "../providers/index.js";
-import { uninstallKit, type UninstallKitOutcome } from "../uninstall/uninstall-execute.js";
+import { uninstallKit, recoverFromJournal, type UninstallKitOutcome } from "../uninstall/uninstall-execute.js";
+import { clearJournal, readJournal } from "../install/intent-journal.js";
 import { atomicWrite } from "../install/fs-atomic.js";
 import type { Receipt } from "../install/install-receipt.js";
 
@@ -26,10 +27,17 @@ function validateProviders(providers: string[]): ProviderId[] {
   return providers as ProviderId[];
 }
 
-export function renderUninstallSummary(outcomes: UninstallKitOutcome[], dryRun: boolean): string {
+export function renderUninstallSummary(
+  outcomes: UninstallKitOutcome[],
+  dryRun: boolean,
+  recovered = false,
+): string {
   const lines: string[] = [dryRun ? "ariadnev uninstall — DRY RUN (no changes made)" : "ariadnev uninstall — complete"];
+  if (recovered) {
+    lines.push("  recovered from an interrupted install (no receipt was written)");
+  }
   if (outcomes.length === 0) {
-    lines.push("  nothing to do (no receipt, or none of the requested providers are installed)");
+    lines.push("  nothing to do (none of the requested providers are installed)");
     return lines.join("\n");
   }
   for (const { providerId, result } of outcomes) {
@@ -41,12 +49,50 @@ export function renderUninstallSummary(outcomes: UninstallKitOutcome[], dryRun: 
   return lines.join("\n");
 }
 
+export class NoInstallRecordError extends Error {
+  constructor(root: string) {
+    super(
+      `no install record found under ${join(root, ".ariadnev")} — nothing was uninstalled. ` +
+        `If the kit was installed with a different scope, pass --global (or drop it).`,
+    );
+    this.name = "NoInstallRecordError";
+  }
+}
+
+/**
+ * No receipt: either nothing was ever installed here, or an install was killed
+ * before it could write one. The journal distinguishes the two. Reporting
+ * "complete" for the second case is how files written by a crashed install
+ * became unreachable — so with neither record this fails loudly instead.
+ */
+function runJournalRecovery(root: string, opts: UninstallHandlerOpts): UninstallHandlerResult {
+  const journal = readJournal(root);
+  if (!journal) throw new NoInstallRecordError(root);
+
+  const requested = opts.providers.length > 0 ? validateProviders(opts.providers) : null;
+  const providerIds = journal.providers
+    .map((p) => p.provider)
+    .filter((id) => requested === null || requested.includes(id));
+
+  const outcomes = recoverFromJournal(
+    journal,
+    providerIds,
+    { home: opts.home, cwd: opts.cwd },
+    { dryRun: opts.dryRun, timestamp: opts.timestamp },
+  );
+  // The journal described exactly one interrupted run; once cleaned up it has
+  // nothing left to describe, and leaving it would make the next uninstall
+  // replay a run that already happened.
+  if (!opts.dryRun) clearJournal(root);
+  return { outcomes, summary: renderUninstallSummary(outcomes, opts.dryRun, true) };
+}
+
 /** Reads the receipt for the given scope, uninstalls, writes the receipt back (or deletes it when empty). */
 export function runUninstall(opts: UninstallHandlerOpts): UninstallHandlerResult {
   const root = opts.scope === "global" ? opts.home : opts.cwd;
   const receiptPath = join(root, ".ariadnev", "receipt.json");
   if (!existsSync(receiptPath)) {
-    return { outcomes: [], summary: renderUninstallSummary([], opts.dryRun) };
+    return runJournalRecovery(root, opts);
   }
 
   const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as Receipt;

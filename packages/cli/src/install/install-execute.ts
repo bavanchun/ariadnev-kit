@@ -10,8 +10,9 @@ import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
 import { mergeHookSettings } from "./hook-settings-merge.js";
-import { buildReceipt, type ProviderResultForReceipt } from "./install-receipt.js";
+import { buildReceipt, type ProviderResultForReceipt, type ReceiptSkillSelection } from "./install-receipt.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
+import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, writeJournal } from "./intent-journal.js";
 
 export interface ExecuteOpts {
   dryRun: boolean;
@@ -19,6 +20,9 @@ export interface ExecuteOpts {
   timestamp: string;
   /** Roots every write must stay within (path-traversal guard). */
   allowedRoots: string[];
+  /** Scope root (ctx.home for global, ctx.cwd for project); backups mirror
+   *  each target's path relative to it. */
+  scopeRoot: string;
   /** User confirmed merging hook bindings into settings.json (default: no). */
   applyHookSettings?: boolean;
 }
@@ -35,7 +39,7 @@ function applyOp(op: InstallOp, backupRoot: string, opts: ExecuteOpts): { wrote:
   const existed = existsSync(op.dest);
   const content = opContent(op);
   if (opts.dryRun) return { wrote: true, backedUp: existed };
-  if (existed) backupPath(op.dest, backupRoot, op.kind);
+  if (existed) backupPath(op.dest, backupRoot, op.kind, opts.scopeRoot);
   atomicWrite(op.dest, content, op.action === "write" ? op.mode : undefined);
   return { wrote: true, backedUp: existed };
 }
@@ -97,17 +101,40 @@ export function installKit(
   const applyHookSettings = opts.applyHookSettings ?? false;
   const results: ProviderInstallResult[] = [];
   const receiptEntries: ProviderResultForReceipt[] = [];
-  for (const id of providers) {
-    const resolver = getResolver(id);
-    const ops = planInstall(kit, resolver, ctx);
+
+  // Plan every provider before writing anything, so the journal can name all
+  // planned destinations up front. Planning is pure, so a planning error here
+  // leaves the disk untouched.
+  const planned = providers.map((id) => ({ id, ops: planInstall(kit, getResolver(id), ctx) }));
+  // Every skill in the kit, until selective install narrows it (phase 6).
+  const skillSelection: ReceiptSkillSelection = {
+    mode: "all",
+    skills: kit.skills.map((s) => s.name),
+    selectedCount: kit.skills.length,
+    totalCount: kit.skills.length,
+  };
+  if (!opts.dryRun) {
+    writeJournal(baseRoot, {
+      schemaVersion: JOURNAL_SCHEMA_VERSION,
+      timestamp: opts.timestamp,
+      scope: ctx.scope,
+      providers: planned.map(({ id, ops }) => ({
+        provider: id,
+        planned: plannedEntries(ops, ctx.home, ctx.cwd),
+      })),
+    });
+  }
+
+  for (const { id, ops } of planned) {
     const result = executeInstall(ops, id, backupRoot, {
       dryRun: opts.dryRun ?? false,
       timestamp: opts.timestamp,
       allowedRoots,
+      scopeRoot: baseRoot,
       applyHookSettings,
     });
     results.push(result);
-    receiptEntries.push({ providerId: id, scope: ctx.scope, applyHookSettings, result });
+    receiptEntries.push({ providerId: id, scope: ctx.scope, applyHookSettings, result, skillSelection });
   }
   if (!opts.dryRun) {
     rotateBackups(backupsParent, 3);
@@ -120,6 +147,9 @@ export function installKit(
       cwd: ctx.cwd,
     });
     atomicWrite(rPath, receiptJson);
+    // The receipt is now the ownership record; the crash-window journal has
+    // nothing left to describe.
+    clearJournal(baseRoot);
   }
   return results;
 }

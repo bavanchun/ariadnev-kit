@@ -38,6 +38,22 @@ export interface ReceiptSkip {
   reason: string;
 }
 
+/**
+ * Which skills this install put on disk. Recorded even when everything was
+ * installed, because "all" today and "all" after the kit grows are different
+ * sets — an update has to know what the user actually had, not re-derive it
+ * from the current kit.
+ */
+export interface ReceiptSkillSelection {
+  /** "all" until selective install lands; then "selected". */
+  mode: "all" | "selected";
+  /** Skill names, as authored in the kit. */
+  skills: string[];
+  selectedCount: number;
+  /** Skills the kit offered at install time. */
+  totalCount: number;
+}
+
 export interface ReceiptInstall {
   timestamp: string;
   scope: "project" | "global";
@@ -45,6 +61,8 @@ export interface ReceiptInstall {
   agentsMdManaged: boolean;
   hookBindings: ReceiptHookBinding[];
   skipped: ReceiptSkip[];
+  /** Absent in receipts written before selection was recorded. */
+  skillSelection?: ReceiptSkillSelection;
 }
 
 export interface Receipt {
@@ -62,6 +80,7 @@ export interface ProviderResultForReceipt {
   /** Whether the user confirmed the settings.json hook-binding merge. */
   applyHookSettings: boolean;
   result: ProviderInstallResult;
+  skillSelection: ReceiptSkillSelection;
 }
 
 export interface BuildReceiptMeta {
@@ -127,6 +146,7 @@ function buildInstall(entry: ProviderResultForReceipt, meta: BuildReceiptMeta): 
     agentsMdManaged,
     hookBindings,
     skipped: entry.result.skipped.map((s) => ({ kind: s.kind, name: s.name, reason: s.reason })),
+    skillSelection: entry.skillSelection,
   };
 }
 

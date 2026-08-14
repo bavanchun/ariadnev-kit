@@ -103,17 +103,22 @@ describe("runList handler", () => {
 });
 
 describe("runUninstall handler (sandbox round-trip)", () => {
-  it("reports nothing-to-do when no receipt exists", () => {
-    const { outcomes, summary } = runUninstall({
-      providers: [],
-      scope: "project",
-      dryRun: false,
-      home: base.home,
-      cwd: base.cwd,
-      timestamp: nowStamp(),
-    });
-    expect(outcomes).toEqual([]);
-    expect(summary).toContain("nothing to do");
+  it("fails when there is no install record at all", () => {
+    // Reversed on purpose. This used to report a cheerful "nothing to do" and
+    // exit 0, which is indistinguishable from a successful cleanup — and that
+    // is exactly what an install killed before writing its receipt produced.
+    // Silence there stranded every file the crashed run had written. An
+    // uninstall with nothing to act on is now an error the user can see.
+    expect(() =>
+      runUninstall({
+        providers: [],
+        scope: "project",
+        dryRun: false,
+        home: base.home,
+        cwd: base.cwd,
+        timestamp: nowStamp(),
+      }),
+    ).toThrow(/no install record found/);
   });
 
   it("round-trip: claude-code settings.json returns to its exact pre-install content", () => {

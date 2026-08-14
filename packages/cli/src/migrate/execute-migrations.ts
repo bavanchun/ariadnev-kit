@@ -23,7 +23,7 @@ export function executeMigrations(ops: MigrateOp[], root: string, opts: MigrateE
   const backupRoot = join(root, ".ariadnev", "backups", opts.timestamp);
   const applied = readAppliedState(root);
   for (const op of ops) {
-    backupPath(op.fromAbs, backupRoot, "migrate");
+    backupPath(op.fromAbs, backupRoot, "migrate", root);
     mkdirSync(dirname(op.toAbs), { recursive: true });
     if (existsSync(op.toAbs)) rmSync(op.toAbs, { recursive: true, force: true });
     renameSync(op.fromAbs, op.toAbs);

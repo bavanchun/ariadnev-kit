@@ -124,7 +124,7 @@ function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string,
   const backupsParent = join(root, ".ariadnev", "backups");
   const backupRoot = join(backupsParent, opts.timestamp ?? "doctor-fix");
   for (const r of repairs) {
-    backupPath(r.settingsPath, backupRoot, "settings");
+    backupPath(r.settingsPath, backupRoot, "settings", root);
     atomicWrite(r.settingsPath, r.nextContent);
   }
   rotateBackups(backupsParent, 3);

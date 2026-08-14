@@ -30,6 +30,7 @@ function entry(overrides: Partial<ProviderResultForReceipt> = {}): ProviderResul
     scope: "project",
     applyHookSettings: false,
     result: makeResult(),
+    skillSelection: { mode: "all", skills: ["brainstorm"], selectedCount: 1, totalCount: 1 },
     ...overrides,
   };
 }
@@ -63,6 +64,24 @@ describe("buildReceipt (pure)", () => {
     expect(out.installs["claude-code"].files[0].path).toBe(".claude/skills/brainstorm/SKILL.md");
     expect(out.installs["claude-code"].files[0].sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(out.installs["claude-code"].scope).toBe("project");
+  });
+
+  it("records which skills were installed, not just how many files landed", () => {
+    // An update has to compare against what the user chose at install time.
+    // "all" is not self-describing once the kit grows, so the names are kept.
+    const out = JSON.parse(
+      buildReceipt(
+        "",
+        [entry({ skillSelection: { mode: "selected", skills: ["cook", "plan"], selectedCount: 2, totalCount: 103 } })],
+        { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd },
+      ),
+    );
+    expect(out.installs["claude-code"].skillSelection).toEqual({
+      mode: "selected",
+      skills: ["cook", "plan"],
+      selectedCount: 2,
+      totalCount: 103,
+    });
   });
 
   it("merges a second provider without dropping the first", () => {
