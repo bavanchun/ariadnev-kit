@@ -7,7 +7,7 @@
   "title": "Direct technical answers",
   "subjects": {
     "skills": [
-      "vc:ask"
+      "av:ask"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:ask": "required",
-          "vc:research": "forbidden"
+          "av:ask": "required",
+          "av:research": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:research": "required",
-          "vc:ask": "forbidden"
+          "av:research": "required",
+          "av:ask": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

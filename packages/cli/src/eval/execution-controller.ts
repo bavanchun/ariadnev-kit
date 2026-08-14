@@ -6,7 +6,7 @@ import {
 import { bindRunContext, type RunBoundV1, type RunContextV1 } from "./run-context.js";
 import type { ScenarioExecutionInput, ScenarioExecutor } from "./scenario-types.js";
 
-const controlledExecutionBrand: unique symbol = Symbol("vcskill.controlled-execution");
+const controlledExecutionBrand: unique symbol = Symbol("ariadnev.controlled-execution");
 
 export type ControlledStatus = "completed" | "failed" | "cancelled" | "timed-out" | "unsupported";
 

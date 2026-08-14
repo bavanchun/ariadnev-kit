@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-workspace-drift-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-workspace-drift-"));
   roots.push(root);
   mkdirSync(join(root, "src"));
   writeFileSync(join(root, "src", "router.ts"), "v1\n");

@@ -6,7 +6,7 @@ describe("parseStrictJson", () => {
     for (const value of [
       '{"id":1,"id":2}',
       '{"cases":{"default":{"id":1,"id":2}}}',
-      '{"routing":{"vc:ask":"required","vc:\\u0061sk":"forbidden"}}',
+      '{"routing":{"av:ask":"required","av:\\u0061sk":"forbidden"}}',
       '{"artifacts":{"answer":{},"\\u0061nswer":{}}}',
     ]) {
       expect(() => parseStrictJson(value, "fixture.json")).toThrow(/duplicate/i);

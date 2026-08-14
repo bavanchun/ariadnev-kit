@@ -328,7 +328,7 @@ export class ClaudeCodeExecutor implements GraphExecutorV1 {
 
   private inspectRuntimeContract(): RuntimeContractProbe {
     if (this.runtimeContractProbe) return this.runtimeContractProbe;
-    const temporaryHome = isRegularDirectory(this.claudeConfigDir) ? undefined : mkdtempSync(join(tmpdir(), "vcskill-claude-probe-"));
+    const temporaryHome = isRegularDirectory(this.claudeConfigDir) ? undefined : mkdtempSync(join(tmpdir(), "ariadnev-claude-probe-"));
     if (temporaryHome) chmodSync(temporaryHome, 0o700);
     const configDir = this.claudeConfigDir && temporaryHome === undefined ? this.claudeConfigDir : temporaryHome!;
     const environment = safeEnvironment({ source: this.sourceEnvironment, workspaceRoot: configDir, claudeConfigDir: configDir });

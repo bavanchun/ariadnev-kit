@@ -1,5 +1,5 @@
-// Single source for "what version of vcskill is running" — used by --version,
-// the install receipt, and (later) `vcskill update`'s version comparison.
+// Single source for "what version of ariadnev is running" — used by --version,
+// the install receipt, and (later) `ariadnev update`'s version comparison.
 import { createRequire } from "node:module";
 import { EMBEDDED_VERSION } from "./kit/kit-embedded.generated.js";
 

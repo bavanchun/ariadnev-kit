@@ -1,4 +1,4 @@
-// Passive "a newer vcskill exists" nudge. Cached (1h), best-effort, and printed
+// Passive "a newer ariadnev exists" nudge. Cached (1h), best-effort, and printed
 // to stderr so it never pollutes a command's stdout (curl|bash consumers). Fully
 // decoupled from the active `update` command — this only reads the cache and,
 // when stale, refreshes it with a swallow-on-error lookup.
@@ -40,11 +40,11 @@ export async function maybeNudge(deps: NudgeDeps): Promise<string | null> {
   }
 
   return isNewerVersion(latest, deps.currentVersion)
-    ? `vcskill ${latest} available — run: vcskill update`
+    ? `ariadnev ${latest} available — run: ariadnev update`
     : null;
 }
 
-/** Real deps: cache file under the vcskill cache root, live version lookup. */
+/** Real deps: cache file under the ariadnev cache root, live version lookup. */
 export function realNudgeDeps(currentVersion: string): NudgeDeps {
   const file = join(cacheRoot(), "update-check.json");
   return {

@@ -16,7 +16,7 @@ const kitRoot = join(here, "..", "..", "..", "..", "kit");
 let sandbox: string;
 let base: { home: string; cwd: string };
 beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-cli-"));
+  sandbox = mkdtempSync(join(tmpdir(), "ariadnev-cli-"));
   base = { home: join(sandbox, "home"), cwd: join(sandbox, "proj") };
   mkdirSync(base.home, { recursive: true });
   mkdirSync(base.cwd, { recursive: true });
@@ -29,7 +29,7 @@ describe("renderSummary", () => {
       [{ provider: "codex", written: 5, backedUp: 1, skipped: [{ action: "skip", kind: "agent", name: "x", reason: "unverified" }], ops: [] }],
       false,
     );
-    expect(out).toContain("vcskill install — complete");
+    expect(out).toContain("ariadnev install — complete");
     expect(out).toContain("codex");
     expect(out).toContain("written=5");
     expect(out).toContain("skip agent/x: unverified");
@@ -147,8 +147,8 @@ describe("runUninstall handler (sandbox round-trip)", () => {
 
     expect(JSON.parse(readFileSync(settingsPath, "utf8"))).toEqual(originalSettings);
     expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(false);
-    expect(existsSync(join(base.cwd, ".vcskill/backups"))).toBe(true);
-    expect(existsSync(join(base.cwd, ".vcskill/receipt.json"))).toBe(false); // last provider gone
+    expect(existsSync(join(base.cwd, ".ariadnev/backups"))).toBe(true);
+    expect(existsSync(join(base.cwd, ".ariadnev/receipt.json"))).toBe(false); // last provider gone
     const [{ result }] = outcomes;
     expect(result.removed.length).toBeGreaterThan(0);
     expect(result.settingsUnmerged).toBe(true);
@@ -159,7 +159,7 @@ describe("runUninstall handler (sandbox round-trip)", () => {
     writeFileSync(agentsPath, "# My Project\n\nHand-written notes.");
 
     runInstall({ providers: ["codex"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
-    expect(readFileSync(agentsPath, "utf8")).toContain("vcskill:start");
+    expect(readFileSync(agentsPath, "utf8")).toContain("ariadnev:start");
 
     runUninstall({ providers: ["codex"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
 
@@ -181,7 +181,7 @@ describe("runUninstall handler (sandbox round-trip)", () => {
 
   it("dry-run leaves every file and the receipt untouched", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
-    const receiptPath = join(base.cwd, ".vcskill/receipt.json");
+    const receiptPath = join(base.cwd, ".ariadnev/receipt.json");
     const before = readFileSync(receiptPath, "utf8");
 
     runUninstall({ providers: ["claude-code"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, timestamp: nowStamp() });

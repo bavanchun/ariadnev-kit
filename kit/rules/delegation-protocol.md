@@ -6,19 +6,19 @@ When and how to spawn a subagent instead of doing the work inline.
 
 | Situation | Delegate to |
 |---|---|
-| Need to locate files/patterns across a codebase | `vc-explore` |
-| Architecture or phased implementation plan | `vc-planner` |
-| Ideation, trade-off debate before building | `vc-brainstormer` |
-| Diff needs a production-readiness pass | `vc-reviewer` |
-| Test suite needs running/analyzing | `vc-tester` |
-| Bug needs root-cause proof before a fix | `vc-debugger` |
-| Implementation work itself | `vc-developer` |
-| Stage/commit/push | `vc-git-manager` |
-| Docs need to match code reality | `vc-docs-manager` |
-| Plan progress needs tracking/sync-back | `vc-project-manager` |
-| External research (libraries, best practices) | `vc-researcher` |
-| Session-end technical journal entry | `vc-journal-writer` |
-| Recently-touched code needs simplifying | `vc-simplifier` |
+| Need to locate files/patterns across a codebase | `av-explore` |
+| Architecture or phased implementation plan | `av-planner` |
+| Ideation, trade-off debate before building | `av-brainstormer` |
+| Diff needs a production-readiness pass | `av-reviewer` |
+| Test suite needs running/analyzing | `av-tester` |
+| Bug needs root-cause proof before a fix | `av-debugger` |
+| Implementation work itself | `av-developer` |
+| Stage/commit/push | `av-git-manager` |
+| Docs need to match code reality | `av-docs-manager` |
+| Plan progress needs tracking/sync-back | `av-project-manager` |
+| External research (libraries, best practices) | `av-researcher` |
+| Session-end technical journal entry | `av-journal-writer` |
+| Recently-touched code needs simplifying | `av-simplifier` |
 
 Do not delegate trivial, single-tool-call work — spawning overhead costs more
 than doing it directly.

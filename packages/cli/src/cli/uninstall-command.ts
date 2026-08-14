@@ -27,7 +27,7 @@ function validateProviders(providers: string[]): ProviderId[] {
 }
 
 export function renderUninstallSummary(outcomes: UninstallKitOutcome[], dryRun: boolean): string {
-  const lines: string[] = [dryRun ? "vcskill uninstall — DRY RUN (no changes made)" : "vcskill uninstall — complete"];
+  const lines: string[] = [dryRun ? "ariadnev uninstall — DRY RUN (no changes made)" : "ariadnev uninstall — complete"];
   if (outcomes.length === 0) {
     lines.push("  nothing to do (no receipt, or none of the requested providers are installed)");
     return lines.join("\n");
@@ -44,7 +44,7 @@ export function renderUninstallSummary(outcomes: UninstallKitOutcome[], dryRun: 
 /** Reads the receipt for the given scope, uninstalls, writes the receipt back (or deletes it when empty). */
 export function runUninstall(opts: UninstallHandlerOpts): UninstallHandlerResult {
   const root = opts.scope === "global" ? opts.home : opts.cwd;
-  const receiptPath = join(root, ".vcskill", "receipt.json");
+  const receiptPath = join(root, ".ariadnev", "receipt.json");
   if (!existsSync(receiptPath)) {
     return { outcomes: [], summary: renderUninstallSummary([], opts.dryRun) };
   }
@@ -65,7 +65,7 @@ export function runUninstall(opts: UninstallHandlerOpts): UninstallHandlerResult
   if (!opts.dryRun) {
     if (Object.keys(updated.installs).length === 0) {
       // Last provider gone: drop the receipt. Backups are intentionally kept
-      // by default — the user can delete `.vcskill/backups` manually.
+      // by default — the user can delete `.ariadnev/backups` manually.
       if (existsSync(receiptPath)) unlinkSync(receiptPath);
     } else {
       atomicWrite(receiptPath, `${JSON.stringify(updated, null, 2)}\n`);

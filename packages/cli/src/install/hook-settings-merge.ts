@@ -7,7 +7,7 @@ export interface HookBinding {
   event: string;
   /** Optional tool matcher (PreToolUse/PostToolUse). */
   matcher?: string;
-  /** Full shell command, e.g. `node /abs/.claude/hooks/vc/session-init.cjs`. */
+  /** Full shell command, e.g. `node /abs/.claude/hooks/av/session-init.cjs`. */
   command: string;
 }
 
@@ -32,8 +32,8 @@ function eventContainsCommand(groups: HookMatcherGroup[], command: string): bool
 }
 
 /**
- * Merge vc hook bindings into an existing settings.json string. Idempotent:
- * bindings are deduped by exact command; entries not owned by vc are preserved
+ * Merge av hook bindings into an existing settings.json string. Idempotent:
+ * bindings are deduped by exact command; entries not owned by av are preserved
  * untouched. Throws on unparseable input rather than clobbering user config.
  */
 export function mergeHookSettings(existing: string, bindings: HookBinding[]): string {
@@ -52,7 +52,7 @@ export function mergeHookSettings(existing: string, bindings: HookBinding[]): st
 }
 
 /**
- * Remove exactly the given vc bindings from an existing settings.json string.
+ * Remove exactly the given av bindings from an existing settings.json string.
  * Reverse of mergeHookSettings: entries not matching one of `bindings`'
  * commands are left untouched; an event whose groups all get removed drops
  * the event key entirely. Idempotent, throws on unparseable input.
@@ -83,7 +83,7 @@ export function unmergeHookSettings(existing: string, bindings: HookBinding[]): 
 export function renderHookSettingsSnippet(bindings: HookBinding[]): string {
   const merged = JSON.parse(mergeHookSettings("", bindings)) as SettingsJson;
   return [
-    "Add this to your .claude/settings.json to activate the vc hooks:",
+    "Add this to your .claude/settings.json to activate the av hooks:",
     JSON.stringify({ hooks: merged.hooks }, null, 2),
   ].join("\n");
 }

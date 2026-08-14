@@ -94,5 +94,5 @@ After applying any accepted edit:
    stale references fixed, and unresolved contradiction count.
 
 If contradictions remain, list them as unresolved and ask the user. Never
-present the plan as ready or recommend `vc:cook` until the consistency sweep
+present the plan as ready or recommend `av:cook` until the consistency sweep
 reports zero unresolved contradictions.

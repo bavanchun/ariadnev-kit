@@ -1,4 +1,4 @@
-// Branded terminal styling, cohesive with the vcskill.vchun.dev landing page.
+// Branded terminal styling, cohesive with the ariadnev.com landing page.
 // Pure: every fn takes an explicit `color` flag so formatters stay deterministic
 // and side-effect-free (tests pass `color:false` for byte-stable plain output).
 
@@ -47,9 +47,9 @@ export function bar(pct: number, opts: StyleOpts, width = 10): string {
   return coral("▓".repeat(filled), opts) + faint("░".repeat(width - filled), opts);
 }
 
-// The `>_ vcskill` wordmark used in the no-args banner.
+// The `>_ ariadnev` wordmark used in the no-args banner.
 export function wordmark(opts: StyleOpts): string {
-  return `${coral(">_", opts)} ${bold("vcskill", opts)}`;
+  return `${coral(">_", opts)} ${bold("ariadnev", opts)}`;
 }
 
 // Whether to emit ANSI. Precedence is deliberately conservative so piped output

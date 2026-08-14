@@ -1,5 +1,5 @@
 ---
-name: vc:code-review
+name: av:code-review
 description: Review code changes for bugs, regressions, and risky patterns with evidence-based, ranked findings. Use for a diff, a PR number, a commit, or a whole-codebase audit — outside a cook cycle.
 user-invocable: true
 argument-hint: "[#PR | <commit> | --pending | codebase [parallel]]"
@@ -15,8 +15,8 @@ Review an explicit target for requirement gaps, production defects,
 regressions, and unjustified complexity. Findings must be reproducible and
 ranked; a clean review is earned, not padded with stylistic suggestions.
 
-This skill is read-only. Route accepted fixes to `vc:fix`, then review fresh
-evidence. Use `vc:review-pr` instead when GitHub reply/merge actions are wanted.
+This skill is read-only. Route accepted fixes to `av:fix`, then review fresh
+evidence. Use `av:review-pr` instead when GitHub reply/merge actions are wanted.
 
 ## Resolve input mode first
 
@@ -116,15 +116,15 @@ Before returning, confirm:
 5. Severity and verdict follow the shared rubric; style never blocks.
 6. Suppressed/no-op/already-fixed patterns were not reported.
 7. Verification is fresh command output, not “should pass” or an agent claim.
-8. The skill made no edits and named `vc:fix` as the owner of accepted changes.
+8. The skill made no edits and named `av:fix` as the owner of accepted changes.
 
 ## Workflow position
 
-**Typically follows:** `vc:cook` or `vc:fix` after implementation and focused
+**Typically follows:** `av:cook` or `av:fix` after implementation and focused
 tests; can also start from an explicit diff, commit, PR, or audit scope.
 
-**Typically precedes:** `vc:fix` for accepted findings, then re-review and
-`vc:ship`/`vc:git` after a clean verdict.
+**Typically precedes:** `av:fix` for accepted findings, then re-review and
+`av:ship`/`av:git` after a clean verdict.
 
-**Related:** `vc:review-pr` for PR actions, `vc:scout` for edge-case discovery,
-and `vc:test` for execution proof.
+**Related:** `av:review-pr` for PR actions, `av:scout` for edge-case discovery,
+and `av:test` for execution proof.

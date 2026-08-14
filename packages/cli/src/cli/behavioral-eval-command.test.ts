@@ -20,7 +20,7 @@ describe("runBehavioralEval", () => {
     const runSuite = vi.fn(async () => ({
       population: { skillScenarios: 26, skillCells: 52, deepTasks: 14, runs: 66 },
       runs: [{
-        cellId: "skill.ask.routing:positive", variant: "vcskill" as const, level: "skill" as const,
+        cellId: "skill.ask.routing:positive", variant: "ariadnev" as const, level: "skill" as const,
         repeat: 1, verdict: "incomplete" as const, failureClass: "none" as const,
         observationGaps: ["routing.runtime-events"], dimensions: { routing: "incomplete" as const },
         metrics: { latencyMs: 1, tokens: null, contextChars: 10, retries: null, humanInterventions: null },
@@ -35,7 +35,7 @@ describe("runBehavioralEval", () => {
     const result = await runBehavioralEval({
       kitRoot,
       command: ["fake-runner"],
-      variant: "vcskill",
+      variant: "ariadnev",
       runtime: { provider: "codex", version: "0.147.0", model: "gpt-5.4" },
       availableCapabilities: [],
       timeoutMs: 1000,
@@ -49,7 +49,7 @@ describe("runBehavioralEval", () => {
       kind: "behavioral-eval",
       tier1: { ok: true },
       environment: {
-        variant: "vcskill",
+        variant: "ariadnev",
         evaluator: { version: "behavioral-v1" },
         runtime: { provider: "codex", version: "0.147.0", model: "gpt-5.4" },
       },

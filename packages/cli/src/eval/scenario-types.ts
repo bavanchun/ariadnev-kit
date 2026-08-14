@@ -8,7 +8,7 @@ const token = z
   .min(1)
   .max(128)
   .regex(/^[a-z0-9][a-z0-9:._-]*$/, "must be a categorical identifier");
-const skillId = z.string().regex(/^vc:[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a vc skill id");
+const skillId = z.string().regex(/^av:[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a av skill id");
 const nonNegative = z.number().finite().nonnegative();
 
 function uniqueArray<T extends z.ZodTypeAny>(item: T) {

@@ -7,7 +7,7 @@
   "title": "Pull request review",
   "subjects": {
     "skills": [
-      "vc:review-pr"
+      "av:review-pr"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:review-pr": "required",
-          "vc:code-review": "forbidden"
+          "av:review-pr": "required",
+          "av:code-review": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:code-review": "required",
-          "vc:review-pr": "forbidden"
+          "av:code-review": "required",
+          "av:review-pr": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

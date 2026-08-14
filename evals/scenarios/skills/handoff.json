@@ -7,7 +7,7 @@
   "title": "Session context handoff",
   "subjects": {
     "skills": [
-      "vc:handoff"
+      "av:handoff"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:handoff": "required",
-          "vc:journal": "forbidden"
+          "av:handoff": "required",
+          "av:journal": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:journal": "required",
-          "vc:handoff": "forbidden"
+          "av:journal": "required",
+          "av:handoff": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

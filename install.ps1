@@ -1,17 +1,17 @@
-# vcskill installer (Windows) — downloads the standalone binary from the vcskill
-# edge, verifies its sha256, and installs it to %LOCALAPPDATA%\Programs\vcskill,
+# ariadnev installer (Windows) — downloads the standalone binary from the ariadnev
+# edge, verifies its sha256, and installs it to %LOCALAPPDATA%\Programs\ariadnev,
 # adding that dir to the user PATH.
 #
-#   irm https://vcskill.vchun.dev/install.ps1 | iex
+#   irm https://ariadnev.com/install.ps1 | iex
 $ErrorActionPreference = "Stop"
 
-$base = if ($env:VCSKILL_BASE_URL) { $env:VCSKILL_BASE_URL } else { "https://vcskill.vchun.dev" }
-$asset = "vcskill-windows-x64.exe"
-$installDir = Join-Path $env:LOCALAPPDATA "Programs\vcskill"
+$base = if ($env:ARIADNEV_BASE_URL) { $env:ARIADNEV_BASE_URL } else { "https://ariadnev.com" }
+$asset = "ariadnev-windows-x64.exe"
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\ariadnev"
 
-$tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("vcskill-" + [guid]::NewGuid()))
+$tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("ariadnev-" + [guid]::NewGuid()))
 try {
-  Write-Host "vcskill install: downloading $asset ..."
+  Write-Host "ariadnev install: downloading $asset ..."
   Invoke-WebRequest -Uri "$base/download/$asset" -OutFile (Join-Path $tmp $asset)
   Invoke-WebRequest -Uri "$base/download/checksums.txt" -OutFile (Join-Path $tmp "checksums.txt")
 
@@ -23,26 +23,26 @@ try {
   if ($actual -ne $expected) { throw "checksum mismatch — refusing to install (expected $expected, got $actual)" }
 
   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-  Copy-Item (Join-Path $tmp $asset) (Join-Path $installDir "vcskill.exe") -Force
+  Copy-Item (Join-Path $tmp $asset) (Join-Path $installDir "ariadnev.exe") -Force
 
-  # Short `vc` alias (opt out with VCSKILL_ALIAS=off). Windows lacks reliable
+  # Short `av` alias (opt out with ARIADNEV_ALIAS=off). Windows lacks reliable
   # symlinks without elevation, so ship a copy — but never clobber a different vc.
-  if ($env:VCSKILL_ALIAS -ne "off") {
+  if ($env:ARIADNEV_ALIAS -ne "off") {
     $vcExe = Join-Path $installDir "vc.exe"
-    Copy-Item (Join-Path $installDir "vcskill.exe") $vcExe -Force
-    Write-Host "vcskill install: installed short alias  vc.exe"
+    Copy-Item (Join-Path $installDir "ariadnev.exe") $vcExe -Force
+    Write-Host "ariadnev install: installed short alias  vc.exe"
   }
 
   # Add to the user PATH if missing.
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   if ($userPath -notlike "*$installDir*") {
     [Environment]::SetEnvironmentVariable("Path", "$userPath;$installDir", "User")
-    Write-Host "vcskill install: added $installDir to your PATH (restart your shell)."
+    Write-Host "ariadnev install: added $installDir to your PATH (restart your shell)."
   }
 
-  $ver = & (Join-Path $installDir "vcskill.exe") --version
-  Write-Host "vcskill install: installed vcskill $ver to $installDir"
-  Write-Host "vcskill install: run  vcskill install  to set up your providers."
+  $ver = & (Join-Path $installDir "ariadnev.exe") --version
+  Write-Host "ariadnev install: installed ariadnev $ver to $installDir"
+  Write-Host "ariadnev install: run  ariadnev install  to set up your providers."
 }
 finally {
   Remove-Item -Recurse -Force $tmp

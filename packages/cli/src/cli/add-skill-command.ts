@@ -58,6 +58,6 @@ export function registerAddSkill(program: Command): void {
         description = answer as string;
       }
       const res = runAddSkill({ name, description });
-      emit(`created ${res.path} (name: vc:${res.slug})`);
+      emit(`created ${res.path} (name: av:${res.slug})`);
     });
 }

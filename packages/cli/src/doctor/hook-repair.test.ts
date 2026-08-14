@@ -5,7 +5,7 @@ import type { Receipt } from "../install/install-receipt.js";
 function receiptWith(applied: boolean, scope: "project" | "global" = "project"): Receipt {
   return {
     schemaVersion: 1,
-    vcskillVersion: "1.0.0",
+    ariadnevVersion: "1.0.0",
     installs: {
       "claude-code": {
         timestamp: "t",

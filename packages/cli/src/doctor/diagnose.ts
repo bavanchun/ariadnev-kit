@@ -1,7 +1,7 @@
-// Pure health-check core for `vcskill doctor`. Reads a parsed receipt +
+// Pure health-check core for `ariadnev doctor`. Reads a parsed receipt +
 // injected fs/spawn adapters, returns findings — no fs/spawn calls happen
 // here directly, so this is fully unit-testable without a real install.
-import { fromPortablePath, type Receipt } from "../install/install-receipt.js";
+import { fromPortablePath, receiptVersion, type Receipt } from "../install/install-receipt.js";
 
 // Tri-state (plus warning). `pass`/`skip` are informational rows; only `fail`
 // affects the exit code (see deriveStatus). `warning` surfaces but never fails.
@@ -11,7 +11,7 @@ export interface ProviderFinding {
   providerId: string;
   level: FindingLevel;
   message: string;
-  /** Exact command that resolves the finding, e.g. "vcskill doctor --fix". */
+  /** Exact command that resolves the finding, e.g. "ariadnev doctor --fix". */
   remedy?: string;
   /** Health-score deduction (0–100 scale). Only fail/warning carry weight. */
   weight?: number;
@@ -34,7 +34,7 @@ export interface DiagnoseOpts {
 }
 
 function isHookFile(path: string): boolean {
-  return path.includes(".claude/hooks/vc/") && path.endsWith(".cjs") && !path.includes("_lib/");
+  return path.includes(".claude/hooks/av/") && path.endsWith(".cjs") && !path.includes("_lib/");
 }
 
 function settingsPathFor(scope: "project" | "global", home: string, cwd: string): string {
@@ -72,11 +72,11 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
     for (const file of install.files) {
       const abs = fromPortablePath(file.path, opts.home, opts.cwd);
       if (!deps.fileExists(abs)) {
-        findings.push({ providerId, level: "fail", weight: 10, remedy: "vcskill install", message: `missing file: ${file.path}` });
+        findings.push({ providerId, level: "fail", weight: 10, remedy: "ariadnev install", message: `missing file: ${file.path}` });
         continue;
       }
       if (isHookFile(file.path) && !deps.hookExecutable(abs)) {
-        findings.push({ providerId, level: "fail", weight: 8, remedy: "vcskill install", message: `hook failed to execute: ${file.path}` });
+        findings.push({ providerId, level: "fail", weight: 8, remedy: "ariadnev install", message: `hook failed to execute: ${file.path}` });
       }
     }
 
@@ -88,7 +88,7 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
           providerId,
           level: "fail",
           weight: 10,
-          remedy: "vcskill doctor --fix",
+          remedy: "ariadnev doctor --fix",
           message: "settings.json missing but hook bindings were applied at install time",
         });
       } else {
@@ -98,7 +98,7 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
               providerId,
               level: "fail",
               weight: 10,
-              remedy: "vcskill doctor --fix",
+              remedy: "ariadnev doctor --fix",
               message: `hook binding removed from settings.json: ${b.event} -> ${b.command}`,
             });
           }
@@ -106,13 +106,14 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
       }
     }
 
-    if (install.timestamp && receipt.vcskillVersion !== opts.currentVersion) {
+    const recordedVersion = receiptVersion(receipt);
+    if (install.timestamp && recordedVersion !== opts.currentVersion) {
       findings.push({
         providerId,
         level: "warning",
         weight: 5,
-        remedy: "vcskill update",
-        message: `receipt recorded vcskillVersion ${receipt.vcskillVersion}, running ${opts.currentVersion} — consider "vcskill update"`,
+        remedy: "ariadnev update",
+        message: `receipt recorded version ${recordedVersion ?? "(none)"}, running ${opts.currentVersion} — consider "ariadnev update"`,
       });
     }
 

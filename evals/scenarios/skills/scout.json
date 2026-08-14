@@ -7,7 +7,7 @@
   "title": "Repository code mapping",
   "subjects": {
     "skills": [
-      "vc:scout"
+      "av:scout"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:scout": "required",
-          "vc:research": "forbidden"
+          "av:scout": "required",
+          "av:research": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:research": "required",
-          "vc:scout": "forbidden"
+          "av:research": "required",
+          "av:scout": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

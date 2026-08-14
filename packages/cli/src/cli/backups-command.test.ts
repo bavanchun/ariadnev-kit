@@ -8,7 +8,7 @@ import { runBackupsList, runBackupsRestore } from "./backups-command.js";
 let sandbox: string;
 let root: string;
 beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-backups-cmd-"));
+  sandbox = mkdtempSync(join(tmpdir(), "ariadnev-backups-cmd-"));
   root = join(sandbox, "proj");
   mkdirSync(root, { recursive: true });
 });
@@ -18,7 +18,7 @@ function makeBackup(timestamp: string, originalRel: string, content: string): st
   const original = join(root, originalRel);
   mkdirSync(join(original, ".."), { recursive: true });
   writeFileSync(original, content);
-  const backupRoot = join(root, ".vcskill", "backups", timestamp);
+  const backupRoot = join(root, ".ariadnev", "backups", timestamp);
   backupPath(original, backupRoot, "settings");
   return original;
 }
@@ -57,7 +57,7 @@ describe("runBackupsRestore", () => {
   });
 
   it("restores only the file matching --file when given", () => {
-    const backupRoot = join(root, ".vcskill", "backups", "20260601-000000");
+    const backupRoot = join(root, ".ariadnev", "backups", "20260601-000000");
     const a = join(root, "a.json");
     const b = join(root, "b.json");
     writeFileSync(a, "orig-a");
@@ -83,7 +83,7 @@ describe("runBackupsRestore", () => {
   });
 
   it("refuses to restore a pre-manifest backup, reporting list-only", () => {
-    const backupRoot = join(root, ".vcskill", "backups", "old-t0");
+    const backupRoot = join(root, ".ariadnev", "backups", "old-t0");
     mkdirSync(join(backupRoot, "settings"), { recursive: true });
     writeFileSync(join(backupRoot, "settings", "settings.json"), "{}");
 

@@ -8,7 +8,7 @@ import { createCandidate, heldState, SHA } from "./release-privileged-fixtures.m
 import { assertNoLeak, execute, finalizeRun, mutationKinds } from "./release-privileged-harness.mjs";
 import { repoRoot, withScratch } from "./release-test-helpers.mjs";
 
-const runFinalizer = (mutate = () => {}, overrides = {}) => withScratch("vc-finalize-", (dir) => {
+const runFinalizer = (mutate = () => {}, overrides = {}) => withScratch("av-finalize-", (dir) => {
   const candidate = createCandidate(dir), state = heldState(candidate); mutate(state, candidate);
   return execute(dir, finalizeRun, state, candidate, overrides);
 });
@@ -42,11 +42,11 @@ for (const [name, mutate, overrides] of [
   ["lightweight tag", (state) => { state.tagRef.object.type = "commit"; }],
   ["tag target drift", (state) => { state.tagObject.object.sha = "d".repeat(40); }],
   ["candidate envelope drift", (state) => { state.tagObject.message = state.tagObject.message.replace('"artifactId":"7"', '"artifactId":"8"'); }],
-  ["rejected envelope drift", (state) => { const envelope = JSON.parse(state.tagObject.message.split("\n").slice(1).join("\n")); envelope.rejectedArtifacts = [{ artifactId: "8", artifactName: "moving", artifactDigest: `sha256:${"f".repeat(64)}`, runId: "98", runAttempt: "1" }]; state.tagObject.message = `vcskill-candidate-envelope-v1\n${JSON.stringify(envelope)}`; }],
+  ["rejected envelope drift", (state) => { const envelope = JSON.parse(state.tagObject.message.split("\n").slice(1).join("\n")); envelope.rejectedArtifacts = [{ artifactId: "8", artifactName: "moving", artifactDigest: `sha256:${"f".repeat(64)}`, runId: "98", runAttempt: "1" }]; state.tagObject.message = `ariadnev-candidate-envelope-v1\n${JSON.stringify(envelope)}`; }],
   ["source digest drift", (state) => { state.sources.workflow = Buffer.from("wrong").toString("base64"); }],
   ["published draft", (state) => { state.release.draft = false; }],
   ["release ID drift", (state) => { state.release.id = 12; }],
-  ["already latest", (state) => { state.latest = { id: 11, tag_name: "vcskill@1.2.3" }; }],
+  ["already latest", (state) => { state.latest = { id: 11, tag_name: "ariadnev@1.2.3" }; }],
   ["remote asset count drift", (state) => { state.release.assets.pop(); }],
   ["remote asset drift", (state) => { state.assetBytes["1"] = Buffer.from("wrong").toString("base64"); }],
   ["wrong workflow ref", () => {}, { EXACT_WORKFLOW_SHA: "e".repeat(40) }],

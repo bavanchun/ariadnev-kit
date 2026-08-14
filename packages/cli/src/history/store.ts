@@ -1,4 +1,4 @@
-// Append-only JSONL history at ~/.vcskill/history.jsonl. Node-native (no
+// Append-only JSONL history at ~/.ariadnev/history.jsonl. Node-native (no
 // bun:sqlite → never poisons the Node test graph). Recording is best-effort:
 // a write failure never breaks the host command, but drops a marker so `query`
 // and `doctor` can distinguish "no history" from "recording broken".
@@ -8,11 +8,11 @@ import { join, dirname } from "node:path";
 import type { HistoryEvent } from "./record.js";
 
 export function historyPath(home: string): string {
-  return join(home, ".vcskill", "history.jsonl");
+  return join(home, ".ariadnev", "history.jsonl");
 }
 
 export function degradedMarkerPath(home: string): string {
-  return join(home, ".vcskill", "history.degraded");
+  return join(home, ".ariadnev", "history.degraded");
 }
 
 export function appendEvent(path: string, event: HistoryEvent): void {

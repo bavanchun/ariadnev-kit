@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc rules-inject — UserPromptSubmit hook. Injects project rules from
+// av rules-inject — UserPromptSubmit hook. Injects project rules from
 // .claude/rules/*.md once per session (re-injects when rules change),
 // throttled via a scope-key state file. Fail-open throughout.
 const path = require("node:path");
@@ -18,7 +18,7 @@ const STATE_TTL_MS = 24 * 60 * 60 * 1000; // prune session entries after a day
 
 function buildRulesContext(rules) {
   const body = rules.map((r) => `### ${r.name}\n${r.content.trim()}`).join("\n\n");
-  const block = `## Project rules (vc)\n${body}\n`;
+  const block = `## Project rules (av)\n${body}\n`;
   return block.length > MAX_CONTEXT_CHARS
     ? `${block.slice(0, MAX_CONTEXT_CHARS - 15)}\n[truncated]\n`
     : block;
@@ -37,7 +37,7 @@ function shouldInject(state, sessionId, key, nowMs) {
 }
 
 function statePath() {
-  return path.join(os.homedir(), ".claude", "vc-state", "rules-inject.json");
+  return path.join(os.homedir(), ".claude", "av-state", "rules-inject.json");
 }
 
 function loadState(file) {

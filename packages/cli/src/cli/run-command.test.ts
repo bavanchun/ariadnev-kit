@@ -93,8 +93,8 @@ class CrashOnceExecutor extends FixtureExecutor {
 }
 
 function fixture(executor: GraphExecutorV1 = new FixtureExecutor()) {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-run-command-"));
-  const runsRoot = mkdtempSync(join(tmpdir(), "vcskill-run-storage-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-run-command-"));
+  const runsRoot = mkdtempSync(join(tmpdir(), "ariadnev-run-storage-"));
   roots.push(root, runsRoot);
   return {
     root,
@@ -244,7 +244,7 @@ describe("run workflow command", () => {
       runtime: "codex",
       workspaceRoot: current.root,
       instruction: "Find the router.",
-    }, current.deps)).rejects.toThrow(/graph.*drift.*original vcskill version.*start a new run/i);
+    }, current.deps)).rejects.toThrow(/graph.*drift.*original ariadnev version.*start a new run/i);
   });
 
   it("refuses to resume stale state after workspace content drift", async () => {

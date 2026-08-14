@@ -1,5 +1,5 @@
 ---
-name: vc:journal
+name: av:journal
 description: Write an honest technical journal entry after a failure, hard-won fix, or notable decision. Use for session reflections, post-mortems, or recording friction that should change a rule.
 user-invocable: true
 argument-hint: "[what happened]"
@@ -11,12 +11,12 @@ metadata:
 # Journal
 
 A short, honest record for the developer who inherits this later — including
-future you. Written by `vc-journal-writer` or directly; this skill defines
+future you. Written by `av-journal-writer` or directly; this skill defines
 the entry shape both use.
 
 Handles: session reflections, failure/decision records, friction tracking.
 Does not handle: durable architecture decisions with consequences for future
-changes — those go through `vc:docs`'s `decision` mode instead.
+changes — those go through `av:docs`'s `decision` mode instead.
 
 ## When to write
 
@@ -97,10 +97,10 @@ Before considering the entry done:
 
 ## Workflow position
 
-**Typically follows:** the end of almost any skill — `vc:cook`/`vc:fix` after a
-hard-won result, `vc:plan` after a notable decision, a failed session worth
-recording. `vc:cook`'s finalize step calls it.
-**Typically precedes:** `vc:docs` `decision` mode — when the entry surfaced a
+**Typically follows:** the end of almost any skill — `av:cook`/`av:fix` after a
+hard-won result, `av:plan` after a notable decision, a failed session worth
+recording. `av:cook`'s finalize step calls it.
+**Typically precedes:** `av:docs` `decision` mode — when the entry surfaced a
 durable architectural choice, promote it there so future sessions inherit it.
-**Related:** `vc:docs` (decision mode) for consequential decisions vs. this for
+**Related:** `av:docs` (decision mode) for consequential decisions vs. this for
 session reflection and friction.

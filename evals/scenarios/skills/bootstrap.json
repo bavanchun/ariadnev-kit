@@ -7,7 +7,7 @@
   "title": "New project bootstrap",
   "subjects": {
     "skills": [
-      "vc:bootstrap"
+      "av:bootstrap"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:bootstrap": "required",
-          "vc:cook": "forbidden"
+          "av:bootstrap": "required",
+          "av:cook": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:cook": "required",
-          "vc:bootstrap": "forbidden"
+          "av:cook": "required",
+          "av:bootstrap": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

@@ -1,4 +1,4 @@
-// Informational health score for `vcskill doctor`. Pure: turns the weighted
+// Informational health score for `ariadnev doctor`. Pure: turns the weighted
 // severity of findings into a 0–100 number for the health bar. Deliberately
 // does NOT influence the exit code — that stays keyed to fail-count in
 // diagnose.deriveStatus, so a low score can never mask/flip the CI contract.

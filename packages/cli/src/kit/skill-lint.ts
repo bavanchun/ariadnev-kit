@@ -1,6 +1,6 @@
-// Skill authoring lint rules for the vc kit CI gate.
+// Skill authoring lint rules for the av kit CI gate.
 // Pure functions: load-kit reads files and passes content in, so every rule is
-// unit-testable without a filesystem. Spec: docs/vc-skill-authoring-spec.md.
+// unit-testable without a filesystem. Spec: docs/av-skill-authoring-spec.md.
 
 import type { Artifact } from "./kit-types.js";
 
@@ -80,7 +80,7 @@ function resolveMaxLines(artifact: Artifact, errors: string[]): number {
 }
 
 /**
- * Lint one skill against the vc authoring spec. Errors fail the kit load;
+ * Lint one skill against the av authoring spec. Errors fail the kit load;
  * warnings (duplicate-heading heuristic) surface on `Kit.warnings` only.
  */
 export function lintSkill(artifact: Artifact, references: ReferenceFile[]): SkillLintResult {

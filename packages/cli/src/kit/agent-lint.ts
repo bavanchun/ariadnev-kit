@@ -1,6 +1,6 @@
-// Agent authoring lint rules for the vc kit CI gate. Mirrors skill-lint.ts:
+// Agent authoring lint rules for the av kit CI gate. Mirrors skill-lint.ts:
 // pure functions, no fs — load-kit reads files and passes content in.
-// Spec: docs/vc-skill-authoring-spec.md (Agent authoring section).
+// Spec: docs/av-skill-authoring-spec.md (Agent authoring section).
 
 import type { Artifact } from "./kit-types.js";
 
@@ -20,9 +20,9 @@ function countLines(text: string): number {
 }
 
 /**
- * Lint one agent against the vc authoring spec. `fileStem` is the filename
- * without extension — the file itself is named `vc-<slug>.md`, so fileStem
- * already carries the `vc-` prefix and is the enforced identity anchor.
+ * Lint one agent against the av authoring spec. `fileStem` is the filename
+ * without extension — the file itself is named `av-<slug>.md`, so fileStem
+ * already carries the `av-` prefix and is the enforced identity anchor.
  */
 export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult {
   const errors: string[] = [];
@@ -34,8 +34,8 @@ export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult
     model?: unknown;
   };
 
-  if (!fileStem.startsWith("vc-")) {
-    errors.push(`${label}: agent file name must start with "vc-" (kebab-case, e.g. vc-explore.md)`);
+  if (!fileStem.startsWith("av-")) {
+    errors.push(`${label}: agent file name must start with "av-" (kebab-case, e.g. av-explore.md)`);
   }
   if (typeof name !== "string" || name !== fileStem) {
     errors.push(`${label}: frontmatter name must equal "${fileStem}" (got ${String(name)})`);

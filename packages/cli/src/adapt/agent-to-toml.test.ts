@@ -23,8 +23,8 @@ describe("agentToToml", () => {
     const instr = parsed.developer_instructions as string;
     expect(instr).toContain("Codex spawn_agent tool");
     expect(instr).toContain("request_user_input");
-    expect(instr).toContain("$HOME/.agents/vcskill/rules/");
-    expect(instr).toContain("Codex custom agent converted from vcskill");
+    expect(instr).toContain("$HOME/.agents/ariadnev/rules/");
+    expect(instr).toContain("Codex custom agent converted from ariadnev");
   });
 
   it("strips any footer from inline description", () => {

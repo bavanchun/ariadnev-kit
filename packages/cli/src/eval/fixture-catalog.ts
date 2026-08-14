@@ -35,7 +35,7 @@ export interface FixtureCatalogV1 {
   fixtures: FixtureCatalogEntry[];
 }
 
-const fixtureCopyBrand: unique symbol = Symbol("vcskill.fixture-copy");
+const fixtureCopyBrand: unique symbol = Symbol("ariadnev.fixture-copy");
 export interface FixtureCopyV1 {
   readonly id: string;
   readonly root: string;
@@ -119,7 +119,7 @@ export function copyScenarioFixture(
 ): FixtureCopyV1 {
   const source = resolveFixtureSource(catalogPath, fixtureId);
   const parent = realpathSync(options.parentDirectory ?? tmpdir());
-  const containerRoot = mkdtempSync(join(parent, "vcskill-eval-"));
+  const containerRoot = mkdtempSync(join(parent, "ariadnev-eval-"));
   const staging = join(containerRoot, ".materializing");
   const target = join(containerRoot, "workspace");
   try {

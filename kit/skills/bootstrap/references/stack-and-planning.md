@@ -32,7 +32,7 @@ or assets affect acceptance criteria.
 - Auto and parallel retain a design approval gate when design is produced.
 - Fast can proceed without a separate gate only when its mode contract allows
   it and the design requirements are already concrete.
-- Use an installed design/browser/media capability when available. The vc kit
+- Use an installed design/browser/media capability when available. The av kit
   does not bundle dedicated `ui-ux-designer`, `ai-multimodal`, or
   `agent-browser` assets, so never promise them.
 - Without a specialist capability, encode layout, states, responsive behavior,
@@ -46,7 +46,7 @@ wireframes and screenshots are artifacts, not automatically evergreen docs.
 Bootstrap does not implement code directly—delegate through planning and cook
 skills:
 
-1. Provide `vc:plan` the requirements and complete opening contract.
+1. Provide `av:plan` the requirements and complete opening contract.
 2. Include approved stack/design decisions and source paths rather than copying
    all research prose.
 3. Require observable acceptance criteria, dependencies, risks, rollback, and
@@ -54,7 +54,7 @@ skills:
 4. For parallel mode, require exclusive file ownership and execution groups.
 5. Capture the returned plan path.
 6. Apply the mode's approval gate.
-7. Pass the plan path to `vc:cook` with the same mode intent.
+7. Pass the plan path to `av:cook` with the same mode intent.
 
 Every independent planning branch receives the outcome, constraints, non-goals,
 acceptance criteria, and fixed stack/design decisions. A branch must not

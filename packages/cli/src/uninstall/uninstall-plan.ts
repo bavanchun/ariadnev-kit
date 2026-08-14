@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
   fromPortablePath,
-  RECEIPT_SCHEMA_VERSION,
+  SUPPORTED_RECEIPT_SCHEMA_VERSIONS,
   type Receipt,
 } from "../install/install-receipt.js";
 import type { ProviderId } from "../providers/spec-verified.js";
@@ -66,9 +66,10 @@ export function planUninstall(
   cwd: string,
   deps: PlanUninstallDeps,
 ): UninstallOp[] {
-  if (receipt.schemaVersion !== RECEIPT_SCHEMA_VERSION) {
+  if (!SUPPORTED_RECEIPT_SCHEMA_VERSIONS.includes(receipt.schemaVersion)) {
     throw new UninstallPlanError(
-      `unsupported receipt schemaVersion ${receipt.schemaVersion} (expected ${RECEIPT_SCHEMA_VERSION}) — refusing to uninstall`,
+      `unsupported receipt schemaVersion ${receipt.schemaVersion} ` +
+        `(supported: ${SUPPORTED_RECEIPT_SCHEMA_VERSIONS.join(", ")}) — refusing to uninstall`,
     );
   }
 

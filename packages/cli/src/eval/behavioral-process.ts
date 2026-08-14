@@ -88,8 +88,8 @@ export function createBehavioralProcessLauncher(options: BehavioralProcessOption
     if (ambientHome && existsSync(ambientHome) && realpathSync(ambientHome) === runnerHome) {
       throw new Error("behavioral runner home must not be the ambient user home");
     }
-    if (!existsSync(join(runnerHome, ".vcskill", "receipt.json"))) {
-      throw new Error("behavioral runner home must contain a vcskill install receipt");
+    if (!existsSync(join(runnerHome, ".ariadnev", "receipt.json"))) {
+      throw new Error("behavioral runner home must contain a ariadnev install receipt");
     }
   }
   return {

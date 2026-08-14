@@ -15,7 +15,7 @@ import type { UninstallOp } from "./uninstall-plan.js";
 let sandbox: string;
 let root: string;
 beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-uninst-"));
+  sandbox = mkdtempSync(join(tmpdir(), "ariadnev-uninst-"));
   root = join(sandbox, "proj");
   mkdirSync(root, { recursive: true });
 });
@@ -82,7 +82,7 @@ describe("executeUninstall", () => {
   it("removes the AGENTS.md managed block, backing up the original first", () => {
     const agentsPath = writeFile(
       "AGENTS.md",
-      "# Notes\n\n<!-- vcskill:start -->\nrules\n<!-- vcskill:end -->\n",
+      "# Notes\n\n<!-- ariadnev:start -->\nrules\n<!-- ariadnev:end -->\n",
     );
     const ops: UninstallOp[] = [{ action: "remove-agents-block", path: agentsPath }];
     const res = executeUninstall(ops, { dryRun: false, allowedRoots: [root], backupRoot: join(sandbox, "backups"), scopeRoot: root });

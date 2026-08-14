@@ -44,7 +44,7 @@ export async function promptProviders(): Promise<PromptResult> {
  */
 export async function confirmHookSettingsMerge(): Promise<boolean> {
   const answer = await confirm({
-    message: "Merge vc hook bindings into .claude/settings.json? (a backup is kept)",
+    message: "Merge av hook bindings into .claude/settings.json? (a backup is kept)",
     initialValue: true,
   });
   if (isCancel(answer)) return false;

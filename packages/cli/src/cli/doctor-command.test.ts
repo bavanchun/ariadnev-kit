@@ -9,14 +9,14 @@ import type { ProviderFinding } from "../doctor/diagnose.js";
 describe("renderDoctorSummary (branded, scored)", () => {
   it("shows a health bar, glyph rows, and a remedy line — plain when color:false", () => {
     const findings: ProviderFinding[] = [
-      { providerId: "claude-code", level: "fail", message: "missing file: x", remedy: "vcskill install", weight: 10 },
+      { providerId: "claude-code", level: "fail", message: "missing file: x", remedy: "ariadnev install", weight: 10 },
       { providerId: "codex", level: "skip", message: "nothing to verify" },
     ];
     const s = renderDoctorSummary("degraded", findings, { color: false });
     expect(s).not.toContain("\x1b[");
     expect(s).toContain("health");
     expect(s).toContain("90"); // 100 - 10
-    expect(s).toContain("↳ run  vcskill install");
+    expect(s).toContain("↳ run  ariadnev install");
     expect(s).toContain("codex: nothing to verify");
   });
 
@@ -30,7 +30,7 @@ describe("renderDoctorSummary (branded, scored)", () => {
 describe("runDoctor — exit contract preserved", () => {
   const dirs: string[] = [];
   const mk = () => {
-    const d = mkdtempSync(join(tmpdir(), "vcskill-doctor-"));
+    const d = mkdtempSync(join(tmpdir(), "ariadnev-doctor-"));
     dirs.push(d);
     return d;
   };
@@ -40,12 +40,12 @@ describe("runDoctor — exit contract preserved", () => {
 
   it("a fail finding (missing installed file) still yields degraded + exit 1 — not masked as healthy", () => {
     const cwd = mk();
-    mkdirSync(join(cwd, ".vcskill"), { recursive: true });
+    mkdirSync(join(cwd, ".ariadnev"), { recursive: true });
     writeFileSync(
-      join(cwd, ".vcskill", "receipt.json"),
+      join(cwd, ".ariadnev", "receipt.json"),
       JSON.stringify({
         schemaVersion: 1,
-        vcskillVersion: packageVersion(),
+        ariadnevVersion: packageVersion(),
         installs: {
           "claude-code": {
             timestamp: "t",

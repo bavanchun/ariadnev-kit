@@ -66,13 +66,13 @@ describe("bar", () => {
 });
 
 describe("wordmark", () => {
-  it("is a plain '>_ vcskill' when color:false", () => {
-    expect(wordmark({ color: false })).toBe(">_ vcskill");
+  it("is a plain '>_ ariadnev' when color:false", () => {
+    expect(wordmark({ color: false })).toBe(">_ ariadnev");
   });
   it("contains the mark and ANSI when color:true", () => {
     const w = wordmark({ color: true });
     expect(w).toContain(">_");
-    expect(w).toContain("vcskill");
+    expect(w).toContain("ariadnev");
     expect(w).toContain("\x1b[");
   });
 });

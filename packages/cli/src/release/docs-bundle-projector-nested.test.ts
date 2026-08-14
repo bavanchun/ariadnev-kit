@@ -6,12 +6,12 @@ import { projectCli } from "./docs-bundle-projector.js";
 describe("docs bundle nested CLI projection", () => {
   it("recursively projects every canonical run subcommand", () => {
     const commands = projectCli(buildProgram()).commands;
-    expect(commands.filter(({ path }) => path.startsWith("vcskill run ")).map(({ path }) => path)).toEqual([
-      "vcskill run cancel",
-      "vcskill run resume",
-      "vcskill run status",
+    expect(commands.filter(({ path }) => path.startsWith("ariadnev run ")).map(({ path }) => path)).toEqual([
+      "ariadnev run cancel",
+      "ariadnev run resume",
+      "ariadnev run status",
     ]);
-    expect(commands.find(({ path }) => path === "vcskill run resume")).toMatchObject({
+    expect(commands.find(({ path }) => path === "ariadnev run resume")).toMatchObject({
       description: "Resume a durable run with the original graph and runtime identity",
       arguments: [{ name: "run-id", required: true, variadic: false, description: "existing run ID" }],
     });

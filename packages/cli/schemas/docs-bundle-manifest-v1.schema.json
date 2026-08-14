@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json",
-  "title": "vcskill docs bundle manifest v1",
+  "$id": "https://ariadnev.com/schemas/docs-bundle-manifest-v1.schema.json",
+  "title": "ariadnev docs bundle manifest v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,15 +23,15 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "schemaId": { "const": "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json" },
-    "bundle": { "const": "vcskill-docs-bundle" },
+    "schemaId": { "const": "https://ariadnev.com/schemas/docs-bundle-manifest-v1.schema.json" },
+    "bundle": { "const": "ariadnev-docs-bundle" },
     "mode": { "enum": ["final", "provisional"] },
     "publishable": { "type": "boolean" },
     "version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" },
     "releaseTag": {
       "anyOf": [
         { "type": "null" },
-        { "type": "string", "pattern": "^vcskill@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
+        { "type": "string", "pattern": "^ariadnev@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
       ]
     },
     "sourceSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
@@ -54,7 +54,7 @@
       "then": {
         "properties": {
           "publishable": { "const": true },
-          "releaseTag": { "type": "string", "pattern": "^vcskill@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
+          "releaseTag": { "type": "string", "pattern": "^ariadnev@[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" }
         }
       }
     },

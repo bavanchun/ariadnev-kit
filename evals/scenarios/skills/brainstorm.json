@@ -7,7 +7,7 @@
   "title": "Architecture option discovery",
   "subjects": {
     "skills": [
-      "vc:brainstorm"
+      "av:brainstorm"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:brainstorm": "required",
-          "vc:cook": "forbidden"
+          "av:brainstorm": "required",
+          "av:cook": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:cook": "required",
-          "vc:brainstorm": "forbidden"
+          "av:cook": "required",
+          "av:brainstorm": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

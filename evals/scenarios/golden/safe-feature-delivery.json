@@ -7,9 +7,9 @@
   "title": "Safe feature delivery",
   "subjects": {
     "skills": [
-      "vc:cook",
-      "vc:test",
-      "vc:code-review"
+      "av:cook",
+      "av:test",
+      "av:code-review"
     ]
   },
   "fixture": {
@@ -29,10 +29,10 @@
           ]
         },
         "routing": {
-          "vc:cook": "required",
-          "vc:test": "required",
-          "vc:code-review": "required",
-          "vc:ship": "forbidden"
+          "av:cook": "required",
+          "av:test": "required",
+          "av:code-review": "required",
+          "av:ship": "forbidden"
         },
         "artifacts": {
           "source-diff": {

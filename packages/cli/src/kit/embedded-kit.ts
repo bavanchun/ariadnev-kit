@@ -11,7 +11,7 @@ import { EMBEDDED_ASSETS, EMBEDDED_VERSION } from "./kit-embedded.generated.js";
 
 /** Where the embedded kit self-extracts. Version-stamped so upgrades re-extract. */
 export function cacheRoot(): string {
-  const base = process.env.VCSKILL_CACHE_DIR ?? join(homedir(), ".cache", "vcskill");
+  const base = process.env.ARIADNEV_CACHE_DIR ?? join(homedir(), ".cache", "ariadnev");
   return join(base, EMBEDDED_VERSION);
 }
 
@@ -42,10 +42,10 @@ export function embeddedFlatRoot(): string {
 /**
  * Resolve the kit root. Tries the real filesystem first (dev, npm-style layout);
  * falls back to the self-extracted embedded kit when no kit/ exists on disk (the
- * compiled-binary case). `VCSKILL_EMBEDDED=1` forces the embedded path (tests).
+ * compiled-binary case). `ARIADNEV_EMBEDDED=1` forces the embedded path (tests).
  */
 export function getKitRoot(startDir: string): string {
-  if (process.env.VCSKILL_EMBEDDED === "1") return materializeEmbeddedKit();
+  if (process.env.ARIADNEV_EMBEDDED === "1") return materializeEmbeddedKit();
   try {
     return resolveKitRoot(startDir);
   } catch (err) {

@@ -3,7 +3,7 @@ import { join, dirname } from "node:path";
 
 /** Absolute path of the applied-migrations ledger for a given root. */
 export function appliedStatePath(root: string): string {
-  return join(root, ".vcskill", "applied-migrations.json");
+  return join(root, ".ariadnev", "applied-migrations.json");
 }
 
 export function readAppliedState(root: string): Set<string> {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { checkSmokeOutput } from "./smoke-binary.mjs";
 import { hostAssetName } from "./binary-targets.mjs";
 
-const goodValidate = "vcskill validate — 21 skills, 13 agents, 6 hooks\n  all checks passed";
+const goodValidate = "ariadnev validate — 21 skills, 13 agents, 6 hooks\n  all checks passed";
 const goodRunHelp = "run [options] [workflow]\nresume status cancel --runtime <provider> --validate --json";
 const goodGraphValidate = JSON.stringify({
   schemaVersion: 1,
@@ -38,27 +38,27 @@ test("fails when --version does not match the built version", () => {
 });
 
 test("fails when the embedded kit reports zero counts", () => {
-  const bad = "vcskill validate — 0 skills, 0 agents, 0 hooks\n  all checks passed";
+  const bad = "ariadnev validate — 0 skills, 0 agents, 0 hooks\n  all checks passed";
   const r = smoke({ validateOut: bad });
   assert.equal(r.ok, false);
   assert.match(r.failures.join(" "), /count/i);
 });
 
 test("fails when validate is not clean", () => {
-  const bad = "vcskill validate — 21 skills, 13 agents, 6 hooks\n  [dangling] x: broken";
+  const bad = "ariadnev validate — 21 skills, 13 agents, 6 hooks\n  [dangling] x: broken";
   const r = smoke({ validateOut: bad });
   assert.equal(r.ok, false);
   assert.match(r.failures.join(" "), /clean|passed/i);
 });
 
 test("passes on a warn-only validate (0 errors) — matches the gate contract", () => {
-  const warnOnly = "vcskill validate — 21 skills, 13 agents, 6 hooks\n  [warn:collision] a ~ b: 45% similar\n  0 error(s), 1 warning(s)";
+  const warnOnly = "ariadnev validate — 21 skills, 13 agents, 6 hooks\n  [warn:collision] a ~ b: 45% similar\n  0 error(s), 1 warning(s)";
   const r = smoke({ validateOut: warnOnly });
   assert.equal(r.ok, true);
 });
 
 test("fails when output leaks an absolute dev path", () => {
-  const leak = goodValidate + "\n  loaded from /Users/dev/vcskill/kit";
+  const leak = goodValidate + "\n  loaded from /Users/dev/ariadnev/kit";
   const r = smoke({ validateOut: leak });
   assert.equal(r.ok, false);
   assert.match(r.failures.join(" "), /leak|path/i);
@@ -75,8 +75,8 @@ test("fails when the packaged run lifecycle or canonical graph is absent", () =>
 });
 
 test("hostAssetName maps known platforms and rejects unknown", () => {
-  assert.equal(hostAssetName("darwin", "arm64"), "vcskill-darwin-arm64");
-  assert.equal(hostAssetName("linux", "x64"), "vcskill-linux-x64");
-  assert.equal(hostAssetName("win32", "x64"), "vcskill-windows-x64.exe");
+  assert.equal(hostAssetName("darwin", "arm64"), "ariadnev-darwin-arm64");
+  assert.equal(hostAssetName("linux", "x64"), "ariadnev-linux-x64");
+  assert.equal(hostAssetName("win32", "x64"), "ariadnev-windows-x64.exe");
   assert.equal(hostAssetName("sunos", "sparc"), null);
 });

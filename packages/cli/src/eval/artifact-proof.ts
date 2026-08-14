@@ -12,7 +12,7 @@ import { bindRunContext, type RunBoundV1, type RunContextV1 } from "./run-contex
 import { getScenarioCase, type ScenarioV1 } from "./scenario-types.js";
 
 const MAX_ARTIFACT_BYTES = 16 * 1024 * 1024;
-const artifactProofBrand: unique symbol = Symbol("vcskill.artifact-proof");
+const artifactProofBrand: unique symbol = Symbol("ariadnev.artifact-proof");
 
 export interface ArtifactSnapshotV1 {
   readonly relativePath: string;

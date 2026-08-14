@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc session-init — SessionStart hook. Cheap filesystem-only project detection
+// av session-init — SessionStart hook. Cheap filesystem-only project detection
 // injected as session context (VC_* lines). Fail-open: any error exits 0.
 const path = require("node:path");
 const fs = require("node:fs");
@@ -18,7 +18,7 @@ function buildContext(project) {
     project.framework ? `VC_FRAMEWORK=${project.framework}` : null,
     project.branch ? `VC_GIT_BRANCH=${project.branch}` : null,
   ].filter(Boolean);
-  return `## vc session\n${lines.join("\n")}\n`;
+  return `## av session\n${lines.join("\n")}\n`;
 }
 
 function main() {

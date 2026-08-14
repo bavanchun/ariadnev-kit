@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 function fixture(mode = "success", auxiliary = "unused") {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-claude-executor-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-claude-executor-"));
   roots.push(root);
   const workspaceRoot = join(root, "workspace");
   const claudeHome = join(root, "claude-home");
@@ -187,7 +187,7 @@ describe("ClaudeCodeExecutor", () => {
 
   it("reports unavailable and drifted runtimes without fallback", () => {
     const missing = new ClaudeCodeExecutor({
-      executable: join(tmpdir(), "vcskill-missing-claude"),
+      executable: join(tmpdir(), "ariadnev-missing-claude"),
       expectedRuntimeVersion: "2.1.226",
       model: "sonnet",
     });
@@ -220,7 +220,7 @@ describe("ClaudeCodeExecutor", () => {
 
   it("honors timeout and cancellation while reaping the provider tree", async () => {
     for (const cancelled of [false, true]) {
-      const root = mkdtempSync(join(tmpdir(), "vcskill-claude-stop-"));
+      const root = mkdtempSync(join(tmpdir(), "ariadnev-claude-stop-"));
       roots.push(root);
       const pidPath = join(root, "grandchild.pid");
       const current = fixture("hang", pidPath);

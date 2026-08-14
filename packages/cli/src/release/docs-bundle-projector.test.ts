@@ -9,7 +9,7 @@ import { normalizeReleaseNotes, projectCli, projectKit, projectProof, projectPro
 describe("docs bundle projector", () => {
   it("projects public cli facts without leaking default values or absolute paths", () => {
     const program = new Command()
-      .name("vcskill")
+      .name("ariadnev")
       .description("Public CLI")
       .option("--token <value>", "private token", "secret-value")
       .option("--flag", "feature flag", false)
@@ -20,7 +20,7 @@ describe("docs bundle projector", () => {
 
     expect(projected.commands).toEqual([
       {
-        path: "vcskill",
+        path: "ariadnev",
         aliases: [],
         description: "Public CLI",
         arguments: [{ name: "input", required: true, variadic: false, description: "input path" }],
@@ -30,7 +30,7 @@ describe("docs bundle projector", () => {
         ],
       },
       {
-        path: "vcskill doctor",
+        path: "ariadnev doctor",
         aliases: ["dr"],
         description: "Diagnose install state",
         arguments: [],
@@ -53,7 +53,7 @@ describe("docs bundle projector", () => {
           ...canonicalKit.skills[0]!,
           name: "synthetic",
           frontmatter: {
-            name: "vc:synthetic",
+            name: "av:synthetic",
             description: "Public synthetic skill",
             metadata: {
               author: "V Chun",
@@ -76,7 +76,7 @@ describe("docs bundle projector", () => {
     const projected = projectKit(syntheticKit);
     expect(projected.skills[0]).toEqual({
       id: "synthetic",
-      name: "vc:synthetic",
+      name: "av:synthetic",
       description: "Public synthetic skill",
       whenToUse: "Use publicly",
       category: "utility",
@@ -172,14 +172,14 @@ describe("docs bundle projector", () => {
 
   it("matches the current canonical program shape", () => {
     const projected = projectCli(buildProgram());
-    expect(projected.commands.find((command) => command.path === "vcskill")?.options.map((option) => option.flags)).toEqual([
+    expect(projected.commands.find((command) => command.path === "ariadnev")?.options.map((option) => option.flags)).toEqual([
       "--cwd <dir>",
       "--dry-run",
       "--home <dir>",
       "--yes",
       "-V, --version",
     ]);
-    expect(projected.commands.some((command) => command.path === "vcskill run")).toBe(true);
-    expect(projected.commands.some((command) => command.path === "vcskill validate")).toBe(true);
+    expect(projected.commands.some((command) => command.path === "ariadnev run")).toBe(true);
+    expect(projected.commands.some((command) => command.path === "ariadnev validate")).toBe(true);
   });
 });

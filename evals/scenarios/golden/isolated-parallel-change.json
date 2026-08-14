@@ -7,9 +7,9 @@
   "title": "Isolated parallel change",
   "subjects": {
     "skills": [
-      "vc:worktree",
-      "vc:cook",
-      "vc:test"
+      "av:worktree",
+      "av:cook",
+      "av:test"
     ]
   },
   "fixture": {
@@ -29,10 +29,10 @@
           ]
         },
         "routing": {
-          "vc:worktree": "required",
-          "vc:cook": "required",
-          "vc:test": "required",
-          "vc:ship": "forbidden"
+          "av:worktree": "required",
+          "av:cook": "required",
+          "av:test": "required",
+          "av:ship": "forbidden"
         },
         "artifacts": {
           "isolated-diff": {

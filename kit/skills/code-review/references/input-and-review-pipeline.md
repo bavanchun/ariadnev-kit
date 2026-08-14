@@ -37,7 +37,7 @@ unless the review target requires and authorizes it.
 
 ## Edge-case scout
 
-Before quality review, invoke `vc:scout` with an edge-case-focused prompt. Scout
+Before quality review, invoke `av:scout` with an edge-case-focused prompt. Scout
 the changed files plus:
 
 1. affected importers/callers;
@@ -71,12 +71,12 @@ Use this dependency order when review belongs to active implementation:
 
 1. scout edge cases;
 2. review the implementation after scouting completes;
-3. route accepted Critical and Important findings to `vc:fix` before proceeding;
+3. route accepted Critical and Important findings to `av:fix` before proceeding;
 4. verify fixes with fresh evidence;
 5. re-review the affected range.
 
 The review skill remains read-only. “Fix Critical immediately” means the
-controller hands off to `vc:fix`, not that the reviewer edits code.
+controller hands off to `av:fix`, not that the reviewer edits code.
 
 ## Tracked and parallel reviews
 

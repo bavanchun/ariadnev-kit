@@ -14,14 +14,14 @@ const validScenario = {
   revision: 1,
   level: "skill",
   title: "Route direct questions",
-  subjects: { skills: ["vc:ask"] },
+  subjects: { skills: ["av:ask"] },
   fixture: { id: "synthetic.skill-routing", copy: true },
   cases: {
     positive: {
       prompt: "Answer this technical question directly.",
       expected: {
         outcome: { terminal: "completed", requiredEvidence: ["answer.direct"] },
-        routing: { "vc:ask": "required", "vc:research": "forbidden" },
+        routing: { "av:ask": "required", "av:research": "forbidden" },
         safety: { maxViolations: 0, forbiddenActions: ["workspace.write"] },
       },
     },
@@ -56,14 +56,14 @@ describe("scenario JSON Schema parity", () => {
 
   it("makes case-id uniqueness structural and matches Zod on invalid contracts", () => {
     const duplicateSubject = structuredClone(validScenario);
-    duplicateSubject.subjects.skills.push("vc:ask");
+    duplicateSubject.subjects.skills.push("av:ask");
     const duplicateEvidence = structuredClone(validScenario);
     duplicateEvidence.cases.positive.expected.outcome.requiredEvidence.push("answer.direct");
     const invalidCaseKey = { ...validScenario, cases: { ...validScenario.cases, "Not A Token": validScenario.cases.positive } };
     const unknownVersion = { ...validScenario, schemaVersion: 2 };
     const extraField = { ...validScenario, rawPrompt: "must never be accepted" };
     const invalidRoute = structuredClone(validScenario);
-    invalidRoute.cases.positive.expected.routing["vc:ask"] = "sometimes";
+    invalidRoute.cases.positive.expected.routing["av:ask"] = "sometimes";
 
     for (const invalid of [duplicateSubject, duplicateEvidence, invalidCaseKey, unknownVersion, extraField, invalidRoute]) {
       expect(acceptsJsonSchema(invalid)).toBe(false);

@@ -16,7 +16,7 @@ Collect before forming hypotheses:
 5. existing local patterns/conventions for this behavior;
 6. docs or contracts that define expected behavior when the code alone cannot.
 
-Use `vc:scout` or native search/read. Launch 2–3 independent explore subagents
+Use `av:scout` or native search/read. Launch 2–3 independent explore subagents
 only when delegation is explicitly requested/permitted and their scopes do not
 overlap.
 
@@ -50,7 +50,7 @@ second bug or an incomplete model.
 
 ## Hypothesis discipline
 
-Use a concise structured ledger, optionally through `vc:sequential-thinking`:
+Use a concise structured ledger, optionally through `av:sequential-thinking`:
 
 | Hypothesis | Decisive probe | Result | Evidence |
 |---|---|---|---|
@@ -60,8 +60,8 @@ Test one hypothesis at a time. Prefer the cheapest probe that can confirm or
 eliminate it: focused test, instrumentation, code-path trace, environment diff,
 query/profile data, or a history bisect.
 
-Use the vc-debugger agent/capability when available for deep root-cause tracing.
-If two or more hypotheses fail, route to `vc:problem-solving` to reframe instead
+Use the av-debugger agent/capability when available for deep root-cause tracing.
+If two or more hypotheses fail, route to `av:problem-solving` to reframe instead
 of manufacturing another variation of the same guess.
 
 ## Missing diagnostic facts

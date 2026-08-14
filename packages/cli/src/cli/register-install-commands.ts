@@ -38,7 +38,7 @@ export function registerInstallCommands(program: Command, context: CommandRegist
         cwd: global.cwd,
         timestamp: nowStamp(),
         applyHookSettings,
-        vcskillVersion: context.version,
+        ariadnevVersion: context.version,
       });
       emit(summary);
       if (!global.dryRun) {

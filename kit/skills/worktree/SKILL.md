@@ -1,5 +1,5 @@
 ---
-name: vc:worktree
+name: av:worktree
 description: Create, inspect, or clean up isolated git worktrees for parallel feature development. Use for feature isolation, stale-worktree cleanup, or before running parallel implementation phases.
 user-invocable: true
 argument-hint: "create <feature> | list | status | prune"
@@ -64,10 +64,10 @@ Next: cd <path> && <install command for this stack>
 
 ## Workflow position
 
-**Typically follows:** `vc:plan` (a phase needs isolation from the current
+**Typically follows:** `av:plan` (a phase needs isolation from the current
 checkout) or a decision to run implementation streams in parallel.
-**Typically precedes:** `vc:cook` / `vc:fix` inside the new worktree, then
-`vc:git` to commit and push from there.
-**Related:** `vc:git` owns branches and commits; `vc:worktree` owns the
+**Typically precedes:** `av:cook` / `av:fix` inside the new worktree, then
+`av:git` to commit and push from there.
+**Related:** `av:git` owns branches and commits; `av:worktree` owns the
 checkouts those branches live in. Cleanup (`prune`) usually follows a merged
-`vc:ship` run.
+`av:ship` run.

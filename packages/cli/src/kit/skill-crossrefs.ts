@@ -8,14 +8,14 @@ export interface UnresolvedSkillReference {
   reference: string;
 }
 
-const SKILL_REFERENCE = /(?<![A-Za-z0-9_-])vc:([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![A-Za-z0-9_-])/g;
+const SKILL_REFERENCE = /(?<![A-Za-z0-9_-])av:([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![A-Za-z0-9_-])/g;
 
-/** Resolve vc-prefixed references after the caller has loaded the full kit. */
+/** Resolve av-prefixed references after the caller has loaded the full kit. */
 export function findUnresolvedSkillReferences(
   sources: SkillCrossrefSource[],
   knownNames: Iterable<string>,
 ): UnresolvedSkillReference[] {
-  const known = new Set([...knownNames].map((name) => name.replace(/^vc:/, "")));
+  const known = new Set([...knownNames].map((name) => name.replace(/^av:/, "")));
   const unresolved: UnresolvedSkillReference[] = [];
 
   for (const source of sources) {
@@ -24,7 +24,7 @@ export function findUnresolvedSkillReferences(
       const slug = match[1];
       if (known.has(slug) || seen.has(slug)) continue;
       seen.add(slug);
-      unresolved.push({ source: source.source, reference: `vc:${slug}` });
+      unresolved.push({ source: source.source, reference: `av:${slug}` });
     }
   }
 

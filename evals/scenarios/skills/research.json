@@ -7,7 +7,7 @@
   "title": "Technical solution research",
   "subjects": {
     "skills": [
-      "vc:research"
+      "av:research"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:research": "required",
-          "vc:docs-seeker": "forbidden"
+          "av:research": "required",
+          "av:docs-seeker": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:docs-seeker": "required",
-          "vc:research": "forbidden"
+          "av:docs-seeker": "required",
+          "av:research": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

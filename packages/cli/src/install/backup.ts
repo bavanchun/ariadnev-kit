@@ -27,7 +27,7 @@ export function readBackupManifest(backupRoot: string): BackupManifestEntry[] {
 /**
  * Copy an existing target (file or dir) into `<backupRoot>/<label>/<name>`
  * before it gets overwritten, and record the original path in a manifest so
- * `vcskill backups restore` knows where to copy it back. No-op when the
+ * `ariadnev backups restore` knows where to copy it back. No-op when the
  * target does not exist.
  */
 export function backupPath(target: string, backupRoot: string, label: string): void {

@@ -13,7 +13,7 @@ afterEach(() => {
 
 describe("effect intent store", () => {
   it("persists private pre-effect fingerprints without raw action content", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-effect-intent-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-effect-intent-"));
     roots.push(root);
     const workspaceRoot = join(root, "workspace");
     const runDirectory = join(root, "runs", "run.safe-change");
@@ -42,7 +42,7 @@ describe("effect intent store", () => {
   });
 
   it("rejects tampering with recorded pre-effect evidence", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-effect-intent-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-effect-intent-"));
     roots.push(root);
     const workspaceRoot = join(root, "workspace");
     const runDirectory = join(root, "runs", "run.safe-change");

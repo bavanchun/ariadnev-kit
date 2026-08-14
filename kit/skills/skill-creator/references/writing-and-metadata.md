@@ -7,7 +7,7 @@ change; do not import another ecosystem's schema by memory.
 ## Frontmatter contract
 
 - Folder slug: descriptive kebab-case.
-- `name`: exactly `vc:<folder-slug>`; namespace and skill id are lowercase
+- `name`: exactly `av:<folder-slug>`; namespace and skill id are lowercase
   kebab-case, and the folder matches the id segment after `:`.
 - `description`: 20–200 characters, what the skill does plus when to activate;
   include a real trigger verb such as `Use for ...` and phrases users say.
@@ -38,7 +38,7 @@ The body must provide:
 5. a concrete `## Output format` contract;
 6. three to six enforceable `## Quality gates`;
 7. proof/risk boundaries when correctness is asserted;
-8. `## Workflow position` with valid vc skill relationships.
+8. `## Workflow position` with valid av skill relationships.
 
 Use explicit standard terminology and concrete commands only when they match
 real product contracts. If the model skips a critical validation in observed

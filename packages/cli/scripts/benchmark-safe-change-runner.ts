@@ -90,7 +90,7 @@ const compiled = compileGraph(source, registryFor([source]), PORTABLE_GRAPH_CAPA
 if (!compiled.ok) throw new Error(JSON.stringify(compiled.findings));
 
 async function sample(index: number) {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-safe-change-benchmark-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-safe-change-benchmark-"));
   try {
     const workspaceRoot = join(root, "workspace");
     const runRoot = join(root, "runs");
@@ -141,7 +141,7 @@ for (let index = 0; index < WARMUPS; index += 1) await sample(index);
 const samples = [];
 for (let index = 0; index < REPEATS; index += 1) samples.push(await sample(WARMUPS + index));
 const baseline = JSON.parse(readFileSync(join(process.cwd(), "evals", "baselines", "v0.10.0", "summary.json"), "utf8"))
-  .samples.find((item: { cellId: string; variant: string }) => item.cellId === "golden.safe-feature-delivery:default" && item.variant === "vcskill");
+  .samples.find((item: { cellId: string; variant: string }) => item.cellId === "golden.safe-feature-delivery:default" && item.variant === "ariadnev");
 const output = {
   schemaVersion: 1,
   workload: { warmups: WARMUPS, repeats: REPEATS, graph: compiled.graph.id, provider: "deterministic-fixture" },

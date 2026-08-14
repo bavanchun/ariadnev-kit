@@ -1,6 +1,6 @@
 # Delivery Gates
 
-Read this reference after planning succeeds and `vc:cook` owns implementation.
+Read this reference after planning succeeds and `av:cook` owns implementation.
 It records bootstrap-specific completion obligations without duplicating cook's
 internal workflow.
 
@@ -53,7 +53,7 @@ Return:
 5. a separate question asking whether the user wants a commit and/or push when
    neither action was already authorized.
 
-Commit and push are distinct. If the user approves a commit, use `vc:git` for a
+Commit and push are distinct. If the user approves a commit, use `av:git` for a
 focused conventional commit. Push only when explicitly requested; speed or auto
 mode never supplies that authorization.
 

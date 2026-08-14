@@ -12,16 +12,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const srcKit = join(here, "..", "..", "..", "..", "kit");
 
 describe("renderSkillTemplate", () => {
-  it("renders parseable SKILL.md with vc: prefix", () => {
+  it("renders parseable SKILL.md with av: prefix", () => {
     const md = renderSkillTemplate({
       slug: "my-skill",
       description: "Use this fixture skill when testing generated skill content.",
     });
     const { data } = parseFrontmatter(md);
-    expect(data.name).toBe("vc:my-skill");
+    expect(data.name).toBe("av:my-skill");
     expect(data.description).toBe("Use this fixture skill when testing generated skill content.");
     expect(data.metadata).toMatchObject({
-      author: "vcskill",
+      author: "ariadnev",
       version: "0.1.0",
     });
     expect(md).toContain("## Output format");
@@ -38,7 +38,7 @@ describe("renderSkillTemplate", () => {
 describe("runAddSkill", () => {
   let kitRoot: string;
   beforeEach(() => {
-    const sandbox = mkdtempSync(join(tmpdir(), "vcskill-add-"));
+    const sandbox = mkdtempSync(join(tmpdir(), "ariadnev-add-"));
     kitRoot = join(sandbox, "kit");
     mkdirSync(kitRoot, { recursive: true });
     cpSync(srcKit, kitRoot, { recursive: true });
@@ -67,7 +67,7 @@ describe("runAddSkill", () => {
     mkdirSync(broken, { recursive: true });
     writeFileSync(
       join(broken, "SKILL.md"),
-      "---\nname: vc:wrong\ndescription: Use this invalid fixture to force load failure.\n---\n# Broken\n",
+      "---\nname: av:wrong\ndescription: Use this invalid fixture to force load failure.\n---\n# Broken\n",
     );
 
     expect(() =>

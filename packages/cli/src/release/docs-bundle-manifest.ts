@@ -56,7 +56,7 @@ export function validateDocsBundleManifest(value: unknown): DocsBundleValidation
   if (!valid) return { valid: false, errors };
   const complete = manifest as DocsBundleManifestV1;
   if (!STABLE_VERSION.test(complete.version)) errors.push("version must be a stable semantic version");
-  if (complete.mode === "final" && complete.releaseTag !== `vcskill@${complete.version}`) {
+  if (complete.mode === "final" && complete.releaseTag !== `ariadnev@${complete.version}`) {
     errors.push("releaseTag must match version identity");
   }
   if (complete.mode === "provisional" && complete.releaseTag !== null) errors.push("provisional releaseTag must be null");

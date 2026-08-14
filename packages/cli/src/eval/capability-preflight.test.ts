@@ -25,7 +25,7 @@ const scenario = parseScenario(JSON.stringify({
   revision: 1,
   level: "workflow",
   title: "Current research",
-  subjects: { skills: ["vc:research"] },
+  subjects: { skills: ["av:research"] },
   fixture: { id: "synthetic.research-question", copy: true },
   cases: {
     default: {
@@ -51,7 +51,7 @@ function envelopeInput(run: ReturnType<typeof createRunContext>, execution: Awai
     vocabulary,
     execution,
     kit: { version: "0.10.0", digest },
-    skills: [{ id: "vc:research", version: "1.0.0", digest }],
+    skills: [{ id: "av:research", version: "1.0.0", digest }],
     runtime: { provider: "codex", version: "1.2.3", model: "gpt-5" },
     evaluator: { version: "1.0.0" },
   };
@@ -73,7 +73,7 @@ describe("capability preflight", () => {
     const executor = { execute: vi.fn(async () => ({ status: "unsupported" })) };
     const execution = await executeScenario(
       executor,
-      { prompt: scenario.cases.default.prompt, workspaceRoot: "/tmp/vcskill-capability/workspace" },
+      { prompt: scenario.cases.default.prompt, workspaceRoot: "/tmp/ariadnev-capability/workspace" },
       { run, preflight: assessment, signal: new AbortController().signal },
     );
     const verify = vi.fn(() => "pass" as const);
@@ -106,14 +106,14 @@ describe("capability preflight", () => {
     const supported = preflight(run, ["network.http", "external.browser"]);
     const execution = await executeScenario(
       { execute: async () => ({ status: "unsupported" }) },
-      { prompt: "Run", workspaceRoot: "/tmp/vcskill-supported/workspace" },
+      { prompt: "Run", workspaceRoot: "/tmp/ariadnev-supported/workspace" },
       { run, preflight: supported, signal: new AbortController().signal },
     );
     expect(execution.status).toBe("completed");
 
     await expect(executeScenario(
       { execute: async () => ({}) },
-      { prompt: "Run", workspaceRoot: "/tmp/vcskill-cross-run/workspace" },
+      { prompt: "Run", workspaceRoot: "/tmp/ariadnev-cross-run/workspace" },
       { run: createRunContext(), preflight: supported, signal: new AbortController().signal },
     )).rejects.toThrow(/run context/i);
   });

@@ -9,7 +9,7 @@ import { preflightWebConsumerLock, sha256File, verifyWebConsumerLock } from "../
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..", "..", "..");
 const canonicalSchemaPath = join(repoRoot, ".github", "release", "web-consumer-lock.schema.json");
-const expectedRepository = "bavanchun/vcskill-web";
+const expectedRepository = "bavanchun/ariadnev-web";
 const temps: string[] = [];
 
 function tempDir(prefix: string): string {
@@ -27,8 +27,8 @@ function write(path: string, content: string): void {
   writeFileSync(path, content);
 }
 
-function setup(origin = "https://github.com/bavanchun/vcskill-web.git") {
-  const root = tempDir("vcskill-web-lock-");
+function setup(origin = "https://github.com/bavanchun/ariadnev-web.git") {
+  const root = tempDir("ariadnev-web-lock-");
   const webRepo = join(root, "web");
   const sourceTree = join(root, "core");
   mkdirSync(webRepo, { recursive: true });
@@ -51,7 +51,7 @@ function setup(origin = "https://github.com/bavanchun/vcskill-web.git") {
     "if (mode === 'oversized') writeFileSync(join(out, 'result.json'), Buffer.alloc(8 * 1024 * 1024 + 1));",
     "writeFileSync(join(out, 'report.json'), JSON.stringify({ status: mode === 'fail-report' ? 'fail' : 'pass' }) + '\\n');",
   ].join("\n"));
-  write(join(sourceTree, "descriptors", "previous.json"), "{\"tag\":\"vcskill@0.10.0\"}\n");
+  write(join(sourceTree, "descriptors", "previous.json"), "{\"tag\":\"ariadnev@0.10.0\"}\n");
   git(webRepo, "add", ".");
   git(webRepo, "commit", "-m", "fixture");
   git(webRepo, "checkout", "--detach");
@@ -76,7 +76,7 @@ function setup(origin = "https://github.com/bavanchun/vcskill-web.git") {
       ],
     },
     previousSource: {
-      tag: "vcskill@0.10.0",
+      tag: "ariadnev@0.10.0",
       descriptorPath: "descriptors/previous.json",
       descriptorDigest: sha256File(join(sourceTree, "descriptors", "previous.json")),
     },
@@ -102,9 +102,9 @@ describe("web consumer lock verifier", () => {
   });
 
   it("rejects origin spoofing, sha drift, dirty checkout, and digest drift", () => {
-    const { lock, lockPath, schemaPath, sourceTree, webRepo } = setup("https://github.com/bavanchun/vcskill-web.evil.git");
+    const { lock, lockPath, schemaPath, sourceTree, webRepo } = setup("https://github.com/bavanchun/ariadnev-web.evil.git");
     expect(() => verifyWebConsumerLock({ lockPath, schemaPath, repositoryRoot: webRepo, sourceTreeRoot: sourceTree, expectedRepository })).toThrow(/remote drift/i);
-    git(webRepo, "remote", "set-url", "origin", "git@github.com:bavanchun/vcskill-web.git");
+    git(webRepo, "remote", "set-url", "origin", "git@github.com:bavanchun/ariadnev-web.git");
     lock.commitSha = "a".repeat(40);
     write(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
     expect(() => verifyWebConsumerLock({ lockPath, schemaPath, repositoryRoot: webRepo, sourceTreeRoot: sourceTree, expectedRepository })).toThrow(/commit drift/i);
@@ -132,7 +132,7 @@ describe("web consumer lock verifier", () => {
     lock.invocation.argv[2] = "pass";
     write(join(sourceTree, "descriptors", "previous.json"), "{\"tag\":\"drifted\"}\n");
     expect(() => verifyWebConsumerLock({ lockPath, schemaPath, repositoryRoot: webRepo, sourceTreeRoot: sourceTree, expectedRepository })).toThrow(/descriptor digest drift/i);
-    write(join(sourceTree, "descriptors", "previous.json"), "{\"tag\":\"vcskill@0.10.0\"}\n");
+    write(join(sourceTree, "descriptors", "previous.json"), "{\"tag\":\"ariadnev@0.10.0\"}\n");
     lock.previousSource.descriptorDigest = sha256File(join(sourceTree, "descriptors", "previous.json"));
     lock.invocation.argv[2] = "symlink";
     write(lockPath, `${JSON.stringify(lock, null, 2)}\n`);

@@ -6,7 +6,7 @@ import { runValidate } from "./validate-command.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
 
 const GOOD_FRONTMATTER = `---
-name: vc:foo
+name: av:foo
 description: Use this fixture skill to exercise the validate command reference check.
 ---
 
@@ -71,7 +71,7 @@ function writeInvalidWorkflow(kitRoot: string): void {
 describe("runValidate", () => {
   let tmp: string;
   beforeEach(() => {
-    tmp = mkdtempSync(join(tmpdir(), "vcskill-validate-"));
+    tmp = mkdtempSync(join(tmpdir(), "ariadnev-validate-"));
   });
   afterEach(() => {
     rmSync(tmp, { recursive: true, force: true });
@@ -108,18 +108,18 @@ describe("runValidate", () => {
     );
   });
 
-  it("flags an unresolved vc skill reference under kind skillref", () => {
-    writeSkill(tmp, `${GOOD_FRONTMATTER}\nUse vc:missing.\n`);
+  it("flags an unresolved av skill reference under kind skillref", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nUse av:missing.\n`);
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings).toContainEqual(
-      expect.objectContaining({ skill: "foo", kind: "skillref", message: expect.stringContaining("vc:missing") }),
+      expect.objectContaining({ skill: "foo", kind: "skillref", message: expect.stringContaining("av:missing") }),
     );
   });
 
-  it("checks vc skill references inside linked reference files", () => {
+  it("checks av skill references inside linked reference files", () => {
     writeSkill(tmp, `${GOOD_FRONTMATTER}\nSee references/used.md.\n`, {
-      "used.md": "# Used\n\nContinue with vc:missing.\n",
+      "used.md": "# Used\n\nContinue with av:missing.\n",
     });
     const result = runValidate({ kitRoot: tmp });
     expect(result.findings).toContainEqual(
@@ -129,7 +129,7 @@ describe("runValidate", () => {
 
   it("reports a lint error as a single (kit) finding and fails", () => {
     // name mismatch → loadKit throws KitValidationError
-    writeSkill(tmp, `---\nname: vc:wrong\ndescription: A fixture whose name does not match its directory slug value.\n---\n\n# Foo\n`);
+    writeSkill(tmp, `---\nname: av:wrong\ndescription: A fixture whose name does not match its directory slug value.\n---\n\n# Foo\n`);
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(false);
     expect(result.findings[0].kind).toBe("lint");

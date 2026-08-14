@@ -11,15 +11,15 @@ import { ClaudeCodeExecutor } from "../src/harness/executors/claude-code-executo
 import { createGraphRunContext, runGraph } from "../src/harness/run-graph.ts";
 
 const environment = Reflect.get(process, "env");
-const enabled = environment[["VCSKILL", "LIVE", "CLAUDE"].join("_")] === "1";
+const enabled = environment[["ARIADNEV", "LIVE", "CLAUDE"].join("_")] === "1";
 if (!enabled) {
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, status: "skipped", reason: "set VCSKILL_LIVE_CLAUDE=1" }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, status: "skipped", reason: "set ARIADNEV_LIVE_CLAUDE=1" }, null, 2)}\n`);
   process.exit(0);
 }
 
 const expectedRuntimeVersion = "2.1.226";
-const model = environment[["VCSKILL", "CLAUDE", "MODEL"].join("_")] ?? "sonnet";
-const root = mkdtempSync(join(tmpdir(), "vcskill-live-claude-"));
+const model = environment[["ARIADNEV", "CLAUDE", "MODEL"].join("_")] ?? "sonnet";
+const root = mkdtempSync(join(tmpdir(), "ariadnev-live-claude-"));
 chmodSync(root, 0o700);
 
 class LiveProbeSkip extends Error {}
@@ -125,7 +125,7 @@ try {
   if (initialGitStatus.status !== 0) throw new Error("unable to capture the synthetic git fixture state");
 
   const executor = new ClaudeCodeExecutor({
-    executable: environment[["VCSKILL", "CLAUDE", "BIN"].join("_")] ?? "claude",
+    executable: environment[["ARIADNEV", "CLAUDE", "BIN"].join("_")] ?? "claude",
     expectedRuntimeVersion,
     model,
     authenticationHome: homedir(),

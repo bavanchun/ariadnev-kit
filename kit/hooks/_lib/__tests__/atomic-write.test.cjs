@@ -6,7 +6,7 @@ const path = require("node:path");
 const { atomicWrite } = require("../atomic-write.cjs");
 
 test("atomicWrite creates parent dirs and writes content", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vc-aw-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "av-aw-"));
   const dest = path.join(root, "a", "b", "state.md");
   atomicWrite(dest, "hello");
   assert.equal(fs.readFileSync(dest, "utf8"), "hello");
@@ -14,7 +14,7 @@ test("atomicWrite creates parent dirs and writes content", () => {
 });
 
 test("atomicWrite replaces an existing file and leaves no temp behind", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vc-aw-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "av-aw-"));
   const dest = path.join(root, "state.md");
   atomicWrite(dest, "one");
   atomicWrite(dest, "two");

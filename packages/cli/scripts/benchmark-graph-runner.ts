@@ -70,7 +70,7 @@ const compiled = compileGraph(source, registryFor([source]), PORTABLE_GRAPH_CAPA
 if (!compiled.ok) throw new Error(JSON.stringify(compiled.findings));
 
 async function sample(index: number): Promise<{ wholeRunMs: number; meanNodeMs: number }> {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-runner-benchmark-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-runner-benchmark-"));
   try {
     const workspaceRoot = join(root, "workspace");
     const runRoot = join(root, "runs");

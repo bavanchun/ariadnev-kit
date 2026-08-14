@@ -2,7 +2,7 @@ import { categoricalToken } from "./categorical-token.js";
 import type { BehavioralFailureClass } from "./behavioral-runner.js";
 import type { DimensionStatus } from "./behavioral-score.js";
 
-export type BehavioralVariant = "vcskill" | "reference";
+export type BehavioralVariant = "ariadnev" | "reference";
 type Level = "skill" | "workflow" | "kit";
 type ReportVerdict = "pass" | "fail" | "incomplete" | "unsupported";
 type Dimension = "outcome" | "artifacts" | "safety" | "routing" | "trajectory" | "latency" |
@@ -40,7 +40,7 @@ function validateRun(run: BehavioralReportRun, index: number): void {
   exactKeys(run, runKeys, `runs[${index}]`);
   categoricalToken(run.cellId, `runs[${index}].cellId`);
   if (secretShape.test(JSON.stringify(run))) throw new Error(`runs[${index}] contains sensitive content`);
-  if (!(["vcskill", "reference"] as string[]).includes(run.variant)) throw new Error("variant is unsupported");
+  if (!(["ariadnev", "reference"] as string[]).includes(run.variant)) throw new Error("variant is unsupported");
   if (!(["skill", "workflow", "kit"] as string[]).includes(run.level)) throw new Error("level is unsupported");
   if (!(["pass", "fail", "incomplete", "unsupported"] as string[]).includes(run.verdict)) throw new Error("verdict is unsupported");
   if (!failureClasses.includes(run.failureClass)) throw new Error("failure class is unsupported");
@@ -107,7 +107,7 @@ export function buildBehavioralReport(input: {
   const cells = cellIds.map((cellId) => {
     const runs = input.runs.filter((run) => run.cellId === cellId);
     const variants: Partial<Record<BehavioralVariant, ReturnType<typeof aggregate>>> = {};
-    for (const variant of ["vcskill", "reference"] as const) {
+    for (const variant of ["ariadnev", "reference"] as const) {
       const selected = runs.filter((run) => run.variant === variant);
       if (selected.length) variants[variant] = aggregate(selected);
     }
@@ -130,7 +130,7 @@ export function buildBehavioralReport(input: {
   if (!Number.isInteger(expectedSkillCells) || expectedSkillCells < 0) throw new Error("expectedSkillCells must be a non-negative integer");
   const missingSkillCells = Math.max(0, expectedSkillCells - observedSkillCells);
   for (const cell of cells) {
-    if (cell.comparison.status === "matched" && (!cell.variants.vcskill || !cell.variants.reference)) {
+    if (cell.comparison.status === "matched" && (!cell.variants.ariadnev || !cell.variants.reference)) {
       throw new Error(`matched comparison requires both variants: ${cell.id}`);
     }
   }

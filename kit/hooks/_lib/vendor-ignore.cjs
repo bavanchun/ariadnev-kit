@@ -1,6 +1,6 @@
 // Vendored from npm package "ignore" v7.0.6 (https://github.com/kaelzhang/node-ignore)
 // MIT License, Copyright (c) 2013 Kael Zhang and contributors.
-// Vendored as a single file so vc hooks run from ~/.claude/hooks/vc without a package install.
+// Vendored as a single file so av hooks run from ~/.claude/hooks/av without a package install.
 // A simple implementation of make-array
 function makeArray (subject) {
   return Array.isArray(subject)

@@ -1,6 +1,6 @@
 ---
-name: vc:skill-creator
-description: Create or update vc kit skills with evidence-backed triggers, references, provenance, and tests. Use when adding, porting, refining, or validating a skill.
+name: av:skill-creator
+description: Create or update av kit skills with evidence-backed triggers, references, provenance, and tests. Use when adding, porting, refining, or validating a skill.
 user-invocable: true
 argument-hint: "<skill name or description>"
 metadata:
@@ -15,10 +15,10 @@ a repeatable workflow with precise activation, conditional depth, deterministic
 helpers where useful, and fresh evaluation evidence—not a topic summary or a
 bag of benchmark phrases.
 
-Handles: original vc skills, references, scripts, trigger design, evaluation,
+Handles: original av skills, references, scripts, trigger design, evaluation,
 and pre-ship validation.
 
-Does not handle: vc agent authoring, Claude plugin marketplaces, user-global
+Does not handle: av agent authoring, Claude plugin marketplaces, user-global
 installation, external publication, or generic documentation maintenance.
 
 ## Opening authoring contract
@@ -46,8 +46,8 @@ workflow without a stable boundary. For intent and resource decisions, read
 2. **Frame.** Gather real tasks, positive and negative trigger phrases, expected
    output, edge cases, constraints, and non-goals. Choose create, extend, merge,
    or decline from [intent and architecture](references/intent-and-architecture.md).
-3. **Scaffold or preserve.** For a new vc skill, run
-   `vcskill add-skill <slug> --description "<what + when>"`; for an existing
+3. **Scaffold or preserve.** For a new av skill, run
+   `ariadnev add-skill <slug> --description "<what + when>"`; for an existing
    skill, preserve its public trigger and workflow contracts unless the accepted
    scope intentionally changes them.
 4. **Trust the source.** For a port, pin and inspect the complete authored source
@@ -90,7 +90,7 @@ workflow without a stable boundary. For intent and resource decisions, read
 ## Output format
 
 ```markdown
-Skill: vc:<slug>
+Skill: av:<slug>
 Decision: created | updated | merged | declined
 Files: <SKILL.md and directly linked resources with LOC>
 Trigger contract: <positive prompts> | negative prompts: <examples>
@@ -106,7 +106,7 @@ behavior only. It does not establish universal activation or behavioral parity.
 
 1. Scope, trigger, output, and non-goals are explicit and non-overlapping.
 2. Frontmatter, required sections, direct references, size, provenance, and
-   cross-skill links satisfy the current vc authoring spec and lint gate.
+   cross-skill links satisfy the current av authoring spec and lint gate.
 3. Every script has passing focused tests, safe configuration, clear failures,
    and no undeclared platform or network assumption.
 4. Positive/negative trigger cases and realistic functional/safety cases pass;
@@ -118,11 +118,11 @@ behavior only. It does not establish universal activation or behavioral parity.
 
 ## Workflow position
 
-**Typically follows:** a repeated workflow gap found by `vc:scout`, `vc:cook`,
-or maintainer review; `vc:docs-seeker` may establish current external contracts.
+**Typically follows:** a repeated workflow gap found by `av:scout`, `av:cook`,
+or maintainer review; `av:docs-seeker` may establish current external contracts.
 
-**Typically precedes:** `vc:test`, `vc:code-review`, and explicitly authorized
-`vc:git` after the skill and embedded kit pass all gates.
+**Typically precedes:** `av:test`, `av:code-review`, and explicitly authorized
+`av:git` after the skill and embedded kit pass all gates.
 
-**Related:** `vc:docs` owns durable authoring documentation; `vc:cook` remains
+**Related:** `av:docs` owns durable authoring documentation; `av:cook` remains
 the reference implementation for workflow depth and proof/risk wiring.

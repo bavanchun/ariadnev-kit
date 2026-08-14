@@ -1,6 +1,6 @@
-// Reference-integrity check for the vc kit — the piece `lintSkill` does not do.
+// Reference-integrity check for the av kit — the piece `lintSkill` does not do.
 // Pure: the caller supplies the SKILL.md body and the list of reference file
-// names it found on disk; this compares the two. Powers `vcskill validate`.
+// names it found on disk; this compares the two. Powers `ariadnev validate`.
 //
 // - dangling: a `references/<name>.md` mentioned in the body with no such file
 // - orphan:   a reference file that exists but is never mentioned in the body

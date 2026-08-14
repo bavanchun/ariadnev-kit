@@ -5,7 +5,10 @@ import { join, resolve } from "node:path";
 import type { PreviousSourceOptions } from "./docs-bundle-types.js";
 
 const SHA40 = /^[a-f0-9]{40}$/;
-const STABLE_TAG = /^vcskill@(\d+\.\d+\.\d+)$/;
+// A historical projection targets a release that already happened, so it must
+// accept the tag grammar in use at that time. resolve-previous-stable resolves
+// across the rename for the same reason.
+const STABLE_TAG = /^(?:ariadnev|vcskill)@(\d+\.\d+\.\d+)$/; // brand-drift-allow: reads pre-rename release tags
 
 function assertSha(value: string, label: string): void {
   if (!SHA40.test(value)) throw new Error(`${label} must be a full lowercase SHA`);
@@ -22,7 +25,7 @@ function git(sourceTree: string, args: string[]): string {
 
 function validateHistoricalIdentity(previous: PreviousSourceOptions, sourceTree: string): void {
   const tag = STABLE_TAG.exec(previous.releaseTag);
-  if (!tag) throw new Error("previousSource.releaseTag must be a stable vcskill tag");
+  if (!tag) throw new Error("previousSource.releaseTag must be a stable release tag");
   const head = git(sourceTree, ["rev-parse", "HEAD"]);
   const tagCommit = git(sourceTree, ["rev-parse", `${previous.releaseTag}^{commit}`]);
   if (head !== previous.productSha) throw new Error(`previousSource product SHA drift: expected ${previous.productSha}, got ${head}`);
@@ -81,7 +84,7 @@ export function projectHistoricalSource(previous: PreviousSourceOptions, workspa
     throw new Error("previous source tree must be a real directory");
   }
   validateHistoricalIdentity(previous, sourceTree);
-  const scratchDir = mkdtempSync(join(tmpdir(), "vcskill-history-adapter-"));
+  const scratchDir = mkdtempSync(join(tmpdir(), "ariadnev-history-adapter-"));
   try {
     try {
       return JSON.parse(execFileSync("bun", ["--eval", historicalScript(), sourceTree, workspaceRoot], {

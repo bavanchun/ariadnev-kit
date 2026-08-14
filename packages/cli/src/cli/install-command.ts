@@ -20,8 +20,8 @@ export interface InstallHandlerOpts {
   timestamp: string;
   /** User confirmed merging hook bindings into settings.json (prompt result). */
   applyHookSettings?: boolean;
-  /** Installed vcskill package version, recorded in the receipt. */
-  vcskillVersion?: string;
+  /** Installed ariadnev package version, recorded in the receipt. */
+  ariadnevVersion?: string;
 }
 
 export interface InstallHandlerResult {
@@ -49,7 +49,7 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
       dryRun: opts.dryRun,
       timestamp: opts.timestamp,
       applyHookSettings: opts.applyHookSettings,
-      vcskillVersion: opts.vcskillVersion,
+      ariadnevVersion: opts.ariadnevVersion,
     },
   );
   let summary = renderSummary(results, opts.dryRun);

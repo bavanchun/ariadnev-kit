@@ -1,17 +1,17 @@
 # Behavioral evaluation contracts
 
-This directory owns the frozen inputs and machine contracts for vcskill's
+This directory owns the frozen inputs and machine contracts for ariadnev's
 behavioral benchmark. Tier 2 complements the existing static and opt-in LLM
 judge tiers without changing their semantics.
 
 ## Running Tier 2
 
-Run from a vcskill source checkout after `pnpm build`. The runner is a strict
+Run from a ariadnev source checkout after `pnpm build`. The runner is a strict
 JSON argv array, is spawned directly without a shell, receives only the case
 prompt on stdin, and starts in a fresh copied fixture:
 
 ```sh
-vcskill eval --suite \
+ariadnev eval --suite \
   --runner '["agent-command","arg-1"]' \
   --runtime-provider provider-id \
   --runtime-version exact-version \
@@ -35,10 +35,10 @@ through so the provider can use an isolated credential/config directory;
 inherited. Use a dedicated temporary `CODEX_HOME` for benchmark capture.
 
 By default, the child `HOME` is the disposable fixture. A benchmark that needs
-installed provider skills may set `VCSKILL_BEHAVIORAL_HOME` to a dedicated
-absolute home created by `vcskill install`. The launcher requires its
-`.vcskill/receipt.json` marker and rejects the ambient user home. Reports retain
-only `isolated-vcskill-install` or `fixture`, never the path. For Codex, point
+installed provider skills may set `ARIADNEV_BEHAVIORAL_HOME` to a dedicated
+absolute home created by `ariadnev install`. The launcher requires its
+`.ariadnev/receipt.json` marker and rejects the ambient user home. Reports retain
+only `isolated-ariadnev-install` or `fixture`, never the path. For Codex, point
 `CODEX_HOME` inside the same dedicated home.
 
 The command emits one allowlisted JSON document. It exits non-zero when Tier 1

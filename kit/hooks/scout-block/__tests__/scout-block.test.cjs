@@ -45,7 +45,7 @@ test(".vcignore negation re-allows a default-blocked dir", () => {
 });
 
 test("deny exits 2 with a .vcignore hint; allow exits 0", () => {
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-sb-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-sb-"));
   const deny = runHook({
     cwd: proj,
     tool_name: "Read",
@@ -59,7 +59,7 @@ test("deny exits 2 with a .vcignore hint; allow exits 0", () => {
 });
 
 test("project .vcignore is honored by the hook process", () => {
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-sb2-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-sb2-"));
   fs.writeFileSync(path.join(proj, ".vcignore"), "!dist/\n");
   const res = runHook({ cwd: proj, tool_name: "Read", tool_input: { file_path: "dist/bundle.js" } });
   assert.equal(res.status, 0);

@@ -19,10 +19,10 @@ function makeAdaptFixtureKit(root: string) {
     join(root, "skills", "sample-skill", "SKILL.md"),
     [
       "---",
-      "name: vc:sample-skill",
+      "name: av:sample-skill",
       "description: Fixture skill for tests. Use when verifying provider adaptation.",
       "metadata:",
-      '  author: vcskill',
+      '  author: ariadnev',
       "---",
       "",
       "# Sample Skill",
@@ -47,10 +47,10 @@ function makeAdaptFixtureKit(root: string) {
 
   mkdirSync(join(root, "agents"), { recursive: true });
   writeFileSync(
-    join(root, "agents", "vc-sample-reviewer.md"),
+    join(root, "agents", "av-sample-reviewer.md"),
     [
       "---",
-      "name: vc-sample-reviewer",
+      "name: av-sample-reviewer",
       'description: "Use this agent to review a diff for fixture tests. <example>Example: reviewing a small diff.</example><commentary>Read-only check.</commentary>"',
       "tools: Read, Grep",
       "---",
@@ -73,7 +73,7 @@ function makeAdaptFixtureKit(root: string) {
       "---",
       "description: Sample slash command fixture.",
       "argument-hint: \"[text]\"",
-      "agent: vc-sample-reviewer",
+      "agent: av-sample-reviewer",
       "---",
       "",
       "# /sample-cmd",
@@ -89,7 +89,7 @@ function makeAdaptFixtureKit(root: string) {
 let sandbox: string;
 let ctx: { home: string; cwd: string; scope: "project" };
 beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-inst-"));
+  sandbox = mkdtempSync(join(tmpdir(), "ariadnev-inst-"));
   ctx = { home: join(sandbox, "home"), cwd: join(sandbox, "proj"), scope: "project" };
   mkdirSync(ctx.home, { recursive: true });
   mkdirSync(ctx.cwd, { recursive: true });
@@ -130,14 +130,14 @@ describe("executeInstall + dry-run", () => {
     const [res] = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
     expect(res.written).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".claude"))).toBe(false);
-    expect(existsSync(join(ctx.cwd, ".vcskill/receipt.json"))).toBe(false);
+    expect(existsSync(join(ctx.cwd, ".ariadnev/receipt.json"))).toBe(false);
   });
 
   it("real install writes a receipt with files, version, and scope", () => {
-    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002a", vcskillVersion: "1.2.3" });
-    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
-    expect(receipt.schemaVersion).toBe(1);
-    expect(receipt.vcskillVersion).toBe("1.2.3");
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002a", ariadnevVersion: "1.2.3" });
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
+    expect(receipt.schemaVersion).toBe(2);
+    expect(receipt.ariadnevVersion).toBe("1.2.3");
     expect(receipt.installs["claude-code"].scope).toBe("project");
     expect(receipt.installs["claude-code"].files.length).toBeGreaterThan(0);
     expect(receipt.installs["claude-code"].files[0]).toHaveProperty("sha256");
@@ -145,16 +145,16 @@ describe("executeInstall + dry-run", () => {
 
   it("re-installing the same provider replaces its receipt record without growing it", () => {
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002b" });
-    const first = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    const first = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002c" });
-    const second = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    const second = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
     expect(second.installs["claude-code"].files.length).toBe(first.installs["claude-code"].files.length);
   });
 
   it("installing a second provider preserves the first provider's receipt record", () => {
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000002d" });
     installKit(kit, ["codex"], ctx, { timestamp: "20260603-000002e" });
-    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
     expect(Object.keys(receipt.installs).sort()).toEqual(["claude-code", "codex"]);
   });
 
@@ -167,7 +167,7 @@ describe("executeInstall + dry-run", () => {
     writeFileSync(join(hookDir, "hook.json"), JSON.stringify({ event: "SessionStart", description: "d" }));
     const hookKit = loadKit(kitRoot);
     installKit(hookKit, ["claude-code"], ctx, { timestamp: "20260603-000002f" }); // applyHookSettings defaults false
-    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".vcskill/receipt.json"), "utf8"));
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
     expect(receipt.installs["claude-code"].hookBindings).toEqual([
       { event: "SessionStart", command: expect.stringContaining("session-init.cjs"), applied: false },
     ]);
@@ -179,10 +179,10 @@ describe("executeInstall + dry-run", () => {
     const skill = join(ctx.home, ".agents/skills/sample-skill/SKILL.md");
     expect(existsSync(skill)).toBe(true);
     expect(readFileSync(skill, "utf8")).toContain("$HOME/.agents/skills/");
-    expect(existsSync(join(ctx.home, ".codex/agents/vc-sample-reviewer.toml"))).toBe(true);
+    expect(existsSync(join(ctx.home, ".codex/agents/av-sample-reviewer.toml"))).toBe(true);
     // real kit still carries env
     installKit(kit, ["codex"], ctx, { timestamp: "20260603-000002" });
-    expect(existsSync(join(ctx.home, ".agents/vcskill/.env.example"))).toBe(true);
+    expect(existsSync(join(ctx.home, ".agents/ariadnev/.env.example"))).toBe(true);
   });
 
   it("idempotent re-install: content stable, prior backed up", () => {
@@ -192,21 +192,21 @@ describe("executeInstall + dry-run", () => {
     const res2 = installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000011" });
     expect(readFileSync(skill, "utf8")).toBe(first);
     expect(res2[0].backedUp).toBeGreaterThan(0);
-    expect(existsSync(join(ctx.cwd, ".vcskill/backups/20260603-000011"))).toBe(true);
+    expect(existsSync(join(ctx.cwd, ".ariadnev/backups/20260603-000011"))).toBe(true);
   });
 
   it("backups capped at 3", () => {
     for (let i = 0; i < 5; i++) {
       installKit(kit, ["claude-code"], ctx, { timestamp: `20260603-00002${i}` });
     }
-    const backups = readdirSync(join(ctx.cwd, ".vcskill/backups"));
+    const backups = readdirSync(join(ctx.cwd, ".ariadnev/backups"));
     expect(backups.length).toBeLessThanOrEqual(3);
   });
 
   it("merges rules into AGENTS.md managed block for codex", () => {
     installKit(kit, ["codex"], ctx, { timestamp: "20260603-000030" });
     const agentsMd = readFileSync(join(ctx.cwd, "AGENTS.md"), "utf8");
-    expect(agentsMd).toContain("vcskill:start");
+    expect(agentsMd).toContain("ariadnev:start");
     expect(agentsMd).toContain("Never commit secrets");
   });
 
@@ -238,7 +238,7 @@ describe("executeInstall + dry-run", () => {
     const [declined] = installKit(hookKit, ["claude-code"], ctx, {
       timestamp: "20260603-000060",
     });
-    expect(existsSync(join(ctx.cwd, ".claude/hooks/vc/session-init.cjs"))).toBe(true);
+    expect(existsSync(join(ctx.cwd, ".claude/hooks/av/session-init.cjs"))).toBe(true);
     expect(existsSync(join(ctx.cwd, ".claude/settings.json"))).toBe(false);
     expect(declined.skipped.some((s) => s.kind === "hook")).toBe(true);
 
@@ -273,7 +273,7 @@ describe("executeInstall + dry-run", () => {
       timestamp: "20260603-000080",
       applyHookSettings: true,
     });
-    expect(existsSync(join(ctx.cwd, ".claude/hooks/vc/_lib/fail-open.cjs"))).toBe(true);
+    expect(existsSync(join(ctx.cwd, ".claude/hooks/av/_lib/fail-open.cjs"))).toBe(true);
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
     expect(settings.hooks.Stop).toBeDefined();
     expect(settings.hooks.SubagentStop).toBeDefined();
@@ -306,7 +306,7 @@ describe("executeInstall + dry-run", () => {
     const after = readFileSync(skill, "utf8");
     expect(after).not.toContain("OLD CONTENT");
     expect(after).toContain("Brainstorm");
-    expect(existsSync(`${skill}.vcskill-tmp`)).toBe(false);
+    expect(existsSync(`${skill}.ariadnev-tmp`)).toBe(false);
   });
 });
 
@@ -319,10 +319,10 @@ describe("full-kit install smoke (v2 roster)", () => {
     "sequential-thinking", "ship", "skill-creator", "test", "worktree",
   ];
   const AGENTS = [
-    "vc-brainstormer", "vc-debugger", "vc-developer", "vc-docs-manager",
-    "vc-explore", "vc-git-manager", "vc-journal-writer", "vc-planner",
-    "vc-project-manager", "vc-researcher", "vc-reviewer", "vc-simplifier",
-    "vc-tester",
+    "av-brainstormer", "av-debugger", "av-developer", "av-docs-manager",
+    "av-explore", "av-git-manager", "av-journal-writer", "av-planner",
+    "av-project-manager", "av-researcher", "av-reviewer", "av-simplifier",
+    "av-tester",
   ];
   const HOOKS = [
     "privacy-block",
@@ -351,7 +351,7 @@ describe("full-kit install smoke (v2 roster)", () => {
       expect(existsSync(join(ctx.cwd, ".claude/agents", `${a}.md`)), a).toBe(true);
     }
     for (const h of HOOKS) {
-      expect(existsSync(join(ctx.cwd, ".claude/hooks/vc", `${h}.cjs`)), h).toBe(true);
+      expect(existsSync(join(ctx.cwd, ".claude/hooks/av", `${h}.cjs`)), h).toBe(true);
     }
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
     expect(Object.keys(settings.hooks).sort()).toEqual([
@@ -362,7 +362,7 @@ describe("full-kit install smoke (v2 roster)", () => {
   it("codex: skills + agents install, all 6 hooks skip-and-log", () => {
     const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
     expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
-    expect(existsSync(join(ctx.home, ".codex/agents/vc-explore.toml"))).toBe(true);
+    expect(existsSync(join(ctx.home, ".codex/agents/av-explore.toml"))).toBe(true);
     expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
   });
 });

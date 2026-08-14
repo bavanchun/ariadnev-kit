@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusId": "vcskill-context-v1",
+  "corpusId": "ariadnev-context-v1",
   "seed": 260808,
   "topK": 6,
   "cases": [

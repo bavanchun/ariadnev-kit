@@ -10,7 +10,7 @@ const BINDING_CMD = "node /x/session-init.cjs";
 function writeReceipt(cwd: string): void {
   const receipt = {
     schemaVersion: 1,
-    vcskillVersion: packageVersion(),
+    ariadnevVersion: packageVersion(),
     installs: {
       "claude-code": {
         timestamp: "t",
@@ -22,16 +22,16 @@ function writeReceipt(cwd: string): void {
       },
     },
   };
-  mkdirSync(join(cwd, ".vcskill"), { recursive: true });
-  writeFileSync(join(cwd, ".vcskill", "receipt.json"), JSON.stringify(receipt));
+  mkdirSync(join(cwd, ".ariadnev"), { recursive: true });
+  writeFileSync(join(cwd, ".ariadnev", "receipt.json"), JSON.stringify(receipt));
 }
 
 describe("doctor --fix (hook-binding self-heal)", () => {
   let cwd: string;
   beforeEach(() => {
-    cwd = mkdtempSync(join(tmpdir(), "vcskill-doctorfix-"));
+    cwd = mkdtempSync(join(tmpdir(), "ariadnev-doctorfix-"));
     writeReceipt(cwd);
-    // settings.json exists but the vc binding was removed → drift.
+    // settings.json exists but the av binding was removed → drift.
     mkdirSync(join(cwd, ".claude"), { recursive: true });
     writeFileSync(join(cwd, ".claude", "settings.json"), "{}\n");
   });
@@ -51,7 +51,7 @@ describe("doctor --fix (hook-binding self-heal)", () => {
     // drift still reported (nothing was written) and no backup dir created
     expect(summary).toMatch(/hook binding removed/);
     expect(readFileSync(join(cwd, ".claude", "settings.json"), "utf8")).toBe("{}\n");
-    expect(existsSync(join(cwd, ".vcskill", "backups"))).toBe(false);
+    expect(existsSync(join(cwd, ".ariadnev", "backups"))).toBe(false);
   });
 
   it("--fix re-merges the binding, backs up, and re-runs clean + idempotent", () => {
@@ -61,7 +61,7 @@ describe("doctor --fix (hook-binding self-heal)", () => {
     expect(settings).toContain(BINDING_CMD);
     expect(before.summary).toMatch(/fixed 1 hook binding/);
     // backup of the pre-fix settings.json was taken
-    expect(existsSync(join(cwd, ".vcskill", "backups", "20260720-000000", "settings", "settings.json"))).toBe(true);
+    expect(existsSync(join(cwd, ".ariadnev", "backups", "20260720-000000", "settings", "settings.json"))).toBe(true);
 
     // second --fix is a no-op (idempotent) and doctor is now healthy
     const after = runDoctor({ ...opts(), fix: true, timestamp: "20260720-000001" });

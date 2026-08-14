@@ -161,7 +161,7 @@ function buildAliases(documents: readonly ContextDocumentV1[]): ReadonlyMap<stri
     const skillMatch = /^kit\/skills\/([^/]+)\/SKILL\.md$/.exec(document.path);
     if (skillMatch) {
       aliases.set(`skill:${skillMatch[1]}`, document.path);
-      aliases.set(`skill:vc:${skillMatch[1]}`, document.path);
+      aliases.set(`skill:av:${skillMatch[1]}`, document.path);
     }
     const agentMatch = /^kit\/agents\/([^/]+)\.md$/.exec(document.path);
     if (agentMatch) aliases.set(`agent:${agentMatch[1]}`, document.path);

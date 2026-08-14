@@ -54,7 +54,7 @@ From the final tree:
 
 1. regenerate the embedded kit;
 2. run strict claim coverage for claim-tracked skills;
-3. run `vcskill validate` and inspect warnings as well as exit status;
+3. run `ariadnev validate` and inspect warnings as well as exit status;
 4. run focused script tests, then the full repository suite—tests must pass and
    failed tests must never be skipped;
 5. run per-skill eval and record the actual proof tier;

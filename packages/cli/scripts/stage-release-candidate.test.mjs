@@ -11,7 +11,7 @@ function digest(content) {
 }
 
 test("candidate staging emits one exact flat inventory and rejects drift", () => {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-candidate-stage-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-candidate-stage-"));
   const dist = join(root, "dist");
   const release = join(dist, "release");
   const output = join(dist, "candidate-upload");

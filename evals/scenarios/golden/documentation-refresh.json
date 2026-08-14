@@ -7,8 +7,8 @@
   "title": "Evidence-backed documentation refresh",
   "subjects": {
     "skills": [
-      "vc:docs",
-      "vc:docs-seeker"
+      "av:docs",
+      "av:docs-seeker"
     ]
   },
   "fixture": {
@@ -27,9 +27,9 @@
           ]
         },
         "routing": {
-          "vc:docs": "required",
-          "vc:docs-seeker": "required",
-          "vc:research": "forbidden"
+          "av:docs": "required",
+          "av:docs-seeker": "required",
+          "av:research": "forbidden"
         },
         "artifacts": {
           "documentation-diff": {

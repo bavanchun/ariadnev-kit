@@ -20,18 +20,18 @@ afterEach(() => {
 
 describe("docs bundle generator", () => {
   it("generates deterministic final sidecars and archive members from exact immutable inputs", async () => {
-    const first = tempDir("vcskill-docs-bundle-a-");
-    const second = tempDir("vcskill-docs-bundle-b-");
-    const previousSourceTree = tempDir("vcskill-docs-previous-");
+    const first = tempDir("ariadnev-docs-bundle-a-");
+    const second = tempDir("ariadnev-docs-bundle-b-");
+    const previousSourceTree = tempDir("ariadnev-docs-previous-");
     execFileSync("git", ["clone", "--quiet", "--no-checkout", repoRoot, "."], { cwd: previousSourceTree });
-    execFileSync("git", ["checkout", "--quiet", "--detach", "vcskill@0.7.0"], { cwd: previousSourceTree });
+    execFileSync("git", ["checkout", "--quiet", "--detach", "vcskill@0.7.0"], { cwd: previousSourceTree }); // brand-drift-allow: real pre-rename tag in this repository
     const previousProductSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: previousSourceTree, encoding: "utf8" }).trim();
     const lockPath = join(first, "web-consumer-lock.json");
     writeFileSync(lockPath, JSON.stringify({ schemaVersion: 1 }, null, 2));
     const common = {
       mode: "final" as const,
       version: "0.12.0",
-      releaseTag: "vcskill@0.12.0",
+      releaseTag: "ariadnev@0.12.0",
       sourceSha: "a".repeat(40),
       generatorSha: "a".repeat(40),
       generatedAt,
@@ -51,7 +51,7 @@ describe("docs bundle generator", () => {
       finalConsumerLock: { lockPath, digest: sha256File(lockPath) },
       previousSource: {
         sourceTree: previousSourceTree,
-        releaseTag: "vcskill@0.7.0",
+        releaseTag: "vcskill@0.7.0", // brand-drift-allow: real pre-rename tag in this repository
         productSha: previousProductSha,
         generatorSha: "a".repeat(40),
       },
@@ -74,10 +74,10 @@ describe("docs bundle generator", () => {
     expect(JSON.stringify(one.manifest)).not.toContain("/Users/");
     expect(JSON.stringify(one.manifest)).not.toContain("ghp_");
     const bootstrap = JSON.parse(readArchiveMember(archive, "reference/previous-stable/bootstrap.json").toString("utf8"));
-    expect(bootstrap).toMatchObject({ releaseTag: "vcskill@0.7.0", productSha: previousProductSha, generatorSha: "a".repeat(40) });
+    expect(bootstrap).toMatchObject({ releaseTag: "vcskill@0.7.0", productSha: previousProductSha, generatorSha: "a".repeat(40) }); // brand-drift-allow: real pre-rename tag in this repository
     await expect(generateDocsBundle({
       ...common,
-      outputDir: tempDir("vcskill-docs-generator-drift-"),
+      outputDir: tempDir("ariadnev-docs-generator-drift-"),
       previousSource: { ...common.previousSource, generatorSha: "b".repeat(40) },
     })).rejects.toThrow(/generator SHA must match/i);
   });
@@ -86,12 +86,12 @@ describe("docs bundle generator", () => {
     await expect(generateDocsBundle({
       mode: "final",
       version: "0.12.0",
-      releaseTag: "vcskill@0.12.0",
+      releaseTag: "ariadnev@0.12.0",
       sourceSha: "d".repeat(40),
       generatorSha: "d".repeat(40),
       generatedAt,
       sourceDateEpoch,
-      outputDir: tempDir("vcskill-docs-final-missing-"),
+      outputDir: tempDir("ariadnev-docs-final-missing-"),
       workspaceRoot: repoRoot,
       cli: buildProgram(),
       kit: loadKit(resolveKitRoot(process.cwd())),
@@ -100,18 +100,18 @@ describe("docs bundle generator", () => {
       changelog: "# Changelog\n\n## 0.12.0\nCandidate\n",
     })).rejects.toThrow(/web-consumer lock/i);
 
-    const lockDirectory = tempDir("vcskill-docs-final-lock-");
+    const lockDirectory = tempDir("ariadnev-docs-final-lock-");
     const lockPath = join(lockDirectory, "web-consumer-lock.json");
     writeFileSync(lockPath, "{}\n");
     await expect(generateDocsBundle({
       mode: "final",
       version: "0.12.0",
-      releaseTag: "vcskill@0.12.0",
+      releaseTag: "ariadnev@0.12.0",
       sourceSha: "d".repeat(40),
       generatorSha: "d".repeat(40),
       generatedAt,
       sourceDateEpoch,
-      outputDir: tempDir("vcskill-docs-final-no-previous-"),
+      outputDir: tempDir("ariadnev-docs-final-no-previous-"),
       workspaceRoot: repoRoot,
       cli: buildProgram(),
       kit: loadKit(resolveKitRoot(process.cwd())),
@@ -123,12 +123,12 @@ describe("docs bundle generator", () => {
 
     expect(validateDocsBundleManifest({
       schemaVersion: 1,
-      schemaId: "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json",
-      bundle: "vcskill-docs-bundle",
+      schemaId: "https://ariadnev.com/schemas/docs-bundle-manifest-v1.schema.json",
+      bundle: "ariadnev-docs-bundle",
       mode: "final",
       publishable: true,
       version: "0.12.0",
-      releaseTag: "vcskill@0.11.1",
+      releaseTag: "ariadnev@0.11.1",
       sourceSha: "a".repeat(40),
       generatorSha: "b".repeat(40),
       generatedAt: "2026-08-08T00:00:00.000Z",

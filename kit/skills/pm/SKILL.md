@@ -1,5 +1,5 @@
 ---
-name: vc:pm
+name: av:pm
 description: Track plan progress and keep plan files truthful. Use for status checks, plan sync-back after work sessions, progress reports, or cross-session handoffs.
 user-invocable: true
 argument-hint: "[plan dir] [--report]"
@@ -12,10 +12,10 @@ metadata:
 
 Keep `plans/` honest: statuses match reality, checkboxes match the repo, and
 anyone (human or agent) can resume work from the files alone. Works on the
-plan format defined by `vc:plan`.
+plan format defined by `av:plan`.
 
 Handles: status checks, whole-plan sync-back, progress reports, handoffs.
-Does not handle: creating plans (`vc:plan`), doing the work (`vc:cook`).
+Does not handle: creating plans (`av:plan`), doing the work (`av:cook`).
 
 ## Core rule
 
@@ -48,7 +48,7 @@ is there. When plan and repo disagree, the repo wins — update the plan.
 Short bullets with commits/tests.
 
 ## Next actions
-Ordered, each with the skill to use (vc:cook phase-03, vc:fix <bug>, ...).
+Ordered, each with the skill to use (av:cook phase-03, av:fix <bug>, ...).
 
 ## Risks / blockers
 Or "none".
@@ -66,10 +66,10 @@ Or "none".
 
 ## Workflow position
 
-**Typically follows:** `vc:cook` (a phase just landed and the plan must catch
-up), `vc:plan` (a plan exists to track), or the start of a session that resumes
+**Typically follows:** `av:cook` (a phase just landed and the plan must catch
+up), `av:plan` (a plan exists to track), or the start of a session that resumes
 someone else's work.
-**Typically precedes:** `vc:cook <next phase>` (the next action it names), or
-`vc:handoff` when the session ends here.
-**Related:** `vc:plan` authors the files `vc:pm` keeps truthful; `vc:handoff`
-compacts conversation state, `vc:pm` reconciles the durable plan files.
+**Typically precedes:** `av:cook <next phase>` (the next action it names), or
+`av:handoff` when the session ends here.
+**Related:** `av:plan` authors the files `av:pm` keeps truthful; `av:handoff`
+compacts conversation state, `av:pm` reconciles the durable plan files.

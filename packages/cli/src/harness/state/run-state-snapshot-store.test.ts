@@ -16,7 +16,7 @@ afterEach(() => {
 describe("run state snapshot store", () => {
   it("rejects unsafe configuration and invalid sequence movement", () => {
     expect(() => createRunStateSnapshotStore({ runDirectory: "relative/run" })).toThrow(/absolute/i);
-    const root = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(root);
     expect(() => createRunStateSnapshotStore({ runDirectory: join(root, "invalid"), maxBytes: 0 })).toThrow(/positive/i);
     const store = createRunStateSnapshotStore({ runDirectory: join(root, "run") });
@@ -28,7 +28,7 @@ describe("run state snapshot store", () => {
   });
 
   it("keeps the current and previous private sequence-bound states", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(root);
     const store = createRunStateSnapshotStore({ runDirectory: join(root, "run") });
     store.write({ sequence: 1, state: { request: "private task" } });
@@ -44,7 +44,7 @@ describe("run state snapshot store", () => {
   });
 
   it("refuses oversized state and tampered snapshots", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(root);
     const store = createRunStateSnapshotStore({ runDirectory: join(root, "run"), maxBytes: 128 });
     expect(() => store.write({ sequence: 1, state: { value: "x".repeat(500) } })).toThrow(/size|bytes/i);
@@ -55,21 +55,21 @@ describe("run state snapshot store", () => {
   });
 
   it("fails closed on malformed persisted snapshot envelopes and contracts", () => {
-    const malformedRoot = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const malformedRoot = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(malformedRoot);
     const malformed = createRunStateSnapshotStore({ runDirectory: join(malformedRoot, "run") });
     malformed.write({ sequence: 1, state: {} });
     writeFileSync(join(malformedRoot, "run", "state-current.json"), "null\n");
     expect(() => malformed.read(1)).toThrow(/must be an object/i);
 
-    const invalidEnvelopeRoot = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const invalidEnvelopeRoot = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(invalidEnvelopeRoot);
     const invalidEnvelope = createRunStateSnapshotStore({ runDirectory: join(invalidEnvelopeRoot, "run") });
     invalidEnvelope.write({ sequence: 1, state: {} });
     writeFileSync(join(invalidEnvelopeRoot, "run", "state-current.json"), JSON.stringify({ snapshot: null, seal: "sha256:invalid" }));
     expect(() => invalidEnvelope.read(1)).toThrow(/envelope/i);
 
-    const invalidRoot = mkdtempSync(join(tmpdir(), "vcskill-run-state-"));
+    const invalidRoot = mkdtempSync(join(tmpdir(), "ariadnev-run-state-"));
     roots.push(invalidRoot);
     const invalid = createRunStateSnapshotStore({ runDirectory: join(invalidRoot, "run") });
     invalid.write({ sequence: 1, state: {} });

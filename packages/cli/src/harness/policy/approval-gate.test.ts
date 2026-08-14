@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-approval-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-approval-"));
   roots.push(root);
   const workspace = join(root, "workspace");
   const runDirectory = join(root, "run");

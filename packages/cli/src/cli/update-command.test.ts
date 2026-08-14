@@ -14,8 +14,8 @@ import {
 } from "./update-command.js";
 
 describe("parseLatestTag", () => {
-  it("strips the vcskill@ prefix", () => {
-    expect(parseLatestTag("vcskill@0.5.0")).toBe("0.5.0");
+  it("strips the ariadnev@ prefix", () => {
+    expect(parseLatestTag("ariadnev@0.5.0")).toBe("0.5.0");
   });
   it("tolerates a bare version or a leading v", () => {
     expect(parseLatestTag("0.5.0")).toBe("0.5.0");
@@ -25,11 +25,11 @@ describe("parseLatestTag", () => {
 
 describe("assetNameFor", () => {
   it("maps supported platform/arch pairs", () => {
-    expect(assetNameFor("darwin", "arm64")).toBe("vcskill-darwin-arm64");
-    expect(assetNameFor("darwin", "x64")).toBe("vcskill-darwin-x64");
-    expect(assetNameFor("linux", "arm64")).toBe("vcskill-linux-arm64");
-    expect(assetNameFor("linux", "x64")).toBe("vcskill-linux-x64");
-    expect(assetNameFor("win32", "x64")).toBe("vcskill-windows-x64.exe");
+    expect(assetNameFor("darwin", "arm64")).toBe("ariadnev-darwin-arm64");
+    expect(assetNameFor("darwin", "x64")).toBe("ariadnev-darwin-x64");
+    expect(assetNameFor("linux", "arm64")).toBe("ariadnev-linux-arm64");
+    expect(assetNameFor("linux", "x64")).toBe("ariadnev-linux-x64");
+    expect(assetNameFor("win32", "x64")).toBe("ariadnev-windows-x64.exe");
   });
   it("returns null for unsupported combos", () => {
     expect(assetNameFor("win32", "arm64")).toBeNull();
@@ -40,9 +40,9 @@ describe("assetNameFor", () => {
 
 describe("expectedSha", () => {
   it("finds the sha for an exact asset name", () => {
-    const body = "aaa  vcskill-linux-x64\nbbb  vcskill-darwin-arm64\n";
-    expect(expectedSha(body, "vcskill-darwin-arm64")).toBe("bbb");
-    expect(expectedSha(body, "vcskill-windows-x64.exe")).toBeNull();
+    const body = "aaa  ariadnev-linux-x64\nbbb  ariadnev-darwin-arm64\n";
+    expect(expectedSha(body, "ariadnev-darwin-arm64")).toBe("bbb");
+    expect(expectedSha(body, "ariadnev-windows-x64.exe")).toBeNull();
   });
 });
 
@@ -53,15 +53,15 @@ describe("runUpdate", () => {
   const binSha = createHash("sha256").update(bin).digest("hex");
 
   beforeEach(() => {
-    sandbox = mkdtempSync(join(tmpdir(), "vcskill-update-"));
+    sandbox = mkdtempSync(join(tmpdir(), "ariadnev-update-"));
     root = join(sandbox, "proj");
     mkdirSync(root, { recursive: true });
   });
   afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
   function writeReceipt(version: string) {
-    mkdirSync(join(root, ".vcskill"), { recursive: true });
-    writeFileSync(join(root, ".vcskill", "receipt.json"), JSON.stringify({ vcskillVersion: version }));
+    mkdirSync(join(root, ".ariadnev"), { recursive: true });
+    writeFileSync(join(root, ".ariadnev", "receipt.json"), JSON.stringify({ ariadnevVersion: version }));
   }
 
   function baseOpts(over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts {
@@ -70,7 +70,7 @@ describe("runUpdate", () => {
       cwd: root,
       scope: "project",
       currentVersion: "0.5.0",
-      execPath: join(sandbox, "vcskill"),
+      execPath: join(sandbox, "ariadnev"),
       isBinary: true,
       checkOnly: false,
       platform: "darwin",
@@ -84,7 +84,7 @@ describe("runUpdate", () => {
     return {
       fetchLatestVersion: async () => "0.6.0",
       downloadBinary: async () => bin,
-      downloadText: async () => `${binSha}  vcskill-darwin-arm64\n`,
+      downloadText: async () => `${binSha}  ariadnev-darwin-arm64\n`,
       replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
       replaced,
       ...over,
@@ -114,7 +114,7 @@ describe("runUpdate", () => {
   });
 
   it("does NOT replace on a checksum mismatch (fail-closed)", async () => {
-    const d = deps({ downloadText: async () => "deadbeef  vcskill-darwin-arm64\n" });
+    const d = deps({ downloadText: async () => "deadbeef  ariadnev-darwin-arm64\n" });
     const res = await runUpdate(baseOpts(), d);
     expect(res.summary).toContain("checksum mismatch");
     expect(res.summary).toContain("NOT replaced");
@@ -125,14 +125,14 @@ describe("runUpdate", () => {
     const d = deps();
     const res = await runUpdate(baseOpts({ checkOnly: true }), d);
     expect(res.summary).toContain("update available: 0.5.0 -> 0.6.0");
-    expect(res.summary).toContain("vcskill update");
+    expect(res.summary).toContain("ariadnev update");
     expect(d.replaced).toHaveLength(0);
   });
 
   it("guides to the curl installer when not running as the binary", async () => {
     const d = deps();
     const res = await runUpdate(baseOpts({ isBinary: false }), d);
-    expect(res.summary).toContain("vcskill.vchun.dev/install");
+    expect(res.summary).toContain("ariadnev.com/install");
     expect(d.replaced).toHaveLength(0);
   });
 

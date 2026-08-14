@@ -18,11 +18,11 @@ describe("runBehavioralSuite", () => {
       vocabulary: loadEvidenceVocabulary(join(root, "evals/vocabulary/evidence-v1.json")),
       identity: {
         kit: { version: "0.10.0", digest },
-        skills: Array.from({ length: 26 }, (_, index) => ({ id: `vc:skill-${index}`, version: "1.0.0", digest })),
+        skills: Array.from({ length: 26 }, (_, index) => ({ id: `av:skill-${index}`, version: "1.0.0", digest })),
         runtime: { provider: "probe", version: "1.0.0", model: "deterministic" },
         evaluator: { version: "1.0.0" },
       },
-      variant: "vcskill",
+      variant: "ariadnev",
       availableCapabilities: [],
       timeoutMs: 500,
       skillRepeats: 1,
@@ -85,7 +85,7 @@ describe("runBehavioralSuite", () => {
         runtime: { provider: "probe", version: "1.0.0", model: "deterministic" },
         evaluator: { version: "1.0.0" },
       },
-      variant: "vcskill", availableCapabilities: [], timeoutMs: 500,
+      variant: "ariadnev", availableCapabilities: [], timeoutMs: 500,
       skillRepeats: 1, deepRepeats: 1, concurrency: 2, launcher: { launch },
     });
     expect(maximum).toBe(2);

@@ -6,7 +6,7 @@ import { backupPath, rotateBackups, readBackupManifest } from "./backup.js";
 
 let sandbox: string;
 beforeEach(() => {
-  sandbox = mkdtempSync(join(tmpdir(), "vcskill-backup-"));
+  sandbox = mkdtempSync(join(tmpdir(), "ariadnev-backup-"));
 });
 afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 

@@ -25,7 +25,7 @@ export function registerCatalogCommands(program: Command, context: CommandRegist
 
   program
     .command("query")
-    .description("Show recorded vcskill history (installs | doctor | history)")
+    .description("Show recorded ariadnev history (installs | doctor | history)")
     .argument("[view]", "installs | doctor | history", "history")
     .action((view: string | undefined) => {
       emit(runQuery({ view: normalizeView(view), home: homedir(), color: context.outColor() }));
@@ -33,10 +33,10 @@ export function registerCatalogCommands(program: Command, context: CommandRegist
 
   program
     .command("telemetry")
-    .description("Anonymous telemetry status (stateless, off unless configured; opt out with VCSKILL_TELEMETRY_DISABLED=1)")
+    .description("Anonymous telemetry status (stateless, off unless configured; opt out with ARIADNEV_TELEMETRY_DISABLED=1)")
     .argument("[action]", "status", "status")
     .action(() => {
-      const config = { enabled: !process.env.VCSKILL_TELEMETRY_DISABLED, url: undefined };
+      const config = { enabled: !process.env.ARIADNEV_TELEMETRY_DISABLED, url: undefined };
       emit(runTelemetryStatus(process.env, config, { color: context.outColor() }));
     });
 

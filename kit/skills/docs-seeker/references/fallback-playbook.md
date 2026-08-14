@@ -3,7 +3,7 @@
 Read this reference when the preferred documentation provider returns 404,
 times out, has an empty index, or the library has no maintained docs site.
 
-The vc distribution does not bundle dedicated discovery scripts. Use the
+The av distribution does not bundle dedicated discovery scripts. Use the
 current session's documentation and web capabilities directly; do not claim
 that `detect-topic.js`, `fetch-docs.js`, or `analyze-llms-txt.js` ran.
 

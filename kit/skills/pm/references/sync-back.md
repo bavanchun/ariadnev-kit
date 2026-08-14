@@ -17,7 +17,7 @@ For each phase, derive status from its Success Criteria checkboxes:
   path, commit hash). Add the evidence inline when it is not obvious:
   `- [x] installer skips unverified providers (install.test.ts)`.
 - Prefer labeling evidence by proof layer when it clarifies coverage —
-  `unit`/`integration`/`e2e`/`platform` (same vocabulary as `vc:cook`'s
+  `unit`/`integration`/`e2e`/`platform` (same vocabulary as `av:cook`'s
   `references/risk-lanes.md`). A criterion missing every proof layer for its
   risk level is `in-progress`, not `completed`, even if the code is written.
 - Un-tick criteria that no longer hold (regressions, reverts) and note why.
@@ -58,7 +58,7 @@ future session reads a superseded plan and follows stale direction. So:
 
 1. **Distill what's durable.** Any decision a future session must honor —
    architecture, a contract, a chosen approach — goes into `docs/` via
-   `vc:docs` `decision` mode *before* anything is removed. If everything durable
+   `av:docs` `decision` mode *before* anything is removed. If everything durable
    already lives in the code/docs, say so; most closed plans have nothing left.
 2. **Delete the plan + its reports.** Remove the plan dir and the
    `plans/reports/*` files tied only to it. Git history is the archive — nothing
@@ -73,7 +73,7 @@ deletion is the one irreversible-looking step (though `git` reverts it).
 ## 7. Friction routing
 
 If closing the plan surfaced the *same* friction for the 2nd+ time (a rule that
-keeps confusing, a step that keeps breaking), route it to `vc:journal`'s
+keeps confusing, a step that keeps breaking), route it to `av:journal`'s
 harness-delta mode — propose the concrete kit fix rather than silently patching
 mid-close. That is how repeated pain becomes a kit improvement instead of a
 recurring tax.

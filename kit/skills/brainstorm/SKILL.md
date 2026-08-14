@@ -1,5 +1,5 @@
 ---
-name: vc:brainstorm
+name: av:brainstorm
 description: Explore solutions with trade-off analysis before building. Use for ideation, architecture decisions, feature exploration, or when requirements are fuzzy.
 user-invocable: true
 argument-hint: "<topic or problem statement>"
@@ -16,8 +16,8 @@ implementation code.
 
 Handles: solution ideation, architecture choices, build-vs-buy calls,
 feasibility checks, scope shaping.
-Does not handle: implementation (hand off to `vc:cook`), detailed phased
-planning (hand off to `vc:plan`).
+Does not handle: implementation (hand off to `av:cook`), detailed phased
+planning (hand off to `av:plan`).
 
 ## Hard rules
 
@@ -48,8 +48,8 @@ planning (hand off to `vc:plan`).
    first). Record the decision.
 6. **Report** — write the report (format below) to
    `plans/reports/brainstorm-{yymmdd-hhmm}-{slug}-report.md`.
-7. **Handoff** — offer the next step: `vc:plan` for multi-phase work,
-   `vc:cook` for small direct implementation.
+7. **Handoff** — offer the next step: `av:plan` for multi-phase work,
+   `av:cook` for small direct implementation.
 
 ## Output format
 
@@ -91,9 +91,9 @@ List them, or "none".
 
 ## Workflow position
 
-**Typically follows:** a fuzzy idea, `vc:ask` that grew into "which approach", or
-`vc:problem-solving` that reopened the design question.
-**Typically precedes:** `vc:plan` (phase the decided approach) or `vc:cook` (a
+**Typically follows:** a fuzzy idea, `av:ask` that grew into "which approach", or
+`av:problem-solving` that reopened the design question.
+**Typically precedes:** `av:plan` (phase the decided approach) or `av:cook` (a
 small direct change). Pass the brainstorm report path along for continuity.
-**Related:** `vc:research` supplies technology evidence to weigh here; `vc:plan`
+**Related:** `av:research` supplies technology evidence to weigh here; `av:plan`
 sequences the approach this skill picks.

@@ -1,4 +1,4 @@
-// `vcskill contract` — emit the provider×artifact capability contract. Machine
+// `ariadnev contract` — emit the provider×artifact capability contract. Machine
 // surface (`--json`) for the edge/consumers, or the human Markdown matrix. Built
 // from the same source as the installer, so it always reflects real behavior.
 

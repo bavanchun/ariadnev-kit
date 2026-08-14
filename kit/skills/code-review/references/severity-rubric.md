@@ -1,6 +1,6 @@
 # Severity Rubric (shared)
 
-The single severity scale for `vc:code-review` and `vc:review-pr`. One rubric so
+The single severity scale for `av:code-review` and `av:review-pr`. One rubric so
 a finding means the same thing whichever reviewer produced it.
 
 ## Tiers

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { checkMatrixDrift, renderMatrixBlock, extractMatrixBlock, MATRIX_BEGIN, MATRIX_END } from "./matrix-drift.js";
 
-const inReadme = (block: string) => `# vcskill\n\nsome text\n\n${block}\n\nmore text`;
+const inReadme = (block: string) => `# ariadnev\n\nsome text\n\n${block}\n\nmore text`;
 
 describe("checkMatrixDrift", () => {
   it("passes when README block matches the generated matrix", () => {
@@ -17,7 +17,7 @@ describe("checkMatrixDrift", () => {
   });
 
   it("fails when markers are missing", () => {
-    const r = checkMatrixDrift("# vcskill\n\nno markers here");
+    const r = checkMatrixDrift("# ariadnev\n\nno markers here");
     expect(r.ok).toBe(false);
     expect(r.message).toMatch(/markers not found/);
   });

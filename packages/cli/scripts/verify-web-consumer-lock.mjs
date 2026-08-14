@@ -11,7 +11,7 @@ import {
 const ALLOWED_COMMANDS = new Set(["bun", "node", "pnpm"]);
 const EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_PROCESS_OUTPUT_BYTES = 8 * 1024 * 1024;
-const EXPECTED_REPOSITORY = "bavanchun/vcskill-web";
+const EXPECTED_REPOSITORY = "bavanchun/ariadnev-web";
 
 function stable(value) {
   return `${JSON.stringify(value, (_key, current) => (
@@ -109,7 +109,7 @@ function consumerEnvironment(sourceRoot) {
   const environment = {
     CI: "true",
     NO_COLOR: "1",
-    VCSKILL_RELEASE_DIR: resolve(sourceRoot, "packages", "cli", "dist", "release"),
+    ARIADNEV_RELEASE_DIR: resolve(sourceRoot, "packages", "cli", "dist", "release"),
   };
   for (const name of ["PATH", "HOME", "USERPROFILE", "TMPDIR", "TEMP", "TMP", "SystemRoot", "COMSPEC", "PATHEXT"]) {
     if (process.env[name]) environment[name] = process.env[name];

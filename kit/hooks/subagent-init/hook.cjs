@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc subagent-init — SubagentStart hook. Injects ~200 tokens of context into
+// av subagent-init — SubagentStart hook. Injects ~200 tokens of context into
 // a freshly spawned subagent: agent type, paths, naming pattern, git branch.
 // Fail-open: any error exits 0.
 const path = require("node:path");
@@ -13,7 +13,7 @@ const { detectProject } = require(path.join(LIB, "project-detect.cjs"));
 
 function buildSubagentContext({ cwd, agentType, branch }) {
   const lines = [
-    "## vc subagent context",
+    "## av subagent context",
     `agent: ${agentType || "unknown"}`,
     `cwd: ${cwd}`,
     branch ? `branch: ${branch}` : null,

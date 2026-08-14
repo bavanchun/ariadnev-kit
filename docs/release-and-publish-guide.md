@@ -1,6 +1,6 @@
 # Release Guide
 
-How a new `vcskill` version reaches users. `vcskill` ships as a standalone binary
+How a new `ariadnev` version reaches users. `ariadnev` ships as a standalone binary
 via GitHub Releases — **no npm, no tokens, no manual publish**. The automation uses
 only the built-in `GITHUB_TOKEN`.
 
@@ -9,15 +9,15 @@ only the built-in `GITHUB_TOKEN`.
 Add a changeset per change → merge the auto "Version Packages" PR → the `Release`
 workflow cross-compiles the 5 platform binaries and publishes them to a GitHub
 Release. Users install from the edge with
-`curl -fsSL https://vcskill.vchun.dev/install | bash` — a Cloudflare Worker
+`curl -fsSL https://ariadnev.com/install | bash` — a Cloudflare Worker
 proxies the (private) repo's releases. The edge lives in its own repo,
-`bavanchun/vcskill-web` (see `cloudflare-worker-setup.md`).
+`bavanchun/ariadnev-web` (see `cloudflare-worker-setup.md`).
 
 ## Day-to-day flow (Changesets → binaries)
 
 1. Make changes on a branch. For anything user-facing, add a changeset:
    ```bash
-   pnpm changeset        # pick `vcskill`, choose the bump, write a summary
+   pnpm changeset        # pick `ariadnev`, choose the bump, write a summary
    ```
    Commit the generated `.changeset/*.md` with your PR.
 2. Merge your PR to `main`. `.github/workflows/release.yml` sees the pending
@@ -26,26 +26,26 @@ proxies the (private) repo's releases. The edge lives in its own repo,
 3. Merge the "Version Packages" PR. On that push the workflow detects the version
    change, runs `packages/cli/scripts/build-binaries.mjs` (regenerate embedded kit
    → `bun --compile` all 5 targets → `checksums.txt`), and publishes them to the
-   `vcskill@<version>` GitHub Release.
+   `ariadnev@<version>` GitHub Release.
 
 The package is `private` — nothing is published to npm.
 
 ## What ships each release
 
-Attached to the `vcskill@<version>` GitHub Release:
+Attached to the `ariadnev@<version>` GitHub Release:
 
 | Asset | Target |
 |---|---|
-| `vcskill-darwin-arm64` | macOS Apple Silicon |
-| `vcskill-darwin-x64` | macOS Intel |
-| `vcskill-linux-x64` / `vcskill-linux-arm64` | Linux |
-| `vcskill-windows-x64.exe` | Windows |
+| `ariadnev-darwin-arm64` | macOS Apple Silicon |
+| `ariadnev-darwin-x64` | macOS Intel |
+| `ariadnev-linux-x64` / `ariadnev-linux-arm64` | Linux |
+| `ariadnev-windows-x64.exe` | Windows |
 | `checksums.txt` | sha256 of every binary (install.sh verifies against it) |
 
 ## Local checks (optional)
 
 ```bash
-pnpm --filter vcskill build:binary     # host-target binary (needs Bun) → dist/vcskill
+pnpm --filter ariadnev build:binary     # host-target binary (needs Bun) → dist/ariadnev
 node packages/cli/scripts/build-binaries.mjs   # all 5 targets + checksums locally
 pnpm test                              # full suite incl. the embedded-kit drift guard
 ```
@@ -84,7 +84,7 @@ or provider quota into a passing cell.
 
 V1 does not migrate paused runs. Resume requires the exact graph/runner contract,
 runtime version, model, workspace identity, and instruction digest captured at
-run creation. On incompatibility, finish with the original vcskill binary or
+run creation. On incompatibility, finish with the original ariadnev binary or
 start a new run; `status` and emergency `cancel` remain available. A future
 migration must ship as an explicit versioned and reversible contract—never by
 moving a tag or silently reinterpreting events.
@@ -93,12 +93,12 @@ moving a tag or silently reinterpreting events.
 
 Before downstream web work starts, verify one immutable release converges:
 
-1. `packages/cli/package.json`, `vc --version`, and tag `vcskill@<version>` agree.
+1. `packages/cli/package.json`, `av --version`, and tag `ariadnev@<version>` agree.
 2. The GitHub Release points at the version commit and publishes exactly five
    platform binaries plus `checksums.txt`.
 3. Every listed SHA-256 matches its downloaded binary; the host binary passes
    `smoke-binary.mjs`, including embedded workflow validation and lifecycle help.
-4. `https://vcskill.vchun.dev/version` reports that same version only after the
+4. `https://ariadnev.com/version` reports that same version only after the
    tag and release assets are live.
 
 If publication is wrong, repair it with a new patch release. Never retarget or

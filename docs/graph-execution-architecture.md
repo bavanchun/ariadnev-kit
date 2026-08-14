@@ -2,7 +2,7 @@
 
 ## Overview
 
-`vc run` is vcskill's local execution control plane. It compiles a canonical,
+`av run` is ariadnev's local execution control plane. It compiles a canonical,
 provider-neutral workflow from `kit/workflows/`, enforces policy before provider
 execution, and records enough private durable state to resume after interruption.
 Codex and Claude Code implement the same executor contract; provider settings do
@@ -24,39 +24,39 @@ kit assets and are embedded in standalone binaries alongside their schema.
 Validate a canonical graph without probing a runtime:
 
 ```bash
-vc run read-only-delivery --validate --json
+av run read-only-delivery --validate --json
 ```
 
 Probe a selected runtime and show whether the graph can run, without creating a
 run:
 
 ```bash
-vc --dry-run run read-only-delivery --runtime claude-code --json
+av --dry-run run read-only-delivery --runtime claude-code --json
 ```
 
 Start and operate a durable run:
 
 ```bash
-vc run read-only-delivery \
+av run read-only-delivery \
   --runtime claude-code \
   --instruction "Find the module that owns routing and cite the source file" \
   --json
 
-vc run status <run-id> --json
-vc run resume <run-id> --runtime claude-code --instruction "..." --json
-vc run cancel <run-id> --json
+av run status <run-id> --json
+av run resume <run-id> --runtime claude-code --instruction "..." --json
+av run cancel <run-id> --json
 ```
 
 `resume` requires the original instruction digest, workspace identity, compiled
 graph digest, runner contract, runtime, runtime version, and model. A mismatch is
-reported; vcskill never silently switches providers. A terminal run resumes
+reported; ariadnev never silently switches providers. A terminal run resumes
 idempotently without invoking a provider.
 
 The current canonical workflows are `read-only-delivery`,
 `bugfix-delivery`, and `safe-change-delivery`. Public active execution is
 read-only. `safe-change-delivery` can be validated, but dry-run and execution
 remain policy-denied until a real public side-effect executor and approval input
-surface exist; vcskill does not simulate a successful mutation.
+surface exist; ariadnev does not simulate a successful mutation.
 
 ## Runtime contract
 
@@ -74,10 +74,10 @@ probe returns `runtime-version-drift` instead of attempting compatibility.
 
 Optional runtime-location overrides:
 
-- `VCSKILL_CODEX_HOME`: controller-selected Codex home.
-- `VCSKILL_CLAUDE_CONFIG_DIR`: isolated Claude configuration directory, useful
+- `ARIADNEV_CODEX_HOME`: controller-selected Codex home.
+- `ARIADNEV_CLAUDE_CONFIG_DIR`: isolated Claude configuration directory, useful
   with `ANTHROPIC_API_KEY`.
-- `VCSKILL_CLAUDE_AUTH_HOME`: Claude OAuth authentication home. Safe mode still
+- `ARIADNEV_CLAUDE_AUTH_HOME`: Claude OAuth authentication home. Safe mode still
   disables CLAUDE.md, skills, plugins, hooks, MCP servers, custom commands,
   agents, and other customizations.
 
@@ -90,7 +90,7 @@ capability.
 
 ## Durable state and privacy
 
-Run data lives under `~/.vcskill/runs/<run-id>/` by default. Run storage must be
+Run data lives under `~/.ariadnev/runs/<run-id>/` by default. Run storage must be
 outside the read-only workspace.
 
 | File | Purpose | Content boundary |
@@ -145,8 +145,8 @@ already terminal.
 
 V1 has no automatic run-state migration. A paused run is bound to its compiled
 graph digest and runner contract, plus the original runtime version and model.
-After an incompatible vcskill upgrade, `resume` fails with an actionable refusal:
-use the original vcskill version to finish the run or start a new run. `status`
+After an incompatible ariadnev upgrade, `resume` fails with an actionable refusal:
+use the original ariadnev version to finish the run or start a new run. `status`
 and emergency `cancel` continue to operate from the stored manifest even when
 the currently installed graph has changed.
 
@@ -158,7 +158,7 @@ versioned, idempotent, reversible, and tested against frozen old-state fixtures.
 
 Local context lookup uses a lexical metadata index plus a bounded deterministic
 artifact graph. The graph derives only source-declared workflow handlers,
-scenario subjects, `vc:*` references, and relative documentation links. Results
+scenario subjects, `av:*` references, and relative documentation links. Results
 carry repository-relative provenance and a content digest; refresh replaces the
 in-memory index so updates and deletions cannot retain stale bytes, and private
 artifacts are excluded before edges are built.

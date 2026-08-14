@@ -1,4 +1,4 @@
-// Pure planner for `vcskill doctor --fix`: works out which applied hook bindings
+// Pure planner for `ariadnev doctor --fix`: works out which applied hook bindings
 // have drifted out of settings.json and produces the merged content to write it
 // back. No fs here — the caller reads settings, backs up, and writes atomically.
 

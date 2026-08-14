@@ -34,7 +34,7 @@ function runGit(root: string, args: string[], isolationRoot: string, extraEnv: N
 }
 
 export function initializeGitRepository(root: string): void {
-  const isolationRoot = mkdtempSync(join(tmpdir(), "vcskill-git-isolation-"));
+  const isolationRoot = mkdtempSync(join(tmpdir(), "ariadnev-git-isolation-"));
   mkdirSync(join(isolationRoot, "hooks"));
   mkdirSync(join(isolationRoot, "template"));
   writeFileSync(join(isolationRoot, "global.gitconfig"), "");
@@ -46,8 +46,8 @@ export function initializeGitRepository(root: string): void {
       root,
       [
         "-c", "commit.gpgSign=false",
-        "-c", "user.name=vcskill-fixture",
-        "-c", "user.email=fixture@vcskill.invalid",
+        "-c", "user.name=ariadnev-fixture",
+        "-c", "user.email=fixture@ariadnev.invalid",
         "commit", "--quiet", "--no-gpg-sign", "-m", "fixture baseline",
       ],
       isolationRoot,

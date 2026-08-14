@@ -7,7 +7,7 @@
   "title": "Verification execution",
   "subjects": {
     "skills": [
-      "vc:test"
+      "av:test"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:test": "required",
-          "vc:fix": "forbidden"
+          "av:test": "required",
+          "av:fix": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:fix": "required",
-          "vc:test": "forbidden"
+          "av:fix": "required",
+          "av:test": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

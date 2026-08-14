@@ -1,5 +1,5 @@
 ---
-name: vc:predict
+name: av:predict
 description: Run a 5-persona debate on a proposed change before implementing it. Use before a major feature, risky refactor, or when choosing between competing approaches.
 user-invocable: true
 argument-hint: "<proposed change> [--files <glob>]"
@@ -17,7 +17,7 @@ code is written.
 
 Handles: pre-implementation risk analysis for major features, refactors, or
 competing approaches.
-Does not handle: bugs (`vc:fix`), already-decided work (`vc:cook`), routine
+Does not handle: bugs (`av:fix`), already-decided work (`av:cook`), routine
 low-risk changes (the debate overhead isn't worth it — see
 `../cook/references/risk-lanes.md` for the lane check).
 
@@ -81,8 +81,8 @@ exposes a false assumption that invalidates the whole approach.
 1. <action — rationale>
 ```
 
-Feed CAUTION/STOP risk rows into `vc:scenario` for deeper edge-case coverage,
-or into `vc:plan`'s risk assessment when proceeding.
+Feed CAUTION/STOP risk rows into `av:scenario` for deeper edge-case coverage,
+or into `av:plan`'s risk assessment when proceeding.
 
 ## Quality gates
 
@@ -97,11 +97,11 @@ or into `vc:plan`'s risk assessment when proceeding.
 
 ## Workflow position
 
-**Typically follows:** `vc:brainstorm` (pressure-test the chosen approach before
+**Typically follows:** `av:brainstorm` (pressure-test the chosen approach before
 committing) or a direct proposal for a high-risk-lane change.
-**Typically precedes:** `vc:plan` (feed the risk rows into its risk assessment),
-`vc:scenario` (expand CAUTION/STOP rows into edge cases), `vc:cook` (implement
+**Typically precedes:** `av:plan` (feed the risk rows into its risk assessment),
+`av:scenario` (expand CAUTION/STOP rows into edge cases), `av:cook` (implement
 once the verdict is GO).
-**Related:** `vc:brainstorm` picks *which* approach; `vc:predict` stress-tests
+**Related:** `av:brainstorm` picks *which* approach; `av:predict` stress-tests
 one already on the table. Skip it for tiny/normal lanes — see
 `../cook/references/risk-lanes.md`.

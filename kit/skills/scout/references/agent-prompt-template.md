@@ -1,6 +1,6 @@
-# vc-explore Prompt Template
+# av-explore Prompt Template
 
-Fill every {placeholder}; send the same template to each `vc-explore`
+Fill every {placeholder}; send the same template to each `av-explore`
 instance with a different scope. Agents are read-only: no edits, no writes,
 no state.
 

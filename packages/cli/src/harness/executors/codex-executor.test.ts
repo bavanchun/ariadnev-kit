@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 function fixture(mode = "success", auxiliary = "unused") {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-codex-executor-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-codex-executor-"));
   roots.push(root);
   const workspaceRoot = join(root, "workspace");
   const codexHome = join(root, "codex-home");
@@ -185,7 +185,7 @@ describe("CodexExecutor", () => {
   });
 
   it("reaps a process tree after the provider reports successful completion", async () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-codex-success-cleanup-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-codex-success-cleanup-"));
     roots.push(root);
     const pidPath = join(root, "grandchild.pid");
     const { executor, workspaceRoot } = fixture("success-background", pidPath);
@@ -197,7 +197,7 @@ describe("CodexExecutor", () => {
   });
 
   it("reports missing executables and runtime version drift as unsupported", () => {
-    const missing = new CodexExecutor({ executable: join(tmpdir(), "vcskill-missing-codex"), expectedRuntimeVersion: "0.147.0", model: "pinned" });
+    const missing = new CodexExecutor({ executable: join(tmpdir(), "ariadnev-missing-codex"), expectedRuntimeVersion: "0.147.0", model: "pinned" });
     expect(missing.probe(["workspace:read"])).toMatchObject({ status: "unsupported", reason: "runtime-unavailable" });
 
     const { runtime } = fixture();
@@ -231,7 +231,7 @@ describe("CodexExecutor", () => {
   });
 
   it("terminates a timed-out process tree and leaves no owned child", async () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-codex-timeout-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-codex-timeout-"));
     roots.push(root);
     const pidPath = join(root, "grandchild.pid");
     const { executor, workspaceRoot } = fixture("hang", pidPath);
@@ -246,7 +246,7 @@ describe("CodexExecutor", () => {
   });
 
   it("honors external cancellation and reaps the process", async () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-codex-cancel-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-codex-cancel-"));
     roots.push(root);
     const pidPath = join(root, "grandchild.pid");
     const { executor, workspaceRoot } = fixture("hang", pidPath);

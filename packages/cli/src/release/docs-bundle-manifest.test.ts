@@ -19,12 +19,12 @@ const generatedAt = "2026-08-08T00:00:00.000Z";
 function manifest(): DocsBundleManifestV1 {
   return {
     schemaVersion: 1,
-    schemaId: "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json",
-    bundle: "vcskill-docs-bundle",
+    schemaId: "https://ariadnev.com/schemas/docs-bundle-manifest-v1.schema.json",
+    bundle: "ariadnev-docs-bundle",
     mode: "final",
     publishable: true,
     version: "1.2.3",
-    releaseTag: "vcskill@1.2.3",
+    releaseTag: "ariadnev@1.2.3",
     sourceSha: "a".repeat(40),
     generatorSha: "a".repeat(40),
     generatedAt,
@@ -73,7 +73,7 @@ describe("docs bundle manifest semantics", () => {
     const count = manifest(); count.fileCount += 1; cases.push([count, /fileCount/i]);
     const bytes = manifest(); bytes.totalBytes += 1; cases.push([bytes, /totalBytes/i]);
     const version = manifest(); version.version = "next"; cases.push([version, /stable semantic version/i]);
-    const tag = manifest(); tag.releaseTag = "vcskill@1.2.4"; cases.push([tag, /tag must match version/i]);
+    const tag = manifest(); tag.releaseTag = "ariadnev@1.2.4"; cases.push([tag, /tag must match version/i]);
     const source = manifest(); source.generatorSha = "b".repeat(40); cases.push([source, /generatorSha/i]);
     const time = manifest(); time.sourceDateEpoch += 1; cases.push([time, /generatedAt/i]);
     const boundary = manifest(); boundary.proofBoundary = "allowlist:v2"; cases.push([boundary, /proofBoundary/i]);

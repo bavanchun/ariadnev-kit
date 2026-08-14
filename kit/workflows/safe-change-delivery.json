@@ -34,7 +34,7 @@
       "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
     },
     {
-      "id": "assess", "type": "agent", "handler": { "kind": "agent", "ref": "vc-reviewer" },
+      "id": "assess", "type": "agent", "handler": { "kind": "agent", "ref": "av-reviewer" },
       "state": { "reads": ["request", "proposal"], "writes": ["decision"] },
       "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
       "proof": { "requires": ["change-proposal"], "produces": ["proposal-assessed"] }, "timeoutMs": 300000,

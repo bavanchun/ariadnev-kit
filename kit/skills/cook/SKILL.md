@@ -1,5 +1,5 @@
 ---
-name: vc:cook
+name: av:cook
 description: Implement features and execute plans end to end. Use for feature development, plan execution, or any change that must ship tested and reviewed.
 user-invocable: true
 argument-hint: "<task description or path to plan.md / phase-*.md>"
@@ -15,8 +15,8 @@ test gate → review gate → finalize. The gates are part of this skill — the
 is no separate test or review skill to invoke.
 
 Handles: feature implementation, plan/phase execution, refactors with tests.
-Does not handle: ideation (`vc:brainstorm`), root-cause bug hunts (`vc:fix`),
-multi-phase roadmap authoring (`vc:plan`).
+Does not handle: ideation (`av:brainstorm`), root-cause bug hunts (`av:fix`),
+multi-phase roadmap authoring (`av:plan`).
 
 ## Input routing
 
@@ -24,7 +24,7 @@ multi-phase roadmap authoring (`vc:plan`).
 |---|---|
 | Path to `plan.md` / `phase-*.md` | Load plan; skip discovery, execute phases in order |
 | Task description, requirements clear | Micro-plan inline (steps + files + acceptance), then implement |
-| Task description, requirements fuzzy | Stop — run `vc:brainstorm` or ask targeted questions first |
+| Task description, requirements fuzzy | Stop — run `av:brainstorm` or ask targeted questions first |
 
 ## Hard rules
 
@@ -46,12 +46,12 @@ multi-phase roadmap authoring (`vc:plan`).
    acceptance criteria. Classify the risk lane per `references/risk-lanes.md`
    — high-risk stops here for a confirm before any code is written.
 2. **Implement per unit of work**:
-   a. failing test → b. implementation → c. green → d. commit via `vc:git`
+   a. failing test → b. implementation → c. green → d. commit via `av:git`
    (conventional message, one concern per commit).
 3. **Test gate** — read `references/test-gate.md` and pass every check before
    claiming completion.
 4. **Review gate** — read `references/review-gate.md`; self-review the full
-   diff against it (or delegate to `vc-reviewer` for cross-module or
+   diff against it (or delegate to `av-reviewer` for cross-module or
    contract-touching changes).
 5. **Finalize** — sync plan checkboxes/status if executing a plan, update
    docs only when user-visible behavior changed, report the outcome with
@@ -87,11 +87,11 @@ End every cook run with:
 
 ## Workflow position
 
-**Typically follows:** `vc:plan` (execute a phase of an accepted plan),
-`vc:brainstorm` (implement the agreed approach), `vc:scout` (the touched area is
+**Typically follows:** `av:plan` (execute a phase of an accepted plan),
+`av:brainstorm` (implement the agreed approach), `av:scout` (the touched area is
 already mapped).
-**Typically precedes:** `vc:ship` (release the finished branch), `vc:pm` (track
-plan sync-back), `vc:git` (commit each unit of work).
-**Related:** `vc:fix` — use it instead when the task is a bug whose cause is not
-yet proven. `vc:code-review` and `vc:test` deepen gates that cook already runs
+**Typically precedes:** `av:ship` (release the finished branch), `av:pm` (track
+plan sync-back), `av:git` (commit each unit of work).
+**Related:** `av:fix` — use it instead when the task is a bug whose cause is not
+yet proven. `av:code-review` and `av:test` deepen gates that cook already runs
 inline; reach for them only when a change needs more than the embedded pass.

@@ -18,7 +18,7 @@ Use for ambiguous or consequential blank-slate products.
    branch when declined; otherwise obtain design approval.
 5. Run thorough planning and present the plan's trade-offs.
 6. **Gate:** user approves the plan. Do not start implementing without approval.
-7. Hand the approved plan to interactive `vc:cook`.
+7. Hand the approved plan to interactive `av:cook`.
 
 Ask one material question at a time. Do not ask for facts discoverable in the
 workspace.
@@ -43,8 +43,8 @@ Use when requirements and stack constraints are already clear.
 
 1. Run only targeted, parallel research needed to close a real evidence gap.
 2. Resolve stack and design once; avoid a second research pass inside planning.
-3. Call `vc:plan` with fast intent and the full opening contract.
-4. Hand off to ordinary `vc:cook`; fast mode keeps cook review gates.
+3. Call `av:plan` with fast intent and the full opening contract.
+4. Hand off to ordinary `av:cook`; fast mode keeps cook review gates.
 
 Fast optimizes setup latency. It does not bypass approvals or test depth.
 
@@ -56,10 +56,10 @@ dependencies.
 1. Research requirements and best-fit stack in parallel where source scopes are
    independent.
 2. Resolve optional design and obtain approval.
-3. Ask `vc:plan` to produce a dependency graph, execution groups, and exclusive
+3. Ask `av:plan` to produce a dependency graph, execution groups, and exclusive
    file ownership.
 4. Pass the opening brainstorm contract to every independent planning branch.
-5. Run `vc:cook` with parallel intent while retaining normal review gates.
+5. Run `av:cook` with parallel intent while retaining normal review gates.
 
 Parallel controls execution shape, not approval bypass. If two phases touch the
 same file, generated artifact, migration order, or shared config, sequence them.

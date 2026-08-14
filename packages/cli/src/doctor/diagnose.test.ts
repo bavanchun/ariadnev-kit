@@ -8,18 +8,18 @@ const cwd = "/home/u/proj";
 function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
   return {
     schemaVersion: 1,
-    vcskillVersion: "0.4.0",
+    ariadnevVersion: "0.4.0",
     installs: {
       "claude-code": {
         timestamp: "t1",
         scope: "project",
         files: [
           { path: ".claude/skills/brainstorm/SKILL.md", sha256: "abc" },
-          { path: ".claude/hooks/vc/session-init.cjs", sha256: "def" },
+          { path: ".claude/hooks/av/session-init.cjs", sha256: "def" },
         ],
         agentsMdManaged: false,
         hookBindings: [
-          { event: "SessionStart", command: 'node "/home/u/proj/.claude/hooks/vc/session-init.cjs"', applied: true },
+          { event: "SessionStart", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"', applied: true },
         ],
         skipped: [],
       },
@@ -33,7 +33,7 @@ function makeDeps(overrides: Partial<DiagnoseDeps> = {}): DiagnoseDeps {
     fileExists: () => true,
     readSettingsJson: () =>
       JSON.stringify({
-        hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/proj/.claude/hooks/vc/session-init.cjs"' }] }] } },
+        hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"' }] }] } },
       ),
     hookExecutable: () => true,
     ...overrides,
@@ -50,19 +50,19 @@ describe("diagnose (pure, tri-state)", () => {
     expect(findings.some((f) => f.level === "fail")).toBe(false);
   });
 
-  it("flags a missing file as fail + a `vcskill install` remedy", () => {
+  it("flags a missing file as fail + a `ariadnev install` remedy", () => {
     const findings = diagnose(makeReceipt(), makeDeps({ fileExists: () => false }), opt);
     const f = findings.find((x) => x.message.includes("brainstorm/SKILL.md"));
     expect(f?.level).toBe("fail");
-    expect(f?.remedy).toBe("vcskill install");
+    expect(f?.remedy).toBe("ariadnev install");
     expect(f?.weight).toBeGreaterThan(0);
   });
 
-  it("flags a drifted hook binding as fail + a `vcskill doctor --fix` remedy", () => {
+  it("flags a drifted hook binding as fail + a `ariadnev doctor --fix` remedy", () => {
     const findings = diagnose(makeReceipt(), makeDeps({ readSettingsJson: () => JSON.stringify({ hooks: {} }) }), opt);
     const f = findings.find((x) => x.message.includes("SessionStart"));
     expect(f?.level).toBe("fail");
-    expect(f?.remedy).toBe("vcskill doctor --fix");
+    expect(f?.remedy).toBe("ariadnev doctor --fix");
   });
 
   it("flags settings.json missing entirely as fail", () => {
@@ -100,10 +100,10 @@ describe("diagnose (pure, tri-state)", () => {
     expect(findings[0].level).toBe("skip");
   });
 
-  it("flags a version mismatch as a non-blocking warning + `vcskill update` remedy", () => {
+  it("flags a version mismatch as a non-blocking warning + `ariadnev update` remedy", () => {
     const findings = diagnose(makeReceipt(), makeDeps(), { home, cwd, currentVersion: "0.5.0" });
     const w = findings.find((f) => f.level === "warning");
-    expect(w?.remedy).toBe("vcskill update");
+    expect(w?.remedy).toBe("ariadnev update");
     expect(w?.message).toContain("0.4.0");
     expect(findings.some((f) => f.level === "fail")).toBe(false);
   });
@@ -116,7 +116,7 @@ describe("diagnose (pure, tri-state)", () => {
 describe("deriveStatus — exit contract (keys on fail only)", () => {
   it("is not-installed when receipt is null or empty", () => {
     expect(deriveStatus(null, [])).toBe("not-installed");
-    expect(deriveStatus({ schemaVersion: 1, vcskillVersion: "x", installs: {} }, [])).toBe("not-installed");
+    expect(deriveStatus({ schemaVersion: 1, ariadnevVersion: "x", installs: {} }, [])).toBe("not-installed");
   });
 
   it("is healthy for pass/skip/warning findings (no fail)", () => {

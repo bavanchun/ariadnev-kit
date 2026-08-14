@@ -7,7 +7,7 @@
   "title": "Root-cause bug repair",
   "subjects": {
     "skills": [
-      "vc:fix"
+      "av:fix"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:fix": "required",
-          "vc:code-review": "forbidden"
+          "av:fix": "required",
+          "av:code-review": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:code-review": "required",
-          "vc:fix": "forbidden"
+          "av:code-review": "required",
+          "av:fix": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

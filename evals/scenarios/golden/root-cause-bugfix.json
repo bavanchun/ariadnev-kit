@@ -7,8 +7,8 @@
   "title": "Root-cause bugfix",
   "subjects": {
     "skills": [
-      "vc:fix",
-      "vc:test"
+      "av:fix",
+      "av:test"
     ]
   },
   "fixture": {
@@ -27,9 +27,9 @@
           ]
         },
         "routing": {
-          "vc:fix": "required",
-          "vc:test": "required",
-          "vc:cook": "forbidden"
+          "av:fix": "required",
+          "av:test": "required",
+          "av:cook": "forbidden"
         },
         "artifacts": {
           "bugfix-diff": {

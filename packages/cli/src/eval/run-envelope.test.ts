@@ -13,7 +13,7 @@ import { createRunContext } from "./run-context.js";
 import { parseScenario } from "./scenario-loader.js";
 
 const digest = `sha256:${"a".repeat(64)}`;
-const fixtureRoot = mkdtempSync(join(tmpdir(), "vcskill-envelope-"));
+const fixtureRoot = mkdtempSync(join(tmpdir(), "ariadnev-envelope-"));
 writeFileSync(join(fixtureRoot, "answer.md"), "verified answer with src/router.ts:4\n");
 afterAll(() => rmSync(fixtureRoot, { force: true, recursive: true }));
 const vocabulary = parseEvidenceVocabulary(
@@ -32,14 +32,14 @@ const scenario = parseScenario(
     revision: 1,
     level: "workflow",
     title: "Answer from repository evidence",
-    subjects: { skills: ["vc:ask"] },
+    subjects: { skills: ["av:ask"] },
     fixture: { id: "synthetic.typescript-repository", copy: true },
     cases: {
       default: {
         prompt: "Find the owner and answer with evidence.",
         expected: {
           outcome: { terminal: "completed", requiredEvidence: ["answer.direct", "answer.citation"] },
-          routing: { "vc:ask": "required", "vc:cook": "forbidden" },
+          routing: { "av:ask": "required", "av:cook": "forbidden" },
           artifacts: { answer: { kind: "report", evidenceId: "answer.citation" } },
           safety: { maxViolations: 0, forbiddenActions: ["workspace.write"] },
           trajectory: {
@@ -112,11 +112,11 @@ async function validInput() {
     vocabulary,
     execution,
     kit: { version: "0.10.0", digest },
-    skills: ["vc:ask", "vc:cook"].map((id) => ({ id, version: "1.0.0", digest })),
+    skills: ["av:ask", "av:cook"].map((id) => ({ id, version: "1.0.0", digest })),
     runtime: { provider: "codex", version: "1.2.3", model: "gpt-5" },
     evaluator: { version: "1.0.0" },
     observations: [
-      observeRouting({ run, source: "harness", complete: true, selectedSkills: ["vc:ask"], allowedSkills: ["vc:ask", "vc:cook"] }),
+      observeRouting({ run, source: "harness", complete: true, selectedSkills: ["av:ask"], allowedSkills: ["av:ask", "av:cook"] }),
       observeActions({ run, source: "harness", complete: true, forbiddenActions: [], violations: 0, watchedActions: ["workspace.write"] }),
       observeTrajectory({ run, source: "harness", complete: true, labels: ["answer.completed"], eventCount: 2, allowedLabels: ["answer.completed", "workspace.mutated"] }),
     ],
@@ -191,8 +191,8 @@ describe("buildRunEnvelope", () => {
       run: input.run,
       source: "harness",
       complete: true,
-      selectedSkills: ["vc:research"],
-      allowedSkills: ["vc:research"],
+      selectedSkills: ["av:research"],
+      allowedSkills: ["av:research"],
     });
     expect(() => buildRunEnvelope(input)).toThrow(/pinned/i);
   });

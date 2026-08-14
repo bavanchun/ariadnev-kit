@@ -1,5 +1,5 @@
 ---
-name: vc:problem-solving
+name: av:problem-solving
 description: Break out of stuck states with systematic reframing. Use when circling a bug, over-complicating a design, hitting recurring failures, or unable to choose a direction.
 user-invocable: true
 argument-hint: "<what you're stuck on>"
@@ -28,7 +28,7 @@ Name the observed stuck pattern, not the preferred technique:
 | No symptom fits or the first technique fails | Stuck recovery | [scale and recovery](references/scale-and-recovery.md) |
 
 A wrong result, failing test, or unexplained runtime behavior belongs first to
-`vc:fix`. Use this skill only when the investigation itself is stuck or a
+`av:fix`. Use this skill only when the investigation itself is stuck or a
 problem needs reframing.
 
 ## Workflow
@@ -105,11 +105,11 @@ Before returning, confirm:
 
 ## Workflow position
 
-**Typically follows:** `vc:fix`, `vc:cook`, or `vc:brainstorm` reaching a real
+**Typically follows:** `av:fix`, `av:cook`, or `av:brainstorm` reaching a real
 stuck state after direct work stopped producing evidence.
 
 **Typically precedes:** returning to the originating workflow with a concrete
-experiment, or `vc:brainstorm` when the reframing changes the design space.
+experiment, or `av:brainstorm` when the reframing changes the design space.
 
-**Related:** `vc:sequential-thinking` for step-by-step reasoning when the frame
+**Related:** `av:sequential-thinking` for step-by-step reasoning when the frame
 is sound; this skill when the frame itself is blocking progress.

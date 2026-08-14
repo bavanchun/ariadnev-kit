@@ -1,11 +1,11 @@
-# Edge — `vcskill.vchun.dev`
+# Edge — `ariadnev.com`
 
-vcskill installs from `https://vcskill.vchun.dev/...`, not from GitHub directly.
+ariadnev installs from `https://ariadnev.com/...`, not from GitHub directly.
 A Cloudflare Worker is the **only public face** of this private repo — it serves
 the landing page and proxies the release binaries with a server-side token, so
 anyone can `curl | bash` without touching GitHub.
 
-**The edge now lives in its own repo: [`bavanchun/vcskill-web`](https://github.com/bavanchun/vcskill-web).**
+**The edge now lives in its own repo: [`bavanchun/ariadnev-web`](https://github.com/bavanchun/ariadnev-web).**
 Worker code, `landing.html`, `wrangler.toml`, and the deploy/secret runbook are
 there. This keeps the public-facing edge and landing site independent of the
 private CLI/kit source.
@@ -24,4 +24,4 @@ GET /download/<asset> → release binary       (token-proxied via GH_TOKEN secre
   GitHub Releases with the built-in `GITHUB_TOKEN`; the Worker just reads them
   with its own `GH_TOKEN` secret (a fine-grained PAT, Contents: read).
 - No cross-repo token is needed in CI.
-- To deploy or rotate the token, see the `vcskill-web` README.
+- To deploy or rotate the token, see the `ariadnev-web` README.

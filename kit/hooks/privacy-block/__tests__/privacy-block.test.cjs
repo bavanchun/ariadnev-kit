@@ -45,7 +45,7 @@ test("path tricks: traversal and quoting do not bypass", () => {
 });
 
 test("symlink to a sensitive file is denied", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vc-pb-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "av-pb-"));
   fs.writeFileSync(path.join(root, ".env"), "SECRET=1");
   const link = path.join(root, "innocent.txt");
   fs.symlinkSync(path.join(root, ".env"), link);

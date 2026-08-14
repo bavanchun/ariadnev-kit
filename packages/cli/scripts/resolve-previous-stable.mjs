@@ -28,23 +28,29 @@ function git(repositoryRoot, args) {
   }).trim();
 }
 
+// Release history did not restart at the rename: the newest releases carry the
+// current prefix, everything before them the old one. Ordered by preference, so
+// a version tagged under both spellings resolves to the current grammar.
+const TAG_PREFIXES = ["ariadnev@", "vcskill@"]; // brand-drift-allow: reads pre-rename release tags
+
 export function resolvePreviousStable({ repositoryRoot, currentVersion }) {
   const current = parseVersion(currentVersion, "current version");
-  const candidates = git(repositoryRoot, ["tag", "--list", "vcskill@*"])
-    .split("\n")
-    .filter(Boolean)
-    .flatMap((releaseTag) => {
-      const version = releaseTag.startsWith("vcskill@") ? releaseTag.slice("vcskill@".length) : "";
-      try {
-        const parts = parseVersion(version, "release tag");
-        return compareVersions(parts, current) < 0 ? [{ releaseTag, version, parts }] : [];
-      } catch {
-        return [];
-      }
-    })
-    .sort((left, right) => compareVersions(right.parts, left.parts));
+  const candidates = TAG_PREFIXES.flatMap((prefix, prefixRank) =>
+    git(repositoryRoot, ["tag", "--list", `${prefix}*`])
+      .split("\n")
+      .filter(Boolean)
+      .flatMap((releaseTag) => {
+        const version = releaseTag.startsWith(prefix) ? releaseTag.slice(prefix.length) : "";
+        try {
+          const parts = parseVersion(version, "release tag");
+          return compareVersions(parts, current) < 0 ? [{ releaseTag, version, parts, prefixRank }] : [];
+        } catch {
+          return [];
+        }
+      }),
+  ).sort((left, right) => compareVersions(right.parts, left.parts) || left.prefixRank - right.prefixRank);
   const previous = candidates[0];
-  if (!previous) throw new Error(`no previous stable release exists before vcskill@${currentVersion}`);
+  if (!previous) throw new Error(`no previous stable release exists before ariadnev@${currentVersion}`);
   const productSha = git(repositoryRoot, ["rev-parse", `${previous.releaseTag}^{commit}`]);
   if (!FULL_SHA.test(productSha)) throw new Error("previous stable tag did not resolve to a full commit SHA");
   const pkg = JSON.parse(git(repositoryRoot, ["show", `${productSha}:packages/cli/package.json`]));

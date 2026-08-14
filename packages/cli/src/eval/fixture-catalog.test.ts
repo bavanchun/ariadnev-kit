@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 function temporaryParent(): string {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-fixture-test-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-fixture-test-"));
   temporaryRoots.push(root);
   return root;
 }

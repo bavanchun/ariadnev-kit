@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-run-manifest-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-run-manifest-"));
   roots.push(root);
   const runDirectory = join(root, "run");
   const store = createRunManifestStore({ runDirectory });

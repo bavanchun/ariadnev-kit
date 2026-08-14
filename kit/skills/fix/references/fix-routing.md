@@ -63,7 +63,7 @@ when runtime behavior is intermittent.
 
 Inspect the accepted design, screenshot/video, DOM/CSS, console, network, and
 interaction state. Use installed browser/design capabilities or project-native
-visual/e2e tests. The vc kit does not bundle dedicated UI/UX or frontend-design
+visual/e2e tests. The av kit does not bundle dedicated UI/UX or frontend-design
 assets; do not claim they ran. Verify responsive, accessibility,
 runtime, and visual behavior at the affected container.
 

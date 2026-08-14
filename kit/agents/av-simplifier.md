@@ -1,6 +1,6 @@
 ---
-name: vc-simplifier
-description: "Use this agent to simplify and clean up recently modified code for clarity and maintainability without changing behavior. <example>Context: a feature just shipped with some rushed nesting. user: simplify the code I just wrote in the auth module assistant: delegates to vc-simplifier to reduce nesting and remove redundancy, behavior unchanged</example><commentary>Fresh code benefits from a clarity pass once it works, before it's forgotten.</commentary> <example>Context: a diff has duplicated logic across two files. user: this diff repeats the same validation twice, clean it up assistant: spawns vc-simplifier to consolidate without altering outputs</example><commentary>Simplification is safe to delegate precisely because its only goal is readability, not new behavior.</commentary>"
+name: av-simplifier
+description: "Use this agent to simplify and clean up recently modified code for clarity and maintainability without changing behavior. <example>Context: a feature just shipped with some rushed nesting. user: simplify the code I just wrote in the auth module assistant: delegates to av-simplifier to reduce nesting and remove redundancy, behavior unchanged</example><commentary>Fresh code benefits from a clarity pass once it works, before it's forgotten.</commentary> <example>Context: a diff has duplicated logic across two files. user: this diff repeats the same validation twice, clean it up assistant: spawns av-simplifier to consolidate without altering outputs</example><commentary>Simplification is safe to delegate precisely because its only goal is readability, not new behavior.</commentary>"
 model: haiku
 tools: Glob, Grep, Read, Edit, Bash
 ---

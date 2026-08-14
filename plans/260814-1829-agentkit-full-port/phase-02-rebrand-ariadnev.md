@@ -1,7 +1,8 @@
 ---
 phase: 2
 title: "Rebrand vcskill → ariadnev (+ release pipeline, dữ liệu đã ghi)"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "6d"
 dependencies: [1]
@@ -135,17 +136,60 @@ nói dối; gate phải bỏ qua:
 
 ## Success Criteria
 
-- [ ] `check-brand-drift.mjs` trả 0 trên toàn repo trừ allowlist, và chạy trong CI
-- [ ] Allowlist ghi tường minh trong script, có lý do từng mục
-- [ ] AGENTS.md có block cũ → cài lại → đúng một block (test)
-- [ ] Receipt cũ vẫn đọc được, cảnh báo version vẫn phát (test)
-- [ ] `git status` sạch sau `av install` trong repo mới
-- [ ] `resolve-previous-stable` không ném lỗi khi chưa có tag `ariadnev@*`
-- [ ] `install.ps1` tải asset `ariadnev-windows-x64.exe` từ `ariadnev.com`
-- [ ] `ariadnev --version` = `1.0.0`; `av --version` chạy
-- [ ] `av validate` xanh: 26 skills / 13 agents / 6 hooks
-- [ ] `skill-crossrefs` 0 ref gãy sau khi đổi namespace
-- [ ] `pnpm test` xanh
+- [x] `check-brand-drift.mjs` trả 0 trên toàn repo trừ allowlist, và chạy trong CI
+- [x] Allowlist ghi tường minh trong script, có lý do từng mục
+- [x] AGENTS.md có block cũ → cài lại → đúng một block (test)
+- [x] Receipt cũ vẫn đọc được, cảnh báo version vẫn phát (test)
+- [x] `git status` sạch sau `av install` trong repo mới (`.ariadnev/` bị ignore)
+- [x] `resolve-previous-stable` không ném lỗi khi chưa có tag `ariadnev@*` — giải bằng
+      cách đọc cả tag trước rename, xem bên dưới
+- [x] `install.ps1` tải asset `ariadnev-windows-x64.exe` từ `ariadnev.com`
+- [x] `ariadnev --version` = `1.0.0`
+- [x] `av validate` xanh: 26 skills / 13 agents / 6 hooks
+- [x] `skill-crossrefs` 0 ref gãy sau khi đổi namespace (validate xanh)
+- [x] `pnpm test` xanh — 719 vitest + 96 node:test; `pnpm lint` sạch
+
+## Kết quả thực thi (2026-08-14)
+
+Quy mô thật: **348 file / 1652 dòng** có định danh cũ (plan ước 205 file). Gate
+`check-brand-drift.mjs` đo trước khi sửa và sau khi sửa; hiện trả 0.
+
+**Gate của tôi ban đầu mù hai chỗ, cả hai đều giấu lỗi thật:**
+
+1. *Heuristic "có byte NUL ⇒ binary"* bỏ qua `description-collision.ts` — file này dùng NUL
+   làm dấu phân cách trong `pairKey`, hoàn toàn cố ý. Hệ quả: cả script rename lẫn gate đều
+   bỏ qua nó, và `/^vc:/` trong hàm chuẩn hoá allowlist không được đổi. Test collision
+   allowlist đỏ. Đã đổi sang nhận diện theo phần mở rộng.
+2. *Lookbehind loại `/`* nên `vc` cạnh dấu gạch chéo không bị bắt. Ẩn mất hằng số thư mục
+   hook `CLAUDE_HOOKS_DIR = ".claude/hooks/vc"` và alias `${INSTALL_DIR}/vc` trong
+   `install.sh` — hai chỗ chỉ lộ lúc runtime, đúng loại rủi ro phase này lường trước.
+
+**Tag release không khởi động lại từ đầu.** Version nhảy `1.0.0` mà chỉ glob `ariadnev@*`
+thì bản đầu tiên trông như không có tiền nhiệm, làm hỏng `docs-bundle-historical` và
+`build-binaries`. Giải: `resolve-previous-stable` đọc cả hai prefix, ưu tiên prefix hiện tại
+khi cùng version; `docs-bundle-historical.ts` và `build-binaries.mjs` chấp nhận tag cũ ở vị
+trí *tiền nhiệm* nhưng vẫn nghiêm ngặt với tag đang phát hành.
+
+**Thứ tự asset trong hai workflow release.** `ariadnev-*` sắp trước `checksums.txt` còn
+`vcskill-*` sắp sau, nên mảng `required` viết tay hết khớp với danh sách đã sort. Đã sort cả
+hai vế trong `finalize-release.yml` và `release-candidate-publish.yml`.
+
+**Version bump phải đi qua changesets.** Sửa tay `package.json` làm `docs-bundle` báo
+`release notes not found for 1.0.0` — bundle đòi mục CHANGELOG tương ứng. Chạy
+`pnpm version-packages` để tiêu thụ changeset: `package.json` → `1.0.0` và
+`packages/cli/CHANGELOG.md` có mục 1.0.0. (Changeset gốc vì vậy không còn trong `.changeset/`,
+nội dung nằm trong CHANGELOG.)
+
+**Ba bản ghi lịch sử được miễn trừ theo dòng, không theo file** — cơ chế
+`// brand-drift-allow: <lý do>`: literal trong `baseline-artifacts.test.ts` (khẳng định nội
+dung baseline v0.10.0 đóng băng), tag `vcskill@0.7.0` trong `docs-bundle-generator.test.ts`
+(tag thật của repo), và các reader tương thích ngược. Miễn trừ theo dòng để không bao giờ
+lỡ che cả file.
+
+Phải tái đóng băng hai artifact vì nội dung nguồn đổi: `evals/reports/context-graph-benchmark.json`
+và digest của hai fixture trong `evals/fixtures/catalog.json`.
+
+Cài thử thật: install 107 file → `doctor` healthy 100 → `uninstall` removed=107 preserved=0.
 
 ## Risk Assessment
 

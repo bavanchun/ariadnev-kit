@@ -1,11 +1,11 @@
-// Append-only JSONL error log for vc hooks. Logging must never break a hook,
+// Append-only JSONL error log for av hooks. Logging must never break a hook,
 // so every failure here is swallowed.
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
 function defaultLogFile() {
-  return path.join(os.homedir(), ".claude", "logs", "vc-hooks.jsonl");
+  return path.join(os.homedir(), ".claude", "logs", "av-hooks.jsonl");
 }
 
 /** Append one entry as a JSON line (timestamped). Never throws. */

@@ -91,7 +91,7 @@ jobs:
         id: lock
         run: |
           mkdir -p packages/cli/dist/candidate
-          node packages/cli/scripts/verify-web-consumer-lock.mjs --metadata .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/vcskill-web > packages/cli/dist/candidate/lock-metadata.json
+          node packages/cli/scripts/verify-web-consumer-lock.mjs --metadata .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web > packages/cli/dist/candidate/lock-metadata.json
           node -e "const fs=require('node:fs');const value=JSON.parse(fs.readFileSync('packages/cli/dist/candidate/lock-metadata.json'));console.log('repository='+value.repository+'\ncommit_sha='+value.commitSha+'\nlock_digest='+value.lockDigest)" >> "$GITHUB_OUTPUT"
       - name: Checkout web consumer exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Preflight exact web lock
-        run: node packages/cli/scripts/verify-web-consumer-lock.mjs --preflight web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/vcskill-web
+        run: node packages/cli/scripts/verify-web-consumer-lock.mjs --preflight web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web
       - name: Build release assets
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
@@ -117,7 +117,7 @@ jobs:
             --source-sha "$SOURCE_SHA" \
             --generated-at "$GENERATED_AT" \
             --source-date-epoch "$SOURCE_DATE_EPOCH" \
-            --release-tag "vcskill@$RELEASE_VERSION" \
+            --release-tag "ariadnev@$RELEASE_VERSION" \
             --final-consumer-lock ".github/release/web-consumer-lock.json" \
             --final-consumer-lock-digest "$LOCK_DIGEST" \
             --previous-source-tree "$GITHUB_WORKSPACE/previous-stable" \
@@ -125,14 +125,14 @@ jobs:
             --previous-source-sha "$PREVIOUS_SOURCE_SHA"
       - name: Execute final consumer
         run: |
-          node packages/cli/scripts/verify-web-consumer-lock.mjs --execute web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/vcskill-web > packages/cli/dist/candidate/final-consumer-result.json
+          node packages/cli/scripts/verify-web-consumer-lock.mjs --execute web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web > packages/cli/dist/candidate/final-consumer-result.json
       - name: Create inner provenance A
         env:
           GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
           GITHUB_WORKFLOW_SHA: ${{ github.workflow_sha }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           RELEASE_VERSION: ${{ inputs.version }}
-          RELEASE_TAG: vcskill@${{ inputs.version }}
+          RELEASE_TAG: ariadnev@${{ inputs.version }}
           CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
         run: |
           node packages/cli/scripts/create-release-attestation.mjs packages/cli/dist/release packages/cli/dist/candidate/final-consumer-result.json .github/release/web-consumer-lock.json packages/cli/dist/candidate/release-artifact-attestation.json .github/release/release-artifact-attestation.schema.json

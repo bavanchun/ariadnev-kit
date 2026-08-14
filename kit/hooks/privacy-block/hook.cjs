@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc privacy-block — PreToolUse hook for Read|Edit|Write|Bash. Denies access
+// av privacy-block — PreToolUse hook for Read|Edit|Write|Bash. Denies access
 // to secret-bearing files (.env family, key material, credentials) with an
 // AskUserQuestion marker; user approval is expressed by re-running the command
 // with a VC_APPROVED=1 prefix. Fail-open: internal errors never block.
@@ -90,7 +90,7 @@ function main() {
   const result = evaluatePrivacy(input.tool_name, input.tool_input);
   if (result.decision === "deny") {
     process.stderr.write(
-      `vc privacy-block: access to "${result.file}" requires user approval.\n${denyMarker(input.tool_name, result.file)}\n`,
+      `av privacy-block: access to "${result.file}" requires user approval.\n${denyMarker(input.tool_name, result.file)}\n`,
     );
     process.exit(2);
   }

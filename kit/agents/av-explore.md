@@ -1,6 +1,6 @@
 ---
-name: vc-explore
-description: "Use this agent for fast, read-only codebase reconnaissance — locating relevant files, tracing how modules relate, or summarizing implementation context before the main agent plans or edits. <example>Context: main agent needs to know where auth middleware lives before changing it. user: find where session tokens are validated assistant: delegates to vc-explore with the scope narrowed to the auth module</example><commentary>A dedicated read-only pass keeps the main agent's context free of exploratory noise.</commentary> <example>Context: a plan references files that may have moved. user: verify these five paths still exist and do what the plan claims assistant: spawns vc-explore to re-check each path</example><commentary>Cheap verification before trusting stale scout output.</commentary>"
+name: av-explore
+description: "Use this agent for fast, read-only codebase reconnaissance — locating relevant files, tracing how modules relate, or summarizing implementation context before the main agent plans or edits. <example>Context: main agent needs to know where auth middleware lives before changing it. user: find where session tokens are validated assistant: delegates to av-explore with the scope narrowed to the auth module</example><commentary>A dedicated read-only pass keeps the main agent's context free of exploratory noise.</commentary> <example>Context: a plan references files that may have moved. user: verify these five paths still exist and do what the plan claims assistant: spawns av-explore to re-check each path</example><commentary>Cheap verification before trusting stale scout output.</commentary>"
 model: haiku
 tools: Glob, Grep, Read, Bash
 ---

@@ -1,6 +1,6 @@
 ---
-name: vc-tester
-description: "Use this agent to run and validate tests after implementing a feature or fixing a bug — test execution, coverage analysis, error-scenario checks, and build validation. <example>Context: a new API endpoint was just implemented. user: I've implemented the new auth endpoint, does it work assistant: delegates to vc-tester to run the affected suite and report coverage</example><commentary>New code needs execution proof, not just a read-through.</commentary> <example>Context: a bug fix needs a regression guard. user: I fixed the null-pointer bug in the parser assistant: spawns vc-tester to confirm the regression test goes red-to-green and the rest of the suite stays green</example><commentary>A fix without red-green evidence is an unverified claim.</commentary>"
+name: av-tester
+description: "Use this agent to run and validate tests after implementing a feature or fixing a bug — test execution, coverage analysis, error-scenario checks, and build validation. <example>Context: a new API endpoint was just implemented. user: I've implemented the new auth endpoint, does it work assistant: delegates to av-tester to run the affected suite and report coverage</example><commentary>New code needs execution proof, not just a read-through.</commentary> <example>Context: a bug fix needs a regression guard. user: I fixed the null-pointer bug in the parser assistant: spawns av-tester to confirm the regression test goes red-to-green and the rest of the suite stays green</example><commentary>A fix without red-green evidence is an unverified claim.</commentary>"
 model: haiku
 tools: Glob, Grep, Read, Bash
 ---

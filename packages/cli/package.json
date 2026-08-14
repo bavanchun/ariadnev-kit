@@ -1,6 +1,6 @@
 {
-  "name": "vcskill",
-  "version": "0.12.0",
+  "name": "ariadnev",
+  "version": "1.0.0",
   "private": true,
   "description": "Install a curated, quality-gated workflow kit across coding-agent targets.",
   "type": "module",
@@ -8,12 +8,12 @@
   "author": "VChun",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bavanchun/vcskill.git",
+    "url": "git+https://github.com/bavanchun/ariadnev.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/bavanchun/vcskill#readme",
+  "homepage": "https://github.com/bavanchun/ariadnev#readme",
   "bugs": {
-    "url": "https://github.com/bavanchun/vcskill/issues"
+    "url": "https://github.com/bavanchun/ariadnev/issues"
   },
   "keywords": [
     "agent-skills",
@@ -26,8 +26,8 @@
     "ai-agents"
   ],
   "bin": {
-    "vcskill": "dist/index.js",
-    "vc": "dist/index.js"
+    "ariadnev": "dist/index.js",
+    "av": "dist/index.js"
   },
   "engines": {
     "node": ">=18"
@@ -36,7 +36,7 @@
     "build": "tsup",
     "generate:embedded": "node scripts/generate-embedded-kit.mjs",
     "generate:matrix": "bun scripts/generate-provider-matrix.ts",
-    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/vcskill",
+    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/ariadnev",
     "build:release": "node scripts/build-binaries.mjs",
     "docs-bundle:generate": "bun scripts/generate-docs-bundle.ts",
     "test:build-binaries": "node --test scripts/build-binaries.test.mjs",

@@ -1,5 +1,5 @@
 ---
-name: vc:handoff
+name: av:handoff
 description: Compact the current session into a redacted, paste-ready handoff of decisions, state, blockers, and next steps. Use when ending a session or passing work to a fresh agent.
 user-invocable: true
 argument-hint: "[next-session focus]"
@@ -14,8 +14,8 @@ metadata:
 Compress the *current conversation* into a factual handoff a fresh agent can act
 on with minimal rediscovery. Preserve state and rationale — not a command list.
 
-Distinct from its neighbours: `vc:pm` reports plan-file truth (derived from
-plans, not the chat); `vc:journal` is a backward-looking post-mortem. Handoff is
+Distinct from its neighbours: `av:pm` reports plan-file truth (derived from
+plans, not the chat); `av:journal` is a backward-looking post-mortem. Handoff is
 the forward-looking snapshot of *this session's* live state.
 
 ## Workflow
@@ -58,5 +58,5 @@ Before returning, confirm:
 
 **Typically follows:** any session end, or a context switch mid-task
 **Typically precedes:** a fresh agent session or a teammate picking the work up
-**Related:** `vc:pm` (plan-file status, not chat state), `vc:journal` (retrospective, not forward handoff)
+**Related:** `av:pm` (plan-file status, not chat state), `av:journal` (retrospective, not forward handoff)
 

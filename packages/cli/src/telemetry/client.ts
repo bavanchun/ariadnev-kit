@@ -40,8 +40,8 @@ export interface ConsentDeps extends CaptureDeps {
 }
 
 const FIRST_RUN_NOTICE =
-  "vcskill collects anonymous, categorical usage counts (no PII, no identifiers). " +
-  "Opt out any time with VCSKILL_TELEMETRY_DISABLED=1 or DO_NOT_TRACK=1.";
+  "ariadnev collects anonymous, categorical usage counts (no PII, no identifiers). " +
+  "Opt out any time with ARIADNEV_TELEMETRY_DISABLED=1 or DO_NOT_TRACK=1.";
 
 /** Guarded, non-awaited entry for command sites. Sends nothing unless telemetry
  * is enabled; and on the very first enabled run it shows the notice and sends

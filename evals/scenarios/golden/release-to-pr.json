@@ -7,8 +7,8 @@
   "title": "Verified branch to pull request",
   "subjects": {
     "skills": [
-      "vc:ship",
-      "vc:git"
+      "av:ship",
+      "av:git"
     ]
   },
   "fixture": {
@@ -32,9 +32,9 @@
           ]
         },
         "routing": {
-          "vc:ship": "required",
-          "vc:git": "required",
-          "vc:cook": "forbidden"
+          "av:ship": "required",
+          "av:git": "required",
+          "av:cook": "forbidden"
         },
         "artifacts": {
           "release-evidence": {

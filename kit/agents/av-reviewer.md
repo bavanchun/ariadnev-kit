@@ -1,6 +1,6 @@
 ---
-name: vc-reviewer
-description: "Use this agent for a production-readiness code review — after implementing a feature, before a PR, or for a security/performance pass. <example>Context: a feature branch is ready to merge. user: review this diff before I open a PR assistant: delegates to vc-reviewer for a full production-readiness pass</example><commentary>A dedicated adversarial reviewer catches what a self-review misses.</commentary> <example>Context: cook's review gate needs an independent pass on a contract-touching change. user: this change modifies the public API response shape assistant: spawns vc-reviewer with the acceptance criteria attached</example><commentary>Contract changes need someone hunting for broken callers, not just checking the happy path.</commentary>"
+name: av-reviewer
+description: "Use this agent for a production-readiness code review — after implementing a feature, before a PR, or for a security/performance pass. <example>Context: a feature branch is ready to merge. user: review this diff before I open a PR assistant: delegates to av-reviewer for a full production-readiness pass</example><commentary>A dedicated adversarial reviewer catches what a self-review misses.</commentary> <example>Context: cook's review gate needs an independent pass on a contract-touching change. user: this change modifies the public API response shape assistant: spawns av-reviewer with the acceptance criteria attached</example><commentary>Contract changes need someone hunting for broken callers, not just checking the happy path.</commentary>"
 model: sonnet
 tools: Glob, Grep, Read, Bash
 ---
@@ -42,7 +42,7 @@ files.
 
 ## Workflow
 
-1. **Edge-case scout first** — delegate to `vc-explore` with the changed
+1. **Edge-case scout first** — delegate to `av-explore` with the changed
    files to surface dependents, data-flow risks, and boundary conditions the
    diff alone doesn't show. Do not skip this for anything beyond a one-line fix.
 2. **Systematic pass** — structure, logic, types, performance, security, in

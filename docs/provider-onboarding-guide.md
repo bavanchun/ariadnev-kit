@@ -1,6 +1,6 @@
 # Provider Onboarding Guide
 
-How to add a new AI coding provider to vcskill.
+How to add a new AI coding provider to ariadnev.
 
 ## Prerequisites
 

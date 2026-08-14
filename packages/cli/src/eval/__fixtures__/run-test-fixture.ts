@@ -19,7 +19,7 @@ const scenario = parseScenario(JSON.stringify({
   revision: 1,
   level: "workflow",
   title: "Local test run",
-  subjects: { skills: ["vc:test"] },
+  subjects: { skills: ["av:test"] },
   fixture: { id: "synthetic.skill-routing", copy: true },
   cases: {
     default: {

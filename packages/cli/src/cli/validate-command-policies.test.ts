@@ -25,14 +25,14 @@ function writeNamedSkill(kitRoot: string, slug: string, description: string): vo
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, "SKILL.md"),
-    `---\nname: vc:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n${REQUIRED_SECTIONS}`,
+    `---\nname: av:${slug}\ndescription: ${description}\n---\n\n# ${slug}\n${REQUIRED_SECTIONS}`,
   );
 }
 
 describe("validate policies", () => {
   let tmp: string;
   beforeEach(() => {
-    tmp = mkdtempSync(join(tmpdir(), "vcskill-validate-policy-"));
+    tmp = mkdtempSync(join(tmpdir(), "ariadnev-validate-policy-"));
   });
   afterEach(() => {
     rmSync(tmp, { recursive: true, force: true });
@@ -54,7 +54,7 @@ describe("validate policies", () => {
       writeNamedSkill(tmp, "beta", DESC_B);
       writeFileSync(
         join(tmp, "collision-allowlist.json"),
-        JSON.stringify([{ a: "vc:alpha", b: "vc:beta", reason: "adjacent by design" }]),
+        JSON.stringify([{ a: "av:alpha", b: "av:beta", reason: "adjacent by design" }]),
       );
       const result = runValidate({ kitRoot: tmp });
       expect(result.findings.some((f) => f.kind === "collision")).toBe(false);
@@ -80,13 +80,13 @@ describe("validate policies", () => {
       writeFileSync(
         join(tmp, "collision-allowlist.json"),
         JSON.stringify([
-          { a: "vc:x", b: "vc:y", reason: "kept" },
-          { a: "vc:x", b: "vc:y", reason: "  " },
-          { a: "vc:x", b: 2, reason: "bad endpoint" },
+          { a: "av:x", b: "av:y", reason: "kept" },
+          { a: "av:x", b: "av:y", reason: "  " },
+          { a: "av:x", b: 2, reason: "bad endpoint" },
           null,
         ]),
       );
-      expect(loadCollisionAllowlist(tmp)).toEqual([{ a: "vc:x", b: "vc:y", reason: "kept" }]);
+      expect(loadCollisionAllowlist(tmp)).toEqual([{ a: "av:x", b: "av:y", reason: "kept" }]);
     });
   });
 
@@ -95,7 +95,7 @@ describe("validate policies", () => {
 
     it("passes when the README matrix is in sync", () => {
       const readme = join(tmp, "README.md");
-      writeFileSync(readme, `# vcskill\n\n${renderMatrixBlock()}\n`);
+      writeFileSync(readme, `# ariadnev\n\n${renderMatrixBlock()}\n`);
       const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
       expect(result.ok).toBe(true);
       expect(result.findings.some((f) => f.kind === "matrix")).toBe(false);
@@ -104,7 +104,7 @@ describe("validate policies", () => {
     it("fails with a matrix finding when the README block is stale", () => {
       const readme = join(tmp, "README.md");
       const stale = renderMatrixBlock().replace(".claude/skills/", ".claude/WRONG/");
-      writeFileSync(readme, `# vcskill\n\n${stale}\n`);
+      writeFileSync(readme, `# ariadnev\n\n${stale}\n`);
       const result = runValidate({ kitRoot: realKit(), check: true, readmePath: readme });
       expect(result.ok).toBe(false);
       expect(result.findings).toContainEqual(expect.objectContaining({ kind: "matrix" }));

@@ -59,7 +59,7 @@ describe("planMigrations (pure)", () => {
 describe("executeMigrations", () => {
   let root: string;
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "vcskill-mig-"));
+    root = mkdtempSync(join(tmpdir(), "ariadnev-mig-"));
     mkdirSync(join(root, ".agent/skills/x"), { recursive: true });
     writeFileSync(join(root, ".agent/skills/x/SKILL.md"), "hi");
   });

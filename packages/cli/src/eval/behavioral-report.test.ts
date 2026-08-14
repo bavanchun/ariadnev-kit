@@ -4,7 +4,7 @@ import { buildBehavioralReport, type BehavioralReportRun } from "./behavioral-re
 function run(overrides: Partial<BehavioralReportRun> = {}): BehavioralReportRun {
   return {
     cellId: "skill.ask.routing:positive",
-    variant: "vcskill",
+    variant: "ariadnev",
     level: "skill",
     repeat: 1,
     verdict: "pass",
@@ -28,8 +28,8 @@ describe("buildBehavioralReport", () => {
       runs: [run(), run({ repeat: 2, metrics: { ...run().metrics, latencyMs: 80 } })],
       comparisons: [{ cellId: "skill.ask.routing:positive", status: "not-comparable", reason: "runtime-contract-mismatch" }],
     });
-    expect(report.cells[0].variants.vcskill?.runs).toBe(2);
-    expect(report.cells[0].variants.vcskill?.latencyMs).toEqual({ p50: 20, p95: 80 });
+    expect(report.cells[0].variants.ariadnev?.runs).toBe(2);
+    expect(report.cells[0].variants.ariadnev?.latencyMs).toEqual({ p50: 20, p95: 80 });
     expect(report.cells[0].comparison).toEqual({ status: "not-comparable", reason: "runtime-contract-mismatch" });
   });
 

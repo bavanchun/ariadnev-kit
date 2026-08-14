@@ -7,7 +7,7 @@ import {
 
 describe("frontmatter round-trip", () => {
   it("preserves block scalar + quoted values (no data loss)", () => {
-    const raw = `---\nname: vc:x\ndescription: >-\n  a folded\n  description\nallowed-tools:\n  - Task\n  - AskUserQuestion\n---\n\n# Body\n`;
+    const raw = `---\nname: av:x\ndescription: >-\n  a folded\n  description\nallowed-tools:\n  - Task\n  - AskUserQuestion\n---\n\n# Body\n`;
     const { data, body } = parseFrontmatter(raw);
     expect(data.description).toBe("a folded description");
     expect(data["allowed-tools"]).toEqual(["Task", "AskUserQuestion"]);

@@ -3,7 +3,7 @@ import { assertCapabilityPreflight, type CapabilityPreflightV1 } from "./capabil
 import type { EvidenceVocabularyV1 } from "./evidence-vocabulary.js";
 import { bindRunContext, type RunBoundV1, type RunContextV1 } from "./run-context.js";
 
-const evidenceAttestationBrand: unique symbol = Symbol("vcskill.evidence-attestation");
+const evidenceAttestationBrand: unique symbol = Symbol("ariadnev.evidence-attestation");
 
 export type EvidenceProducer = "harness" | "evaluator";
 export type EvidenceProof = "artifact" | "decision" | "execution" | "external-state" | "outcome" | "source";

@@ -57,7 +57,7 @@ export function createLocalShadowSink(input: {
   maxEvents?: number;
 }): ShadowSink {
   const runId = categoricalToken(input.runId, "shadow.runId");
-  const root = input.root ?? join(homedir(), ".vcskill", "shadow");
+  const root = input.root ?? join(homedir(), ".ariadnev", "shadow");
   const maxEvents = input.maxEvents ?? 10_000;
   if (!Number.isInteger(maxEvents) || maxEvents < 1) throw new Error("shadow maxEvents must be positive");
   mkdirSync(root, { recursive: true, mode: 0o700 });

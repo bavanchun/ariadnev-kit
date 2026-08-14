@@ -39,3 +39,26 @@ describe("removeAgentsBlock", () => {
     expect(removeAgentsBlock("just user content")).toBe("just user content");
   });
 });
+
+describe("pre-rename managed block", () => {
+  // AGENTS.md is the user's file. A block written under the old brand is real
+  // data on disk; if merge stops recognizing it, every reinstall appends a
+  // second managed block and the two drift apart.
+  const OLD_START = "<!-- vcskill:start -->"; // brand-drift-allow: marker written by pre-rename installs
+  const OLD_END = "<!-- vcskill:end -->"; // brand-drift-allow: marker written by pre-rename installs
+
+  it("replaces an old-brand block instead of appending a second one", () => {
+    const existing = `# Project\n\n${OLD_START}\nold rules\n${OLD_END}\n`;
+    const out = mergeAgentsBlock(existing, "new rules");
+    expect(out).toContain("new rules");
+    expect(out).not.toContain("old rules");
+    expect(out).not.toContain(OLD_START);
+    expect(out.match(/<!-- \w+:start -->/g)).toHaveLength(1);
+  });
+
+  it("strips an old-brand block on uninstall, restoring user content", () => {
+    const original = "# Project\n\nhand-written notes.";
+    const withOld = `${original}\n\n${OLD_START}\nold rules\n${OLD_END}\n`;
+    expect(removeAgentsBlock(withOld)).toBe(original);
+  });
+});

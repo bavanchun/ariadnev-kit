@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Repo-level guidance for AI agents working on **vcskill**.
+Repo-level guidance for AI agents working on **ariadnev**.
 
 ## Build & test
 
@@ -8,12 +8,12 @@ Repo-level guidance for AI agents working on **vcskill**.
 pnpm install
 pnpm test          # vitest run (TDD — write failing test first)
 pnpm coverage      # adapt/ must stay ≥90%
-pnpm --filter vcskill build
+pnpm --filter ariadnev build
 ```
 
 ## Architecture
 
-- `kit/` — canonical source artifacts (Claude format). Skill rule: `name: vc:<dir>`.
+- `kit/` — canonical source artifacts (Claude format). Skill rule: `name: av:<dir>`.
 - `packages/cli/src/adapt/` — **pure** adapt engine (paths, tool names, frontmatter,
   agent→TOML, command map). No fs/network. Path constants single-sourced in `paths.ts`.
 - `packages/cli/src/providers/` — per-provider target resolvers + `spec-verified.ts`

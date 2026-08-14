@@ -58,7 +58,7 @@ describe("evidence vocabulary", () => {
         revision: 1,
         level: "workflow",
         title: "Invalid artifact evidence",
-        subjects: { skills: ["vc:ask"] },
+        subjects: { skills: ["av:ask"] },
         fixture: { id: "synthetic.skill-routing", copy: true },
         cases: {
           default: {

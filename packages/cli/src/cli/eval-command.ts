@@ -1,4 +1,4 @@
-// `vc eval` — cost-tiered skill-quality gate. Tier-1 (static, $0) reuses
+// `av eval` — cost-tiered skill-quality gate. Tier-1 (static, $0) reuses
 // runValidate and always runs. Tier-3 (LLM judge) runs only when an eval command
 // is configured; the judge runner is injected so unit tests never spawn.
 
@@ -18,9 +18,9 @@ export interface EvalDeps {
 }
 
 export interface EvalOpts {
-  /** The configured judge command (VCSKILL_EVAL_CMD). Absent → tier-3 skipped. */
+  /** The configured judge command (ARIADNEV_EVAL_CMD). Absent → tier-3 skipped. */
   evalCmd?: string;
-  /** Restrict both tiers to one skill (bare or vc:-prefixed). */
+  /** Restrict both tiers to one skill (bare or av:-prefixed). */
   skill?: string;
   kitRoot?: string;
   color?: boolean;
@@ -71,7 +71,7 @@ export function runEval(opts: EvalOpts): EvalResult {
 
   // Tier 3 — opt-in LLM judge.
   if (!opts.evalCmd || !opts.deps) {
-    lines.push(faint("  tier-3 skipped — set VCSKILL_EVAL_CMD to enable the LLM judge", style));
+    lines.push(faint("  tier-3 skipped — set ARIADNEV_EVAL_CMD to enable the LLM judge", style));
     return { ok, summary: lines.join("\n") };
   }
 

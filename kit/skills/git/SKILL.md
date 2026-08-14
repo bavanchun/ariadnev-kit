@@ -1,5 +1,5 @@
 ---
-name: vc:git
+name: av:git
 description: "Personal git workflow. Use for commits, PRs, branch hygiene, merges, or the full prc pipeline with co-author and achievement-friendly defaults."
 user-invocable: true
 argument-hint: "cm|cp|pr|prc|merge|feat|fix [--solo|--team] [args]"
@@ -28,7 +28,7 @@ If invoked without arguments, use `AskUserQuestion` to present available operati
 | `fix <name>` | Create `fix/<name>` branch |
 | `merge` | Merge branches |
 
-Execute git workflows via the `vc-git-manager` agent to isolate verbose output.
+Execute git workflows via the `av-git-manager` agent to isolate verbose output.
 
 **IMPORTANT:**
 - Sacrifice grammar for the sake of concision.
@@ -240,9 +240,9 @@ See `references/workflow-prc.md` for complete details.
 
 ## Workflow position
 
-**Typically follows:** any skill that produced changes to ship — `vc:cook`,
-`vc:fix`, `vc:docs`, or a manual edit session.
+**Typically follows:** any skill that produced changes to ship — `av:cook`,
+`av:fix`, `av:docs`, or a manual edit session.
 **Typically precedes:** nothing — committing/merging is the terminal step.
-**Related:** the `vc-git-manager` agent executes these operations to keep verbose
-git output out of the main context; `vc:cook`'s finalize step delegates to it.
+**Related:** the `av-git-manager` agent executes these operations to keep verbose
+git output out of the main context; `av:cook`'s finalize step delegates to it.
 

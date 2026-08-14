@@ -3,7 +3,7 @@ import type { EvidenceVocabularyV1 } from "./evidence-vocabulary.js";
 import { assertRunBound, bindRunContext, type RunBoundV1, type RunContextV1 } from "./run-context.js";
 import { getScenarioCase, type ScenarioV1 } from "./scenario-types.js";
 
-const capabilityPreflightBrand: unique symbol = Symbol("vcskill.capability-preflight");
+const capabilityPreflightBrand: unique symbol = Symbol("ariadnev.capability-preflight");
 
 export interface CapabilityPreflightV1 extends RunBoundV1 {
   readonly scenario: { readonly id: string; readonly revision: number; readonly caseId: string };

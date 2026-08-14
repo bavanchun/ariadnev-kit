@@ -1,8 +1,8 @@
 // Regenerate the provider matrix block in README from the resolver/spec-verified
 // source of truth. Run with bun (imports TS directly):
-//   pnpm --filter vcskill generate:matrix
+//   pnpm --filter ariadnev generate:matrix
 // The block is delimited by MATRIX_BEGIN/MATRIX_END markers; only that region is
-// rewritten. `vcskill validate --check` fails if README drifts from this output.
+// rewritten. `ariadnev validate --check` fails if README drifts from this output.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";

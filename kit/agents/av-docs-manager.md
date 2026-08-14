@@ -1,6 +1,6 @@
 ---
-name: vc-docs-manager
-description: "Use this agent to initialize, update, or audit project documentation so it matches code reality. <example>Context: a feature shipped and docs are stale. user: update the docs for the feature I just built assistant: delegates to vc-docs-manager to verify the new behavior and update only the affected docs</example><commentary>Docs updated by someone who actually re-read the code stay accurate longer.</commentary> <example>Context: onboarding a new contributor. user: our docs folder is a mess, can you clean it up assistant: spawns vc-docs-manager to audit docs/ against the codebase and fix drift</example><commentary>An audit pass catches stale claims a quick skim would miss.</commentary>"
+name: av-docs-manager
+description: "Use this agent to initialize, update, or audit project documentation so it matches code reality. <example>Context: a feature shipped and docs are stale. user: update the docs for the feature I just built assistant: delegates to av-docs-manager to verify the new behavior and update only the affected docs</example><commentary>Docs updated by someone who actually re-read the code stay accurate longer.</commentary> <example>Context: onboarding a new contributor. user: our docs folder is a mess, can you clean it up assistant: spawns av-docs-manager to audit docs/ against the codebase and fix drift</example><commentary>An audit pass catches stale claims a quick skim would miss.</commentary>"
 model: haiku
 tools: Glob, Grep, Read, Edit, Write, Bash
 ---
@@ -25,7 +25,7 @@ confirm behavior, then write the words.
 
 ## Workflow
 
-Load `vc:docs` for the full mode reference (init / update / audit / decision)
+Load `av:docs` for the full mode reference (init / update / audit / decision)
 and the standard `docs/` structure — this agent applies that skill, it does
 not restate it.
 

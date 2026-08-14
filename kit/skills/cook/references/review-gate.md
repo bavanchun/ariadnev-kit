@@ -1,7 +1,7 @@
 # Review Gate
 
 Self-review checklist for the full diff before finalize. For cross-module or
-public-contract changes, delegate this checklist to the `vc-reviewer` agent
+public-contract changes, delegate this checklist to the `av-reviewer` agent
 with the acceptance criteria attached; otherwise walk it yourself, file by file.
 
 ## Correctness

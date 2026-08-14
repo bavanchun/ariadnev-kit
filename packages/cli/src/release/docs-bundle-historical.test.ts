@@ -47,7 +47,7 @@ function initializeFixture(sourceTree: string, description: string) {
   git(sourceTree, ["config", "user.name", "Fixture"]);
   git(sourceTree, ["add", "."]);
   git(sourceTree, ["commit", "-m", "fixture"]);
-  git(sourceTree, ["tag", "vcskill@0.10.0"]);
+  git(sourceTree, ["tag", "ariadnev@0.10.0"]);
   git(sourceTree, ["checkout", "--detach"]);
   return git(sourceTree, ["rev-parse", "HEAD"]);
 }
@@ -56,7 +56,7 @@ afterEach(cleanupTemps);
 
 describe("historical docs bundle projection", () => {
   it("executes the actual stable tag from a read-only detached source tree", async () => {
-    const sourceTree = tempDir("vcskill-stable-source-");
+    const sourceTree = tempDir("ariadnev-stable-source-");
     const version = JSON.parse(readFileSync(join(repoRoot, "packages", "cli", "package.json"), "utf8")).version as string;
     const previous = JSON.parse(execFileSync("node", [
       join(repoRoot, "packages", "cli", "scripts", "resolve-previous-stable.mjs"),
@@ -81,7 +81,7 @@ describe("historical docs bundle projection", () => {
 
     const result = await provisional(
       { sourceTree, releaseTag, productSha, generatorSha: "f".repeat(40) },
-      tempDir("vcskill-stable-output-"),
+      tempDir("ariadnev-stable-output-"),
     );
     const payload = JSON.parse(readArchiveMember(
       readFileSync(result.archivePath),
@@ -95,20 +95,20 @@ describe("historical docs bundle projection", () => {
   });
 
   it("rejects product/tag drift before executing historical code", async () => {
-    const sourceTree = tempDir("vcskill-history-drift-");
+    const sourceTree = tempDir("ariadnev-history-drift-");
     initializeFixture(sourceTree, "Safe fixture");
     await expect(provisional(
-      { sourceTree, releaseTag: "vcskill@0.10.0", productSha: "f".repeat(40), generatorSha: "f".repeat(40) },
-      tempDir("vcskill-history-drift-output-"),
+      { sourceTree, releaseTag: "ariadnev@0.10.0", productSha: "f".repeat(40), generatorSha: "f".repeat(40) },
+      tempDir("ariadnev-history-drift-output-"),
     )).rejects.toThrow(/product sha/i);
   });
 
   it("rejects hostile tagged projections through the current allowlist boundary", async () => {
-    const sourceTree = tempDir("vcskill-history-hostile-");
+    const sourceTree = tempDir("ariadnev-history-hostile-");
     const productSha = initializeFixture(sourceTree, `leaks ${repoRoot}`);
     await expect(provisional(
-      { sourceTree, releaseTag: "vcskill@0.10.0", productSha, generatorSha: "f".repeat(40) },
-      tempDir("vcskill-history-hostile-output-"),
+      { sourceTree, releaseTag: "ariadnev@0.10.0", productSha, generatorSha: "f".repeat(40) },
+      tempDir("ariadnev-history-hostile-output-"),
     )).rejects.toThrow(/public allowlist validation/i);
   });
 });

@@ -35,7 +35,7 @@ export function registerMaintenanceCommands(
 
   program
     .command("backups")
-    .description("List or restore vcskill-managed backups")
+    .description("List or restore ariadnev-managed backups")
     .argument("<action>", "list | restore <timestamp>")
     .argument("[timestamp]", "backup timestamp (for restore)")
     .option("--global", "use ~/ scope", false)
@@ -49,7 +49,7 @@ export function registerMaintenanceCommands(
       }
       if (action === "restore") {
         if (!timestamp) {
-          emitError("usage: vcskill backups restore <timestamp> [--file <rel>]");
+          emitError("usage: ariadnev backups restore <timestamp> [--file <rel>]");
           process.exitCode = 1;
           return;
         }
@@ -71,7 +71,7 @@ export function registerMaintenanceCommands(
 
   program
     .command("update")
-    .description("Self-update to the latest vcskill release (--check to only report)")
+    .description("Self-update to the latest ariadnev release (--check to only report)")
     .option("--global", "check ~/ scope", false)
     .option("--check", "only report whether an update exists; don't install", false)
     .action(async (opts: { global?: boolean; check?: boolean }) => {

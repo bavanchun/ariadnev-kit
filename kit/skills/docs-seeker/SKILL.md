@@ -1,5 +1,5 @@
 ---
-name: vc:docs-seeker
+name: av:docs-seeker
 description: Look up current documentation for a library, framework, or API before relying on memory. Use when an API might have changed, or the user asks about a specific package's current behavior.
 user-invocable: true
 argument-hint: "<library or framework> [topic]"
@@ -18,7 +18,7 @@ Handles: pinpoint API lookup, version-specific behavior, setup flags, current
 framework conventions, and documentation gaps.
 
 Does not handle: comparing several products or forming a broad technology
-recommendation. Route that work to `vc:research`.
+recommendation. Route that work to `av:research`.
 
 ## Intake
 
@@ -87,7 +87,7 @@ request, return only the pages and snippets needed to act.
 
 Proof/risk: this skill is read-only. Its proof is source traceability and
 version alignment; it does not prove that copied code works in the user's
-project, so implementation still needs `vc:test` or the caller's test gate.
+project, so implementation still needs `av:test` or the caller's test gate.
 
 ## Quality gates
 
@@ -105,11 +105,11 @@ Before answering, confirm:
 
 ## Workflow position
 
-**Typically follows:** `vc:cook`, `vc:fix`, `vc:ask`, or `vc:research` reaching
+**Typically follows:** `av:cook`, `av:fix`, `av:ask`, or `av:research` reaching
 a current-API question.
 
-**Typically precedes:** returning the verified fact to that caller; `vc:test`
+**Typically precedes:** returning the verified fact to that caller; `av:test`
 when a fetched example is implemented.
 
-**Related:** `vc:research` for open comparison across options; this skill for a
+**Related:** `av:research` for open comparison across options; this skill for a
 pinpoint lookup on a library already selected.

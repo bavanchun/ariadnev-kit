@@ -13,7 +13,7 @@ function sha256(s: string): string {
 function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
   return {
     schemaVersion: 1,
-    vcskillVersion: "0.4.0",
+    ariadnevVersion: "0.4.0",
     installs: {
       "claude-code": {
         timestamp: "t1",
@@ -23,7 +23,7 @@ function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
         ],
         agentsMdManaged: false,
         hookBindings: [
-          { event: "SessionStart", command: 'node "/home/u/proj/.claude/hooks/vc/session-init.cjs"', applied: true },
+          { event: "SessionStart", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"', applied: true },
         ],
         skipped: [],
       },

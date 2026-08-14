@@ -19,27 +19,27 @@ const FOOTERS: Partial<Record<ProviderId, FooterSpec>> = {
   codex: {
     heading: "## Codex Compatibility",
     body:
-      "- Keep the original vcskill skill name and `vc:*` examples as invocation aliases.\n" +
-      "- In Codex, mention the skill with `$skill-name` or the exact `vc:*` name, or let Codex activate it from the description.\n" +
+      "- Keep the original ariadnev skill name and `av:*` examples as invocation aliases.\n" +
+      "- In Codex, mention the skill with `$skill-name` or the exact `av:*` name, or let Codex activate it from the description.\n" +
       "- Use Codex tools for orchestration: `request_user_input`, `update_plan`, `spawn_agent`, `wait_agent`, and file reports in `plans/reports/`.\n",
   },
   cursor: {
     heading: "## Cursor Compatibility",
     body:
       "- Some Claude tools (e.g. `AskUserQuestion`) have no Cursor equivalent — ask the user inline instead.\n" +
-      "- Invoke this skill by its `vc:*` name or let Cursor activate it from the description.\n",
+      "- Invoke this skill by its `av:*` name or let Cursor activate it from the description.\n",
   },
   opencode: {
     heading: "## OpenCode Compatibility",
     body:
       "- Tool names are kept as-is (no verified OpenCode rewrite table); map them to OpenCode equivalents at runtime.\n" +
-      "- Invoke this skill by its `vc:*` name.\n",
+      "- Invoke this skill by its `av:*` name.\n",
   },
   antigravity: {
     heading: "## Antigravity Compatibility",
     body:
       "- Tool names are kept as-is (unverified mapping); adapt to Antigravity equivalents at runtime.\n" +
-      "- Invoke this skill by its `vc:*` name.\n",
+      "- Invoke this skill by its `av:*` name.\n",
   },
 };
 

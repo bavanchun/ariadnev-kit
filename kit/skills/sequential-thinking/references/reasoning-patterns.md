@@ -80,7 +80,7 @@ Use a `META` checkpoint after several steps without progress:
 - what is missing;
 - why the current method is not resolving it;
 - which source, experiment, or reframing will change that;
-- whether to hand off to `vc:problem-solving`.
+- whether to hand off to `av:problem-solving`.
 
 ## Completion conditions
 

@@ -27,7 +27,7 @@ test("buildContext renders VC_* lines and omits unknown fields", () => {
 });
 
 test("hook detects a node project from stdin cwd and prints context", () => {
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-si-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-si-"));
   fs.writeFileSync(path.join(proj, "package.json"), "{}");
   fs.writeFileSync(path.join(proj, "pnpm-lock.yaml"), "");
   const res = runHook({ session_id: "s1", cwd: proj, hook_event_name: "SessionStart" });

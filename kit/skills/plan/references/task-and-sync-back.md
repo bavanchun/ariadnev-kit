@@ -23,7 +23,7 @@ Runtime ownership must not overlap and dependency graphs must not cycle.
 
 ## Cook handoff
 
-In the same session, `vc:cook` may reuse a live view only after confirming it
+In the same session, `av:cook` may reuse a live view only after confirming it
 matches the plan. In a new session, or when runtime state is stale or absent,
 rebuild progress from unchecked plan items. The plan always wins when states
 disagree.

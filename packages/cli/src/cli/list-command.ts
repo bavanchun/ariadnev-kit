@@ -21,7 +21,7 @@ export function runList(opts: ListHandlerOpts): string {
   const style: StyleOpts = { color: !!opts.color };
   const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const kit = loadKit(kitRoot);
-  const lines: string[] = [`${coral("vcskill", style)} kit:`];
+  const lines: string[] = [`${coral("ariadnev", style)} kit:`];
   lines.push(`  skills:   ${kit.skills.map((s) => s.name).join(", ") || "(none)"}`);
   lines.push(`  agents:   ${kit.agents.map((a) => a.name).join(", ") || "(none)"}`);
   lines.push(`  commands: ${kit.commands.map((c) => c.name).join(", ") || "(none)"}`);

@@ -5,11 +5,11 @@
 
 // (bun --target) → published asset name.
 export const TARGETS = [
-  { target: "bun-darwin-arm64", asset: "vcskill-darwin-arm64" },
-  { target: "bun-darwin-x64", asset: "vcskill-darwin-x64" },
-  { target: "bun-linux-x64", asset: "vcskill-linux-x64" },
-  { target: "bun-linux-arm64", asset: "vcskill-linux-arm64" },
-  { target: "bun-windows-x64", asset: "vcskill-windows-x64.exe" },
+  { target: "bun-darwin-arm64", asset: "ariadnev-darwin-arm64" },
+  { target: "bun-darwin-x64", asset: "ariadnev-darwin-x64" },
+  { target: "bun-linux-x64", asset: "ariadnev-linux-x64" },
+  { target: "bun-linux-arm64", asset: "ariadnev-linux-arm64" },
+  { target: "bun-windows-x64", asset: "ariadnev-windows-x64.exe" },
 ];
 
 // Node's process.platform → the token bun uses in its --target triple.

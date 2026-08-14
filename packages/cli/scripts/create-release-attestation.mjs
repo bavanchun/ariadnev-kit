@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateReleaseJson } from "./validate-release-json.mjs";
 
-const schemaUrl = "https://vcskill.dev/schemas/release-artifact-attestation.schema.json";
+const schemaUrl = "https://ariadnev.com/schemas/release-artifact-attestation.schema.json";
 
 function stable(value) {
   return `${JSON.stringify(value, (_key, current) => {

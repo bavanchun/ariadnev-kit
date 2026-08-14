@@ -33,7 +33,7 @@ describe("harness command registration", () => {
     const lines: string[] = [];
     vi.spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
     await buildProgram().parseAsync([
-      "node", "vcskill", "--cwd", process.cwd(), "run", "missing-workflow", "--validate", "--json",
+      "node", "ariadnev", "--cwd", process.cwd(), "run", "missing-workflow", "--validate", "--json",
     ]);
     expect(process.exitCode).toBe(1);
     expect(lines).toHaveLength(1);

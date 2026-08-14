@@ -24,7 +24,7 @@ test("every release handoff schema compiles in draft-2020 mode", () => {
   ]) assert.doesNotThrow(() => validator(name), name);
 });
 
-test("candidate and inner provenance fixtures validate and malformed dates fail", () => withScratch("vc-release-schema-", (dir) => {
+test("candidate and inner provenance fixtures validate and malformed dates fail", () => withScratch("av-release-schema-", (dir) => {
   const candidate = createCandidate(dir);
   const validateEnvelope = validator("candidate-envelope.schema.json");
   assert.equal(validateEnvelope(candidateEnvelope(candidate)), true, JSON.stringify(validateEnvelope.errors));
@@ -37,7 +37,7 @@ test("candidate and inner provenance fixtures validate and malformed dates fail"
 test("finalization attestation fixture validates", () => {
   const value = {
     schemaVersion: 1,
-    schema: "https://vcskill.dev/schemas/finalization-attestation.schema.json",
+    schema: "https://ariadnev.com/schemas/finalization-attestation.schema.json",
     runId: "501",
     runAttempt: "1",
     repository: "octo/example",

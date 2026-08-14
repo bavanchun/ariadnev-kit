@@ -7,7 +7,7 @@
   "title": "Linked knowledge note",
   "subjects": {
     "skills": [
-      "vc:obsidian-second-brain-note"
+      "av:obsidian-second-brain-note"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:obsidian-second-brain-note": "required",
-          "vc:docs": "forbidden"
+          "av:obsidian-second-brain-note": "required",
+          "av:docs": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:docs": "required",
-          "vc:obsidian-second-brain-note": "forbidden"
+          "av:docs": "required",
+          "av:obsidian-second-brain-note": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

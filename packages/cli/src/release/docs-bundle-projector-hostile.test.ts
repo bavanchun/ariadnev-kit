@@ -6,7 +6,7 @@ import { projectCli, projectKit, projectProof, projectProviders } from "./docs-b
 
 describe("docs bundle projector hostile fixtures", () => {
   it("rejects unsafe cli aliases, argument names, option fields, and descriptions", () => {
-    const program = new Command().name("vcskill").description("Public CLI");
+    const program = new Command().name("ariadnev").description("Public CLI");
     program.command("scan").alias("/Users/private/bin").description("Safe").argument("<C:\\\\secret>");
     program.command("config").description("Safe").option("--token <ghp_abcdefghijklmnopqrst1234>", "desc");
     program.command("unsafe").description("Path /Users/private");
@@ -14,10 +14,10 @@ describe("docs bundle projector hostile fixtures", () => {
     expect(() => projectCli(program)).toThrow(/absolute path|secret/i);
 
     for (const description of ["Reads /tmp/private-state", "workspace=/private/state", "path:/etc/passwd", "root[/opt/data]"]) {
-      expect(() => projectCli(new Command().name("vcskill").description(description))).toThrow(/absolute path/i);
+      expect(() => projectCli(new Command().name("ariadnev").description(description))).toThrow(/absolute path/i);
     }
-    expect(() => projectCli(new Command().name("vcskill").description("Docs https://vcskill.dev/reference"))).not.toThrow();
-    expect(() => projectCli(new Command().name("vcskill").description("Accept a task or plan / phase file"))).not.toThrow();
+    expect(() => projectCli(new Command().name("ariadnev").description("Docs https://ariadnev.com/reference"))).not.toThrow();
+    expect(() => projectCli(new Command().name("ariadnev").description("Accept a task or plan / phase file"))).not.toThrow();
   });
 
   it("drops unknown skill metadata keys and rejects unsafe public string fields", () => {
@@ -38,7 +38,7 @@ describe("docs bundle projector hostile fixtures", () => {
         raw: "private raw",
         sourcePath: "/Users/private/skill.md",
         frontmatter: {
-          name: "vc:demo",
+          name: "av:demo",
           description: "Safe",
           metadata: {
             author: "/Users/private",
@@ -70,7 +70,7 @@ describe("docs bundle projector hostile fixtures", () => {
     } satisfies Kit;
     expect(projectKit(safeKit).skills).toEqual([{
       id: "demo-skill",
-      name: "vc:demo",
+      name: "av:demo",
       description: "Safe",
       metadata: {
         author: "V Chun",

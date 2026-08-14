@@ -7,7 +7,7 @@
   "title": "Redacted continuation handoff",
   "subjects": {
     "skills": [
-      "vc:handoff"
+      "av:handoff"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:handoff": "required",
-          "vc:journal": "forbidden"
+          "av:handoff": "required",
+          "av:journal": "forbidden"
         },
         "artifacts": {
           "handoff": {

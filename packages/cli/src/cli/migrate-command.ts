@@ -40,7 +40,7 @@ export function runMigrate(opts: MigrateHandlerOpts): { moved: number; dryRun: b
   const applied = readAppliedState(opts.root);
   const ops = planMigrations(manifest, applied, { root: opts.root }, opts.provider);
   const res = executeMigrations(ops, opts.root, { dryRun: opts.dryRun, timestamp: opts.timestamp });
-  const lines = [opts.dryRun ? "vcskill migrate — DRY RUN" : "vcskill migrate — complete"];
+  const lines = [opts.dryRun ? "ariadnev migrate — DRY RUN" : "ariadnev migrate — complete"];
   for (const op of res.moved) lines.push(`  move ${op.migration.from} -> ${op.migration.to}`);
   if (res.moved.length === 0) lines.push("  nothing to migrate");
   return { moved: res.moved.length, dryRun: res.dryRun, summary: lines.join("\n") };

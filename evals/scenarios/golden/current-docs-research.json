@@ -7,8 +7,8 @@
   "title": "Current documentation research",
   "subjects": {
     "skills": [
-      "vc:docs-seeker",
-      "vc:research"
+      "av:docs-seeker",
+      "av:research"
     ]
   },
   "fixture": {
@@ -31,9 +31,9 @@
           ]
         },
         "routing": {
-          "vc:docs-seeker": "required",
-          "vc:research": "required",
-          "vc:docs": "forbidden"
+          "av:docs-seeker": "required",
+          "av:research": "required",
+          "av:docs": "forbidden"
         },
         "artifacts": {
           "decision-brief": {

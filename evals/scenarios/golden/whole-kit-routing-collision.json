@@ -7,10 +7,10 @@
   "title": "Whole-kit routing collision",
   "subjects": {
     "skills": [
-      "vc:scenario",
-      "vc:predict",
-      "vc:scout",
-      "vc:research"
+      "av:scenario",
+      "av:predict",
+      "av:scout",
+      "av:research"
     ]
   },
   "fixture": {
@@ -28,9 +28,9 @@
           ]
         },
         "routing": {
-          "vc:scenario": "required",
-          "vc:predict": "forbidden",
-          "vc:research": "forbidden"
+          "av:scenario": "required",
+          "av:predict": "forbidden",
+          "av:research": "forbidden"
         },
         "artifacts": {
           "scenario-matrix": {

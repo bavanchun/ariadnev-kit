@@ -11,7 +11,7 @@ import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 
-// `vcskill validate` — lint the kit source without installing it. Wraps the
+// `ariadnev validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
 // (dangling + orphan) which loadKit does not check. Read-only; CI-able.
 
@@ -38,7 +38,7 @@ export interface ValidateOpts {
   /** Override README path (tests). Default: repo README relative to this module. */
   readmePath?: string;
   /** Restrict per-skill checks to these skill names (accepts "scout" or
-   * "vc:scout"). Used by `vc eval --skill`. Undefined = whole kit. */
+   * "av:scout"). Used by `av eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
 }
 
@@ -74,7 +74,7 @@ export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry
 }
 
 function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
-  const header = `vcskill validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
+  const header = `ariadnev validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
   if (findings.length === 0) return `${header}\n  all checks passed`;
   const lines = [header];
   for (const f of findings) {

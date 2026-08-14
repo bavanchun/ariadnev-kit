@@ -1,6 +1,6 @@
 # Root-Cause Loop
 
-The full protocol behind vc:fix step "prove". Read this when the bug is not
+The full protocol behind av:fix step "prove". Read this when the bug is not
 mechanically obvious.
 
 ## 1. Reproduce

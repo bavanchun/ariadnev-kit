@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vcskill.dev/schemas/web-consumer-lock-v1.schema.json",
-  "title": "vcskill web consumer lock v1",
+  "$id": "https://ariadnev.com/schemas/web-consumer-lock-v1.schema.json",
+  "title": "ariadnev web consumer lock v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -42,7 +42,7 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "repository": {
-      "const": "bavanchun/vcskill-web"
+      "const": "bavanchun/ariadnev-web"
     },
     "commitSha": {
       "type": "string",
@@ -88,7 +88,7 @@
       "properties": {
         "tag": {
           "type": "string",
-          "pattern": "^vcskill@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+          "pattern": "^ariadnev@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
         },
         "descriptorPath": { "$ref": "#/$defs/relativePath" },
         "descriptorDigest": { "$ref": "#/$defs/digest" }

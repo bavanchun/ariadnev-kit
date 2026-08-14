@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "vcskill-context-v1",
+  "id": "ariadnev-context-v1",
   "frozenAt": "2026-08-08T14:30:00.000Z",
   "seed": 260808,
   "cacheStates": ["cold", "warm"],
@@ -21,8 +21,8 @@
     { "path": "kit/skills/security-scan/SKILL.md", "kind": "skill", "redaction": "public" },
     { "path": "kit/skills/ship/SKILL.md", "kind": "skill", "redaction": "public" },
     { "path": "kit/skills/test/SKILL.md", "kind": "skill", "redaction": "public" },
-    { "path": "kit/agents/vc-debugger.md", "kind": "agent", "redaction": "public" },
-    { "path": "kit/agents/vc-reviewer.md", "kind": "agent", "redaction": "public" },
+    { "path": "kit/agents/av-debugger.md", "kind": "agent", "redaction": "public" },
+    { "path": "kit/agents/av-reviewer.md", "kind": "agent", "redaction": "public" },
     { "path": "evals/scenarios/golden/architecture-brainstorm-to-plan.json", "kind": "scenario", "redaction": "public" },
     { "path": "evals/scenarios/golden/current-docs-research.json", "kind": "scenario", "redaction": "public" },
     { "path": "evals/scenarios/golden/read-only-repository-answer.json", "kind": "scenario", "redaction": "public" },

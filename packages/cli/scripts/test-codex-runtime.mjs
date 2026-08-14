@@ -11,15 +11,15 @@ import { CodexExecutor } from "../src/harness/executors/codex-executor.ts";
 import { createGraphRunContext, runGraph } from "../src/harness/run-graph.ts";
 
 const environment = Reflect.get(process, "env");
-const enabled = environment[["VCSKILL", "LIVE", "CODEX"].join("_")] === "1";
+const enabled = environment[["ARIADNEV", "LIVE", "CODEX"].join("_")] === "1";
 if (!enabled) {
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, status: "skipped", reason: "set VCSKILL_LIVE_CODEX=1" }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, status: "skipped", reason: "set ARIADNEV_LIVE_CODEX=1" }, null, 2)}\n`);
   process.exit(0);
 }
 
 const expectedRuntimeVersion = "0.147.0";
 const model = "gpt-5.4-mini";
-const root = mkdtempSync(join(tmpdir(), "vcskill-live-codex-"));
+const root = mkdtempSync(join(tmpdir(), "ariadnev-live-codex-"));
 chmodSync(root, 0o700);
 
 class LiveProbeSkip extends Error {}
@@ -135,7 +135,7 @@ try {
   symlinkSync(sourceCredential, join(isolatedCodexHome, credentialName));
 
   const executor = new CodexExecutor({
-    executable: environment[["VCSKILL", "CODEX", "BIN"].join("_")] ?? "codex",
+    executable: environment[["ARIADNEV", "CODEX", "BIN"].join("_")] ?? "codex",
     expectedRuntimeVersion,
     model,
     codexHome: isolatedCodexHome,

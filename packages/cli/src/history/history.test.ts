@@ -8,7 +8,7 @@ import { runQuery, renderQuery, normalizeView } from "../cli/query-command.js";
 
 const dirs: string[] = [];
 const mk = () => {
-  const d = mkdtempSync(join(tmpdir(), "vcskill-hist-"));
+  const d = mkdtempSync(join(tmpdir(), "ariadnev-hist-"));
   dirs.push(d);
   return d;
 };
@@ -40,7 +40,7 @@ describe("store — append / read / degraded", () => {
     const home = mk();
     const p = historyPath(home);
     appendEvent(p, toEvent("install", { provider: "codex" }));
-    mkdirSync(join(home, ".vcskill"), { recursive: true });
+    mkdirSync(join(home, ".ariadnev"), { recursive: true });
     appendFileSync(p, "{ this is not json }\n");
     appendEvent(p, toEvent("doctor", { status: "healthy" }));
     const events = readEvents(p);

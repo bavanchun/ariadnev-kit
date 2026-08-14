@@ -6,7 +6,17 @@ import { relative, isAbsolute, join } from "node:path";
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { ProviderInstallResult } from "./install-types.js";
 
-export const RECEIPT_SCHEMA_VERSION = 1;
+export const RECEIPT_SCHEMA_VERSION = 2;
+
+// Schema 1 receipts were written before the rename and record the CLI version
+// under the pre-rename key. They still describe files that exist on disk, so
+// uninstall and doctor must keep reading them rather than refusing.
+export const SUPPORTED_RECEIPT_SCHEMA_VERSIONS = [1, 2];
+
+/** CLI version recorded in a receipt, accepting the pre-rename key. */
+export function receiptVersion(receipt: Pick<Receipt, "ariadnevVersion" | "vcskillVersion">): string | null { // brand-drift-allow: names the pre-rename key it reads
+  return receipt.ariadnevVersion ?? receipt.vcskillVersion ?? null; // brand-drift-allow: key written by pre-rename installs
+}
 
 export interface ReceiptFile {
   /** Portable path: "~/…" (home-relative), plain relative (cwd-relative), or absolute. */
@@ -39,7 +49,10 @@ export interface ReceiptInstall {
 
 export interface Receipt {
   schemaVersion: number;
-  vcskillVersion: string;
+  /** Absent in a schema-1 receipt, which used the pre-rename key below. */
+  ariadnevVersion?: string;
+  /** Only ever read, never written. Use `receiptVersion()` instead of either key. */
+  vcskillVersion?: string; // brand-drift-allow: key written by pre-rename installs
   installs: Partial<Record<ProviderId, ReceiptInstall>>;
 }
 
@@ -52,7 +65,7 @@ export interface ProviderResultForReceipt {
 }
 
 export interface BuildReceiptMeta {
-  vcskillVersion: string;
+  ariadnevVersion: string;
   timestamp: string;
   home: string;
   cwd: string;
@@ -127,11 +140,11 @@ export function buildReceipt(
 ): string {
   const prev: Receipt = prevJson.trim().length
     ? (JSON.parse(prevJson) as Receipt)
-    : { schemaVersion: RECEIPT_SCHEMA_VERSION, vcskillVersion: meta.vcskillVersion, installs: {} };
+    : { schemaVersion: RECEIPT_SCHEMA_VERSION, ariadnevVersion: meta.ariadnevVersion, installs: {} };
 
   const receipt: Receipt = {
     schemaVersion: RECEIPT_SCHEMA_VERSION,
-    vcskillVersion: meta.vcskillVersion,
+    ariadnevVersion: meta.ariadnevVersion,
     installs: { ...prev.installs },
   };
 

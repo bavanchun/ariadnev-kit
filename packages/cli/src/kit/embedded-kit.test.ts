@@ -21,19 +21,19 @@ function walkText(dir: string, base: string, acc: Record<string, string>): Recor
 
 describe("embedded-kit", () => {
   let cache: string;
-  const prevCache = process.env.VCSKILL_CACHE_DIR;
-  const prevForce = process.env.VCSKILL_EMBEDDED;
+  const prevCache = process.env.ARIADNEV_CACHE_DIR;
+  const prevForce = process.env.ARIADNEV_EMBEDDED;
 
   beforeEach(() => {
-    cache = mkdtempSync(join(tmpdir(), "vcskill-cache-"));
-    process.env.VCSKILL_CACHE_DIR = cache;
+    cache = mkdtempSync(join(tmpdir(), "ariadnev-cache-"));
+    process.env.ARIADNEV_CACHE_DIR = cache;
   });
   afterEach(() => {
     rmSync(cache, { recursive: true, force: true });
-    if (prevCache === undefined) delete process.env.VCSKILL_CACHE_DIR;
-    else process.env.VCSKILL_CACHE_DIR = prevCache;
-    if (prevForce === undefined) delete process.env.VCSKILL_EMBEDDED;
-    else process.env.VCSKILL_EMBEDDED = prevForce;
+    if (prevCache === undefined) delete process.env.ARIADNEV_CACHE_DIR;
+    else process.env.ARIADNEV_CACHE_DIR = prevCache;
+    if (prevForce === undefined) delete process.env.ARIADNEV_EMBEDDED;
+    else process.env.ARIADNEV_EMBEDDED = prevForce;
   });
 
   it("extracts the embedded kit to a version-stamped cache and returns the kit root", () => {
@@ -54,7 +54,7 @@ describe("embedded-kit", () => {
   it("is idempotent (sentinel prevents re-extract) and content is intact", () => {
     const root = materializeEmbeddedKit();
     const cook = readFileSync(join(root, "skills", "cook", "SKILL.md"), "utf8");
-    expect(cook).toContain("name: vc:cook");
+    expect(cook).toContain("name: av:cook");
     // second call: sentinel present, no throw, same root
     expect(materializeEmbeddedKit()).toBe(root);
   });
@@ -73,8 +73,8 @@ describe("embedded-kit", () => {
     expect(existsSync(join(root, "skills"))).toBe(true);
   });
 
-  it("VCSKILL_EMBEDDED=1 forces the embedded path even with a kit on disk", () => {
-    process.env.VCSKILL_EMBEDDED = "1";
+  it("ARIADNEV_EMBEDDED=1 forces the embedded path even with a kit on disk", () => {
+    process.env.ARIADNEV_EMBEDDED = "1";
     expect(getKitRoot(process.cwd())).toBe(join(cache, EMBEDDED_VERSION, "kit"));
   });
 

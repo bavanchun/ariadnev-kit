@@ -7,8 +7,8 @@
   "title": "Create a quality-gated skill",
   "subjects": {
     "skills": [
-      "vc:skill-creator",
-      "vc:test"
+      "av:skill-creator",
+      "av:test"
     ]
   },
   "fixture": {
@@ -27,9 +27,9 @@
           ]
         },
         "routing": {
-          "vc:skill-creator": "required",
-          "vc:test": "required",
-          "vc:docs": "forbidden"
+          "av:skill-creator": "required",
+          "av:test": "required",
+          "av:docs": "forbidden"
         },
         "artifacts": {
           "skill-package": {

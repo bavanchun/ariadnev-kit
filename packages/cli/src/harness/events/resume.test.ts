@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 function fixture(runId = "run.resume") {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-resume-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-resume-"));
   roots.push(root);
   const context: EventStoreContextV1 = {
     runId,

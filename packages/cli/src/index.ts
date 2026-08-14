@@ -32,14 +32,14 @@ function banner(): string {
   return [
     `${wordmark(style)}  ${faint("— curated workflows, quality-gated across coding agents", style)}`,
     "",
-    `  ${coral("vc", style)} <command>   ·   try  ${coral("vc install", style)}  ·  ${coral("vc doctor", style)}  ·  ${coral("vc list", style)}`,
+    `  ${coral("av", style)} <command>   ·   try  ${coral("av install", style)}  ·  ${coral("av doctor", style)}  ·  ${coral("av list", style)}`,
   ].join("\n");
 }
 
 export function buildProgram(): Command {
   const program = new Command();
   program
-    .name("vcskill")
+    .name("ariadnev")
     .description("Install a curated, quality-gated workflow kit across coding-agent targets.")
     .version(packageVersion())
     .option("--home <dir>", "override home root", homedir())
@@ -65,7 +65,7 @@ export function buildProgram(): Command {
 
 // Resolve argv[1] through bin symlinks; Bun binaries use import.meta.main.
 function isEntry(): boolean {
-  if (process.env.VCSKILL_RUN === "1") return true;
+  if (process.env.ARIADNEV_RUN === "1") return true;
   if ((import.meta as { main?: boolean }).main === true) return true;
   if (import.meta.url.includes("/$bunfs/") || import.meta.url.startsWith("bun:")) return true;
   if (!process.argv[1]) return false;

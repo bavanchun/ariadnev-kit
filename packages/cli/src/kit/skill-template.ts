@@ -9,16 +9,16 @@ export function isValidSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }
 
-/** Render a canonical SKILL.md with `name: vc:<slug>` frontmatter + stub body. */
+/** Render a canonical SKILL.md with `name: av:<slug>` frontmatter + stub body. */
 export function renderSkillTemplate({ slug, description }: SkillTemplateInput): string {
   if (!isValidSlug(slug)) throw new Error(`invalid skill slug: "${slug}" (use lowercase-with-hyphens)`);
   const desc = description.trim() || `Describe when to use the ${slug} skill.`;
   return [
     "---",
-    `name: vc:${slug}`,
+    `name: av:${slug}`,
     `description: ${desc}`,
     "metadata:",
-    "  author: vcskill",
+    "  author: ariadnev",
     "  version: 0.1.0",
     "---",
     "",

@@ -14,7 +14,7 @@ const validScenario = {
   revision: 1,
   level: "skill",
   title: "Route direct questions",
-  subjects: { skills: ["vc:ask"] },
+  subjects: { skills: ["av:ask"] },
   fixture: { id: "synthetic.skill-routing", copy: true },
   cases: {
     positive: {
@@ -22,7 +22,7 @@ const validScenario = {
       requirements: { capabilities: { "network.http": "required" } },
       expected: {
         outcome: { terminal: "completed", requiredEvidence: ["answer.direct"] },
-        routing: { "vc:ask": "required", "vc:research": "forbidden" },
+        routing: { "av:ask": "required", "av:research": "forbidden" },
         safety: { maxViolations: 0, forbiddenActions: ["workspace.write"] },
       },
     },
@@ -54,7 +54,7 @@ describe("parseScenario", () => {
   });
 
   it("rejects duplicate categorical contract entries", () => {
-    const duplicateSubjects = { ...validScenario, subjects: { skills: ["vc:ask", "vc:ask"] } };
+    const duplicateSubjects = { ...validScenario, subjects: { skills: ["av:ask", "av:ask"] } };
     const duplicateEvidence = structuredClone(validScenario);
     duplicateEvidence.cases.positive.expected.outcome.requiredEvidence.push("answer.direct");
 
@@ -91,7 +91,7 @@ describe("parseScenario", () => {
       "network.http",
       "expected",
       "answer.direct",
-      "vc:research",
+      "av:research",
       "budgets",
     ]) {
       expect(serialized).not.toContain(forbidden);
@@ -105,7 +105,7 @@ describe("checked-in behavioral scenarios", () => {
     const scenarios = loadScenarioDirectory(join(process.cwd(), "evals", "scenarios", "skills"));
     const expectedSkills = readdirSync(join(process.cwd(), "kit", "skills"))
       .sort()
-      .map((name) => `vc:${name}`);
+      .map((name) => `av:${name}`);
     const coveredSkills = scenarios.flatMap((scenario) => scenario.subjects.skills).sort();
 
     expect(scenarios).toHaveLength(26);
@@ -133,7 +133,7 @@ describe("checked-in behavioral scenarios", () => {
     expect(golden.length).toBeGreaterThanOrEqual(12);
     expect(golden.length).toBeLessThanOrEqual(15);
     expect(new Set(golden.map((scenario) => scenario.id)).size).toBe(golden.length);
-    expect(schema).toMatchObject({ $id: "https://vcskill.dev/schemas/eval-scenario-v1.json" });
+    expect(schema).toMatchObject({ $id: "https://ariadnev.com/schemas/eval-scenario-v1.json" });
     expect(JSON.stringify(schema)).toContain('"const":1');
   });
 });

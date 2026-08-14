@@ -1,5 +1,5 @@
 ---
-name: vc:bootstrap
+name: av:bootstrap
 description: Bootstrap a new project end to end — stack choice, planning, and implementation. Use when starting a project from scratch or a full-stack feature with no existing scaffold.
 user-invocable: true
 argument-hint: "<requirements> [--full|--auto|--fast|--parallel]"
@@ -17,7 +17,7 @@ gates, and handoffs; it does not implement application code directly.
 Handles: new repositories and genuinely scaffold-free products.
 
 Does not handle: adding a feature to an established codebase. Start with
-`vc:brainstorm`, `vc:plan`, or `vc:cook` there instead.
+`av:brainstorm`, `av:plan`, or `av:cook` there instead.
 
 ## Opening contract — all modes
 
@@ -41,7 +41,7 @@ change execution and approval behavior after the contract is concrete.
 |---|---|---|
 | `--full` (default) | Research and compare before each major choice | User approves research, stack, optional design, and plan |
 | `--auto` | Explicit autonomous continuation | Contract remains mandatory; pause only for design approval or a true blocker |
-| `--fast` | Avoid duplicate research when requirements are clear | Fast setup, then normal `vc:cook` review gates |
+| `--fast` | Avoid duplicate research when requirements are clear | Fast setup, then normal `av:cook` review gates |
 | `--parallel` | Execute genuinely independent modules concurrently | Design approval plus normal cook gates; ownership must be disjoint |
 
 Read [mode routing](references/mode-routing.md) after selecting exactly one
@@ -60,11 +60,11 @@ choice or planning begins. After a plan exists, read
    gates; write only durable, approved decisions to the repository's discovered
    documentation surface.
 4. **Plan.** Pass requirements plus outcome, constraints, non-goals, and
-   acceptance criteria to `vc:plan`, preserving mode intent.
+   acceptance criteria to `av:plan`, preserving mode intent.
 5. **Approve as required.** Full mode requires explicit plan approval. Fast and
    parallel retain downstream cook gates. Auto proceeds only because the user
    explicitly opted into it.
-6. **Implement through `vc:cook`.** Pass the plan path and mode; do not write
+6. **Implement through `av:cook`.** Pass the plan path and mode; do not write
    application code directly from bootstrap.
 7. **Close the delivery.** Test, review, docs-impact check, onboarding, final
    report, and optional Git actions follow the delivery reference.
@@ -88,13 +88,13 @@ Contract: <outcome; constraints; non-goals; acceptance criteria>
 Mode: <full|auto|fast|parallel>
 Stack/design: <approved decisions and document paths>
 Plan: <path>
-Implementation: <vc:cook result and proof layers run>
+Implementation: <av:cook result and proof layers run>
 Onboarding: <first commands/config steps>
 Git: <not requested|commit offered|committed|pushed>
 Unresolved: <items or "none">
 ```
 
-Proof/risk: bootstrap delegates behavioral proof to `vc:cook` and `vc:test`.
+Proof/risk: bootstrap delegates behavioral proof to `av:cook` and `av:test`.
 Its own proof is contract traceability, explicit gate history, a real plan path,
 and fresh command output from the delivered project.
 
@@ -114,10 +114,10 @@ Before finishing, confirm:
 
 ## Workflow position
 
-**Typically follows:** `vc:brainstorm` when the product idea needed exploration,
+**Typically follows:** `av:brainstorm` when the product idea needed exploration,
 or starts directly from an already concrete blank-slate brief.
 
-**Typically precedes:** `vc:plan` → `vc:cook` → `vc:test`/`vc:code-review`, then
-`vc:docs`, `vc:journal`, and optional `vc:git`.
+**Typically precedes:** `av:plan` → `av:cook` → `av:test`/`av:code-review`, then
+`av:docs`, `av:journal`, and optional `av:git`.
 
-**Related:** use `vc:cook` directly when a repository and stack already exist.
+**Related:** use `av:cook` directly when a repository and stack already exist.

@@ -1,5 +1,5 @@
 ---
-name: vc:scenario
+name: av:scenario
 description: Generate edge cases and test scenarios by decomposing a feature across risk dimensions. Use for pre-implementation risk discovery, QA planning, or regression design.
 user-invocable: true
 argument-hint: "<file path or feature description>"
@@ -13,7 +13,7 @@ metadata:
 
 Decompose a feature across the dimensions that actually apply to it, and
 generate concrete edge cases per dimension — output that plugs directly into
-`vc:cook`'s test-gate as ready-made test targets.
+`av:cook`'s test-gate as ready-made test targets.
 
 Handles: pre-implementation risk discovery, test-case generation, QA/regression
 design.
@@ -48,7 +48,7 @@ explicitly (state why).
 4. Rate severity: Critical (data loss/security/auth bypass) → High (broken
    for a subset of users) → Medium (degraded UX, recoverable) → Low (cosmetic).
 5. Output the table; map each Critical/High row to a concrete test in
-   `vc:cook`'s test-gate before calling the feature covered.
+   `av:cook`'s test-gate before calling the feature covered.
 
 ## Output format
 
@@ -62,13 +62,13 @@ Dimensions analyzed: <list> | Skipped: <list + reason>
 Critical: N | High: N | Medium: N | Low: N | Total: N across X dimensions
 ```
 
-Feed Critical/High rows into `vc:predict` (as the change proposal) for a
-deeper debate, or straight into `vc:plan`'s risk assessment.
+Feed Critical/High rows into `av:predict` (as the change proposal) for a
+deeper debate, or straight into `av:plan`'s risk assessment.
 
 Each scenario also implies the proof layer that would cover it (see
 `../cook/references/risk-lanes.md`): input-extreme and business-logic rows are
 usually `unit`; integration/error-cascade rows need `integration`; user-type and
-state-transition flows are `e2e`. Tag the layer so `vc:cook`'s test-gate knows
+state-transition flows are `e2e`. Tag the layer so `av:cook`'s test-gate knows
 what kind of test each Critical/High row demands, not just that one is owed.
 
 ## Quality gates
@@ -86,10 +86,10 @@ Before delivering:
 
 ## Workflow position
 
-**Typically follows:** `vc:predict` (a CAUTION/STOP verdict whose risk rows need
-concrete edge cases), or `vc:plan` building a phase's test targets.
-**Typically precedes:** `vc:cook`'s test-gate (scenarios become tests), or back
-into `vc:plan`'s risk assessment.
-**Related:** `vc:predict` debates *whether* a change is sound across 5 personas;
-`vc:scenario` enumerates *what could break* across risk dimensions. Predict for
+**Typically follows:** `av:predict` (a CAUTION/STOP verdict whose risk rows need
+concrete edge cases), or `av:plan` building a phase's test targets.
+**Typically precedes:** `av:cook`'s test-gate (scenarios become tests), or back
+into `av:plan`'s risk assessment.
+**Related:** `av:predict` debates *whether* a change is sound across 5 personas;
+`av:scenario` enumerates *what could break* across risk dimensions. Predict for
 the go/no-go, scenario for the test matrix.

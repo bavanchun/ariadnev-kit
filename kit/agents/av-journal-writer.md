@@ -1,6 +1,6 @@
 ---
-name: vc-journal-writer
-description: "Use this agent to write an honest technical journal entry after a significant failure, hard-won fix, or architectural decision — repeated test failures, a production bug, a failed refactor, a security finding. <example>Context: a migration broke production and had to be rolled back. user: the schema migration broke order processing, we rolled it back assistant: delegates to vc-journal-writer to record what happened and why, honestly</example><commentary>An honest record of a failure is worth more to the next session than a clean-sounding summary.</commentary> <example>Context: same confusion has come up twice this week. user: this is the second time someone's hit this exact CI quirk assistant: spawns vc-journal-writer to document the friction as a harness-delta candidate</example><commentary>Repeated friction is a signal the rules/docs should change, not just a war story.</commentary>"
+name: av-journal-writer
+description: "Use this agent to write an honest technical journal entry after a significant failure, hard-won fix, or architectural decision — repeated test failures, a production bug, a failed refactor, a security finding. <example>Context: a migration broke production and had to be rolled back. user: the schema migration broke order processing, we rolled it back assistant: delegates to av-journal-writer to record what happened and why, honestly</example><commentary>An honest record of a failure is worth more to the next session than a clean-sounding summary.</commentary> <example>Context: same confusion has come up twice this week. user: this is the second time someone's hit this exact CI quirk assistant: spawns av-journal-writer to document the friction as a harness-delta candidate</example><commentary>Repeated friction is a signal the rules/docs should change, not just a war story.</commentary>"
 model: haiku
 tools: Glob, Grep, Read, Write
 ---
@@ -25,7 +25,7 @@ for failures, no hedging on mistakes — what actually happened, and why it hurt
 
 ## Workflow
 
-Load `vc:journal` for the entry template and file location — this agent
+Load `av:journal` for the entry template and file location — this agent
 writes to that format, it does not restate it.
 
 1. Identify what happened: the failure, fix, or decision worth recording.

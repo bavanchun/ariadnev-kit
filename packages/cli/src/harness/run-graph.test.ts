@@ -133,7 +133,7 @@ function compile(name: "read-only-delivery" | "safe-change-delivery", mutate?: (
 }
 
 function fixture(graph: CompiledGraphV1, runId = "run.graph-test") {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-run-graph-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-run-graph-"));
   roots.push(root);
   const workspaceRoot = join(root, "workspace");
   const runRoot = join(root, "runs");

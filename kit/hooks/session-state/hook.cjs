@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc session-state — Stop/SubagentStop hook. Persists a small markdown state
+// av session-state — Stop/SubagentStop hook. Persists a small markdown state
 // snapshot per project so the next session can pick up context. Previous state
 // is archived (max 5), everything expires after 7 days. Atomic writes,
 // fail-open throughout.
@@ -36,7 +36,7 @@ function gitFilesChanged(cwd) {
 function buildStateMarkdown(input, project, now, filesChanged) {
   const outcome = filesChanged.length === 0 ? "clean" : `${filesChanged.length} files changed`;
   return [
-    "# vc session state",
+    "# av session state",
     "",
     `- updated: ${now.toISOString()}`,
     `- session: ${input.session_id || "unknown"}`,

@@ -7,11 +7,11 @@ import {
 } from "./hook-settings-merge.js";
 
 const bindings: HookBinding[] = [
-  { event: "SessionStart", command: "node /home/u/.claude/hooks/vc/session-init.cjs" },
+  { event: "SessionStart", command: "node /home/u/.claude/hooks/av/session-init.cjs" },
   {
     event: "PreToolUse",
     matcher: "Read|Grep|Glob",
-    command: "node /home/u/.claude/hooks/vc/scout-block.cjs",
+    command: "node /home/u/.claude/hooks/av/scout-block.cjs",
   },
 ];
 

@@ -72,7 +72,7 @@ function runtimeHome(input: {
   credentialNames: readonly string[];
   prepare: boolean;
 }): string {
-  const root = join(input.home, ".vcskill", "runtime", input.provider);
+  const root = join(input.home, ".ariadnev", "runtime", input.provider);
   if (!input.prepare) return root;
   privateDirectory(root);
   for (const name of input.credentialNames) linkCredential(join(input.sourceHome, name), join(root, name));
@@ -92,14 +92,14 @@ function runtimeDeps(global: GlobalOpts, opts: RuntimeOpts, prepare: boolean) {
   }
   const preparation = runtimePreparation(opts.runtime, prepare);
   const sourceCodexHome = environmentValue(["CODEX", "HOME"]) ?? join(homedir(), ".codex");
-  const codexHome = environmentValue(["VCSKILL", "CODEX", "HOME"]) ?? runtimeHome({
+  const codexHome = environmentValue(["ARIADNEV", "CODEX", "HOME"]) ?? runtimeHome({
     home: global.home,
     provider: "codex",
     sourceHome: sourceCodexHome,
     credentialNames: [["a", "uth.json"].join("")],
     prepare: preparation.codex,
   });
-  const configuredClaudeDir = environmentValue(["VCSKILL", "CLAUDE", "CONFIG", "DIR"]);
+  const configuredClaudeDir = environmentValue(["ARIADNEV", "CLAUDE", "CONFIG", "DIR"]);
   const usesApiKey = environmentValue(["ANTHROPIC", "API", "KEY"]) !== undefined;
   const claudeConfigDir = configuredClaudeDir ?? (usesApiKey ? runtimeHome({
     home: global.home,
@@ -109,11 +109,11 @@ function runtimeDeps(global: GlobalOpts, opts: RuntimeOpts, prepare: boolean) {
     prepare: preparation.claudeCode,
   }) : undefined);
   const authenticationHome = claudeConfigDir === undefined
-    ? environmentValue(["VCSKILL", "CLAUDE", "AUTH", "HOME"]) ?? homedir()
+    ? environmentValue(["ARIADNEV", "CLAUDE", "AUTH", "HOME"]) ?? homedir()
     : undefined;
   return {
     kitRoot: getKitRoot(dirname(fileURLToPath(import.meta.url))),
-    runsRoot: join(global.home, ".vcskill", "runs"),
+    runsRoot: join(global.home, ".ariadnev", "runs"),
     registry: createExecutorRegistry([
       new CodexExecutor({
         expectedRuntimeVersion: opts.runtime === "codex" && opts.runtimeVersion ? opts.runtimeVersion : CODEX_RUNTIME_VERSION,

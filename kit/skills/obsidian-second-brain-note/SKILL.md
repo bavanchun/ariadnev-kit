@@ -1,5 +1,5 @@
 ---
-name: vc:obsidian-second-brain-note
+name: av:obsidian-second-brain-note
 description: Create professional Obsidian second-brain notes. Use when saving knowledge, summaries, concepts, lectures, images, or important info into an Obsidian vault with tags, links, MOCs, and clean folders.
 version: "1.0.0"
 metadata:
@@ -115,7 +115,7 @@ When finished, report:
 ## Workflow position
 
 **Typically follows:** a learning/research session worth capturing —
-`vc:research` output, a lecture, an article, or ad-hoc knowledge to preserve.
+`av:research` output, a lecture, an article, or ad-hoc knowledge to preserve.
 **Typically precedes:** nothing — this is a terminal capture step into a
 personal vault, standalone from the code-work loop.
 **Related:** a personal knowledge skill, not part of the implementation

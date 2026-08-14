@@ -81,7 +81,7 @@ function fixture(path, content, redaction = "public") {
 
 function verifyInvalidation() {
   const first = fixture("docs/first.md", "alpha owns the router");
-  const linked = fixture("docs/linked.md", "See vc:first for routing context");
+  const linked = fixture("docs/linked.md", "See av:first for routing context");
   const secret = fixture("private/secret.md", "alpha private credential", "private");
   const index = createArtifactGraphIndex([first, linked, secret]);
   const privateExcluded = !index.query("private credential", 10).some((entry) => entry.path === secret.path);

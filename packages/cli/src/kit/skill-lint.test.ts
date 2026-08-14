@@ -30,11 +30,11 @@ Related: none.
 function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string, unknown> } = {}): Artifact {
   const overrideMetadata = overrides.frontmatter?.metadata;
   const frontmatter = {
-    name: "vc:demo",
+    name: "av:demo",
     description: "Demo skill for linting. Use when exercising the skill lint rules in tests.",
     ...overrides.frontmatter,
     metadata: {
-      author: "vcskill",
+      author: "ariadnev",
       ...(typeof overrideMetadata === "object" && overrideMetadata !== null ? overrideMetadata : {}),
     },
   };
@@ -43,7 +43,7 @@ function makeSkill(overrides: Partial<Artifact> & { frontmatter?: Record<string,
     name: "demo",
     frontmatter,
     body: overrides.body ?? REQUIRED_BODY,
-    raw: overrides.raw ?? "---\nname: vc:demo\n---\n# Demo\n\nShort body.\n",
+    raw: overrides.raw ?? "---\nname: av:demo\n---\n# Demo\n\nShort body.\n",
     sourcePath: "/kit/skills/demo/SKILL.md",
   };
 }

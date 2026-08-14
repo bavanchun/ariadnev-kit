@@ -53,5 +53,5 @@ more context is not automatically better.
 A change can produce two outputs: the product delta (code, tests) and,
 when warranted, a harness delta (a rule/skill/doc improvement that makes the
 next change easier). When friction repeats (same confusion, same missing
-doc) across two or more sessions, record it via `vc:journal` and propose the
+doc) across two or more sessions, record it via `av:journal` and propose the
 concrete fix — do not silently patch the rule mid-task without noting why.

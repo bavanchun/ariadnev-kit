@@ -7,7 +7,7 @@
   "title": "Read-only security audit",
   "subjects": {
     "skills": [
-      "vc:security-scan"
+      "av:security-scan"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:security-scan": "required",
-          "vc:fix": "forbidden"
+          "av:security-scan": "required",
+          "av:fix": "forbidden"
         },
         "artifacts": {
           "security-report": {

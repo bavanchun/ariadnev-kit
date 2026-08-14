@@ -6,9 +6,9 @@ import { capture, captureIfEnabled, type ConsentDeps } from "./client.js";
 const ON = { url: "https://edge.example/t", enabled: true };
 
 describe("isEnabled — opt-out precedence", () => {
-  it("is off for DO_NOT_TRACK / VCSKILL_TELEMETRY_DISABLED / CI", () => {
+  it("is off for DO_NOT_TRACK / ARIADNEV_TELEMETRY_DISABLED / CI", () => {
     expect(isEnabled({ DO_NOT_TRACK: "1" }, ON).enabled).toBe(false);
-    expect(isEnabled({ VCSKILL_TELEMETRY_DISABLED: "1" }, ON).enabled).toBe(false);
+    expect(isEnabled({ ARIADNEV_TELEMETRY_DISABLED: "1" }, ON).enabled).toBe(false);
     expect(isEnabled({ CI: "true" }, ON).enabled).toBe(false);
   });
 

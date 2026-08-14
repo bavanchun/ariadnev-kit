@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { categoricalToken } from "./categorical-token.js";
 
-const runContextBrand: unique symbol = Symbol("vcskill.run-context");
-const runContextIdentity: unique symbol = Symbol("vcskill.run-context-identity");
-const boundContextIdentity: unique symbol = Symbol("vcskill.bound-run-context");
+const runContextBrand: unique symbol = Symbol("ariadnev.run-context");
+const runContextIdentity: unique symbol = Symbol("ariadnev.run-context-identity");
+const boundContextIdentity: unique symbol = Symbol("ariadnev.bound-run-context");
 
 export interface RunContextV1 {
   readonly runId: string;

@@ -144,7 +144,7 @@ export function uninstallKit(
     if (!install) continue;
     const root = install.scope === "global" ? ctx.home : ctx.cwd;
     const ops = planUninstall(receipt, providerId, ctx.home, ctx.cwd, realPlanDeps);
-    const backupsParent = join(root, ".vcskill", "backups");
+    const backupsParent = join(root, ".ariadnev", "backups");
     const result = executeUninstall(ops, {
       dryRun,
       allowedRoots: [ctx.home, ctx.cwd],

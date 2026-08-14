@@ -14,7 +14,7 @@ describe("program positioning", () => {
 
   it("uses the same bounded positioning in the no-args banner", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    await buildProgram().parseAsync(["node", "vcskill"]);
+    await buildProgram().parseAsync(["node", "ariadnev"]);
     const output = log.mock.calls.flat().join("\n");
     expect(output).toContain("curated workflows, quality-gated across coding agents");
     expect(output).not.toContain("install to any provider");

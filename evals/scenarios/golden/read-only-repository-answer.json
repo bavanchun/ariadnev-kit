@@ -7,8 +7,8 @@
   "title": "Read-only repository answer",
   "subjects": {
     "skills": [
-      "vc:scout",
-      "vc:ask"
+      "av:scout",
+      "av:ask"
     ]
   },
   "fixture": {
@@ -26,9 +26,9 @@
           ]
         },
         "routing": {
-          "vc:scout": "required",
-          "vc:ask": "required",
-          "vc:cook": "forbidden"
+          "av:scout": "required",
+          "av:ask": "required",
+          "av:cook": "forbidden"
         },
         "artifacts": {
           "answer": {

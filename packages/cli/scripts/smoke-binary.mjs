@@ -67,7 +67,7 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
 }
 
 function run(bin, args) {
-  const scratch = mkdtempSync(join(tmpdir(), "vcskill-smoke-"));
+  const scratch = mkdtempSync(join(tmpdir(), "ariadnev-smoke-"));
   return execFileSync(bin, args, { cwd: scratch, encoding: "utf8", timeout: 20000 });
 }
 

@@ -49,7 +49,7 @@ describe("shadow run", () => {
   });
 
   it("persists bounded private JSONL when using the local sink", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-shadow-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-shadow-"));
     roots.push(root);
     const sink = createLocalShadowSink({ root, runId: "run.private", maxEvents: 2 });
     const run = createShadowRun({ graph: graph("read-only-delivery"), runId: "run.private", sink });

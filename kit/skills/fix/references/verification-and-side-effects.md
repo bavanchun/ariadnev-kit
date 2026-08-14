@@ -50,7 +50,7 @@ diagnose, not permission to skip it.
 
 ## Review and prevention
 
-Run `vc:code-review` or an equivalent local read-only review with scout summary,
+Run `av:code-review` or an equivalent local read-only review with scout summary,
 diagnosis, change range, and proof. Check:
 
 1. root cause is addressed rather than symptom-patched;

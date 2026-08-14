@@ -20,7 +20,7 @@ function sha256(path) {
 }
 
 test("build-binaries writes a fresh release tree with exact assets and checksum coverage", () => {
-  const tempRoot = mkdtempSync(join(tmpdir(), "vcskill-build-binaries-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "ariadnev-build-binaries-"));
   const outputDir = join(tempRoot, "release");
   const lockPath = join(tempRoot, "web-consumer-lock.json");
   try {
@@ -79,7 +79,7 @@ test("build-binaries writes a fresh release tree with exact assets and checksum 
 
 test("release output cleanup is restricted to the canonical directory or a temporary release leaf", () => {
   const canonical = join(pkgDir, "dist", "release");
-  const tempRoot = mkdtempSync(join(tmpdir(), "vcskill-release-output-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "ariadnev-release-output-"));
   try {
     assert.equal(validateReleaseOutputDirectory(canonical, canonical), canonical);
     assert.equal(validateReleaseOutputDirectory(join(tempRoot, "release"), canonical), join(tempRoot, "release"));

@@ -31,7 +31,7 @@ const scenario = parseScenario(
     revision: 1,
     level: "workflow",
     title: "Answer with evidence",
-    subjects: { skills: ["vc:ask"] },
+    subjects: { skills: ["av:ask"] },
     fixture: { id: "synthetic.typescript-repository", copy: true },
     cases: {
       default: {
@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 function temporaryRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-proof-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-proof-"));
   roots.push(root);
   return root;
 }

@@ -34,7 +34,7 @@ function validateIdentity(options: DocsBundleOptions): void {
   assertSha(options.sourceSha, "sourceSha");
   assertSha(options.generatorSha, "generatorSha");
   if (options.mode === "final") {
-    if (options.releaseTag !== `vcskill@${options.version}`) throw new Error("final docs bundle requires releaseTag to match package version");
+    if (options.releaseTag !== `ariadnev@${options.version}`) throw new Error("final docs bundle requires releaseTag to match package version");
     if (!options.finalConsumerLock) throw new Error("final docs bundle requires the exact Phase 9 web-consumer lock");
     if (!options.previousSource) throw new Error("final docs bundle requires the immediate previous stable source");
     if (!existsSync(options.finalConsumerLock.lockPath)) throw new Error(`final consumer lock not found: ${options.finalConsumerLock.lockPath}`);
@@ -78,7 +78,7 @@ function manifestFromPayload(options: DocsBundleOptions, payload: DocsBundleFile
   return {
     schemaVersion: 1,
     schemaId: DOCS_BUNDLE_SCHEMA_ID,
-    bundle: "vcskill-docs-bundle",
+    bundle: "ariadnev-docs-bundle",
     mode: options.mode,
     publishable: options.mode === "final",
     version: options.version,

@@ -10,19 +10,19 @@ export interface BackupsListOpts {
 
 function backupsParentDir(opts: { home: string; cwd: string; scope: "project" | "global" }): string {
   const root = opts.scope === "global" ? opts.home : opts.cwd;
-  return join(root, ".vcskill", "backups");
+  return join(root, ".ariadnev", "backups");
 }
 
 /** List timestamped backup dirs with a file count (manifest-based when available). */
 export function runBackupsList(opts: BackupsListOpts): string {
   const parent = backupsParentDir(opts);
-  if (!existsSync(parent)) return "vcskill backups — no backups found";
+  if (!existsSync(parent)) return "ariadnev backups — no backups found";
   const dirs = readdirSync(parent)
     .filter((n) => statSync(join(parent, n)).isDirectory())
     .sort()
     .reverse();
-  if (dirs.length === 0) return "vcskill backups — no backups found";
-  const lines = ["vcskill backups"];
+  if (dirs.length === 0) return "ariadnev backups — no backups found";
+  const lines = ["ariadnev backups"];
   for (const dir of dirs) {
     const manifest = readBackupManifest(join(parent, dir));
     const count = manifest.length > 0 ? `${manifest.length} file(s)` : "no manifest — list only";
@@ -52,14 +52,14 @@ export interface BackupsRestoreResult {
 export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResult {
   const backupRoot = join(backupsParentDir(opts), opts.timestamp);
   if (!existsSync(backupRoot)) {
-    return { restored: [], summary: `vcskill backups restore — backup "${opts.timestamp}" not found` };
+    return { restored: [], summary: `ariadnev backups restore — backup "${opts.timestamp}" not found` };
   }
 
   const manifest = readBackupManifest(backupRoot);
   if (manifest.length === 0) {
     return {
       restored: [],
-      summary: `vcskill backups restore — no manifest for "${opts.timestamp}" (created before backup manifests were added); cannot auto-restore. Files are at: ${backupRoot}`,
+      summary: `ariadnev backups restore — no manifest for "${opts.timestamp}" (created before backup manifests were added); cannot auto-restore. Files are at: ${backupRoot}`,
     };
   }
 
@@ -77,7 +77,7 @@ export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResul
   }
 
   const summary = opts.dryRun
-    ? `vcskill backups restore — DRY RUN: would restore ${restored.length} file(s) from ${opts.timestamp}`
-    : `vcskill backups restore — restored ${restored.length} file(s) from ${opts.timestamp}`;
+    ? `ariadnev backups restore — DRY RUN: would restore ${restored.length} file(s) from ${opts.timestamp}`
+    : `ariadnev backups restore — restored ${restored.length} file(s) from ${opts.timestamp}`;
   return { restored, summary };
 }

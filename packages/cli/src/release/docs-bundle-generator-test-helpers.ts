@@ -29,7 +29,7 @@ export function sha256File(path: string): `sha256:${string}` {
 }
 
 export function createHistoricalFixture(root: string, description: string): void {
-  write(join(root, "packages", "cli", "package.json"), JSON.stringify({ name: "vcskill", version: "0.10.0" }));
+  write(join(root, "packages", "cli", "package.json"), JSON.stringify({ name: "ariadnev", version: "0.10.0" }));
   write(join(root, "kit", "kit-data.json"), JSON.stringify({
     skills: [{ name: "historical-skill", frontmatter: { name: "historical-skill", description, metadata: { safe: true }, raw: "private" } }],
     agents: [],
@@ -37,7 +37,7 @@ export function createHistoricalFixture(root: string, description: string): void
   write(join(root, "packages", "cli", "src", "index.ts"), [
     "import { Command } from 'commander';",
     "export function buildProgram() {",
-    "  return new Command('vcskill').description('Historical CLI').option('--safe');",
+    "  return new Command('ariadnev').description('Historical CLI').option('--safe');",
     "}",
   ].join("\n"));
   write(join(root, "packages", "cli", "src", "kit", "load-kit.ts"), [

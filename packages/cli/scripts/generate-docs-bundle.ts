@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error("source-sha must be a full lowercase SHA");
   const outputDir = arg("--output-dir", join(pkgDir, "dist", "release"))!;
   const version = arg("--version", pkg.version)!;
-  const releaseTag = mode === "final" ? arg("--release-tag", `vcskill@${version}`)! : null;
+  const releaseTag = mode === "final" ? arg("--release-tag", `ariadnev@${version}`)! : null;
   const generatedAt = arg("--generated-at") ?? git(["show", "-s", "--format=%cI", sourceSha], repoRoot);
   const sourceDateEpoch = Number(arg("--source-date-epoch") ?? git(["show", "-s", "--format=%ct", sourceSha], repoRoot));
   const generatorSha = arg("--generator-sha", sourceSha)!;

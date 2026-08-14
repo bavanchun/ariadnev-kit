@@ -50,7 +50,7 @@ describe("v0.10.0 behavioral baseline artifacts", () => {
     expect(summary.kind).toBe("behavioral-eval");
     expect(summary.population).toEqual({ skillScenarios: 26, skillCells: 52, deepTasks: 14, runs: 66 });
     expect(summary.environment).toMatchObject({
-      variant: "vcskill",
+      variant: "vcskill", // brand-drift-allow: literal content of the frozen v0.10.0 baseline
       kit: { version: "0.10.0" },
       runtime: { provider: "codex", version: "0.147.0", model: "gpt-5.4-mini" },
       evaluator: { version: "behavioral-v1" },
@@ -87,13 +87,13 @@ describe("v0.10.0 behavioral baseline artifacts", () => {
 
   it("pins both sources and the exact runtime without machine paths", () => {
     const environment = load("environment.json") as {
-      vcskill: { kitVersion: string; kitRevision: string; kitTree: string; harnessRevision: string };
+      vcskill: { kitVersion: string; kitRevision: string; kitTree: string; harnessRevision: string }; // brand-drift-allow: frozen baseline key
       reference: { cliVersion: string; kitVersion: string; sourceCommit: string; manifestSha256: string; executedCells: number; reason: string };
       runtime: { provider: string; version: string; model: string };
       invocation: { runnerArgv: string[]; timeoutMs: number; skillRepeats: number; deepRepeats: number; concurrency: number; capabilities: string[]; runnerHome: string };
       host: { powerPolicy: string };
     };
-    expect(environment.vcskill).toEqual({
+    expect(environment.vcskill).toEqual({ // brand-drift-allow: frozen baseline key
       kitVersion: "0.10.0",
       kitRevision: "41eee05b1ebf3ecd7404baa05c6972cecbbd6c40",
       kitTree: "0f25711289bb53db26a5e88254660b3ef13bf304",
@@ -115,7 +115,7 @@ describe("v0.10.0 behavioral baseline artifacts", () => {
       deepRepeats: 1,
       concurrency: 3,
       capabilities: [],
-      runnerHome: "isolated-vcskill-install",
+      runnerHome: "isolated-vcskill-install", // brand-drift-allow: frozen baseline value
     });
     expect(environment.invocation.runnerArgv).toContain("workspace-write");
     expect(environment.host.powerPolicy).toBe("caffeinate-dimsu");

@@ -36,10 +36,10 @@ export function registerQualityCommands(program: Command, context: CommandRegist
   program
     .command("eval")
     .description("Score kit quality — tier-1 static; tier-2 behavioral suite; optional tier-3 LLM judge")
-    .option("--skill <name>", "only evaluate one skill (bare or vc: prefixed)")
+    .option("--skill <name>", "only evaluate one skill (bare or av: prefixed)")
     .option("--suite", "run the tier-2 behavioral scenario suite", false)
     .option("--runner <json-argv>", "strict JSON argv array; prompt is sent on stdin")
-    .option("--variant <name>", "benchmark variant: vcskill or reference", "vcskill")
+    .option("--variant <name>", "benchmark variant: ariadnev or reference", "ariadnev")
     .option("--runtime-provider <name>", "pinned runtime provider identity")
     .option("--runtime-version <version>", "pinned runtime version identity")
     .option("--model <name>", "pinned model identity")
@@ -54,12 +54,12 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     }) => {
       if (opts.suite) {
         if (opts.skill) throw new Error("--skill cannot be combined with --suite");
-        const encoded = opts.runner ?? process.env.VCSKILL_BEHAVIORAL_CMD;
-        if (!encoded) throw new Error("--suite requires --runner or VCSKILL_BEHAVIORAL_CMD");
+        const encoded = opts.runner ?? process.env.ARIADNEV_BEHAVIORAL_CMD;
+        if (!encoded) throw new Error("--suite requires --runner or ARIADNEV_BEHAVIORAL_CMD");
         if (!opts.runtimeProvider || !opts.runtimeVersion || !opts.model) {
           throw new Error("--suite requires --runtime-provider, --runtime-version, and --model");
         }
-        if (opts.variant !== "vcskill" && opts.variant !== "reference") throw new Error("--variant must be vcskill or reference");
+        if (opts.variant !== "ariadnev" && opts.variant !== "reference") throw new Error("--variant must be ariadnev or reference");
         const positive = (value: string, label: string) => {
           const parsed = Number(value);
           if (!Number.isInteger(parsed) || parsed < 1) throw new Error(`${label} must be a positive integer`);
@@ -75,14 +75,14 @@ export function registerQualityCommands(program: Command, context: CommandRegist
           deepRepeats: positive(opts.deepRepeats, "--deep-repeats"),
           concurrency: positive(opts.concurrency, "--concurrency"),
           kitRoot: getKitRoot(dirname(fileURLToPath(import.meta.url))),
-          runnerHome: process.env.VCSKILL_BEHAVIORAL_HOME,
+          runnerHome: process.env.ARIADNEV_BEHAVIORAL_HOME,
         });
         emit(summary);
         context.record("eval", { status: ok ? "ok" : "fail" });
         if (!ok) process.exitCode = 1;
         return;
       }
-      const evalCmd = process.env.VCSKILL_EVAL_CMD;
+      const evalCmd = process.env.ARIADNEV_EVAL_CMD;
       const { summary, ok } = runEval({
         skill: opts.skill,
         evalCmd,

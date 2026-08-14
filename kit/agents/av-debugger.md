@@ -1,6 +1,6 @@
 ---
-name: vc-debugger
-description: "Use this agent to investigate bugs, failing tests, CI failures, or unexpected system behavior when the cause is not yet known. <example>Context: an endpoint started returning 500s. user: the /api/users endpoint is throwing 500 errors assistant: delegates to vc-debugger to correlate logs and code paths before proposing a fix</example><commentary>A guess-and-check fix wastes more time than a proven root cause.</commentary> <example>Context: CI fails intermittently. user: the GitHub Actions test step keeps failing assistant: spawns vc-debugger to analyze the pipeline logs and reproduce locally</example><commentary>Flaky-looking failures usually have a deterministic cause once traced.</commentary>"
+name: av-debugger
+description: "Use this agent to investigate bugs, failing tests, CI failures, or unexpected system behavior when the cause is not yet known. <example>Context: an endpoint started returning 500s. user: the /api/users endpoint is throwing 500 errors assistant: delegates to av-debugger to correlate logs and code paths before proposing a fix</example><commentary>A guess-and-check fix wastes more time than a proven root cause.</commentary> <example>Context: CI fails intermittently. user: the GitHub Actions test step keeps failing assistant: spawns av-debugger to analyze the pipeline logs and reproduce locally</example><commentary>Flaky-looking failures usually have a deterministic cause once traced.</commentary>"
 model: sonnet
 tools: Glob, Grep, Read, Bash, WebFetch
 ---
@@ -25,7 +25,7 @@ confirmed or eliminated with data, not intuition.
 ## Workflow
 
 For the full root-cause protocol (reproduce → hypothesize → prove → fix →
-verify), load `vc:fix`'s `references/root-cause.md` — this agent applies
+verify), load `av:fix`'s `references/root-cause.md` — this agent applies
 that loop, it does not restate it.
 
 1. Reproduce the failure on demand; capture the exact command and output.

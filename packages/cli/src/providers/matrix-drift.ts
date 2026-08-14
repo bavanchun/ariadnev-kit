@@ -1,5 +1,5 @@
 // Drift gate for the README provider matrix. The generated table lives between
-// HTML-comment markers; `vcskill validate --check` compares the committed block
+// HTML-comment markers; `ariadnev validate --check` compares the committed block
 // to a freshly-built one so a hand-edit can never leave the docs lying.
 
 import { matrixToMarkdown } from "./provider-matrix.js";
@@ -33,7 +33,7 @@ export function checkMatrixDrift(readme: string): DriftResult {
   }
   const expected = matrixToMarkdown().trim();
   if (current !== expected) {
-    return { ok: false, message: "provider matrix in README is stale — run `pnpm --filter vcskill generate:matrix`" };
+    return { ok: false, message: "provider matrix in README is stale — run `pnpm --filter ariadnev generate:matrix`" };
   }
   return { ok: true, message: "provider matrix in sync" };
 }

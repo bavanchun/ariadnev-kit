@@ -47,8 +47,8 @@ test("shouldInject throttles repeats of the same session+key", () => {
 });
 
 test("hook injects project rules once per session, then stays silent", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ri-home-"));
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ri-proj-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "av-ri-home-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-ri-proj-"));
   fs.mkdirSync(path.join(proj, ".claude", "rules"), { recursive: true });
   fs.writeFileSync(path.join(proj, ".claude", "rules", "dev.md"), "Always run tests first.");
   const env = { HOME: home, USERPROFILE: home };
@@ -67,8 +67,8 @@ test("hook injects project rules once per session, then stays silent", () => {
 });
 
 test("no rules dir: silent success", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ri-home2-"));
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ri-proj2-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "av-ri-home2-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-ri-proj2-"));
   const res = runHook({ session_id: "s", cwd: proj, prompt: "x" }, { HOME: home, USERPROFILE: home });
   assert.equal(res.status, 0);
   assert.equal(res.stdout.trim(), "");

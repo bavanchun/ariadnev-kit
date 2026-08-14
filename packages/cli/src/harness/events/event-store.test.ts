@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 function root(): string {
-  const path = mkdtempSync(join(tmpdir(), "vcskill-events-"));
+  const path = mkdtempSync(join(tmpdir(), "ariadnev-events-"));
   roots.push(path);
   return path;
 }

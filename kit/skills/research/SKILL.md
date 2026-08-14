@@ -1,5 +1,5 @@
 ---
-name: vc:research
+name: av:research
 description: Research technologies, libraries, and best practices with sourced findings. Use for tech evaluation, solution comparison, or gathering current docs before building.
 user-invocable: true
 argument-hint: "<topic or technology to research>"
@@ -16,8 +16,8 @@ listicle.
 
 Handles: technology evaluation, library comparison, best-practice surveys,
 "how do others solve X".
-Does not handle: deciding architecture (`vc:brainstorm` consumes this),
-implementing (`vc:cook`).
+Does not handle: deciding architecture (`av:brainstorm` consumes this),
+implementing (`av:cook`).
 
 ## Rules
 
@@ -72,7 +72,7 @@ When the recommendation implies building, name the proof layer the eventual
 change will need (`unit`/`integration`/`e2e`/`platform`, see
 `../cook/references/risk-lanes.md`) — e.g. "adopting library X needs an
 integration proof against the real API, not just a unit mock". This hands the
-downstream `vc:plan`/`vc:cook` a proof expectation instead of a bare verdict.
+downstream `av:plan`/`av:cook` a proof expectation instead of a bare verdict.
 
 ## Quality gates
 
@@ -90,9 +90,9 @@ Before delivering, confirm:
 
 ## Workflow position
 
-**Typically follows:** `vc:ask` (a question grew into "I need to evaluate
-options"), the research phase of `vc:brainstorm`.
-**Typically precedes:** `vc:brainstorm` (consumes findings to pick an approach),
-`vc:plan` (turns the chosen tech into phases).
-**Related:** `vc:docs-seeker` — use it for pinpoint "what's the API for X in the
-version we already use"; use `vc:research` for open evaluation across options.
+**Typically follows:** `av:ask` (a question grew into "I need to evaluate
+options"), the research phase of `av:brainstorm`.
+**Typically precedes:** `av:brainstorm` (consumes findings to pick an approach),
+`av:plan` (turns the chosen tech into phases).
+**Related:** `av:docs-seeker` — use it for pinpoint "what's the API for X in the
+version we already use"; use `av:research` for open evaluation across options.

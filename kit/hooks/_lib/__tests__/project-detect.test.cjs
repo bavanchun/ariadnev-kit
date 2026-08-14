@@ -6,7 +6,7 @@ const path = require("node:path");
 const { detectProject } = require("../project-detect.cjs");
 
 function tmpProject(files) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vc-proj-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "av-proj-"));
   for (const [rel, content] of Object.entries(files)) {
     const abs = path.join(root, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });

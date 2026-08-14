@@ -26,7 +26,7 @@ describe("kit workflow registry", () => {
   });
 
   it("rejects a workflow whose skill handler is absent from the kit registry", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-workflow-registry-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-workflow-registry-"));
     roots.push(root);
     mkdirSync(join(root, "skills"), { recursive: true });
     mkdirSync(join(root, "workflows", "schema"), { recursive: true });
@@ -44,7 +44,7 @@ describe("kit workflow registry", () => {
   });
 
   it("rejects a workflow directory that escapes the kit through a symlink", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-workflow-symlink-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-workflow-symlink-"));
     roots.push(root);
     mkdirSync(join(root, "skills"), { recursive: true });
     symlinkSync(workflowRoot, join(root, "workflows"), "dir");

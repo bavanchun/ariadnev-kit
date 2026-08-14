@@ -1,4 +1,4 @@
-// Fail-open harness for vc hooks: an internal error must never block the
+// Fail-open harness for av hooks: an internal error must never block the
 // agent, so any throw is logged to JSONL and the process exits 0.
 const fs = require("node:fs");
 const { logJsonl } = require("./jsonl-log.cjs");

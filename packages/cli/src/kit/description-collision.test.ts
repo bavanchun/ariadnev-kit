@@ -53,18 +53,18 @@ describe("scoreDescriptions", () => {
 
 describe("scoreDescriptions allowlist", () => {
   const nearDup = [
-    { name: "vc:x", description: "migrate database schema changes safely rollback" },
-    { name: "vc:y", description: "migrate database schema changes safely rollback support" },
+    { name: "av:x", description: "migrate database schema changes safely rollback" },
+    { name: "av:y", description: "migrate database schema changes safely rollback support" },
   ];
 
   it("suppresses an allowlisted pair regardless of entry order", () => {
     expect(scoreDescriptions(nearDup)).toHaveLength(1); // error without allowlist
-    const allow = [{ a: "vc:y", b: "vc:x", reason: "adjacent by design" }];
+    const allow = [{ a: "av:y", b: "av:x", reason: "adjacent by design" }];
     expect(scoreDescriptions(nearDup, allow)).toHaveLength(0);
   });
 
   it("does not suppress pairs that are not allowlisted", () => {
-    const allow = [{ a: "vc:p", b: "vc:q", reason: "unrelated pair" }];
+    const allow = [{ a: "av:p", b: "av:q", reason: "unrelated pair" }];
     expect(scoreDescriptions(nearDup, allow)).toHaveLength(1);
   });
 

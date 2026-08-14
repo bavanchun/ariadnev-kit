@@ -9,7 +9,7 @@ export function renderSummary(
   opts: StyleOpts = { color: false },
 ): string {
   const lines: string[] = [];
-  lines.push(`${coral("vcskill", opts)} install — ${dryRun ? "DRY RUN (no files written)" : "complete"}`);
+  lines.push(`${coral("ariadnev", opts)} install — ${dryRun ? "DRY RUN (no files written)" : "complete"}`);
   for (const r of results) {
     lines.push(
       `  ${coral(r.provider.padEnd(12), opts)} written=${teal(String(r.written), opts)} backed-up=${r.backedUp} skipped=${r.skipped.length}`,

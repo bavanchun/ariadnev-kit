@@ -1,6 +1,6 @@
 # Remote Sync Workflows: push, PR, merge
 
-Execute via `vc-git-manager` subagent. Three related remote operations; jump to
+Execute via `av-git-manager` subagent. Three related remote operations; jump to
 the section you need. PRs and merges always work from the **remote** branch, not
 local WIP.
 

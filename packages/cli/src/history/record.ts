@@ -9,7 +9,7 @@ export interface HistoryEvent {
   kind: HistoryKind;
   provider?: string; // categorical provider id(s), comma-joined
   scope?: "project" | "global";
-  version?: string; // vcskill version at the time
+  version?: string; // ariadnev version at the time
   status?: string; // categorical outcome, e.g. "healthy" | "degraded" | "ok"
   count?: number; // a numeric bucket (files written, skills scored, …)
 }

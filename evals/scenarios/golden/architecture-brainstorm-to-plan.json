@@ -7,8 +7,8 @@
   "title": "Architecture brainstorm to executable plan",
   "subjects": {
     "skills": [
-      "vc:brainstorm",
-      "vc:plan"
+      "av:brainstorm",
+      "av:plan"
     ]
   },
   "fixture": {
@@ -27,9 +27,9 @@
           ]
         },
         "routing": {
-          "vc:brainstorm": "required",
-          "vc:plan": "required",
-          "vc:cook": "forbidden"
+          "av:brainstorm": "required",
+          "av:plan": "required",
+          "av:cook": "forbidden"
         },
         "artifacts": {
           "implementation-plan": {

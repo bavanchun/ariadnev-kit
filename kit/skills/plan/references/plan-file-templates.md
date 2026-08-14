@@ -1,7 +1,7 @@
 # Plan File Templates
 
 Read any existing hub and every phase stub before applying these shapes. Keep
-frontmatter keys stable so `vc:cook` and `vc:pm` can consume the files.
+frontmatter keys stable so `av:cook` and `av:pm` can consume the files.
 
 ## `plan.md` — concise hub
 

@@ -17,36 +17,36 @@ function runHook(input, env = {}) {
 }
 
 test("buildSubagentContext includes paths, naming pattern, and agent type", () => {
-  const out = buildSubagentContext({ cwd: "/proj", agentType: "vc-explore", branch: "main" });
-  assert.match(out, /vc-explore/);
+  const out = buildSubagentContext({ cwd: "/proj", agentType: "av-explore", branch: "main" });
+  assert.match(out, /av-explore/);
   assert.match(out, /plans\/reports\//);
   assert.match(out, /main/);
 });
 
 test("buildSubagentContext omits branch line when unknown", () => {
-  const out = buildSubagentContext({ cwd: "/proj", agentType: "vc-planner", branch: null });
+  const out = buildSubagentContext({ cwd: "/proj", agentType: "av-planner", branch: null });
   assert.doesNotMatch(out, /branch: null/);
 });
 
 test("context stays within the ~200 token budget (char proxy)", () => {
-  const out = buildSubagentContext({ cwd: "/proj", agentType: "vc-reviewer", branch: "feat/x" });
+  const out = buildSubagentContext({ cwd: "/proj", agentType: "av-reviewer", branch: "feat/x" });
   // ~4 chars/token heuristic used elsewhere in this repo's hooks.
   assert.ok(out.length <= 900, `context too large: ${out.length} chars`);
 });
 
 test("hook reads stdin payload (agent_type, cwd) and prints context", () => {
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-sub-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-sub-"));
   fs.mkdirSync(path.join(proj, ".git"), { recursive: true });
   fs.writeFileSync(path.join(proj, ".git", "HEAD"), "ref: refs/heads/feat/hooks\n");
-  const res = runHook({ session_id: "s1", cwd: proj, agent_type: "vc-tester", agent_id: "a1" });
+  const res = runHook({ session_id: "s1", cwd: proj, agent_type: "av-tester", agent_id: "a1" });
   assert.equal(res.status, 0);
-  assert.match(res.stdout, /vc-tester/);
+  assert.match(res.stdout, /av-tester/);
   assert.match(res.stdout, /feat\/hooks/);
   fs.rmSync(proj, { recursive: true, force: true });
 });
 
 test("missing agent_type falls back to 'unknown' without throwing", () => {
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-sub2-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-sub2-"));
   const res = runHook({ session_id: "s1", cwd: proj });
   assert.equal(res.status, 0);
   assert.match(res.stdout, /unknown/);

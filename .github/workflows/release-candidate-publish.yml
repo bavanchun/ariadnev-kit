@@ -38,7 +38,7 @@ jobs:
           GITHUB_API_VERSION: 2026-03-10
           GITHUB_REPOSITORY: ${{ github.repository }}
           SOURCE_SHA: ${{ inputs.source_sha }}
-          RELEASE_TAG: vcskill@${{ inputs.version }}
+          RELEASE_TAG: ariadnev@${{ inputs.version }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           CANDIDATE_RUN_ATTEMPT: ${{ inputs.candidate_run_attempt }}
           CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
@@ -74,10 +74,10 @@ jobs:
             if (/\bHTTP 404\b/.test(String(result.stderr))) return null;
             fail("GitHub API preflight failed");
           };
-          ok(/^[a-f0-9]{40}$/.test(sha) && /^vcskill@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "invalid release identity");
+          ok(/^[a-f0-9]{40}$/.test(sha) && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "invalid release identity");
           ok(/^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId), "invalid candidate identity");
           ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest), "invalid candidate digest");
-          ok(artifactName === `vcskill-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate name drift");
+          ok(artifactName === `ariadnev-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate name drift");
           const run = api(`repos/${repo}/actions/runs/${runId}`);
           ok(run.path === ".github/workflows/release.yml" && run.event === "push" && run.head_sha === sha && String(run.run_attempt) === attempt && run.status === "in_progress", "candidate run drift");
           const artifact = api(`repos/${repo}/actions/artifacts/${artifactId}`);
@@ -86,13 +86,13 @@ jobs:
           ok(!Number.isNaN(Date.parse(artifact.created_at)) && Date.parse(artifact.expires_at) > Date.now(), "candidate artifact is expired or undated");
           const artifactHistory = [];
           for (let page = 1; page <= 10; page += 1) { const batch = api(`repos/${repo}/actions/artifacts?per_page=100&page=${page}`).artifacts || []; artifactHistory.push(...batch); if (batch.length < 100) break; if (page === 10) fail("candidate artifact history exceeds the pagination bound"); }
-          const rejectedArtifacts = artifactHistory.filter((entry) => String(entry.id) !== artifactId && !entry.expired && entry.workflow_run?.head_sha === sha && entry.name?.startsWith(`vcskill-candidate-${sha}-run-`)).map((entry) => {
+          const rejectedArtifacts = artifactHistory.filter((entry) => String(entry.id) !== artifactId && !entry.expired && entry.workflow_run?.head_sha === sha && entry.name?.startsWith(`ariadnev-candidate-${sha}-run-`)).map((entry) => {
             const match = /-run-(\d+)-attempt-(\d+)$/.exec(entry.name);
             ok(match && /^sha256:[a-f0-9]{64}$/.test(entry.digest), "prior candidate envelope drift");
             return { artifactId: String(entry.id), artifactName: entry.name, artifactDigest: entry.digest, runId: match[1], runAttempt: match[2] };
           }).sort((left, right) => Number(left.artifactId) - Number(right.artifactId));
           ok(rejectedArtifacts.length <= 32, "too many prior candidate envelopes");
-          const envelope = { schemaVersion: 1, schema: "https://vcskill.dev/schemas/candidate-envelope.schema.json", repository: repo, runId, runAttempt: attempt, artifactId, artifactName, artifactDigest, artifactSize: artifact.size_in_bytes, createdAt: artifact.created_at, expiresAt: artifact.expires_at, workflowPath: ".github/workflows/release.yml", headSha: sha, rejectedArtifacts };
+          const envelope = { schemaVersion: 1, schema: "https://ariadnev.com/schemas/candidate-envelope.schema.json", repository: repo, runId, runAttempt: attempt, artifactId, artifactName, artifactDigest, artifactSize: artifact.size_in_bytes, createdAt: artifact.created_at, expiresAt: artifact.expires_at, workflowPath: ".github/workflows/release.yml", headSha: sha, rejectedArtifacts };
           const zip = api(`repos/${repo}/actions/artifacts/${artifactId}/zip`, { binary: true });
           ok(digest(zip) === artifactDigest, "artifact zip digest drift");
           mkdirSync("candidate", { recursive: true });
@@ -103,13 +103,13 @@ jobs:
           ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 536870912, "candidate expands beyond the byte limit");
           execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
           const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
-          ok(attestation.schemaVersion === 1 && attestation.schema === "https://vcskill.dev/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
+          ok(attestation.schemaVersion === 1 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
           ok(attestation.workflow?.runId === runId && attestation.workflow?.runAttempt === attempt && attestation.workflow?.path === ".github/workflows/release.yml" && attestation.workflow?.ref === `${repo}/.github/workflows/release.yml@refs/heads/main` && attestation.workflow?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.workflow?.digest), "attestation workflow drift");
-          ok(attestation.product?.sha === sha && attestation.product?.tag === tag && tag === `vcskill@${attestation.product?.version}`, "attestation product drift");
+          ok(attestation.product?.sha === sha && attestation.product?.tag === tag && tag === `ariadnev@${attestation.product?.version}`, "attestation product drift");
           ok(attestation.generator?.path === "packages/cli/scripts/generate-docs-bundle.ts" && attestation.generator?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.generator?.digest), "attestation generator drift");
-          ok(attestation.consumer?.repository === "bavanchun/vcskill-web" && /^[a-f0-9]{40}$/.test(attestation.consumer?.commitSha) && attestation.consumer?.lockPath === ".github/release/web-consumer-lock.json", "attestation consumer drift");
+          ok(attestation.consumer?.repository === "bavanchun/ariadnev-web" && /^[a-f0-9]{40}$/.test(attestation.consumer?.commitSha) && attestation.consumer?.lockPath === ".github/release/web-consumer-lock.json", "attestation consumer drift");
           for (const field of ["lockDigest", "contractDigest", "invocationDigest", "resultDigest", "outputDigest", "previousDescriptorDigest"]) ok(/^sha256:[a-f0-9]{64}$/.test(attestation.consumer?.[field]), `attestation ${field} drift`);
-          const required = ["checksums.txt", "docs-bundle-manifest-v1.schema.json", "docs-bundle.manifest.json", "docs-bundle.tar.gz", "vcskill-darwin-arm64", "vcskill-darwin-x64", "vcskill-linux-arm64", "vcskill-linux-x64", "vcskill-windows-x64.exe"];
+          const required = ["checksums.txt", "docs-bundle-manifest-v1.schema.json", "docs-bundle.manifest.json", "docs-bundle.tar.gz", "ariadnev-darwin-arm64", "ariadnev-darwin-x64", "ariadnev-linux-arm64", "ariadnev-linux-x64", "ariadnev-windows-x64.exe"].sort((left, right) => left.localeCompare(right));
           const assets = [...(attestation.releaseAssets || [])].sort((left, right) => left.name.localeCompare(right.name));
           ok(JSON.stringify(assets.map((entry) => entry.name)) === JSON.stringify(required), "release asset inventory drift");
           ok(new Set(assets.map((entry) => entry.name)).size === assets.length && JSON.stringify([...listing].sort()) === JSON.stringify(["release-artifact-attestation.json", ...required].sort()), "candidate zip contents drift");
@@ -123,7 +123,7 @@ jobs:
             for (const asset of assets) { const remote = release.assets.find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); }
           };
           const tagRef = maybe(`repos/${repo}/git/ref/tags/${tag}`), release = maybe(`repos/${repo}/releases/tags/${tag}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
-          const marker = "vcskill-candidate-envelope-v1\n";
+          const marker = "ariadnev-candidate-envelope-v1\n";
           if (tagRef || release) {
             ok(tagRef && release && tagRef.object?.type === "tag", "remote state conflict");
             const tagObject = api(`repos/${repo}/git/tags/${tagRef.object.sha}`);

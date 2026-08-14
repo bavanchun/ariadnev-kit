@@ -7,7 +7,7 @@
   "title": "Bounded stepwise reasoning",
   "subjects": {
     "skills": [
-      "vc:sequential-thinking"
+      "av:sequential-thinking"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:sequential-thinking": "required",
-          "vc:problem-solving": "forbidden"
+          "av:sequential-thinking": "required",
+          "av:problem-solving": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:problem-solving": "required",
-          "vc:sequential-thinking": "forbidden"
+          "av:problem-solving": "required",
+          "av:sequential-thinking": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

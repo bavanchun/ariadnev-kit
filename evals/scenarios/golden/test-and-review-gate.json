@@ -7,8 +7,8 @@
   "title": "Test and review gate",
   "subjects": {
     "skills": [
-      "vc:test",
-      "vc:code-review"
+      "av:test",
+      "av:code-review"
     ]
   },
   "fixture": {
@@ -27,9 +27,9 @@
           ]
         },
         "routing": {
-          "vc:test": "required",
-          "vc:code-review": "required",
-          "vc:ship": "forbidden"
+          "av:test": "required",
+          "av:code-review": "required",
+          "av:ship": "forbidden"
         },
         "artifacts": {
           "test-report": {

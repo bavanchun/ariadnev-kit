@@ -1,5 +1,5 @@
 {
-  "name": "vcskill",
+  "name": "ariadnev",
   "version": "0.1.0",
   "providers": ["claude-code", "codex", "cursor", "antigravity", "opencode", "generic"],
   "defaultProvider": "claude-code",

@@ -1,5 +1,5 @@
 ---
-name: vc:sequential-thinking
+name: av:sequential-thinking
 description: Apply structured, revisable step-by-step reasoning for complex problems. Use for multi-step analysis, hypothesis-driven debugging, or plans whose scope may change mid-way.
 user-invocable: true
 argument-hint: "<problem to reason through>"
@@ -19,7 +19,7 @@ Handles: adaptive analysis, architecture trade-offs, hypothesis-driven
 investigation, unclear scope, and multi-constraint decisions.
 
 Does not handle: ordinary one-step questions or a stuck frame. Answer simple
-questions directly; use `vc:problem-solving` when reframing is the real need.
+questions directly; use `av:problem-solving` when reframing is the real need.
 
 ## Core record
 
@@ -92,7 +92,7 @@ the minimum information required.
 - **Implicit:** apply the method internally and return the conclusion, evidence,
   alternatives, and residual uncertainty without exposing private scratch work.
 
-The vc distribution does not bundle optional thought-history and formatting
+The av distribution does not bundle optional thought-history and formatting
 scripts. Do not claim persistent history or deterministic formatting unless
 an equivalent installed tool actually ran.
 
@@ -125,11 +125,11 @@ Before `FINAL`, confirm:
 
 ## Workflow position
 
-**Typically follows:** `vc:scout`, `vc:fix`, or `vc:plan` encountering a complex
+**Typically follows:** `av:scout`, `av:fix`, or `av:plan` encountering a complex
 but still progressing analysis.
 
-**Typically precedes:** the evidence-backed action in `vc:fix`, `vc:plan`, or
-`vc:cook`.
+**Typically precedes:** the evidence-backed action in `av:fix`, `av:plan`, or
+`av:cook`.
 
-**Related:** `vc:problem-solving` changes a stuck frame; this skill develops and
+**Related:** `av:problem-solving` changes a stuck frame; this skill develops and
 corrects a viable frame step by step.

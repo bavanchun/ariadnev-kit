@@ -1,4 +1,4 @@
-// Pure parsing/scoring for the `vc eval` tier-3 LLM judge. Kept separate from
+// Pure parsing/scoring for the `av eval` tier-3 LLM judge. Kept separate from
 // the command so it is fully unit-testable without spawning anything.
 
 export interface JudgeScores {

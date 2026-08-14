@@ -134,7 +134,7 @@ export function createEventStore(input: {
   maxEvents?: number;
 }): EventStore {
   const context = validateRunEventContext(input.context);
-  const root = input.root ?? join(homedir(), ".vcskill", "runs");
+  const root = input.root ?? join(homedir(), ".ariadnev", "runs");
   const maxFileBytes = input.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
   const maxEvents = input.maxEvents ?? DEFAULT_MAX_EVENTS;
   if (!Number.isInteger(maxFileBytes) || maxFileBytes < 1) throw new Error("event maxFileBytes must be positive");

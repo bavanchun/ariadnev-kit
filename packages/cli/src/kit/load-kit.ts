@@ -84,7 +84,7 @@ function validateSkill(artifact: Artifact): void {
     name?: unknown;
     description?: unknown;
   };
-  const expected = `vc:${artifact.name}`;
+  const expected = `av:${artifact.name}`;
   if (typeof name !== "string" || name !== expected) {
     throw new KitValidationError(
       `skill "${artifact.name}": frontmatter name must equal "${expected}" (got ${String(name)})`,

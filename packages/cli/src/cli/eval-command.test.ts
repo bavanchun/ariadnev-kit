@@ -7,8 +7,8 @@ const kitRoot = join(process.cwd(), "kit");
 
 describe("buildJudgePrompt", () => {
   it("names the skill, asks for strict JSON, and caps content length", () => {
-    const p = buildJudgePrompt("vc:scout", "x".repeat(5000));
-    expect(p).toContain("vc:scout");
+    const p = buildJudgePrompt("av:scout", "x".repeat(5000));
+    expect(p).toContain("av:scout");
     expect(p).toContain("strict JSON");
     expect(p).toContain("truncated");
     expect(p.length).toBeLessThan(3300);
@@ -27,7 +27,7 @@ describe("runEval", () => {
   it("runs tier-1 always and skips tier-3 when no eval command is configured", () => {
     const runJudge = vi.fn((_prompt: string) => "{}");
     const r = runEval({ kitRoot, skill: "scout", deps: { runJudge } });
-    expect(r.summary).toContain("vcskill validate"); // tier-1 header
+    expect(r.summary).toContain("ariadnev validate"); // tier-1 header
     expect(r.summary).toContain("tier-3 skipped");
     expect(runJudge).not.toHaveBeenCalled(); // no evalCmd → never runs
   });

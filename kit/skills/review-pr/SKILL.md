@@ -1,5 +1,5 @@
 ---
-name: vc:review-pr
+name: av:review-pr
 description: Review a GitHub pull request by number or URL for correctness, security, and breaking changes. Use with gh to fetch the PR and optionally fix, reply, or merge when CI is green.
 user-invocable: true
 argument-hint: "<PR number or URL> [--fix] [--reply] [--merge]"
@@ -11,12 +11,12 @@ metadata:
 
 # Review Pull Request
 
-The GitHub-specialized sibling of `vc:code-review`: fetches a PR via `gh`,
-reviews the diff, and can optionally act on it. Use `vc:code-review` for a local
+The GitHub-specialized sibling of `av:code-review`: fetches a PR via `gh`,
+reviews the diff, and can optionally act on it. Use `av:code-review` for a local
 diff/commit/codebase; use this when the target is a PR and you may want to fix,
 reply, or merge it.
 
-Shares one severity scale with `vc:code-review` — read
+Shares one severity scale with `av:code-review` — read
 `../code-review/references/severity-rubric.md` (Critical/Important/Suggestion,
 structural-vs-micro slop, the evidence rule) rather than inventing a second.
 
@@ -25,9 +25,9 @@ structural-vs-micro slop, the evidence rule) rather than inventing a second.
 | Flag | Behavior |
 |---|---|
 | *(none)* | Review-only: print findings + verdict to chat. No edits. |
-| `--fix` | Review → fix actionable findings via `vc:fix` → `vc:git` commit+push → re-review. Repeat until clean or a stop condition. |
+| `--fix` | Review → fix actionable findings via `av:fix` → `av:git` commit+push → re-review. Repeat until clean or a stop condition. |
 | `--reply` | Post the final review to the PR via `gh pr review` (mapped by verdict). |
-| `--merge` | LAST: if merge-ready, merge via `vc:git` and watch post-merge CI to green. |
+| `--merge` | LAST: if merge-ready, merge via `av:git` and watch post-merge CI to green. |
 
 ## Workflow
 
@@ -36,7 +36,7 @@ structural-vs-micro slop, the evidence rule) rather than inventing a second.
 2. **Judge scope**: compare stated intent vs `additions/deletions/changedFiles` —
    a wide gap is itself a signal.
 3. **Review** the diff (read full modified files, not just hunks) via the
-   `vc-reviewer` agent for: correctness, security, breaking changes, test
+   `av-reviewer` agent for: correctness, security, breaking changes, test
    coverage, and AI-slop. For a big/uncertain diff read `references/anti-ai-slop.md`.
 4. **Rank + verdict** using the shared rubric. Then run any requested action mode.
 
@@ -48,8 +48,8 @@ Check with `command -v gh` / `gh auth status` before `--reply`/`--merge`.
 
 ## Action-mode stop conditions
 
-- `--fix`: stop when the re-review is clean, `vc:fix` is blocked on a decision, or
-  the same finding survives 3 attempts. Never bypass `vc:fix`'s own gates.
+- `--fix`: stop when the re-review is clean, `av:fix` is blocked on a decision, or
+  the same finding survives 3 attempts. Never bypass `av:fix`'s own gates.
 - `--merge`: merge ONLY when verdict is Approve, PR is `OPEN` + `mergeable`, no
   other reviewer set `CHANGES_REQUESTED`, and CI is green or only pending. Any
   failure → report the exact unmet condition and stop. `--merge` authorizes a
@@ -69,7 +69,7 @@ Findings (severity-ranked, file:line):
 Actions: fix=<iterations/commits | n/a> · reply=<posted|fell-back|n/a> · merge=<merged SHA|not-ready:<cond>|n/a>
 ```
 
-Proof/risk: review is analysis; any `--fix` changes are proven by `vc:fix`'s own
+Proof/risk: review is analysis; any `--fix` changes are proven by `av:fix`'s own
 verify step and CI, not by this skill asserting success.
 
 ## Quality gates
@@ -82,7 +82,7 @@ Before returning, confirm:
 
 ## Workflow position
 
-**Typically follows:** a PR being opened (often by `vc:ship`)
+**Typically follows:** a PR being opened (often by `av:ship`)
 **Typically precedes:** merge to the target branch
-**Related:** `vc:code-review` (local review + shared rubric), `vc:fix` (`--fix` engine), `vc:git` (commit/push/merge mechanics)
+**Related:** `av:code-review` (local review + shared rubric), `av:fix` (`--fix` engine), `av:git` (commit/push/merge mechanics)
 

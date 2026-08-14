@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 function fixture(runId = "run.checkpoint") {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-checkpoint-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-checkpoint-"));
   roots.push(root);
   const context: EventStoreContextV1 = {
     runId,

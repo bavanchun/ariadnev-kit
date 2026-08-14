@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import type { Kit } from "../kit/kit-types.js";
 import type { MatrixData } from "../providers/provider-matrix.js";
 
-export const DOCS_BUNDLE_SCHEMA_ID = "https://vcskill.dev/schemas/docs-bundle-manifest-v1.schema.json";
+export const DOCS_BUNDLE_SCHEMA_ID = "https://ariadnev.com/schemas/docs-bundle-manifest-v1.schema.json";
 export const DOCS_BUNDLE_SCHEMA_VERSION = 1;
 export const DOCS_BUNDLE_ARCHIVE_NAME = "docs-bundle.tar.gz";
 export const DOCS_BUNDLE_MANIFEST_NAME = "docs-bundle.manifest.json";
@@ -102,7 +102,7 @@ export interface DocsBundleManifestPayloadEntry {
 export interface DocsBundleManifestV1 {
   schemaVersion: 1;
   schemaId: typeof DOCS_BUNDLE_SCHEMA_ID;
-  bundle: "vcskill-docs-bundle";
+  bundle: "ariadnev-docs-bundle";
   mode: DocsBundleMode;
   publishable: boolean;
   version: string;

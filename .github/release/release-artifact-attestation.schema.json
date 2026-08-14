@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vcskill.dev/schemas/release-artifact-attestation.schema.json",
+  "$id": "https://ariadnev.com/schemas/release-artifact-attestation.schema.json",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "schema", "artifactName", "workflow", "product", "generator", "consumer", "releaseAssets"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "schema": { "const": "https://vcskill.dev/schemas/release-artifact-attestation.schema.json" },
+    "schema": { "const": "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" },
     "artifactName": { "type": "string", "pattern": "^[A-Za-z0-9._@-]+$" },
     "workflow": {
       "type": "object",
@@ -28,7 +28,7 @@
       "properties": {
         "sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
         "version": { "type": "string", "minLength": 1 },
-        "tag": { "type": "string", "pattern": "^vcskill@" }
+        "tag": { "type": "string", "pattern": "^ariadnev@" }
       }
     },
     "generator": {

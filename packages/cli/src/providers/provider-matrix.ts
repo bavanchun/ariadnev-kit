@@ -1,6 +1,6 @@
 // Canonical provider×artifact capability matrix, derived from the same resolver
 // + spec-verified gate the installer uses. One source feeds BOTH the README docs
-// table and `vcskill contract --json`, so neither can drift from real behavior.
+// table and `ariadnev contract --json`, so neither can drift from real behavior.
 
 import type { ProviderId, ArtifactKind } from "./spec-verified.js";
 import { targetTemplate } from "./resolver.js";
@@ -66,7 +66,7 @@ export function matrixToJSON(data: MatrixData = buildProviderMatrix()): MatrixDa
   return data;
 }
 
-// Branded terminal grid for `vcskill contract` — mirrors the landing-page
+// Branded terminal grid for `ariadnev contract` — mirrors the landing-page
 // signature matrix (◆ canonical / ✓ verified / · skip). Cells are padded to a
 // fixed width BEFORE coloring, so ANSI escapes never disturb column alignment.
 const ARTIFACT_COL = 10;

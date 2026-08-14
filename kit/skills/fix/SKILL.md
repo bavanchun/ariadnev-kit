@@ -1,5 +1,5 @@
 ---
-name: vc:fix
+name: av:fix
 description: Fix bugs, test failures, and CI errors with proven root causes. Use for type errors, lint issues, failing tests, runtime bugs, or broken pipelines.
 user-invocable: true
 argument-hint: "<error or bug> [--quick|--review|--auto|--parallel]"
@@ -15,8 +15,8 @@ behavior, and showing the original failure go red → green without regressions.
 Symptom patches and guess-and-check edits are failures.
 
 Handles: runtime bugs, failing tests, type/lint errors, CI failures, logs, and
-broken workflows. New behavior belongs to `vc:cook`; unresolved design choices
-belong to `vc:brainstorm` after diagnosis.
+broken workflows. New behavior belongs to `av:cook`; unresolved design choices
+belong to `av:brainstorm` after diagnosis.
 
 ## Opening repair contract
 
@@ -122,18 +122,18 @@ Before calling the repair complete, confirm:
 4. Regression proof fails without the fix and passes with it in this session.
 5. Every dependent caller/shared contract in the blast radius was checked.
 6. Typecheck, lint, build, and tests ran where the project defines them.
-7. `vc:code-review` or equivalent local review found no unresolved blocker.
+7. `av:code-review` or equivalent local review found no unresolved blocker.
 8. Side effects were surfaced for a user decision rather than silently patched.
 9. Plan/docs/Git/journal actions followed their own impact and authorization gates.
 
 ## Workflow position
 
-**Typically follows:** a concrete failure from `vc:test`, `vc:cook`, CI, logs,
+**Typically follows:** a concrete failure from `av:test`, `av:cook`, CI, logs,
 or a user reproduction.
 
-**Typically precedes:** `vc:code-review`, broader `vc:test`, and optionally
-`vc:git`/`vc:journal` after explicit authorization and final evidence.
+**Typically precedes:** `av:code-review`, broader `av:test`, and optionally
+`av:git`/`av:journal` after explicit authorization and final evidence.
 
-**Related:** `vc:scout` for context, `vc:sequential-thinking` for hypotheses,
-`vc:problem-solving` after repeated eliminations, and `vc:brainstorm` when the
+**Related:** `av:scout` for context, `av:sequential-thinking` for hypotheses,
+`av:problem-solving` after repeated eliminations, and `av:brainstorm` when the
 diagnosed cause admits multiple materially different repairs.

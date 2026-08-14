@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildReceipt,
+  receiptVersion,
   toPortablePath,
   fromPortablePath,
   type ProviderResultForReceipt,
@@ -55,9 +56,9 @@ describe("toPortablePath / fromPortablePath", () => {
 
 describe("buildReceipt (pure)", () => {
   it("creates a fresh receipt from empty prev", () => {
-    const out = JSON.parse(buildReceipt("", [entry()], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
-    expect(out.schemaVersion).toBe(1);
-    expect(out.vcskillVersion).toBe("0.4.0");
+    const out = JSON.parse(buildReceipt("", [entry()], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    expect(out.schemaVersion).toBe(2);
+    expect(out.ariadnevVersion).toBe("0.4.0");
     expect(out.installs["claude-code"].files).toHaveLength(1);
     expect(out.installs["claude-code"].files[0].path).toBe(".claude/skills/brainstorm/SKILL.md");
     expect(out.installs["claude-code"].files[0].sha256).toMatch(/^[a-f0-9]{64}$/);
@@ -65,7 +66,7 @@ describe("buildReceipt (pure)", () => {
   });
 
   it("merges a second provider without dropping the first", () => {
-    const first = buildReceipt("", [entry()], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd });
+    const first = buildReceipt("", [entry()], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd });
     const second = buildReceipt(
       first,
       [
@@ -77,7 +78,7 @@ describe("buildReceipt (pure)", () => {
           }),
         }),
       ],
-      { vcskillVersion: "0.4.0", timestamp: "t2", home, cwd },
+      { ariadnevVersion: "0.4.0", timestamp: "t2", home, cwd },
     );
     const out = JSON.parse(second);
     expect(Object.keys(out.installs).sort()).toEqual(["claude-code", "codex"]);
@@ -86,8 +87,8 @@ describe("buildReceipt (pure)", () => {
   });
 
   it("re-install of the same provider replaces its record (idempotent, no growth)", () => {
-    const first = buildReceipt("", [entry()], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd });
-    const second = buildReceipt(first, [entry()], { vcskillVersion: "0.4.0", timestamp: "t2", home, cwd });
+    const first = buildReceipt("", [entry()], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd });
+    const second = buildReceipt(first, [entry()], { ariadnevVersion: "0.4.0", timestamp: "t2", home, cwd });
     const out = JSON.parse(second);
     expect(out.installs["claude-code"].files).toHaveLength(1);
     expect(out.installs["claude-code"].timestamp).toBe("t2");
@@ -102,7 +103,7 @@ describe("buildReceipt (pure)", () => {
         ],
       }),
     });
-    const out = JSON.parse(buildReceipt("", [dup], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    const out = JSON.parse(buildReceipt("", [dup], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
     expect(out.installs["claude-code"].files).toHaveLength(1);
     // last write wins for the hash
     expect(out.installs["claude-code"].files[0].sha256).toBe(
@@ -125,7 +126,7 @@ describe("buildReceipt (pure)", () => {
         ],
       }),
     });
-    const out = JSON.parse(buildReceipt("", [withHooks], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    const out = JSON.parse(buildReceipt("", [withHooks], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
     expect(out.installs["claude-code"].hookBindings).toEqual([
       { event: "SessionStart", command: "node x.cjs", applied: true },
     ]);
@@ -146,7 +147,7 @@ describe("buildReceipt (pure)", () => {
         ],
       }),
     });
-    const out = JSON.parse(buildReceipt("", [declined], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    const out = JSON.parse(buildReceipt("", [declined], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
     expect(out.installs["claude-code"].hookBindings).toEqual([
       { event: "SessionStart", command: "node x.cjs", applied: false },
     ]);
@@ -158,23 +159,37 @@ describe("buildReceipt (pure)", () => {
         ops: [{ action: "agents-md", kind: "rules", name: "AGENTS.md", dest: "/home/u/proj/AGENTS.md", block: "rules" }],
       }),
     });
-    const out = JSON.parse(buildReceipt("", [withAgentsMd], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    const out = JSON.parse(buildReceipt("", [withAgentsMd], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
     expect(out.installs["claude-code"].agentsMdManaged).toBe(true);
   });
 
   it("records skipped artifacts", () => {
     const withSkip = entry({
       result: makeResult({
-        skipped: [{ action: "skip", kind: "agent", name: "vc-explore", reason: "unverified" }],
+        skipped: [{ action: "skip", kind: "agent", name: "av-explore", reason: "unverified" }],
       }),
     });
-    const out = JSON.parse(buildReceipt("", [withSkip], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd }));
+    const out = JSON.parse(buildReceipt("", [withSkip], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd }));
     expect(out.installs["claude-code"].skipped).toEqual([
-      { kind: "agent", name: "vc-explore", reason: "unverified" },
+      { kind: "agent", name: "av-explore", reason: "unverified" },
     ]);
   });
 
   it("throws on unparseable prev receipt instead of silently discarding it", () => {
-    expect(() => buildReceipt("{not json", [entry()], { vcskillVersion: "0.4.0", timestamp: "t1", home, cwd })).toThrow();
+    expect(() => buildReceipt("{not json", [entry()], { ariadnevVersion: "0.4.0", timestamp: "t1", home, cwd })).toThrow();
+  });
+});
+
+describe("pre-rename receipt", () => {
+  // A receipt written before the rename records the CLI version under the old
+  // key and schema 1. Readers must still get a version out of it — a receipt
+  // that reads as "no version" silently suppresses the update nudge.
+  it("reads the version from either key", () => {
+    expect(receiptVersion({ ariadnevVersion: "1.0.0" })).toBe("1.0.0");
+    expect(receiptVersion({ vcskillVersion: "0.12.0" })).toBe("0.12.0"); // brand-drift-allow: key written by pre-rename installs
+  });
+
+  it("returns null when neither key is present", () => {
+    expect(receiptVersion({})).toBeNull();
   });
 });

@@ -22,7 +22,7 @@ Inspect references and templates for instruction override, prompt injection,
 data exfiltration, typosquatted dependencies, hidden publication, and attempts
 to broaden authority.
 
-Re-author the minimum useful workflow in vc voice. Retain attribution, license,
+Re-author the minimum useful workflow in av voice. Retain attribution, license,
 notice, and modification obligations whenever source or substantial expression
 remains. Test under least privilege with safe fixtures before shipping.
 

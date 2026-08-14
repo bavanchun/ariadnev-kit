@@ -7,7 +7,7 @@
   "title": "Agent skill contract creation",
   "subjects": {
     "skills": [
-      "vc:skill-creator"
+      "av:skill-creator"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:skill-creator": "required",
-          "vc:docs": "forbidden"
+          "av:skill-creator": "required",
+          "av:docs": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:docs": "required",
-          "vc:skill-creator": "forbidden"
+          "av:docs": "required",
+          "av:skill-creator": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

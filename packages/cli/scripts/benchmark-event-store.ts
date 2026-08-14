@@ -23,7 +23,7 @@ function summary(samples: readonly number[]) {
 }
 
 function runFixture(attempts: number, collect: boolean) {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-event-benchmark-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-event-benchmark-"));
   const context: EventStoreContextV1 = {
     runId: `run.benchmark-${attempts}`,
     graph: { id: "benchmark-workflow", digest: "f".repeat(64) },

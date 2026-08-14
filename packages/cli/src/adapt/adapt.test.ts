@@ -16,19 +16,19 @@ const sample: Artifact = {
   type: "skill",
   name: "sample-skill",
   frontmatter: {
-    name: "vc:sample-skill",
+    name: "av:sample-skill",
     description: "Fixture skill for adapt tests. Use when verifying provider adaptation.",
     "allowed-tools": ["Task", "AskUserQuestion", "TodoWrite"],
   },
   body,
-  raw: `---\nname: vc:sample-skill\n---\n\n${body}`,
+  raw: `---\nname: av:sample-skill\n---\n\n${body}`,
   sourcePath: "/kit/skills/sample-skill/SKILL.md",
 };
 
 describe("adaptArtifact orchestration", () => {
   it("claude-code is identity-ish (frontmatter + body preserved)", () => {
     const out = adaptArtifact(sample, "claude-code");
-    expect(out).toMatch(/name: ['"]?vc:sample-skill['"]?/);
+    expect(out).toMatch(/name: ['"]?av:sample-skill['"]?/);
     expect(out).toContain("Task tool");
     expect(out).not.toContain("Compatibility");
   });

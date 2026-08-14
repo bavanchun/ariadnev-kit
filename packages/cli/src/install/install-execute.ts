@@ -75,12 +75,12 @@ export interface InstallKitOpts {
   timestamp: string;
   /** User confirmed merging hook bindings into settings.json. */
   applyHookSettings?: boolean;
-  /** Installed vcskill package version, recorded in the receipt. */
-  vcskillVersion?: string;
+  /** Installed ariadnev package version, recorded in the receipt. */
+  ariadnevVersion?: string;
 }
 
 function receiptPath(root: string): string {
-  return join(root, ".vcskill", "receipt.json");
+  return join(root, ".ariadnev", "receipt.json");
 }
 
 /** Install the kit to every requested provider; returns per-provider results. */
@@ -91,7 +91,7 @@ export function installKit(
   opts: InstallKitOpts,
 ): ProviderInstallResult[] {
   const baseRoot = ctx.scope === "global" ? ctx.home : ctx.cwd;
-  const backupsParent = join(baseRoot, ".vcskill", "backups");
+  const backupsParent = join(baseRoot, ".ariadnev", "backups");
   const backupRoot = join(backupsParent, opts.timestamp);
   const allowedRoots = [ctx.home, ctx.cwd];
   const applyHookSettings = opts.applyHookSettings ?? false;
@@ -114,7 +114,7 @@ export function installKit(
     const rPath = receiptPath(baseRoot);
     const prevJson = existsSync(rPath) ? readFileSync(rPath, "utf8") : "";
     const receiptJson = buildReceipt(prevJson, receiptEntries, {
-      vcskillVersion: opts.vcskillVersion ?? "0.0.0",
+      ariadnevVersion: opts.ariadnevVersion ?? "0.0.0",
       timestamp: opts.timestamp,
       home: ctx.home,
       cwd: ctx.cwd,

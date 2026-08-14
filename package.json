@@ -1,5 +1,5 @@
 {
-  "name": "vcskill-monorepo",
+  "name": "ariadnev-monorepo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,16 +7,16 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "pnpm --filter vcskill build",
+    "build": "pnpm --filter ariadnev build",
     "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\"",
     "test:hooks": "node --test \"kit/hooks/**/*.test.cjs\"",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "tsc -p packages/cli/tsconfig.json --noEmit",
-    "build:release": "pnpm --filter vcskill build:release",
-    "docs-bundle:generate": "pnpm --filter vcskill docs-bundle:generate",
-    "test:build-binaries": "pnpm --filter vcskill test:build-binaries",
-    "docs-bundle:verify-web-lock": "pnpm --filter vcskill verify:web-consumer-lock",
+    "build:release": "pnpm --filter ariadnev build:release",
+    "docs-bundle:generate": "pnpm --filter ariadnev docs-bundle:generate",
+    "test:build-binaries": "pnpm --filter ariadnev test:build-binaries",
+    "docs-bundle:verify-web-lock": "pnpm --filter ariadnev verify:web-consumer-lock",
     "changeset": "changeset",
     "version-packages": "changeset version"
   },

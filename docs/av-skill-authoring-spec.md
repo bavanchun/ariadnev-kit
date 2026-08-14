@@ -1,8 +1,8 @@
-# vc Skill Authoring Spec
+# av Skill Authoring Spec
 
 Rules for every skill in `kit/skills/`. Enforced automatically by the lint gate
 in `packages/cli/src/kit/skill-lint.ts`, which runs inside `loadKit` — so
-`pnpm test`, CI, and every `vcskill install` all reject a non-conforming skill.
+`pnpm test`, CI, and every `ariadnev install` all reject a non-conforming skill.
 
 ## Anatomy
 
@@ -14,16 +14,16 @@ kit/skills/<slug>/
   *.json, assets        # optional — data files the skill reads
 ```
 
-Naming: `<slug>` is kebab-case; frontmatter `name` must equal `vc:<slug>`.
+Naming: `<slug>` is kebab-case; frontmatter `name` must equal `av:<slug>`.
 
 ## Frontmatter contract
 
 | Field | Required | Rule |
 |---|---|---|
-| `name` | yes | exactly `vc:<dir-slug>` |
+| `name` | yes | exactly `av:<dir-slug>` |
 | `description` | yes | 20–200 chars, must contain a trigger verb (`use`/`invoke`/`run`/`activate`/`trigger`) |
 | `argument-hint` | no | short usage hint shown by the harness |
-| `user-invocable` | no | boolean; expose as `/vc:<slug>` slash command |
+| `user-invocable` | no | boolean; expose as `/av:<slug>` slash command |
 | `disable-model-invocation` | no | boolean; slash-only skills |
 | `allowed-tools` | no | list of tool names the skill needs |
 | `metadata` | yes | provenance fields below, plus optional authoring data (`author`, `version`, `maxLines`, …) |
@@ -88,8 +88,8 @@ section in one file and linking from the other.
 - Start with one paragraph: what the skill does and does not handle.
 - Prefer tables and numbered steps over prose.
 - Link references with a trigger condition: `For merge conflicts, read references/workflow-merge.md`.
-- Every `vc:<slug>` named in SKILL.md or `references/*.md` must resolve to a
-  skill in the same kit; `vcskill validate` checks this after loading the full
+- Every `av:<slug>` named in SKILL.md or `references/*.md` must resolve to a
+  skill in the same kit; `ariadnev validate` checks this after loading the full
   inventory.
 - Write in English; imperative voice addressed to the agent.
 - No provider-specific absolute paths — use `.claude/...`-relative canonical
@@ -97,7 +97,7 @@ section in one file and linking from the other.
 
 ## Cook-grade skill standard
 
-Every skill in `kit/skills/` must clear this seven-point bar. `vc:cook` is the
+Every skill in `kit/skills/` must clear this seven-point bar. `av:cook` is the
 reference implementation; measure new and rewritten skills against it. The lint
 gate enforces frontmatter, size, and the exact `## Output format`,
 `## Quality gates`, and `## Workflow position` headings. Workflow depth and
@@ -130,12 +130,12 @@ proof/risk quality remain authoring contracts reviewers check by reading.
 
 ## Agent authoring
 
-Agents live in `kit/agents/vc-<slug>.md`; enforced by
+Agents live in `kit/agents/av-<slug>.md`; enforced by
 `packages/cli/src/kit/agent-lint.ts` inside `loadKit`.
 
 | Field | Required | Rule |
 |---|---|---|
-| `name` | yes | exactly the file stem (`vc-<slug>.md` → `name: vc-<slug>`) |
+| `name` | yes | exactly the file stem (`av-<slug>.md` → `name: av-<slug>`) |
 | `description` | yes | 50–1200 chars, must contain ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
 | `tools` | no | comma-separated string or array of tool names |
 | `model` | no | one of `opus`, `sonnet`, `haiku` — tier by task weight (opus: planning/brainstorming; sonnet: review/debug/implement; haiku: mechanical/read-heavy work) |
@@ -144,7 +144,7 @@ Agents live in `kit/agents/vc-<slug>.md`; enforced by
 Body ≤ 120 lines, must contain a `## Behavioral Checklist` heading (5-8
 concrete pre-submission checks). Shape: persona (1 sentence) → Behavioral
 Checklist → workflow → output template → status protocol. Point to the
-matching `vc:<skill>` for workflow detail — don't duplicate it in the agent.
+matching `av:<skill>` for workflow detail — don't duplicate it in the agent.
 
 `model` and `memory` only mean something to claude-code. The codex adapter
 (`adapt/agent-to-toml.ts`) drops both fields when converting to `.toml` —
@@ -152,15 +152,15 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 
 ## Checklist before adding a skill
 
-- [ ] Slug is kebab-case; `name: vc:<slug>` matches the directory
+- [ ] Slug is kebab-case; `name: av:<slug>` matches the directory
 - [ ] Description is 20–200 chars, states what + when, contains a trigger verb
 - [ ] SKILL.md ≤ 300 lines; every reference ≤ 300 lines
 - [ ] Each `references/*.md` is linked from SKILL.md with a "read when …" condition
 - [ ] No heading duplicated between SKILL.md and references
 - [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
-- [ ] Every `vc:<slug>` reference resolves to an existing kit skill
+- [ ] Every `av:<slug>` reference resolves to an existing kit skill
 - [ ] All four provenance fields are strings and match the pinned source; original skills use the all-`"none"` sentinel
-- [ ] Claim-tracked skills classify every claim and pass strict `vcskill coverage --skill <name>`
+- [ ] Claim-tracked skills classify every claim and pass strict `ariadnev coverage --skill <name>`
 - [ ] No secrets, tokens, or machine-specific absolute paths
 - [ ] `pnpm test` green (the lint gate runs in `kit-fixtures.test.ts`)
-- [ ] `vcskill install --dry-run` shows the skill landing where expected
+- [ ] `ariadnev install --dry-run` shows the skill landing where expected

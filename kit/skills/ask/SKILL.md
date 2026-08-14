@@ -1,5 +1,5 @@
 ---
-name: vc:ask
+name: av:ask
 description: Answer technical and architecture questions with honest trade-offs. Use for design decisions, best-practice checks, or solution comparisons — analysis only, no code changes.
 user-invocable: true
 argument-hint: "<question>"
@@ -35,9 +35,9 @@ docs — if the answer implies work, it names the follow-up skill instead.
    an idea.
 2. Gather the minimum evidence (files, docs) that the answer depends on.
 3. Answer: verdict → reasoning → trade-offs → conditions that change it.
-4. If action follows, point to it: `vc:brainstorm` (open-ended design),
-   `vc:plan` (agreed multi-phase work), `vc:cook` (direct change),
-   `vc:fix` (there is a concrete bug).
+4. If action follows, point to it: `av:brainstorm` (open-ended design),
+   `av:plan` (agreed multi-phase work), `av:cook` (direct change),
+   `av:fix` (there is a concrete bug).
 
 ## Output format
 
@@ -47,8 +47,8 @@ docs — if the answer implies work, it names the follow-up skill instead.
 - **Next step** — a skill handoff or "none".
 
 Proof/risk: N/A — analysis only, this skill changes nothing. When the answer
-recommends work, the proof burden moves to the follow-up skill (`vc:cook`,
-`vc:fix`), which classifies its own risk lane.
+recommends work, the proof burden moves to the follow-up skill (`av:cook`,
+`av:fix`), which classifies its own risk lane.
 
 ## Quality gates
 
@@ -67,9 +67,9 @@ Before returning, confirm:
 
 ## Workflow position
 
-**Typically follows:** a question mid-task, or `vc:scout` (located the code, now
+**Typically follows:** a question mid-task, or `av:scout` (located the code, now
 decide what to do with it).
-**Typically precedes:** `vc:brainstorm` (open-ended design), `vc:plan` (agreed
-multi-phase work), `vc:cook` (direct change), `vc:fix` (concrete bug).
-**Related:** `vc:brainstorm` — use it instead when the question is "which
+**Typically precedes:** `av:brainstorm` (open-ended design), `av:plan` (agreed
+multi-phase work), `av:cook` (direct change), `av:fix` (concrete bug).
+**Related:** `av:brainstorm` — use it instead when the question is "which
 approach", needs a design debate, or has no single right answer.

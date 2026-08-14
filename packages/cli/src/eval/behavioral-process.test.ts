@@ -10,7 +10,7 @@ import {
 
 const roots: string[] = [];
 function workspace() {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-process-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-process-"));
   roots.push(root);
   return root;
 }
@@ -75,8 +75,8 @@ describe("createBehavioralProcessLauncher", () => {
     const ambient = workspace();
     const isolated = workspace();
     const work = workspace();
-    mkdirSync(join(isolated, ".vcskill"), { recursive: true });
-    writeFileSync(join(isolated, ".vcskill", "receipt.json"), "{}");
+    mkdirSync(join(isolated, ".ariadnev"), { recursive: true });
+    writeFileSync(join(isolated, ".ariadnev", "receipt.json"), "{}");
     const launcher = createBehavioralProcessLauncher({
       executable: process.execPath,
       args: ["-e", "process.stdout.write(String(process.env.HOME))"],
@@ -106,7 +106,7 @@ describe("createBehavioralProcessLauncher", () => {
   });
 
   it("distinguishes an unavailable executable and a non-zero exit", async () => {
-    const unavailable = createBehavioralProcessLauncher({ executable: "vcskill-command-that-does-not-exist" });
+    const unavailable = createBehavioralProcessLauncher({ executable: "ariadnev-command-that-does-not-exist" });
     const crashed = createBehavioralProcessLauncher({ executable: process.execPath, args: ["-e", "process.exit(7)"] });
     await expect(unavailable.launch({ prompt: "", workspaceRoot: workspace() }, new AbortController().signal))
       .resolves.toEqual({ kind: "unavailable" });

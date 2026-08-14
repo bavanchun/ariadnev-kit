@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# vcskill installer — downloads the standalone binary for your platform from the
-# vcskill edge, verifies its sha256, and installs it to ~/.local/bin.
+# ariadnev installer — downloads the standalone binary for your platform from the
+# ariadnev edge, verifies its sha256, and installs it to ~/.local/bin.
 #
-#   curl -fsSL https://vcskill.vchun.dev/install | bash
+#   curl -fsSL https://ariadnev.com/install | bash
 #
-# Overrides (env): VCSKILL_INSTALL_DIR (default ~/.local/bin).
+# Overrides (env): ARIADNEV_INSTALL_DIR (default ~/.local/bin).
 set -euo pipefail
 
-BASE="${VCSKILL_BASE_URL:-https://vcskill.vchun.dev}"
-INSTALL_DIR="${VCSKILL_INSTALL_DIR:-$HOME/.local/bin}"
+BASE="${ARIADNEV_BASE_URL:-https://ariadnev.com}"
+INSTALL_DIR="${ARIADNEV_INSTALL_DIR:-$HOME/.local/bin}"
 
-err() { echo "vcskill install: $*" >&2; exit 1; }
+err() { echo "ariadnev install: $*" >&2; exit 1; }
 
 # --- detect platform ---------------------------------------------------------
 os="$(uname -s)"
@@ -27,12 +27,12 @@ case "$arch" in
   *) err "unsupported architecture '$arch'" ;;
 esac
 
-asset="vcskill-${os}-${arch}"
+asset="ariadnev-${os}-${arch}"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-echo "vcskill install: downloading ${asset} …"
+echo "ariadnev install: downloading ${asset} …"
 curl -fsSL "${BASE}/download/${asset}" -o "${tmp}/${asset}" || err "download failed: ${BASE}/download/${asset}"
 curl -fsSL "${BASE}/download/checksums.txt" -o "${tmp}/checksums.txt" || err "could not fetch checksums.txt"
 
@@ -51,24 +51,24 @@ fi
 
 # --- install -----------------------------------------------------------------
 mkdir -p "$INSTALL_DIR"
-mv "${tmp}/${asset}" "${INSTALL_DIR}/vcskill"
-chmod +x "${INSTALL_DIR}/vcskill"
+mv "${tmp}/${asset}" "${INSTALL_DIR}/ariadnev"
+chmod +x "${INSTALL_DIR}/ariadnev"
 
-# --- short `vc` alias (opt out with VCSKILL_ALIAS=off) ------------------------
-# Never clobber a pre-existing different `vc` — only create/refresh our own link.
-if [ "${VCSKILL_ALIAS:-on}" != "off" ]; then
-  vc_path="${INSTALL_DIR}/vc"
-  if [ ! -e "$vc_path" ] || { [ -L "$vc_path" ] && [ "$(readlink "$vc_path")" = "vcskill" ]; }; then
-    ln -s vcskill "$vc_path" 2>/dev/null || cp "${INSTALL_DIR}/vcskill" "$vc_path"
-    echo "vcskill install: linked short alias  ${vc_path} → vcskill"
+# --- short `av` alias (opt out with ARIADNEV_ALIAS=off) ------------------------
+# Never clobber a pre-existing different `av` — only create/refresh our own link.
+if [ "${ARIADNEV_ALIAS:-on}" != "off" ]; then
+  av_path="${INSTALL_DIR}/av"
+  if [ ! -e "$av_path" ] || { [ -L "$av_path" ] && [ "$(readlink "$av_path")" = "ariadnev" ]; }; then
+    ln -s ariadnev "$av_path" 2>/dev/null || cp "${INSTALL_DIR}/ariadnev" "$av_path"
+    echo "ariadnev install: linked short alias  ${av_path} → ariadnev"
   else
-    echo "vcskill install: '${vc_path}' already exists and is not vcskill — leaving it; use 'vcskill' or set VCSKILL_ALIAS=off" >&2
+    echo "ariadnev install: '${av_path}' already exists and is not ariadnev — leaving it; use 'ariadnev' or set ARIADNEV_ALIAS=off" >&2
   fi
 fi
 
-echo "vcskill install: installed to ${INSTALL_DIR}/vcskill ($("${INSTALL_DIR}/vcskill" --version))"
+echo "ariadnev install: installed to ${INSTALL_DIR}/ariadnev ($("${INSTALL_DIR}/ariadnev" --version))"
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) : ;;
-  *) echo "vcskill install: add ${INSTALL_DIR} to your PATH:  export PATH=\"${INSTALL_DIR}:\$PATH\"" ;;
+  *) echo "ariadnev install: add ${INSTALL_DIR} to your PATH:  export PATH=\"${INSTALL_DIR}:\$PATH\"" ;;
 esac
-echo "vcskill install: run  vcskill install  to set up your providers."
+echo "ariadnev install: run  ariadnev install  to set up your providers."

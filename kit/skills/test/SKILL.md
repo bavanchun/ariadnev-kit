@@ -1,5 +1,5 @@
 ---
-name: vc:test
+name: av:test
 description: Run unit, integration, and e2e suites with coverage and build verification, then emit a QA gate verdict. Use to validate an arbitrary target's tests standalone, not inside a cook run.
 user-invocable: true
 argument-hint: "[scope or path] [ui <url>]"
@@ -12,17 +12,17 @@ metadata:
 # Test
 
 Run and judge tests for a target you point it at — standalone, outside a full
-`vc:cook` cycle. Produces a QA verdict against the project's own thresholds, not
+`av:cook` cycle. Produces a QA verdict against the project's own thresholds, not
 a vibe.
 
 Handles: unit / integration / e2e suites, coverage analysis, build verification,
 and (with `ui <url>`) browser/visual checks. When a test reveals a real bug,
-hand off to `vc:fix` — this skill validates and reports, it does not fix code.
+hand off to `av:fix` — this skill validates and reports, it does not fix code.
 
 ## Core rule
 
 **Never ignore a failing test.** No mocks, skips, or `.only` to force green. A
-red suite is the output, reported honestly — fixing the cause is `vc:fix`.
+red suite is the output, reported honestly — fixing the cause is `av:fix`.
 
 ## Workflow
 
@@ -31,7 +31,7 @@ red suite is the output, reported honestly — fixing the cause is `vc:fix`.
 2. **Typecheck/lint first** — cheap syntax/type errors before running the slow
    suite.
 3. **Run** the auto-detected runner (Vitest/Jest, pytest, `go test`, `cargo test`,
-   `flutter test`, …). Delegate the run + analysis to the `vc-tester` agent.
+   `flutter test`, …). Delegate the run + analysis to the `av-tester` agent.
 4. **Coverage + build** when the project defines them: compare against the
    project's threshold; run the build for an exit-0 check.
 5. **UI** (`ui <url>`): browser checks — screenshots, responsive, a11y, console
@@ -54,12 +54,12 @@ Coverage (if configured):
 Failures (if any):
 - <test name> — <file:line> — <assertion: expected vs actual>
 
-Next: <"green — ready for review/ship" | "route <failure> to vc:fix">
+Next: <"green — ready for review/ship" | "route <failure> to av:fix">
 ```
 
 Proof/risk: this skill *is* the proof step — it states which layers
 (`unit`/`integration`/`e2e`/`platform`) actually ran, so a downstream
-`vc:code-review` or `vc:ship` verdict rests on evidence, not assumption.
+`av:code-review` or `av:ship` verdict rests on evidence, not assumption.
 
 ## Quality gates
 
@@ -68,11 +68,11 @@ Before returning, confirm:
   assumed result — no "should pass".
 - Gate is FAIL if any suite failed or the build broke, regardless of coverage.
 - Coverage compared against the *project's* threshold, not a guessed number.
-- Each failure names `file:line` + expected-vs-actual so `vc:fix` can start.
+- Each failure names `file:line` + expected-vs-actual so `av:fix` can start.
 
 ## Workflow position
 
-**Typically follows:** `vc:cook` (validate after implementing), `vc:fix` (confirm a fix)
-**Typically precedes:** `vc:code-review` (review once tests are green), `vc:ship` (ship gate)
-**Related:** `vc:fix` (fix what fails), `vc:scenario` (design the cases before running)
+**Typically follows:** `av:cook` (validate after implementing), `av:fix` (confirm a fix)
+**Typically precedes:** `av:code-review` (review once tests are green), `av:ship` (ship gate)
+**Related:** `av:fix` (fix what fails), `av:scenario` (design the cases before running)
 

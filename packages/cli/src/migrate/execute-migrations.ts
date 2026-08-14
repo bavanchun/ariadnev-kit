@@ -20,7 +20,7 @@ export interface MigrateResult {
  */
 export function executeMigrations(ops: MigrateOp[], root: string, opts: MigrateExecOpts): MigrateResult {
   if (opts.dryRun) return { moved: ops, dryRun: true };
-  const backupRoot = join(root, ".vcskill", "backups", opts.timestamp);
+  const backupRoot = join(root, ".ariadnev", "backups", opts.timestamp);
   const applied = readAppliedState(root);
   for (const op of ops) {
     backupPath(op.fromAbs, backupRoot, "migrate");

@@ -1,5 +1,5 @@
 ---
-name: vc:plan
+name: av:plan
 description: Create evidence-backed phased implementation plans as plain files under plans/. Use for roadmaps, architecture rollouts, or multi-phase delivery after the approach is chosen.
 user-invocable: true
 argument-hint: "<feature or goal to plan>"
@@ -19,8 +19,8 @@ required.
 Handles: implementation sequencing, architecture rollouts, risky refactors,
 and multi-phase roadmaps.
 
-Does not handle: open-ended option selection (`vc:brainstorm`), implementation
-(`vc:cook`), plan archival, HTML presentation, or external publication.
+Does not handle: open-ended option selection (`av:brainstorm`), implementation
+(`av:cook`), plan archival, HTML presentation, or external publication.
 
 ## Opening contract
 
@@ -32,7 +32,7 @@ Before writing files, capture or reuse:
 - **Acceptance criteria:** observable evidence for the whole plan.
 
 The approach must already be chosen. If materially different solutions remain,
-route to `vc:brainstorm`; do not hide architecture selection inside a phase.
+route to `av:brainstorm`; do not hide architecture selection inside a phase.
 This skill creates plans only and must not implement code.
 
 ## Planning depth
@@ -80,7 +80,7 @@ it does not promise an unsupported parallel execution command.
 8. **Track and hand off.** Mirror work into a live task surface only when one is
    actually available; Markdown remains authoritative. Follow
    [task tracking and sync-back](references/task-and-sync-back.md), then present
-   the exact absolute plan path for `vc:cook`.
+   the exact absolute plan path for `av:cook`.
 
 ## Hard boundaries
 
@@ -104,7 +104,7 @@ Scope: <fast | standard | deep | parallel-ready>
 Phases: <count and dependency order>
 Acceptance: <whole-plan criteria>
 Verification: <claims checked; unresolved facts/contradictions>
-Next: vc:cook <absolute path>/plan.md
+Next: av:cook <absolute path>/plan.md
 ```
 
 ## Quality gates
@@ -121,11 +121,11 @@ Next: vc:cook <absolute path>/plan.md
 
 ## Workflow position
 
-**Typically follows:** `vc:brainstorm` for an accepted approach and `vc:scout`
+**Typically follows:** `av:brainstorm` for an accepted approach and `av:scout`
 for owning evidence.
 
-**Typically precedes:** `vc:cook <absolute-plan-path>/plan.md`; `vc:pm` may
+**Typically precedes:** `av:cook <absolute-plan-path>/plan.md`; `av:pm` may
 track progress and reconcile durable state.
 
-**Related:** `vc:code-review` reviews implemented code, while this skill's
+**Related:** `av:code-review` reviews implemented code, while this skill's
 red-team gate reviews whether the plan is factual, complete, and executable.

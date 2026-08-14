@@ -31,7 +31,7 @@ const outDir = validateReleaseOutputDirectory(arg("--output-dir", defaultOutDir)
 const sourceSha = arg("--source-sha");
 const generatedAt = arg("--generated-at");
 const sourceDateEpoch = arg("--source-date-epoch");
-const releaseTag = arg("--release-tag", `vcskill@${version}`);
+const releaseTag = arg("--release-tag", `ariadnev@${version}`);
 const finalConsumerLock = arg("--final-consumer-lock");
 const finalConsumerLockDigest = arg("--final-consumer-lock-digest");
 const previousSourceTreeValue = arg("--previous-source-tree");
@@ -45,11 +45,13 @@ if (!finalConsumerLock || !finalConsumerLockDigest) throw new Error("build-binar
 if (!previousSourceTreeValue || !previousSourceTag || !previousSourceSha) throw new Error("build-binaries requires the immediate previous stable source");
 const previousSourceTree = resolve(previousSourceTreeValue);
 if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error("source SHA must be a full lowercase commit SHA");
-if (!/^vcskill@(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(previousSourceTag)) throw new Error("previous source tag must be stable");
+// The predecessor may predate the rename, so its tag carries the old grammar.
+// The release tag being produced below stays strict on the current one.
+if (!/^(?:ariadnev|vcskill)@(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(previousSourceTag)) throw new Error("previous source tag must be stable"); // brand-drift-allow: accepts pre-rename release tags
 if (!/^[a-f0-9]{40}$/.test(previousSourceSha)) throw new Error("previous source SHA must be a full lowercase commit SHA");
 if (!Number.isSafeInteger(Number(sourceDateEpoch)) || Number(sourceDateEpoch) < 0) throw new Error("source date epoch must be a non-negative safe integer");
 if (Number.isNaN(Date.parse(generatedAt))) throw new Error("generated-at must be an ISO date-time");
-if (releaseTag !== `vcskill@${version}`) throw new Error("release tag must match the package version");
+if (releaseTag !== `ariadnev@${version}`) throw new Error("release tag must match the package version");
 if (!/^sha256:[a-f0-9]{64}$/.test(finalConsumerLockDigest)) throw new Error("final consumer lock digest must be SHA-256");
 if (only && !TARGETS.some(({ asset }) => asset === only)) throw new Error(`unknown binary target: ${only}`);
 
@@ -93,4 +95,4 @@ for (const { asset, path } of assets) {
   checksums.push(`${sha256(path)}  ${asset}`);
 }
 writeFileSync(join(outDir, "checksums.txt"), `${checksums.join("\n")}\n`);
-console.log(`\nvcskill@${version} — ${checksums.length - DOCS_ASSETS.length} binaries + docs bundle assets + checksums.txt in dist/release/`);
+console.log(`\nariadnev@${version} — ${checksums.length - DOCS_ASSETS.length} binaries + docs bundle assets + checksums.txt in dist/release/`);

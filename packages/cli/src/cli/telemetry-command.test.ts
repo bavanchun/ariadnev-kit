@@ -6,7 +6,7 @@ describe("runTelemetryStatus", () => {
     const s = runTelemetryStatus({}, {}, { color: false });
     expect(s).toContain("disabled");
     expect(s).toContain("no ingest endpoint");
-    expect(s).toContain("VCSKILL_TELEMETRY_DISABLED=1");
+    expect(s).toContain("ARIADNEV_TELEMETRY_DISABLED=1");
     expect(s).not.toContain("\x1b[");
   });
 

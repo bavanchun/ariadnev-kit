@@ -115,7 +115,7 @@ function runtimeVersion(output: string): string | null {
 }
 
 function privateSchema(allowedWrites: readonly string[]): { root: string; path: string } {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-codex-schema-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-codex-schema-"));
   chmodSync(root, 0o700);
   const path = join(root, "output-schema.json");
   const writeProperties = Object.fromEntries(allowedWrites.map((name) => [name, {
@@ -319,7 +319,7 @@ export class CodexExecutor implements GraphExecutorV1 {
 
   private inspectRuntimeContract(): RuntimeContractProbe {
     if (this.runtimeContractProbe) return this.runtimeContractProbe;
-    const temporaryHome = isRegularDirectory(this.codexHome) ? undefined : mkdtempSync(join(tmpdir(), "vcskill-codex-probe-"));
+    const temporaryHome = isRegularDirectory(this.codexHome) ? undefined : mkdtempSync(join(tmpdir(), "ariadnev-codex-probe-"));
     if (temporaryHome) chmodSync(temporaryHome, 0o700);
     const probeHome = this.codexHome && temporaryHome === undefined ? this.codexHome : temporaryHome!;
     const environment = safeEnvironment({ source: this.sourceEnvironment, workspaceRoot: probeHome, codexHome: probeHome });

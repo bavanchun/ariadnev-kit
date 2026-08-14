@@ -7,7 +7,7 @@
   "title": "Edge-case generation",
   "subjects": {
     "skills": [
-      "vc:scenario"
+      "av:scenario"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:scenario": "required",
-          "vc:predict": "forbidden"
+          "av:scenario": "required",
+          "av:predict": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:predict": "required",
-          "vc:scenario": "forbidden"
+          "av:predict": "required",
+          "av:scenario": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

@@ -1,4 +1,4 @@
-// `vc query` — read the JSONL history log and render it. The reader is
+// `av query` — read the JSONL history log and render it. The reader is
 // injectable so the formatter is unit-testable without touching the filesystem.
 
 import { readEvents, historyPath, isDegraded } from "../history/store.js";
@@ -21,7 +21,7 @@ export function renderQuery(
   degraded: boolean,
   opts: StyleOpts = { color: false },
 ): string {
-  const lines = [`${coral("vcskill", opts)} history — ${view}`];
+  const lines = [`${coral("ariadnev", opts)} history — ${view}`];
   if (degraded) {
     lines.push(amber(`  ${symbols.warn} recording degraded — history may be incomplete`, opts));
   }

@@ -13,7 +13,7 @@ Apply principles in this order:
 Compare credible approaches across current fit, worst plausible failure,
 compatibility, security, performance, maintainability, effort, rollback, and
 future switching cost. Record the chosen rationale. If no approach is accepted,
-stop and use `vc:brainstorm`; a plan must not disguise an unresolved design fork.
+stop and use `av:brainstorm`; a plan must not disguise an unresolved design fork.
 
 Trace component interactions, data flow, state lifetime, API/schema contracts,
 authentication/authorization, failure handling, race/partial-failure behavior,

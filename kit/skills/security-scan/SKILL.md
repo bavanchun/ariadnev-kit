@@ -1,5 +1,5 @@
 ---
-name: vc:security-scan
+name: av:security-scan
 description: Scan a codebase for hardcoded secrets, vulnerable dependencies, and common OWASP-style code patterns. Use for "security scan", "check for secrets", or before a release.
 user-invocable: true
 argument-hint: "[path] [--secrets-only|--deps-only]"
@@ -63,10 +63,10 @@ Scanned: <path> | Files checked: <n>
 1. <prioritized>
 ```
 
-Confirmed Critical/High findings route to `vc:fix` for remediation — this
+Confirmed Critical/High findings route to `av:fix` for remediation — this
 skill reports, it does not patch code automatically. Each fix recommendation
 names the proof that would confirm it (`integration` test that the injection
-path is closed, `unit` test that the validator rejects the payload) so `vc:fix`
+path is closed, `unit` test that the validator rejects the payload) so `av:fix`
 inherits a testable done-condition, not just "sanitize the input".
 
 ## Security policy
@@ -89,9 +89,9 @@ Before delivering the report:
 
 ## Workflow position
 
-**Typically follows:** a pre-release checkpoint, `vc:cook` finalize on
+**Typically follows:** a pre-release checkpoint, `av:cook` finalize on
 security-sensitive work, or a direct "scan for secrets" request.
-**Typically precedes:** `vc:fix` (remediate confirmed Critical/High findings).
-**Related:** `vc:fix` handles the actual patching; this skill only finds and
+**Typically precedes:** `av:fix` (remediate confirmed Critical/High findings).
+**Related:** `av:fix` handles the actual patching; this skill only finds and
 reports. For dependency-only or secret-only runs, use the `--deps-only` /
 `--secrets-only` flags.

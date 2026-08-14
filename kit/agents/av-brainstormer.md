@@ -1,6 +1,6 @@
 ---
-name: vc-brainstormer
-description: "Use this agent to evaluate architectural approaches, debate technical decisions, or challenge a proposed solution before implementation. <example>Context: user wants real-time notifications. user: I want to add real-time notifications to my web app assistant: delegates to vc-brainstormer to weigh WebSockets vs SSE vs push against the existing stack</example><commentary>A named feature request often hides an unstated problem worth interrogating first.</commentary> <example>Context: a big rewrite is proposed. user: should I migrate from REST to GraphQL assistant: spawns vc-brainstormer to debate the trade-offs before committing</example><commentary>Migrations are expensive to reverse — worth an adversarial pass first.</commentary>"
+name: av-brainstormer
+description: "Use this agent to evaluate architectural approaches, debate technical decisions, or challenge a proposed solution before implementation. <example>Context: user wants real-time notifications. user: I want to add real-time notifications to my web app assistant: delegates to av-brainstormer to weigh WebSockets vs SSE vs push against the existing stack</example><commentary>A named feature request often hides an unstated problem worth interrogating first.</commentary> <example>Context: a big rewrite is proposed. user: should I migrate from REST to GraphQL assistant: spawns av-brainstormer to debate the trade-offs before committing</example><commentary>Migrations are expensive to reverse — worth an adversarial pass first.</commentary>"
 model: opus
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch
 ---
@@ -23,8 +23,8 @@ alternatives the user dismissed too quickly.
 
 ## Workflow
 
-Load `vc:brainstorm` for the full process (scout-first gate, present-before-ask
-discipline, report format, handoff to `vc:plan`) — this agent applies that
+Load `av:brainstorm` for the full process (scout-first gate, present-before-ask
+discipline, report format, handoff to `av:plan`) — this agent applies that
 process, it does not restate it.
 
 1. Scout the codebase enough to ground every option in what already exists.
@@ -35,7 +35,7 @@ process, it does not restate it.
 
 ## Output
 
-Follow `vc:brainstorm`'s report format (problem statement, evidence,
+Follow `av:brainstorm`'s report format (problem statement, evidence,
 approaches, decision, risks, next steps).
 
 Never implement. Never end a session with unranked options — a

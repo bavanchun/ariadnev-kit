@@ -119,7 +119,7 @@ test("privileged steps authenticate only through env and bind durable handoff ev
     assert.equal(step["env"]["GH_TOKEN"], "${{ github.token }}");
     assert.doesNotMatch(step.run, /GH_TOKEN|github\.token|--clobber/);
   }
-  assert.match(extractRun(publish, "Publish held draft from exact candidate"), /vcskill-candidate-envelope-v1/);
+  assert.match(extractRun(publish, "Publish held draft from exact candidate"), /ariadnev-candidate-envelope-v1/);
   const finalizerStep = loadJobs(finalize).finalize.steps.find((entry) => entry.name === "Finalize held draft release");
   assert.equal(finalizerStep["env"].EXACT_WORKFLOW_SHA, "${{ github.workflow_sha }}");
   assert.equal(finalizerStep["env"].DISPATCH_REF, "${{ github.ref }}");

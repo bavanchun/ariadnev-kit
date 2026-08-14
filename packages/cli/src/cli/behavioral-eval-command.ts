@@ -146,7 +146,7 @@ export async function runBehavioralEval(options: BehavioralEvalOptions): Promise
         concurrency: options.concurrency ?? 1,
         capabilities: [...options.availableCapabilities].sort(),
         credentialEnvironment: credentialEnvironment(options.runtime.provider),
-        runnerHome: options.runnerHome ? "isolated-vcskill-install" : "fixture",
+        runnerHome: options.runnerHome ? "isolated-ariadnev-install" : "fixture",
       },
     },
     population: suite.population,

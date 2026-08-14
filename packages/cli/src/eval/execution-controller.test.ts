@@ -15,7 +15,7 @@ describe("executeScenario", () => {
     const times = [100, 145];
     const execution = await executeScenario(
       executor,
-      { prompt: "Run the task", workspaceRoot: "/tmp/vcskill-eval-abcd/workspace" },
+      { prompt: "Run the task", workspaceRoot: "/tmp/ariadnev-eval-abcd/workspace" },
       { run, preflight, signal: new AbortController().signal, now: () => times.shift() ?? 145 },
     );
 
@@ -29,7 +29,7 @@ describe("executeScenario", () => {
     const failedRun = createSupportedTestRun();
     const failed = await executeScenario(
       { execute: async () => Promise.reject(new Error("password.supersecret123")) },
-      { prompt: "Run", workspaceRoot: "/tmp/vcskill-eval-fail/workspace" },
+      { prompt: "Run", workspaceRoot: "/tmp/ariadnev-eval-fail/workspace" },
       { ...failedRun, signal: new AbortController().signal, now: () => 1 },
     );
     const aborted = new AbortController();
@@ -37,7 +37,7 @@ describe("executeScenario", () => {
     const cancelledRun = createSupportedTestRun();
     const cancelled = await executeScenario(
       { execute: async () => ({ status: "completed" }) },
-      { prompt: "Run", workspaceRoot: "/tmp/vcskill-eval-cancel/workspace" },
+      { prompt: "Run", workspaceRoot: "/tmp/ariadnev-eval-cancel/workspace" },
       { ...cancelledRun, signal: aborted.signal, now: () => 1 },
     );
 

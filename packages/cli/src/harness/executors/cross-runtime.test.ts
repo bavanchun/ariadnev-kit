@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function runtimeFixture() {
-  const root = mkdtempSync(join(tmpdir(), "vcskill-cross-runtime-"));
+  const root = mkdtempSync(join(tmpdir(), "ariadnev-cross-runtime-"));
   roots.push(root);
   const script = join(root, "runtime.mjs");
   writeFileSync(script, `

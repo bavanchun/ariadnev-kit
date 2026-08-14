@@ -5,7 +5,7 @@ import { rewriteTools } from "./tool-rewrites.js";
 const WRITE_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
 
 const CODEX_PREAMBLE =
-  "You are a Codex custom agent converted from vcskill. " +
+  "You are a Codex custom agent converted from ariadnev. " +
   "Follow Codex tool names and the parent prompt over any Claude-only tool wording.\n\n";
 
 function toolList(tools: unknown): string[] {
@@ -50,7 +50,7 @@ export function agentToToml(input: AgentTomlInput): string {
   const description = adaptInline(
     typeof frontmatter.description === "string"
       ? frontmatter.description
-      : `vcskill ${name} agent.`,
+      : `ariadnev ${name} agent.`,
   );
   const developer_instructions =
     CODEX_PREAMBLE + rewriteTools(rewritePaths(body, "codex"), "codex");

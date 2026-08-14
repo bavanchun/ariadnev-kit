@@ -7,9 +7,9 @@
   "title": "Recovery after test failure",
   "subjects": {
     "skills": [
-      "vc:fix",
-      "vc:test",
-      "vc:problem-solving"
+      "av:fix",
+      "av:test",
+      "av:problem-solving"
     ]
   },
   "fixture": {
@@ -28,9 +28,9 @@
           ]
         },
         "routing": {
-          "vc:fix": "required",
-          "vc:test": "required",
-          "vc:ship": "forbidden"
+          "av:fix": "required",
+          "av:test": "required",
+          "av:ship": "forbidden"
         },
         "artifacts": {
           "recovery-diff": {

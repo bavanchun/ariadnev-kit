@@ -65,7 +65,7 @@ jobs:
             echo "source_sha=$SHA"
             echo "generated_at=$(git show -s --format=%cI "$SHA")"
             echo "source_date_epoch=$(git show -s --format=%ct "$SHA")"
-            echo "candidate_artifact_name=vcskill-candidate-${SHA}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
+            echo "candidate_artifact_name=ariadnev-candidate-${SHA}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
   candidate-build:

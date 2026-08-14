@@ -1,7 +1,7 @@
-# vc hooks
+# av hooks
 
 Claude Code event hooks shipped with the kit. Installing to `claude-code` copies
-each `hook.cjs` to `.claude/hooks/vc/` and — after a y/n confirmation — merges the
+each `hook.cjs` to `.claude/hooks/av/` and — after a y/n confirmation — merges the
 event bindings into `.claude/settings.json`. Other providers skip-and-log.
 
 Every hook is **fail-open**: any internal error exits 0 so a hook can never block
@@ -22,4 +22,4 @@ hooks — `loadKit` skips them). Each hook's `hook.json` declares its event(s) a
 a one-line description; the installer reads those to build the settings merge.
 
 To see the settings snippet without installing:
-`vcskill install --provider claude-code --dry-run`.
+`ariadnev install --provider claude-code --dry-run`.

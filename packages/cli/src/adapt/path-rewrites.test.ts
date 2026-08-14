@@ -20,20 +20,20 @@ describe("rewritePaths", () => {
   it("codex rewrites to $HOME/.agents and .codex targets", () => {
     const out = rewritePaths(SAMPLE, "codex");
     expect(out).toContain("$HOME/.agents/skills/foo");
-    expect(out).toContain("$HOME/.agents/vcskill/scripts/x.ts");
-    expect(out).toContain("$HOME/.agents/vcskill/rules/y.md");
+    expect(out).toContain("$HOME/.agents/ariadnev/scripts/x.ts");
+    expect(out).toContain("$HOME/.agents/ariadnev/rules/y.md");
     expect(out).toContain("$HOME/.codex/agents/a.md");
     expect(out).toContain("$HOME/.codex/commands/c.md");
     expect(out).toContain("$HOME/.agents/skills/z"); // ~/.claude/skills/
-    expect(out).toContain("$HOME/.agents/vcskill/settings");
+    expect(out).toContain("$HOME/.agents/ariadnev/settings");
     expect(out).not.toContain(".claude/");
   });
 
   it("codex ports reduced-scope prefixes (hooks/agent-memory/.ck.json)", () => {
     const out = rewritePaths(".claude/hooks/h .claude/agent-memory/m .claude/.ck.json", "codex");
-    expect(out).toContain("$HOME/.agents/vcskill/hooks/h");
+    expect(out).toContain("$HOME/.agents/ariadnev/hooks/h");
     expect(out).toContain(".codex/agent-memory/m");
-    expect(out).toContain("$HOME/.agents/vcskill/.ck.json");
+    expect(out).toContain("$HOME/.agents/ariadnev/.ck.json");
     expect(out).not.toContain(".claude/");
   });
 

@@ -1,5 +1,5 @@
 ---
-name: vc:docs
+name: av:docs
 description: Initialize and maintain project documentation in the docs/ folder. Use for doc setup, updating docs after behavior changes, auditing docs against the code, or recording a durable decision.
 user-invocable: true
 argument-hint: "init | update | audit | decision [scope]"
@@ -105,10 +105,10 @@ Report which docs changed and why, which were deliberately left alone
 
 ## Workflow position
 
-**Typically follows:** `vc:cook`/`vc:plan` finalize (behavior changed, docs may
-need it), `vc:journal` (a session decision worth making durable → `decision`
+**Typically follows:** `av:cook`/`av:plan` finalize (behavior changed, docs may
+need it), `av:journal` (a session decision worth making durable → `decision`
 mode).
 **Typically precedes:** nothing — docs are a terminal maintenance step.
-**Related:** `vc:journal` records what happened in a session; `vc:docs`
+**Related:** `av:journal` records what happened in a session; `av:docs`
 `decision` mode records a choice future sessions must honor. Route consequential
-decisions here, reflections to `vc:journal`.
+decisions here, reflections to `av:journal`.

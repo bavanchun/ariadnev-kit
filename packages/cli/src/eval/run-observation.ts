@@ -1,8 +1,8 @@
 import { categoricalToken } from "./categorical-token.js";
 import { bindRunContext, type RunBoundV1, type RunContextV1 } from "./run-context.js";
 
-const observationBrand: unique symbol = Symbol("vcskill.run-observation");
-const metricObservationBrand: unique symbol = Symbol("vcskill.metric-observation");
+const observationBrand: unique symbol = Symbol("ariadnev.run-observation");
+const metricObservationBrand: unique symbol = Symbol("ariadnev.metric-observation");
 export type ObservationSource = "harness" | "runtime";
 
 interface ObservationBase extends RunBoundV1 {

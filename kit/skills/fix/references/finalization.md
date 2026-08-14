@@ -19,7 +19,7 @@ Include:
 
 ## Plan and progress sync
 
-When the fix belongs to an active plan, use `vc:pm` to reconcile completed work,
+When the fix belongs to an active plan, use `av:pm` to reconcile completed work,
 update progress/checklists (including stale earlier phases), and record
 unresolved mappings. Reflect completion in a live task-management surface when
 available, but keep the plan as durable truth.
@@ -29,7 +29,7 @@ finalization.
 
 ## Documentation impact
 
-Use `vc:docs` only when the repair changes user-visible behavior, setup,
+Use `av:docs` only when the repair changes user-visible behavior, setup,
 commands, configuration, architecture, security guidance, public contracts, or
 a durable maintainer decision. Discover the owning surface and make the
 smallest justified update; internal repair completion is not docs impact.
@@ -38,11 +38,11 @@ smallest justified update; internal repair completion is not docs impact.
 
 Commit and push are separate actions. Ask whether the user wants a focused
 commit when commit authority was not already granted; push only when explicitly
-requested. Use `vc:git` and a conventional `fix: <cause>` message after fresh
+requested. Use `av:git` and a conventional `fix: <cause>` message after fresh
 verification. Never let `--auto`, `--quick`, or task completion imply Git
 authorization.
 
-Use `vc:journal` for a hard-won root cause or durable decision when repository
+Use `av:journal` for a hard-won root cause or durable decision when repository
 workflow calls for it. Do not create a ceremonial journal entry for every
 mechanical lint fix.
 

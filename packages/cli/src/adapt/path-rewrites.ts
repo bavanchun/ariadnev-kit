@@ -2,7 +2,7 @@ import type { ProviderId } from "../providers/spec-verified.js";
 import {
   HOME_TOKEN,
   AGENTS_SKILLS_DIR,
-  VCSKILL_SUPPORT_DIR,
+  ARIADNEV_SUPPORT_DIR,
   CODEX_AGENTS_DIR,
   CODEX_COMMANDS_PATH,
   OPENCODE_DIR,
@@ -16,23 +16,23 @@ const h = (p: string) => `${HOME_TOKEN}/${p}`;
 
 const CODEX_RULES: Rule[] = [
   [".claude/skills/", h(`${AGENTS_SKILLS_DIR}/`)],
-  [".claude/scripts/", h(`${VCSKILL_SUPPORT_DIR}/scripts/`)],
-  [".claude/rules/", h(`${VCSKILL_SUPPORT_DIR}/rules/`)],
+  [".claude/scripts/", h(`${ARIADNEV_SUPPORT_DIR}/scripts/`)],
+  [".claude/rules/", h(`${ARIADNEV_SUPPORT_DIR}/rules/`)],
   [".claude/agents/", h(`${CODEX_AGENTS_DIR}/`)],
   [".claude/commands/", h(`${CODEX_COMMANDS_PATH}/`)],
   // Reduced-scope prefixes ported from reference adapt_content for fidelity;
   // hooks are not shipped in v1 but a body may still reference these paths.
-  [".claude/hooks/", h(`${VCSKILL_SUPPORT_DIR}/hooks/`)],
+  [".claude/hooks/", h(`${ARIADNEV_SUPPORT_DIR}/hooks/`)],
   [".claude/agent-memory/", ".codex/agent-memory/"],
   [".claude/chrome-devtools/", ".codex/chrome-devtools/"],
-  [".claude/.ck.json", h(`${VCSKILL_SUPPORT_DIR}/.ck.json`)],
-  [".claude/.mcp.json", h(`${VCSKILL_SUPPORT_DIR}/.mcp.json`)],
-  [".claude/.env", h(`${VCSKILL_SUPPORT_DIR}/.env`)],
-  [".claude/settings.json", h(`${VCSKILL_SUPPORT_DIR}/settings.json`)],
-  [".claude/", h(`${VCSKILL_SUPPORT_DIR}/`)],
+  [".claude/.ck.json", h(`${ARIADNEV_SUPPORT_DIR}/.ck.json`)],
+  [".claude/.mcp.json", h(`${ARIADNEV_SUPPORT_DIR}/.mcp.json`)],
+  [".claude/.env", h(`${ARIADNEV_SUPPORT_DIR}/.env`)],
+  [".claude/settings.json", h(`${ARIADNEV_SUPPORT_DIR}/settings.json`)],
+  [".claude/", h(`${ARIADNEV_SUPPORT_DIR}/`)],
   ["~/.claude/skills/", h(`${AGENTS_SKILLS_DIR}/`)],
-  ["~/.claude/scripts/", h(`${VCSKILL_SUPPORT_DIR}/scripts/`)],
-  ["~/.claude/", h(`${VCSKILL_SUPPORT_DIR}/`)],
+  ["~/.claude/scripts/", h(`${ARIADNEV_SUPPORT_DIR}/scripts/`)],
+  ["~/.claude/", h(`${ARIADNEV_SUPPORT_DIR}/`)],
 ];
 
 const OPENCODE_RULES: Rule[] = [

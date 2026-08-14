@@ -30,7 +30,7 @@ something breaks.
 
 ## Proof vocabulary
 
-Use these terms in test-gate and finalize reports, matching `vc:pm`'s
+Use these terms in test-gate and finalize reports, matching `av:pm`'s
 evidence rules:
 
 | Term | Means |

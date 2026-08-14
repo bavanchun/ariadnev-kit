@@ -8,7 +8,7 @@ const { spawnSync } = require("node:child_process");
 const libDir = path.join(__dirname, "..");
 
 test("failOpen: a throwing hook body exits 0 and logs to JSONL", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vc-fo-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "av-fo-"));
   const script = `
     const { failOpen } = require(${JSON.stringify(path.join(libDir, "fail-open.cjs"))});
     failOpen("test-hook", () => { throw new Error("internal boom"); });
@@ -19,7 +19,7 @@ test("failOpen: a throwing hook body exits 0 and logs to JSONL", () => {
     encoding: "utf8",
   });
   assert.equal(res.status, 0);
-  const log = path.join(home, ".claude", "logs", "vc-hooks.jsonl");
+  const log = path.join(home, ".claude", "logs", "av-hooks.jsonl");
   assert.ok(fs.existsSync(log), "expected JSONL log file");
   assert.match(fs.readFileSync(log, "utf8"), /internal boom/);
   fs.rmSync(home, { recursive: true, force: true });

@@ -9,7 +9,7 @@ export const HOME_TOKEN = "$HOME";
 export const AGENTS_SKILLS_DIR = ".agents/skills";
 
 /** Codex support tree (scripts/rules/env/settings) under the user home. */
-export const VCSKILL_SUPPORT_DIR = ".agents/vcskill";
+export const ARIADNEV_SUPPORT_DIR = ".agents/ariadnev";
 
 /** Codex agent + command dirs (under user home). H3: one constant each. */
 export const CODEX_AGENTS_DIR = ".codex/agents";
@@ -34,5 +34,5 @@ export const CURSOR_RULES_DIR = ".cursor/rules";
 export const OPENCODE_USER_CONFIG = "~/.config/opencode";
 
 /** Claude Code hooks install dir + settings file (hooks are claude-only). */
-export const CLAUDE_HOOKS_DIR = ".claude/hooks/vc";
+export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";

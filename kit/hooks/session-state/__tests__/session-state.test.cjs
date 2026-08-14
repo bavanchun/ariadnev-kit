@@ -44,7 +44,7 @@ test("buildStateMarkdown trace: lists changed files and derives outcome", () => 
 });
 
 test("gitFilesChanged returns [] outside a git repo instead of throwing", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ss-nogit-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "av-ss-nogit-"));
   assert.deepEqual(gitFilesChanged(dir), []);
   fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -56,8 +56,8 @@ test("cwdHash is stable and filesystem-safe", () => {
 });
 
 test("hook persists latest.md and archives the previous state", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ss-"));
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ss-proj-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "av-ss-"));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "av-ss-proj-"));
   const env = { HOME: home, USERPROFILE: home };
   const input = { session_id: "sess-a", cwd: proj, hook_event_name: "Stop" };
 
@@ -76,7 +76,7 @@ test("hook persists latest.md and archives the previous state", () => {
 });
 
 test("pruneStateDir keeps at most 5 archives and drops expired files", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vc-ss-prune-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "av-ss-prune-"));
   const now = Date.now();
   for (let i = 0; i < 8; i++) {
     const f = path.join(dir, `archive-2026071${i}-000000.md`);

@@ -65,7 +65,7 @@ describe("context retrieval benchmark contract", () => {
 
   it("refreshes changed content, purges deletion, excludes private input, and preserves provenance", () => {
     const first = document("docs/first.md", "alpha owns the router");
-    const linked = document("docs/linked.md", "See vc:first for routing context");
+    const linked = document("docs/linked.md", "See av:first for routing context");
     const privateDocument = document("private/secret.md", "alpha private credential", "private");
     const index = createArtifactGraphIndex([first, linked, privateDocument]);
     const initial = index.query("alpha router", 5);
@@ -83,7 +83,7 @@ describe("context retrieval benchmark contract", () => {
   });
 
   it("fails closed when a frozen corpus entry is deleted instead of serving stale bytes", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-context-corpus-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-context-corpus-"));
     roots.push(root);
     writeFileSync(join(root, "manifest.json"), JSON.stringify({
       schemaVersion: 1,
@@ -125,7 +125,7 @@ describe("context retrieval benchmark contract", () => {
   });
 
   it("rejects malformed corpus and query manifests at the trust boundary", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-context-validation-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-context-validation-"));
     roots.push(root);
     const validCorpus = {
       schemaVersion: 1,
@@ -214,8 +214,8 @@ describe("context retrieval benchmark contract", () => {
   });
 
   it("rejects a corpus path that traverses a symlinked directory", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-context-symlink-root-"));
-    const outside = mkdtempSync(join(tmpdir(), "vcskill-context-symlink-outside-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-context-symlink-root-"));
+    const outside = mkdtempSync(join(tmpdir(), "ariadnev-context-symlink-outside-"));
     roots.push(root, outside);
     writeFileSync(join(outside, "artifact.md"), "private outside bytes");
     mkdirSync(join(root, "corpus"));

@@ -8,7 +8,7 @@ import { dirname } from "node:path";
  */
 export function atomicWrite(dest: string, content: string): void {
   mkdirSync(dirname(dest), { recursive: true });
-  const tmp = `${dest}.vcskill-tmp`;
+  const tmp = `${dest}.ariadnev-tmp`;
   writeFileSync(tmp, content, "utf8");
   // renameSync atomically replaces an existing FILE — no pre-delete needed
   // (deleting first would open a crash window where dest is neither old nor

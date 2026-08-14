@@ -70,8 +70,8 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     agentPath: (n) => `.codex/agents/${n}.toml`,
     commandPath: (n) => `.codex/commands/${n}.md`,
     rulePath: null,
-    scriptsDir: ".agents/vcskill/scripts",
-    envFile: ".agents/vcskill/.env.example",
+    scriptsDir: ".agents/ariadnev/scripts",
+    envFile: ".agents/ariadnev/.env.example",
   },
   cursor: {
     rulesMode: "mdc",
@@ -182,7 +182,7 @@ export function targetTemplate(id: ProviderId, kind: ArtifactKind): string | nul
     case "env":
       return r.supports.env ? toTemplate(r.envTarget(ctx)) : null;
     case "hook":
-      return r.supports.hook ? ".claude/hooks/vc/*.cjs" : null;
+      return r.supports.hook ? ".claude/hooks/av/*.cjs" : null;
   }
 }
 

@@ -31,7 +31,7 @@ describe("loadKit (real kit/)", () => {
 
   it("discovers all artifact kinds", () => {
     expect(kit.skills.length).toBeGreaterThanOrEqual(2);
-    // agents/commands roster is under active construction (vc kit v2 plan);
+    // agents/commands roster is under active construction (av kit v2 plan);
     // arrays must exist even when empty — non-empty asserted by the
     // "full-kit install smoke" describe block once the roster lands.
     expect(kit.agents).toBeInstanceOf(Array);
@@ -41,9 +41,9 @@ describe("loadKit (real kit/)", () => {
     expect(kit.envExample).not.toBeNull();
   });
 
-  it("parses skill frontmatter and enforces vc: name == dir", () => {
+  it("parses skill frontmatter and enforces av: name == dir", () => {
     for (const s of kit.skills) {
-      expect(s.frontmatter.name).toBe(`vc:${s.name}`);
+      expect(s.frontmatter.name).toBe(`av:${s.name}`);
       expect(typeof s.frontmatter.description).toBe("string");
       expect((s.frontmatter.description as string).length).toBeGreaterThan(0);
     }
@@ -57,7 +57,7 @@ describe("loadKit (real kit/)", () => {
 
 describe("loadKit validation (negative cases)", () => {
   function tmpKit(): string {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-kit-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-kit-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     return root;
   }
@@ -70,7 +70,7 @@ describe("loadKit validation (negative cases)", () => {
     );
   }
 
-  it("rejects missing vc: prefix", () => {
+  it("rejects missing av: prefix", () => {
     const root = tmpKit();
     writeSkill(root, "foo", "name: foo\ndescription: x");
     expect(() => loadKit(root)).toThrow(KitValidationError);
@@ -79,14 +79,14 @@ describe("loadKit validation (negative cases)", () => {
 
   it("rejects name/dir mismatch", () => {
     const root = tmpKit();
-    writeSkill(root, "foo", "name: vc:bar\ndescription: x");
-    expect(() => loadKit(root)).toThrow(/vc:foo/);
+    writeSkill(root, "foo", "name: av:bar\ndescription: x");
+    expect(() => loadKit(root)).toThrow(/av:foo/);
     rmSync(root, { recursive: true, force: true });
   });
 
   it("rejects missing description", () => {
     const root = tmpKit();
-    writeSkill(root, "foo", "name: vc:foo");
+    writeSkill(root, "foo", "name: av:foo");
     expect(() => loadKit(root)).toThrow(KitValidationError);
     rmSync(root, { recursive: true, force: true });
   });
@@ -94,12 +94,12 @@ describe("loadKit validation (negative cases)", () => {
   it("rejects duplicate names", () => {
     const root = tmpKit();
     const desc = "Valid fixture skill. Use when testing kit loading of multiple skills.";
-    writeSkill(root, "foo", `name: vc:foo\ndescription: ${desc}`);
-    // second skill dir 'bar' but name vc:foo -> mismatch first, so use valid dup setup
+    writeSkill(root, "foo", `name: av:foo\ndescription: ${desc}`);
+    // second skill dir 'bar' but name av:foo -> mismatch first, so use valid dup setup
     mkdirSync(join(root, "skills", "foo2"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo2", "SKILL.md"),
-      `---\nname: vc:foo2\ndescription: ${desc}\n${NONE_PROVENANCE}\n---\n# foo2\n${REQUIRED_SKILL_SECTIONS}`,
+      `---\nname: av:foo2\ndescription: ${desc}\n${NONE_PROVENANCE}\n---\n# foo2\n${REQUIRED_SKILL_SECTIONS}`,
     );
     // duplicate is hard to trigger with name==dir invariant; ensure valid kit loads
     expect(loadKit(root).skills.length).toBe(2);
@@ -109,7 +109,7 @@ describe("loadKit validation (negative cases)", () => {
 
 describe("loadKit skill lint gates (negative fixtures)", () => {
   function tmpKit(): string {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-lint-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-lint-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     return root;
   }
@@ -123,7 +123,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
 
   it("rejects a too-short description", () => {
     const root = tmpKit();
-    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: Use it.\n---\n# foo\n`);
+    writeSkillFile(root, "foo", `---\nname: av:foo\ndescription: Use it.\n---\n# foo\n`);
     expect(() => loadKit(root)).toThrow(KitValidationError);
     rmSync(root, { recursive: true, force: true });
   });
@@ -133,7 +133,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: vc:foo\ndescription: A pile of git conventions and various pipelines together.\n---\n# foo\n`,
+      `---\nname: av:foo\ndescription: A pile of git conventions and various pipelines together.\n---\n# foo\n`,
     );
     expect(() => loadKit(root)).toThrow(/trigger/);
     rmSync(root, { recursive: true, force: true });
@@ -142,7 +142,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
   it("rejects SKILL.md over 300 lines", () => {
     const root = tmpKit();
     const body = Array.from({ length: 301 }, (_, i) => `line ${i}`).join("\n");
-    writeSkillFile(root, "foo", `---\nname: vc:foo\ndescription: ${okDescription}\n---\n${body}\n`);
+    writeSkillFile(root, "foo", `---\nname: av:foo\ndescription: ${okDescription}\n---\n${body}\n`);
     expect(() => loadKit(root)).toThrow(/300/);
     rmSync(root, { recursive: true, force: true });
   });
@@ -152,7 +152,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}`,
+      `---\nname: av:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}`,
     );
     mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
     writeFileSync(
@@ -168,7 +168,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: vc:foo\ndescription: ${okDescription}\ncategory: dev-tools\n---\n# foo\n`,
+      `---\nname: av:foo\ndescription: ${okDescription}\ncategory: dev-tools\n---\n# foo\n`,
     );
     expect(() => loadKit(root)).toThrow(/category/);
     rmSync(root, { recursive: true, force: true });
@@ -179,7 +179,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     writeSkillFile(
       root,
       "foo",
-      `---\nname: vc:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}\n## Shared Heading\n`,
+      `---\nname: av:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}\n## Shared Heading\n`,
     );
     mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
     writeFileSync(join(root, "skills", "foo", "references", "ref.md"), "## Shared Heading\n\ntext\n");
@@ -195,7 +195,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
 
 describe("loadKit hooks discovery", () => {
   function tmpKitWithHook(manifest: string | null, withCjs = true): string {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-hooks-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-hooks-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     const hookDir = join(root, "hooks", "session-init");
     mkdirSync(hookDir, { recursive: true });
@@ -252,7 +252,7 @@ describe("loadKit hooks discovery", () => {
   });
 
   it("returns empty hooks when kit has no hooks dir", () => {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-nohooks-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-nohooks-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     expect(loadKit(root).hooks).toEqual([]);
     rmSync(root, { recursive: true, force: true });
@@ -261,29 +261,29 @@ describe("loadKit hooks discovery", () => {
 
 describe("loadKit agent lint gates", () => {
   function tmpKit(): string {
-    const root = mkdtempSync(join(tmpdir(), "vcskill-agentlint-"));
+    const root = mkdtempSync(join(tmpdir(), "ariadnev-agentlint-"));
     mkdirSync(join(root, "skills"), { recursive: true });
     mkdirSync(join(root, "agents"), { recursive: true });
     return root;
   }
 
   const okDescription =
-    "Use this agent when scouting a codebase, needing a fast file map, or tracing how modules relate. <example>Example: user asks to find auth code; assistant delegates to vc-explore.</example><commentary>Fast read-only scan avoids the main agent burning context on broad greps.</commentary>";
+    "Use this agent when scouting a codebase, needing a fast file map, or tracing how modules relate. <example>Example: user asks to find auth code; assistant delegates to av-explore.</example><commentary>Fast read-only scan avoids the main agent burning context on broad greps.</commentary>";
 
   function writeAgent(root: string, stem: string, frontmatterExtra: string) {
     writeFileSync(
-      join(root, "agents", `vc-${stem}.md`),
-      `---\nname: vc-${stem}\ndescription: "${okDescription}"\n${frontmatterExtra}---\n\n# ${stem}\n\nPersona.\n\n## Behavioral Checklist\n\n- [ ] Item\n`,
+      join(root, "agents", `av-${stem}.md`),
+      `---\nname: av-${stem}\ndescription: "${okDescription}"\n${frontmatterExtra}---\n\n# ${stem}\n\nPersona.\n\n## Behavioral Checklist\n\n- [ ] Item\n`,
     );
   }
 
-  it("rejects an agent whose name lacks vc- prefix", () => {
+  it("rejects an agent whose name lacks av- prefix", () => {
     const root = tmpKit();
     writeFileSync(
       join(root, "agents", "demo.md"),
       `---\nname: demo\ndescription: "${okDescription}"\n---\n\n# demo\n\n## Behavioral Checklist\n\n- [ ] x\n`,
     );
-    expect(() => loadKit(root)).toThrow(/vc-/);
+    expect(() => loadKit(root)).toThrow(/av-/);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -291,8 +291,8 @@ describe("loadKit agent lint gates", () => {
     const root = tmpKit();
     const body = Array.from({ length: 121 }, (_, i) => `line ${i}`).join("\n");
     writeFileSync(
-      join(root, "agents", "vc-demo.md"),
-      `---\nname: vc-demo\ndescription: "${okDescription}"\n---\n${body}\n\n## Behavioral Checklist\n`,
+      join(root, "agents", "av-demo.md"),
+      `---\nname: av-demo\ndescription: "${okDescription}"\n---\n${body}\n\n## Behavioral Checklist\n`,
     );
     expect(() => loadKit(root)).toThrow(/120/);
     rmSync(root, { recursive: true, force: true });
@@ -302,7 +302,7 @@ describe("loadKit agent lint gates", () => {
     const root = tmpKit();
     writeAgent(root, "demo", "");
     const kit = loadKit(root);
-    expect(kit.agents.some((a) => a.name === "vc-demo")).toBe(true);
+    expect(kit.agents.some((a) => a.name === "av-demo")).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 });

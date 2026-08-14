@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code guidance for **vcskill**. Mirrors `AGENTS.md`; read that for full detail.
+Claude Code guidance for **ariadnev**. Mirrors `AGENTS.md`; read that for full detail.
 
 ## What this is
 
@@ -24,5 +24,5 @@ paths/tool-names/formats.
 
 ## Commands
 
-`vcskill install | list | add-skill <name> | migrate`. See `README.md` for flags and
+`ariadnev install | list | add-skill <name> | migrate`. See `README.md` for flags and
 the provider matrix.

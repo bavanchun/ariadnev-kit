@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vc scout-block — PreToolUse hook for Bash|Glob|Grep|Read. Stops the agent
+// av scout-block — PreToolUse hook for Bash|Glob|Grep|Read. Stops the agent
 // from wasting context searching generated trees (node_modules, dist, .git…).
 // Project-level .vcignore (gitignore spec, negation supported) extends or
 // re-allows the defaults. Build commands pass through. Fail-open throughout.
@@ -94,7 +94,7 @@ function main() {
   const result = evaluateScout(input.tool_name, input.tool_input, buildMatcher(vcignore));
   if (result.decision === "deny") {
     process.stderr.write(
-      `vc scout-block: "${result.target}" is inside a generated/vendored tree — searching it wastes context.\n` +
+      `av scout-block: "${result.target}" is inside a generated/vendored tree — searching it wastes context.\n` +
         `If you really need it, add a negation line (e.g. "!${result.target}") to .vcignore in the project root.\n`,
     );
     process.exit(2);

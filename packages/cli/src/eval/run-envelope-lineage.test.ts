@@ -26,7 +26,7 @@ const scenario = parseScenario(JSON.stringify({
   revision: 1,
   level: "workflow",
   title: "Run lineage",
-  subjects: { skills: ["vc:ask"] },
+  subjects: { skills: ["av:ask"] },
   fixture: { id: "synthetic.skill-routing", copy: true },
   cases: {
     default: {
@@ -44,7 +44,7 @@ async function runInput(status: "pass" | "fail" = "pass") {
   const preflight = preflightScenarioCapabilities({ run, scenario, caseId: "default", vocabulary, available: [] });
   const execution = await executeScenario(
     { execute: async () => ({ answer: "42" }) },
-    { prompt: scenario.cases.default.prompt, workspaceRoot: "/tmp/vcskill-lineage/workspace" },
+    { prompt: scenario.cases.default.prompt, workspaceRoot: "/tmp/ariadnev-lineage/workspace" },
     { run, preflight, signal: new AbortController().signal },
   );
   const attestation = evaluateEvidence({
@@ -77,7 +77,7 @@ async function runInput(status: "pass" | "fail" = "pass") {
     vocabulary,
     execution,
     kit: { version: "0.10.0", digest },
-    skills: [{ id: "vc:ask", version: "1.0.0", digest }],
+    skills: [{ id: "av:ask", version: "1.0.0", digest }],
     runtime: { provider: "codex", version: "1.2.3", model: "gpt-5" },
     evaluator: { version: "1.0.0" },
     observations: [actions],

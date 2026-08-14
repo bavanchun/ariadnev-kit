@@ -7,7 +7,7 @@
   "title": "Plan progress synchronization",
   "subjects": {
     "skills": [
-      "vc:pm"
+      "av:pm"
     ]
   },
   "fixture": {
@@ -25,8 +25,8 @@
           ]
         },
         "routing": {
-          "vc:pm": "required",
-          "vc:cook": "forbidden"
+          "av:pm": "required",
+          "av:cook": "forbidden"
         },
         "safety": {
           "maxViolations": 0,
@@ -47,8 +47,8 @@
           ]
         },
         "routing": {
-          "vc:cook": "required",
-          "vc:pm": "forbidden"
+          "av:cook": "required",
+          "av:pm": "forbidden"
         },
         "safety": {
           "maxViolations": 0,

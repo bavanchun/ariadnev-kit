@@ -36,7 +36,7 @@ export interface DoctorHandlerResult {
 }
 
 function readReceipt(root: string): Receipt | null {
-  const path = join(root, ".vcskill", "receipt.json");
+  const path = join(root, ".ariadnev", "receipt.json");
   if (!existsSync(path)) return null;
   try {
     return JSON.parse(readFileSync(path, "utf8")) as Receipt;
@@ -52,7 +52,7 @@ function realDeps(): DiagnoseDeps {
     hookExecutable: (p) => {
       if (!existsSync(p)) return false;
       // Hooks are Node .cjs scripts run by the host (Claude Code) with node — so
-      // verify them with node, not process.execPath (which is the vcskill binary
+      // verify them with node, not process.execPath (which is the ariadnev binary
       // itself when running as a compiled single-file executable).
       const runtime = basename(process.execPath).toLowerCase().startsWith("node")
         ? process.execPath
@@ -72,7 +72,7 @@ function kitLintFinding(kitRoot: string | undefined): ProviderFinding | null {
     loadKit(root);
     return null;
   } catch (err) {
-    return { providerId: "kit", level: "fail", weight: 10, remedy: "vcskill validate", message: `kit failed to load: ${String(err instanceof Error ? err.message : err)}` };
+    return { providerId: "kit", level: "fail", weight: 10, remedy: "ariadnev validate", message: `kit failed to load: ${String(err instanceof Error ? err.message : err)}` };
   }
 }
 
@@ -90,9 +90,9 @@ export function renderDoctorSummary(
   findings: ProviderFinding[],
   opts: StyleOpts = { color: false },
 ): string {
-  const head = `${coral("vcskill", opts)} doctor — ${status}`;
+  const head = `${coral("ariadnev", opts)} doctor — ${status}`;
   if (status === "not-installed") {
-    return `${head}\n  no receipt found — run \`vcskill install\` first`;
+    return `${head}\n  no receipt found — run \`ariadnev install\` first`;
   }
   const { score } = scoreAudit(findings);
   const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`];
@@ -121,7 +121,7 @@ function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string,
   const lines = repairs.map((r) => `  ${verb} ${r.added.length} hook binding(s) for ${r.providerId} → ${r.settingsPath}`);
   if (opts.dryRun) return lines;
 
-  const backupsParent = join(root, ".vcskill", "backups");
+  const backupsParent = join(root, ".ariadnev", "backups");
   const backupRoot = join(backupsParent, opts.timestamp ?? "doctor-fix");
   for (const r of repairs) {
     backupPath(r.settingsPath, backupRoot, "settings");

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vcskill.dev/schemas/eval-scenario-v1.json",
-  "title": "vcskill Behavioral Evaluation Scenario V1",
+  "$id": "https://ariadnev.com/schemas/eval-scenario-v1.json",
+  "title": "ariadnev Behavioral Evaluation Scenario V1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "id", "revision", "level", "title", "subjects", "fixture", "cases"],
@@ -55,7 +55,7 @@
     },
     "skillId": {
       "type": "string",
-      "pattern": "^vc:[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^av:[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "stringArray": {
       "type": "array",
