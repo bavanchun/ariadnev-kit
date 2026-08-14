@@ -1,5 +1,7 @@
 // Shared kit/domain types used across load-kit, adapt, and install layers.
 
+import type { GraphIRV1 } from "../graph/graph-types.js";
+
 export type ArtifactType = "skill" | "agent" | "command" | "rule";
 
 export interface Artifact {
@@ -35,6 +37,14 @@ export interface KitHook {
   file: string;
 }
 
+/** Execution-only graph asset. It is never part of provider install plans. */
+export interface KitWorkflow {
+  name: string;
+  graph: GraphIRV1;
+  raw: string;
+  sourcePath: string;
+}
+
 export interface Kit {
   root: string;
   skills: Artifact[];
@@ -42,6 +52,7 @@ export interface Kit {
   commands: Artifact[];
   rules: Artifact[];
   hooks: KitHook[];
+  workflows: KitWorkflow[];
   /** Absolute path to shared `kit/scripts/` if present. */
   scriptsDir: string | null;
   /** Absolute path to `kit/.env.example` if present. */

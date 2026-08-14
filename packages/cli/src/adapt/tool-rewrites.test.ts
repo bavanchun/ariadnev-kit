@@ -7,7 +7,7 @@ const BODY =
   "the Task tool, Task(Explore), Task(researcher), and SendMessage.";
 
 describe("rewriteTools (codex, verified table)", () => {
-  it("byte-matches the claudekit replacements", () => {
+  it("byte-matches the reference replacements", () => {
     const out = rewriteTools(BODY, "codex");
     expect(out).toBe(
       "Use request_user_input, update_plan, Codex task tracking via update_plan, " +

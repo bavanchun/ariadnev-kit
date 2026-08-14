@@ -44,7 +44,7 @@ implementing (`vc:cook`).
    `plans/reports/research-{yymmdd-hhmm}-{slug}-report.md`; summarize
    verbally with the recommendation up front.
 
-## Report format (output contract)
+## Output format
 
 ```markdown
 # Research: <topic>

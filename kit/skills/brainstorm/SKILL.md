@@ -51,7 +51,7 @@ planning (hand off to `vc:plan`).
 7. **Handoff** — offer the next step: `vc:plan` for multi-phase work,
    `vc:cook` for small direct implementation.
 
-## Report format
+## Output format
 
 ```markdown
 # Brainstorm: <topic>

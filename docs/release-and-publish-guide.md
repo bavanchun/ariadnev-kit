@@ -50,6 +50,60 @@ node packages/cli/scripts/build-binaries.mjs   # all 5 targets + checksums local
 pnpm test                              # full suite incl. the embedded-kit drift guard
 ```
 
+## Graph-harness promotion gate
+
+The graph-native harness release is blocked unless each quality dimension passes
+independently. Safety or task-success failures are never averaged away by faster
+latency or fewer tokens. Run from a clean source checkout:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm build
+node packages/cli/dist/index.js validate --check
+pnpm coverage
+find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
+find kit/hooks -name '*.test.cjs' -print0 | xargs -0 -r node --test
+bun packages/cli/scripts/benchmark-event-store.ts
+bun packages/cli/scripts/benchmark-graph-runner.ts
+bun packages/cli/scripts/benchmark-safe-change-runner.ts
+bun packages/cli/scripts/benchmark-context.mjs
+node packages/cli/scripts/build-binaries.mjs
+node packages/cli/scripts/smoke-binary.mjs
+```
+
+The deterministic CI gate covers all skills and golden scenarios through the
+test suite, then reruns event-store, graph-runner, safe-change, and context
+benchmarks. Live Codex and Claude Code probes are release-candidate checks, not
+CI substitutes: record the exact probed runtime/model, pass or capability-gated
+skip, workspace mutation count, policy violations, process cleanup, token budget,
+and orchestration overhead. Never turn unavailable credentials, runtime drift,
+or provider quota into a passing cell.
+
+## Paused runs across releases
+
+V1 does not migrate paused runs. Resume requires the exact graph/runner contract,
+runtime version, model, workspace identity, and instruction digest captured at
+run creation. On incompatibility, finish with the original vcskill binary or
+start a new run; `status` and emergency `cancel` remain available. A future
+migration must ship as an explicit versioned and reversible contract—never by
+moving a tag or silently reinterpreting events.
+
+## Public provenance checklist
+
+Before downstream web work starts, verify one immutable release converges:
+
+1. `packages/cli/package.json`, `vc --version`, and tag `vcskill@<version>` agree.
+2. The GitHub Release points at the version commit and publishes exactly five
+   platform binaries plus `checksums.txt`.
+3. Every listed SHA-256 matches its downloaded binary; the host binary passes
+   `smoke-binary.mjs`, including embedded workflow validation and lifecycle help.
+4. `https://vcskill.vchun.dev/version` reports that same version only after the
+   tag and release assets are live.
+
+If publication is wrong, repair it with a new patch release. Never retarget or
+replace an already consumed version tag.
+
 ## Boundary summary
 
 | Step | Who | How |

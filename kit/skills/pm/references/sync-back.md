@@ -65,7 +65,7 @@ future session reads a superseded plan and follows stale direction. So:
    is lost, and `git log`/`git show` recovers any of it. Do not keep an
    `_archive/` folder; "keep just in case" is the rot this step exists to stop.
 3. **Record the disposition** in the closing commit: one line naming what was
-   distilled (or "nothing durable") and what was deleted.
+   promoted into durable docs (or "nothing durable") and what was deleted.
 
 Never auto-delete without confirming the exact file list when running live —
 deletion is the one irreversible-looking step (though `git` reverts it).

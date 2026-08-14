@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "golden.whole-kit-routing-collision",
+  "revision": 1,
+  "level": "kit",
+  "title": "Whole-kit routing collision",
+  "subjects": {
+    "skills": [
+      "vc:scenario",
+      "vc:predict",
+      "vc:scout",
+      "vc:research"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.routing-collision",
+    "copy": true
+  },
+  "cases": {
+    "default": {
+      "prompt": "Generate concrete crash and retry edge cases for the runner; do not debate whether the proposal should proceed or perform web research.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "scenarios.matrix"
+          ]
+        },
+        "routing": {
+          "vc:scenario": "required",
+          "vc:predict": "forbidden",
+          "vc:research": "forbidden"
+        },
+        "artifacts": {
+          "scenario-matrix": {
+            "kind": "report",
+            "evidenceId": "scenarios.matrix"
+          }
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.write",
+            "external.mutation"
+          ]
+        },
+        "trajectory": {
+          "labels": {
+            "intent.classified": "required",
+            "scenarios.completed": "required",
+            "unrelated-skill.selected": "forbidden"
+          },
+          "maxEvents": 32
+        }
+      },
+      "budgets": {
+        "latencyMs": 120000,
+        "tokens": 25000,
+        "contextChars": 80000,
+        "retries": 1,
+        "humanInterventions": 1
+      }
+    }
+  },
+  "tags": [
+    "golden",
+    "kit"
+  ]
+}

@@ -16,7 +16,7 @@ source: skill
 
 ## Overview
 
-Six independent upgrades distilled from comparing vcskill against claudekit-engineer,
+Six independent upgrades identified during a comparative review of vcskill,
 repository-harness, and Archon (deltas: `plans/reports/scout-260720-1724-*`). One theme:
 **the tool proves itself correct, and the kit's quality/truth is machine-gated.**
 Explicitly NOT adopting harness governance/memory (SQLite, trace-scoring, context-selection)

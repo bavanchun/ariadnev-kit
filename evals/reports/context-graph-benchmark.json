@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-14T10:55:46.127Z",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "runtime": "bun-1.3.14",
+    "providerVariance": {
+      "applicable": false,
+      "reason": "Retrieval and deterministic required-path tasks run locally without a model provider."
+    }
+  },
+  "frozenInputs": {
+    "corpusId": "vcskill-context-v1",
+    "corpusDigest": "sha256:04ea618c2577cc77563528317980a51ccb80ccb1b07add62790b27fd8b68399e",
+    "queryDigest": "sha256:f0d7b422da83a695a1b71a30a07f2aa616427172d1adc393b67c109d8f7e90d3",
+    "frozenAt": "2026-08-08T14:30:00.000Z",
+    "seed": 260808,
+    "documents": 26,
+    "queries": 13,
+    "topK": 6,
+    "cacheStates": [
+      "cold",
+      "warm"
+    ],
+    "warmups": 10,
+    "coldRepeats": 30,
+    "warmRepeats": 100
+  },
+  "implementation": {
+    "simpleIndexDigest": "sha256:55fa8e212b209f64352092a78723b44872015eb6a24d3bb1c3a2d7ba71c52cd9",
+    "artifactGraphDigest": "sha256:4ff60132cea5ccce3a2b426ece0884bcf5d3b7937cb58e3a9bdcd8da972cd39c",
+    "benchmarkDigest": "sha256:dbff0348aea7c92a837282ab746b6b7fe845f3551932d4e0253aeafbde33ce49"
+  },
+  "strategies": {
+    "baseline": {
+      "name": "local lexical metadata index",
+      "evaluation": {
+        "queryCount": 13,
+        "retrievalQuality": 0.594569844281829,
+        "taskSuccessRate": 0.6153846153846154,
+        "provenanceRate": 1,
+        "meanContextTokens": 540,
+        "perQuery": [
+          {
+            "id": "direct.graph-control-plane",
+            "retrievalQuality": 0.8339912323981488,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "docs/graph-execution-architecture.md",
+              "docs/decisions/0004-graph-native-control-plane.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/fix/SKILL.md",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/skills/code-review/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.repository-scout",
+            "retrievalQuality": 0,
+            "taskSucceeded": false,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/fix/SKILL.md",
+              "docs/graph-execution-architecture.md",
+              "kit/skills/docs-seeker/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md",
+              "docs/decisions/0004-graph-native-control-plane.md"
+            ]
+          },
+          {
+            "id": "direct.root-cause-fix",
+            "retrievalQuality": 0.8428282648809379,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/root-cause-bugfix.json",
+              "kit/skills/fix/SKILL.md",
+              "kit/workflows/bugfix-delivery.json",
+              "kit/agents/vc-debugger.md",
+              "docs/decisions/0004-graph-native-control-plane.md",
+              "kit/workflows/safe-change-delivery.json"
+            ]
+          },
+          {
+            "id": "direct.release-gate",
+            "retrievalQuality": 0.9499797323370371,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/ship/SKILL.md",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "evals/scenarios/golden/release-to-pr.json",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/workflows/bugfix-delivery.json"
+            ]
+          },
+          {
+            "id": "direct.current-docs-research",
+            "retrievalQuality": 0.8075588805057204,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/current-docs-research.json",
+              "kit/skills/docs-seeker/SKILL.md",
+              "kit/skills/research/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "docs/graph-execution-architecture.md",
+              "kit/skills/ask/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.security-audit",
+            "retrievalQuality": 1,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/security-scan/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md",
+              "evals/scenarios/golden/read-only-repository-answer.json"
+            ]
+          },
+          {
+            "id": "relation.safe-change-contracts",
+            "retrievalQuality": 0.18508763772517173,
+            "taskSucceeded": false,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/workflows/safe-change-delivery.json",
+              "evals/scenarios/golden/safe-feature-delivery.json",
+              "kit/workflows/bugfix-delivery.json",
+              "docs/graph-execution-architecture.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/workflows/read-only-delivery.json"
+            ]
+          },
+          {
+            "id": "relation.read-only-contracts",
+            "retrievalQuality": 0.2322609126342973,
+            "taskSucceeded": false,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/workflows/read-only-delivery.json",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/workflows/bugfix-delivery.json",
+              "kit/skills/plan/SKILL.md",
+              "docs/graph-execution-architecture.md",
+              "kit/skills/code-review/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.bugfix-contracts",
+            "retrievalQuality": 0.1571355027258874,
+            "taskSucceeded": false,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/workflows/bugfix-delivery.json",
+              "kit/workflows/read-only-delivery.json",
+              "evals/scenarios/golden/root-cause-bugfix.json",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/skills/plan/SKILL.md",
+              "docs/decisions/0004-graph-native-control-plane.md"
+            ]
+          },
+          {
+            "id": "relation.safe-feature-subjects",
+            "retrievalQuality": 0.18508763772517173,
+            "taskSucceeded": false,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/safe-feature-delivery.json",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/workflows/read-only-delivery.json",
+              "kit/workflows/bugfix-delivery.json"
+            ]
+          },
+          {
+            "id": "relation.release-subjects",
+            "retrievalQuality": 0.8451593915771352,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/release-to-pr.json",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/ship/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/security-scan/SKILL.md",
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
+            ]
+          },
+          {
+            "id": "relation.architecture-subjects",
+            "retrievalQuality": 0.8451593915771352,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/fix/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.research-subjects",
+            "retrievalQuality": 0.8451593915771352,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "evals/scenarios/golden/current-docs-research.json",
+              "kit/skills/docs-seeker/SKILL.md",
+              "kit/skills/research/SKILL.md",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md"
+            ]
+          }
+        ]
+      },
+      "latency": {
+        "cold": {
+          "indexBuild": {
+            "samples": 30,
+            "p50Ms": 2.977542,
+            "p95Ms": 3.610583,
+            "maxMs": 3.710917
+          },
+          "query": {
+            "samples": 390,
+            "p50Ms": 0.23175,
+            "p95Ms": 0.309458,
+            "maxMs": 0.892792
+          }
+        },
+        "warm": {
+          "query": {
+            "samples": 1300,
+            "p50Ms": 0.2155,
+            "p95Ms": 0.290625,
+            "maxMs": 0.986166
+          }
+        }
+      },
+      "index": {
+        "documents": 26,
+        "privateDocumentsExcluded": 0,
+        "indexBytes": 112817
+      },
+      "externalDependencies": []
+    },
+    "candidate": {
+      "name": "deterministic artifact relationship graph plus lexical index",
+      "evaluation": {
+        "queryCount": 13,
+        "retrievalQuality": 0.8468400490128857,
+        "taskSuccessRate": 1,
+        "provenanceRate": 1,
+        "meanContextTokens": 540,
+        "perQuery": [
+          {
+            "id": "direct.graph-control-plane",
+            "retrievalQuality": 0.8339912323981488,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "docs/graph-execution-architecture.md",
+              "docs/decisions/0004-graph-native-control-plane.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/plan/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.repository-scout",
+            "retrievalQuality": 0.280390126950546,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/test/SKILL.md",
+              "kit/skills/scout/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.root-cause-fix",
+            "retrievalQuality": 0.9220433016555235,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/test/SKILL.md",
+              "kit/workflows/bugfix-delivery.json",
+              "kit/agents/vc-debugger.md",
+              "evals/scenarios/golden/root-cause-bugfix.json",
+              "kit/skills/code-review/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.release-gate",
+            "retrievalQuality": 0.9261946662938199,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/ship/SKILL.md",
+              "kit/skills/git/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/fix/SKILL.md",
+              "evals/scenarios/golden/release-to-pr.json"
+            ]
+          },
+          {
+            "id": "direct.current-docs-research",
+            "retrievalQuality": 1,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/research/SKILL.md",
+              "evals/scenarios/golden/current-docs-research.json",
+              "kit/skills/docs-seeker/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/plan/SKILL.md"
+            ]
+          },
+          {
+            "id": "direct.security-audit",
+            "retrievalQuality": 0.5,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/security-scan/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/git/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.safe-change-contracts",
+            "retrievalQuality": 0.9918887654809805,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/test/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/agents/vc-reviewer.md",
+              "kit/workflows/safe-change-delivery.json",
+              "kit/skills/fix/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.read-only-contracts",
+            "retrievalQuality": 0.5753291852022475,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/scout/SKILL.md",
+              "kit/skills/test/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/fix/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.bugfix-contracts",
+            "retrievalQuality": 0.9951844850750726,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/test/SKILL.md",
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/scout/SKILL.md",
+              "kit/agents/vc-debugger.md",
+              "kit/workflows/bugfix-delivery.json"
+            ]
+          },
+          {
+            "id": "relation.safe-feature-subjects",
+            "retrievalQuality": 1,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
+              "kit/skills/test/SKILL.md",
+              "evals/scenarios/golden/safe-feature-delivery.json",
+              "kit/agents/vc-reviewer.md",
+              "evals/scenarios/golden/release-to-pr.json"
+            ]
+          },
+          {
+            "id": "relation.release-subjects",
+            "retrievalQuality": 1,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/ship/SKILL.md",
+              "kit/skills/git/SKILL.md",
+              "evals/scenarios/golden/release-to-pr.json",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/code-review/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.architecture-subjects",
+            "retrievalQuality": 0.9838988741111756,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/plan/SKILL.md",
+              "kit/skills/cook/SKILL.md",
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
+              "kit/skills/research/SKILL.md",
+              "kit/skills/scout/SKILL.md"
+            ]
+          },
+          {
+            "id": "relation.research-subjects",
+            "retrievalQuality": 1,
+            "taskSucceeded": true,
+            "contextTokens": 540,
+            "resultPaths": [
+              "kit/skills/research/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md",
+              "evals/scenarios/golden/current-docs-research.json",
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/ask/SKILL.md",
+              "kit/skills/fix/SKILL.md"
+            ]
+          }
+        ]
+      },
+      "latency": {
+        "cold": {
+          "indexBuild": {
+            "samples": 30,
+            "p50Ms": 4.231125,
+            "p95Ms": 4.913083,
+            "maxMs": 5.442584
+          },
+          "query": {
+            "samples": 390,
+            "p50Ms": 1.142125,
+            "p95Ms": 1.475875,
+            "maxMs": 2.194958
+          }
+        },
+        "warm": {
+          "query": {
+            "samples": 1300,
+            "p50Ms": 1.106959,
+            "p95Ms": 1.373542,
+            "maxMs": 2.019834
+          }
+        }
+      },
+      "index": {
+        "documents": 26,
+        "privateDocumentsExcluded": 0,
+        "indexBytes": 119057,
+        "edges": 65
+      },
+      "externalDependencies": []
+    }
+  },
+  "comparison": {
+    "retrievalQualityGainPoints": 25.227,
+    "taskSuccessGainPoints": 38.4615,
+    "meanContextTokenDelta": 0,
+    "candidateIndexByteDelta": 6240,
+    "invalidation": {
+      "privateExcluded": true,
+      "originalProvenance": true,
+      "freshness": true,
+      "deletion": true
+    }
+  },
+  "semanticPrototype": {
+    "status": "not-run",
+    "reason": "The dependency-free artifact graph cleared the material-gain gate."
+  },
+  "gates": {
+    "materialGain": true,
+    "noTaskSuccessRegression": true,
+    "provenance": true,
+    "freshness": true,
+    "deletion": true,
+    "privacy": true,
+    "candidateP95Under500Ms": true,
+    "passed": true
+  },
+  "decision": "adopt-deterministic-artifact-graph",
+  "rollback": "Remove the artifact graph layer and instantiate the retained local lexical metadata index against the same corpus contract."
+}

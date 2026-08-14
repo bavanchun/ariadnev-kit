@@ -2,6 +2,7 @@
 name: vc:obsidian-second-brain-note
 description: Create professional Obsidian second-brain notes. Use when saving knowledge, summaries, concepts, lectures, images, or important info into an Obsidian vault with tags, links, MOCs, and clean folders.
 version: "1.0.0"
+metadata:
 ---
 
 # Obsidian Second-Brain Note
@@ -90,16 +91,9 @@ Never write secrets, API keys, passwords, tokens, private keys, recovery phrases
    - MOC should group notes by concept, pipeline, project, and safety.
    - Keep MOC short, navigational, and curated.
 
-9. **Quality gates**
-   - Confirm no durable note was created in root vault.
-   - Confirm no note is too long for its purpose.
-   - Confirm broad topics are split into linked docs.
-   - Confirm tags are meaningful, not spam.
-   - Confirm links resolve to existing files or intentional future notes.
-   - Confirm note can stand alone without chat context.
-   - Check Git diff before final answer.
+9. **Self-check** — run the quality gates below before answering.
 
-## Output Rules
+## Output format
 
 When finished, report:
 
@@ -109,6 +103,15 @@ When finished, report:
 - unresolved links, if any
 - whether changes were committed, only if user asked
 
+## Quality gates
+
+- [ ] No durable note was created in the root vault
+- [ ] No note is too long for its purpose; broad topics split into linked docs
+- [ ] Tags are meaningful, not spam
+- [ ] Links resolve to existing files or intentional future notes
+- [ ] Each note stands alone without chat context
+- [ ] Git diff checked before the final answer
+
 ## Workflow position
 
 **Typically follows:** a learning/research session worth capturing —
@@ -116,7 +119,7 @@ When finished, report:
 **Typically precedes:** nothing — this is a terminal capture step into a
 personal vault, standalone from the code-work loop.
 **Related:** a personal knowledge skill, not part of the implementation
-pipeline; parity vs ClaudeKit N/A.
+pipeline; parity vs reference N/A.
 
 ## References
 

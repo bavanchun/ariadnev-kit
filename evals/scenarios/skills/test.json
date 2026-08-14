@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.test.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Verification execution",
+  "subjects": {
+    "skills": [
+      "vc:test"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "Run the focused and full test gates, classify failures, and report exact evidence without changing behavior.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "tests.results"
+          ]
+        },
+        "routing": {
+          "vc:test": "required",
+          "vc:fix": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "A test is failing; diagnose the root cause and implement the repair.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "fix.root-cause"
+          ]
+        },
+        "routing": {
+          "vc:fix": "required",
+          "vc:test": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}

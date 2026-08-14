@@ -2,7 +2,7 @@ import type { ProviderId } from "../providers/spec-verified.js";
 
 type Rule = [from: string, to: string];
 
-// VERIFIED from claudekit codex_generator_common.py::adapt_content. Order is
+// VERIFIED from reference codex_generator_common.py::adapt_content. Order is
 // preserved exactly (NOT length-sorted) for byte-parity with the reference.
 const CODEX_TOOLS: Rule[] = [
   ["AskUserQuestion", "request_user_input"],

@@ -17,7 +17,7 @@ function toolList(tools: unknown): string[] {
 /**
  * Decide sandbox_mode. Frontmatter `metadata.sandbox` wins; otherwise infer from
  * the agent's tools — read-only when it declares no write tools — defaulting to
- * workspace-write. (We do NOT copy claudekit's hardcoded agent-name allowlist.)
+ * workspace-write. (We do NOT copy reference's hardcoded agent-name allowlist.)
  */
 export function resolveSandboxMode(frontmatter: Record<string, unknown>): string {
   const meta = frontmatter.metadata as Record<string, unknown> | undefined;

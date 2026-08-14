@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
@@ -26,15 +26,19 @@ export function runAddSkill(opts: AddSkillOpts): AddSkillResult {
   const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const dir = join(kitRoot, "skills", slug);
   if (existsSync(dir)) throw new Error(`skill already exists: ${slug}`);
-  mkdirSync(dir, { recursive: true });
+  mkdirSync(dir);
   const path = join(dir, "SKILL.md");
-  writeFileSync(path, renderSkillTemplate({ slug, description: opts.description }), "utf8");
-  // Re-validate: throws if the generated skill is somehow invalid.
-  const kit = loadKit(kitRoot);
-  if (!kit.skills.some((s) => s.name === slug)) {
-    throw new Error(`generated skill ${slug} failed validation`);
+  try {
+    writeFileSync(path, renderSkillTemplate({ slug, description: opts.description }), "utf8");
+    const kit = loadKit(kitRoot);
+    if (!kit.skills.some((s) => s.name === slug)) {
+      throw new Error(`generated skill ${slug} failed validation`);
+    }
+    return { path, slug };
+  } catch (error) {
+    rmSync(dir, { recursive: true, force: true });
+    throw error;
   }
-  return { path, slug };
 }
 
 export function registerAddSkill(program: Command): void {

@@ -1,6 +1,6 @@
 // Phase 0 gate table. Per-provider verification flags for paths + tool-names.
 // Consumed by Phase 3 resolvers: any cell `false` => installer SKIPS + logs,
-// never guesses. Verified against the shipped claudekit-engineer generators
+// never guesses. Verified against the shipped reference generators
 // (scripts/codex_generator*.py, scripts/generate-opencode.py).
 
 export type ProviderId =
@@ -31,8 +31,8 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   },
   codex: {
     paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
-    toolNames: true, // full table from claudekit adapt_content()
-    source: "claudekit codex_generator_common.py::adapt_content + codex_generator.py",
+    toolNames: true, // full table from reference adapt_content()
+    source: "reference codex_generator_common.py::adapt_content + codex_generator.py",
   },
   cursor: {
     paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
@@ -47,7 +47,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   opencode: {
     paths: { skill: true, agent: true, command: true, rules: true, scripts: true, env: true, hook: false },
     toolNames: false, // generator rewrites paths only — tool-names identity
-    source: "claudekit generate-opencode.py (plural dirs)",
+    source: "reference generate-opencode.py (plural dirs)",
   },
   generic: {
     paths: { skill: true, agent: false, command: false, rules: true, scripts: true, env: true, hook: false },

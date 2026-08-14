@@ -16,6 +16,14 @@ describe("buildJudgePrompt", () => {
 });
 
 describe("runEval", () => {
+  it("fails tier-1 when the requested skill does not exist", () => {
+    const r = runEval({ kitRoot, skill: "definitely-missing" });
+
+    expect(r.ok).toBe(false);
+    expect(r.summary).toContain("definitely-missing");
+    expect(r.summary).toContain("skill not found in kit");
+  });
+
   it("runs tier-1 always and skips tier-3 when no eval command is configured", () => {
     const runJudge = vi.fn((_prompt: string) => "{}");
     const r = runEval({ kitRoot, skill: "scout", deps: { runJudge } });

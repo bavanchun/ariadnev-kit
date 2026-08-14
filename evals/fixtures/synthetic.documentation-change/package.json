@@ -1,0 +1,6 @@
+{
+  "name": "synthetic-docs-change",
+  "private": true,
+  "type": "module",
+  "scripts": { "inspect": "node src/cli.mjs inspect --json" }
+}

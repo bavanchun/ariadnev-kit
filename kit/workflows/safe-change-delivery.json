@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "safe-change-delivery",
+  "title": "Safe repository change delivery",
+  "description": "Plan, approve, apply, test, and review a bounded workspace change with explicit fallback and idempotency.",
+  "versions": { "graph": "1.0.0", "skills": "1.0.0", "policy": "1.0.0", "evaluator": "behavioral-v1" },
+  "entry": "intake",
+  "state": {
+    "fields": [
+      { "name": "request", "type": "string", "scope": "run", "owner": "intake", "redaction": "sensitive", "required": true },
+      { "name": "proposal", "type": "object", "scope": "run", "owner": "plan", "redaction": "internal", "required": true },
+      { "name": "decision", "type": "string", "scope": "run", "owner": "assess", "redaction": "internal", "required": true },
+      { "name": "approval", "type": "object", "scope": "run", "owner": "approve", "redaction": "internal", "required": false },
+      { "name": "change", "type": "object", "scope": "run", "owner": "apply", "redaction": "sensitive", "required": false },
+      { "name": "test-results", "type": "object", "scope": "run", "owner": "test", "redaction": "internal", "required": false },
+      { "name": "review", "type": "object", "scope": "run", "owner": "review", "redaction": "internal", "required": false }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "intake", "type": "function", "handler": { "kind": "function", "ref": "normalize-request" },
+      "state": { "reads": [], "writes": ["request"] },
+      "authority": { "capabilities": ["state:write"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["request-normalized"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "plan", "type": "skill", "handler": { "kind": "skill", "ref": "cook" },
+      "state": { "reads": ["request"], "writes": ["proposal"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["request-normalized"], "produces": ["change-proposal"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "assess", "type": "agent", "handler": { "kind": "agent", "ref": "vc-reviewer" },
+      "state": { "reads": ["request", "proposal"], "writes": ["decision"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["change-proposal"], "produces": ["proposal-assessed"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" },
+      "routing": { "strategy": "model", "allowedTargets": ["approve", "decline"], "fallback": "decline" }
+    },
+    {
+      "id": "approve", "type": "human", "handler": { "kind": "human", "ref": "change-approval" },
+      "state": { "reads": ["proposal", "decision"], "writes": ["approval"] },
+      "authority": { "capabilities": ["state:read", "state:write"], "effect": "none", "approval": "required", "idempotency": "none" },
+      "proof": { "requires": ["proposal-assessed"], "produces": ["change-approved"] }, "timeoutMs": 3600000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "apply", "type": "tool", "handler": { "kind": "tool", "ref": "workspace.apply" },
+      "state": { "reads": ["proposal", "approval"], "writes": ["change"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "workspace:write"], "effect": "workspace", "approval": "required", "idempotency": "required", "idempotencyKey": "safe-change-apply" },
+      "proof": { "requires": ["change-approved"], "produces": ["change-applied"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 2, "backoffMs": 1000, "on": ["conflict"] },
+      "redaction": { "input": "internal", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "test", "type": "skill", "handler": { "kind": "skill", "ref": "test" },
+      "state": { "reads": ["change"], "writes": ["test-results"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "process:execute"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["change-applied"], "produces": ["tests-passed"] }, "timeoutMs": 600000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "review", "type": "skill", "handler": { "kind": "skill", "ref": "code-review" },
+      "state": { "reads": ["proposal", "change", "test-results"], "writes": ["review"] },
+      "authority": { "capabilities": ["state:read", "state:write", "workspace:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["tests-passed"], "produces": ["review-passed"] }, "timeoutMs": 300000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "complete", "type": "terminal", "handler": { "kind": "terminal", "ref": "success" },
+      "state": { "reads": ["change", "test-results", "review"], "writes": [] },
+      "authority": { "capabilities": ["state:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["review-passed"], "produces": ["run-completed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "sensitive", "output": "sensitive", "logs": "metadata-only" }
+    },
+    {
+      "id": "decline", "type": "terminal", "handler": { "kind": "terminal", "ref": "declined" },
+      "state": { "reads": ["decision"], "writes": [] },
+      "authority": { "capabilities": ["state:read"], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": ["proposal-assessed"], "produces": ["run-declined"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "failed", "type": "terminal", "handler": { "kind": "terminal", "ref": "failure" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-failed"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    },
+    {
+      "id": "cancelled", "type": "terminal", "handler": { "kind": "terminal", "ref": "cancelled" },
+      "state": { "reads": [], "writes": [] },
+      "authority": { "capabilities": [], "effect": "none", "approval": "none", "idempotency": "none" },
+      "proof": { "requires": [], "produces": ["run-cancelled"] }, "timeoutMs": 1000,
+      "retry": { "maxAttempts": 1, "backoffMs": 0, "on": [] },
+      "redaction": { "input": "internal", "output": "internal", "logs": "metadata-only" }
+    }
+  ],
+  "edges": [
+    { "id": "intake-ok", "from": "intake", "to": "plan", "type": "success" },
+    { "id": "intake-failed", "from": "intake", "to": "failed", "type": "failure" },
+    { "id": "plan-handoff", "from": "plan", "to": "assess", "type": "handoff" },
+    { "id": "plan-failed", "from": "plan", "to": "failed", "type": "failure" },
+    { "id": "plan-cancelled", "from": "plan", "to": "cancelled", "type": "cancel" },
+    { "id": "assess-approve", "from": "assess", "to": "approve", "type": "conditional", "condition": { "field": "decision", "operator": "equals", "value": "approved" } },
+    { "id": "assess-decline", "from": "assess", "to": "decline", "type": "conditional", "condition": { "field": "decision", "operator": "not-equals", "value": "approved" } },
+    { "id": "assess-failed", "from": "assess", "to": "failed", "type": "failure" },
+    { "id": "assess-cancelled", "from": "assess", "to": "cancelled", "type": "cancel" },
+    { "id": "change-approved", "from": "approve", "to": "apply", "type": "approval" },
+    { "id": "approval-failed", "from": "approve", "to": "failed", "type": "failure" },
+    { "id": "approval-cancelled", "from": "approve", "to": "cancelled", "type": "cancel" },
+    { "id": "apply-ok", "from": "apply", "to": "test", "type": "success" },
+    { "id": "apply-retry", "from": "apply", "to": "apply", "type": "retry" },
+    { "id": "apply-failed", "from": "apply", "to": "failed", "type": "failure" },
+    { "id": "apply-cancelled", "from": "apply", "to": "cancelled", "type": "cancel" },
+    { "id": "test-ok", "from": "test", "to": "review", "type": "success" },
+    { "id": "test-failed", "from": "test", "to": "failed", "type": "failure" },
+    { "id": "test-cancelled", "from": "test", "to": "cancelled", "type": "cancel" },
+    { "id": "review-ok", "from": "review", "to": "complete", "type": "success" },
+    { "id": "review-failed", "from": "review", "to": "failed", "type": "failure" }
+  ]
+}
