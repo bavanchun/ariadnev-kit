@@ -29,9 +29,19 @@ function makeAgent(overrides: Partial<Artifact> & { frontmatter?: Record<string,
 }
 
 describe("lintAgent: name contract", () => {
-  it("rejects a name without av- prefix", () => {
+  it("treats a name without the av- prefix as a ported agent, not an error", () => {
+    // The prefix is how an agent we wrote is told from one we copied. A ported
+    // agent keeps the name upstream gave it, and holding it to our house rules
+    // would mean rewriting the content a port exists to preserve.
     const res = lintAgent(makeAgent({ frontmatter: { name: "demo", description: okDescription } }), "demo");
-    expect(res.errors.some((e) => e.includes("av-"))).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it("still requires a description on a ported agent", () => {
+    // Structural validity applies to everything: an agent with no description
+    // is one the model can never decide to use.
+    const res = lintAgent(makeAgent({ frontmatter: { name: "demo", description: undefined } }), "demo");
+    expect(res.errors.some((e) => e.includes("description"))).toBe(true);
   });
 
   it("rejects name/file-stem mismatch", () => {

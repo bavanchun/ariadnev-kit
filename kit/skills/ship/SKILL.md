@@ -1,83 +1,177 @@
 ---
 name: av:ship
-description: Orchestrate a finished branch through test, review, commit, push, and PR in one pass. Use to take feature or beta work from a local branch to a pull-request URL.
+description: "Ship pipeline: merge main, test, review, commit, push, PR. Single command from feature branch to PR URL. Use for shipping official releases to main/master or beta releases to dev/beta branches."
 user-invocable: true
-argument-hint: "[official|beta] [--skip-tests] [--skip-review] [--dry-run]"
+when_to_use: "Invoke when a completed branch needs PR shipping workflow."
+category: dev-tools
+keywords: [ship, PR, merge, push, release]
+argument-hint: "[official|beta] [--skip-tests] [--skip-review] [--skip-journal] [--skip-docs] [--social] [--yes-post] [--yes-post-private] [--dry-run]"
+license: MIT
 metadata:
-  author: vchun
-  version: "1.0.0"
-  category: core-loop
+  origin: ported
+  author: upstream
+  version: "2.1.0"
 ---
 
-# Ship
+# Ship: Unified Ship Pipeline
 
-The pipeline that takes a finished branch to a PR URL by *sequencing* the other
-skills — test, review, then commit/push/PR. It orchestrates; it does not
-reimplement any of them.
+Single command to ship a feature branch. Fully automated — only stops for test failures, critical review issues, or major version bumps.
 
-Distinct from `av:git`: git is the mechanics (stage, commit, push, PR); ship is
-the pipeline that runs the quality gates *before* handing off to git. If you just
-need a commit or PR, use `av:git` directly.
+**Inspired by:** gstack `/ship` by Garry Tan. Adapted for framework-agnostic, multi-language support.
 
-## Coupling (loose, by design)
+## Arguments
 
-Ship **references each step's skill by name and hands off to it** — it does not
-embed their logic. Each named skill owns its own gates; ship owns only the
-sequence and the stop conditions.
+| Flag | Effect |
+|------|--------|
+| `official` | Ship to default branch (main/master). Full pipeline with docs + journal |
+| `beta` | Ship to dev/beta branch. Lighter pipeline, skip docs update |
+| (none) | Auto-detect: if base branch is main/master → official, else → beta |
+| `--skip-tests` | Skip test step (use when tests already passed) |
+| `--skip-review` | Skip pre-landing review step |
+| `--skip-journal` | Skip journal writing step (also honors `journal.auto=false` config preference) |
+| `--skip-docs` | Skip docs update step |
+| `--social` | Opt-in: after the PR is created, compose a build-in-public journal draft and publish it to social channels (see "Build-in-public publishing" below). Off by default — never fires on a plain `/av:ship`. |
+| `--yes-post` | Required alongside `--social` to actually publish. Without it, the social step runs in dry-run mode: renders and prints the per-channel posts, makes no API call, exits 0. |
+| `--yes-post-private` | Required alongside `--social --yes-post` when the repo is private — an explicit second opt-in for posting about non-public work. |
+| `--dry-run` | Show what would happen without executing |
+
+## Ship Mode Detection
+
+```
+If argument = "official" → target = main/master (auto-detect default branch)
+If argument = "beta"     → target = dev/beta (auto-detect dev branch)
+If no argument           → infer from current branch naming:
+  - feature/* hotfix/* bugfix/* → official (target main)
+  - dev/* beta/* experiment/*  → beta (target dev/beta)
+  - unclear                    → ask_user capability
+```
+
+## When to Stop (blocking)
+
+- On target branch already → abort
+- Merge conflicts that can't be auto-resolved → stop, show conflicts
+- Test failures → stop, show failures
+- Critical review issues → ask_user capability per issue
+- Major/minor version bump needed → ask_user capability
+
+## When NOT to Stop
+
+- Uncommitted changes → always include them
+- Patch version bump → auto-decide
+- Changelog content → auto-generate
+- Commit message → auto-compose
+- No version file → skip version step silently
+- No changelog → skip changelog step silently
 
 ## Pipeline
 
-| Step | Action | Delegates to |
-|---|---|---|
-| 1 | Pre-flight: branch, mode detection, diff scope | — |
-| 2 | Merge target branch (`origin/main` or `origin/dev`) | `av:git` |
-| 3 | Run the test gate | `av:test` |
-| 4 | Pre-landing review | `av:code-review` |
-| 5 | Commit + push + open PR | `av:git` |
-
-Mode: `official` → target default branch (main/master), full pipeline. `beta` →
-target dev/beta, lighter. No arg → infer from branch name (`feature/*` → official,
-`dev/*`/`beta/*` → beta); unclear → ask the user.
-
-## When to stop (blocking)
-
-- Already on the target branch → abort.
-- Merge conflict that will not auto-resolve → stop, show conflicts.
-- `av:test` gate FAIL → stop, surface failures (route to `av:fix`).
-- `av:code-review` returns Critical/Important → stop, ask the user per finding.
-
-Flags: `--skip-tests` / `--skip-review` skip a gate (surface the risk in output);
-`--dry-run` prints the plan without executing. Never force-push; never ask for
-confirmation except on the blocking conditions above.
-
-## Output format
-
 ```
-<emoji> Ship: <mode> · branch <name> → <target>
-✓ Pre-flight: <N commits, +A/-D>
-✓ Merged: origin/<target>
-✓ Tests: <av:test verdict>       (or ⚠ skipped)
-✓ Review: <av:code-review verdict>  (or ⚠ skipped)
-✓ Committed: <conventional message>
-✓ Pushed: origin/<branch>
-✓ PR: <url>
+Step 1:  Pre-flight      → Branch check, mode detection, status, diff analysis
+Step 2:  Link Issues      → Find/create related GitHub issues
+Step 3:  Merge target     → Fetch + merge origin/<target-branch>
+Step 4:  Run tests        → Auto-detect test runner, run, check results
+Step 5:  Review           → Two-pass checklist review (critical + informational)
+Step 6:  Version bump     → Auto-detect version file, bump patch/minor
+Step 7:  Changelog        → Auto-generate from commits + diff
+Step 8:  Journal          → Write technical journal via /av:journal (see the shared "Journal step — opt-out" contract: --skip-journal flag or journal.auto config skips)
+Step 9:  Docs update      → Update project docs via /av:docs update (official only)
+Step 9b: Finalize plan    → av plan update --status completed (plan-backed; foreground, staged by Step 10)
+Step 10: Commit           → Conventional commit with version/changelog
+Step 11: Push             → git push -u origin <branch>
+Step 12: Create PR        → gh pr create with structured body + linked issues
+Step 12b: Link plan↔PR    → av plan update --linked-pr <n> (plan-backed; no close until merge)
+Step 13: Social publish   → if --social: build-in-public draft → av journal create → post-social.cjs (see below)
 ```
 
-Proof/risk: ship asserts no correctness itself — the proof is the `av:test` step
-(step 3). A `--skip-tests` run must flag the resulting unverified state in output.
+**Detailed steps:** Load `references/ship-workflow.md`
+**Auto-detection:** Load `references/auto-detect.md`
+**PR template:** Load `references/pr-template.md`
+**Writing language:** Load `kits/core/skills/av-review-pr/references/writing-language.md`
+**PR body contract:** Load `kits/core/skills/av-review-pr/references/pr-body-contract.md`
 
-## Quality gates
+## Writing language + PR body (#1195)
 
-Before returning, confirm:
-- Every non-skipped step actually ran and its verdict is shown — no assumed passes.
-- A FAIL/Request-changes verdict stopped the pipeline; a PR URL is only emitted
-  when the gates that ran passed.
-- Any skipped gate is called out as an accepted risk, not hidden.
-- The commit message is conventional and the push was non-force.
+Before Step 12, resolve language with
+`WL_BIN=.claude/hooks/lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+node "$WL_BIN" --json` and author the PR body in
+that language. Titles stay English conventional commits. The body must include
+the seven evidence sections (plus Linked Issues / Ship Mode). Prefer honest
+`None` / `Not run` / `Unavailable` over invented narrative.
 
-## Workflow position
+## Build-in-public publishing (`--social`)
 
-**Typically follows:** `av:cook` (ship after implementing), `av:code-review` (ship after review), `av:test` (ship after green)
-**Typically precedes:** `av:review-pr` (review the opened PR), `av:journal` (record the release)
-**Related:** `av:git` (the mechanics ship delegates commit/push/PR to)
+Opt-in only — without `--social`, av-ship behavior is byte-identical to
+today. When passed, after Step 12b (PR created and linked), Step 13 composes
+a build-in-public journal draft from the PR/issue/plan context (`Why this?`
+/ `What changed` / `The tricky bit` / `What's next` / an optional thanks),
+persists it via `av journal create` (so every social post traces back to a
+durable journal entry), then publishes to the channels tagged
+`groups.build_in_public` in `.ariadnev/journal.yaml` (falling back to all
+configured channels if that group isn't defined).
 
+Guardrails (never bypassed by any flag):
+- **CI must be green.** If the PR's checks are failing, the step refuses to
+  post and explains why — the ship itself still completed.
+- **`--skip-journal` skips the whole social step**, not just the journal
+  write — a social post always requires its journal record.
+  `journal.auto = false` does **not** suppress this step: `--social` is an
+  explicit user choice, distinct from the automatic per-ship journal (Step 8).
+- **Collaborator-only signal.** Only PR review comments from
+  `COLLABORATOR`/`MEMBER`/`OWNER` associations feed the draft's "The tricky
+  bit" section — outside commenters are never quoted into a public post.
+- **Dry-run by default.** Without `--yes-post`, the step renders every
+  channel's post and stops — no API call. Re-run with `--social --yes-post`
+  to actually publish.
+- **Private-repo confirmation.** If the repository is private, `--social
+  --yes-post` alone still refuses; add `--yes-post-private` too.
+
+Full step-by-step commands: `references/ship-workflow.md` (Step 13).
+
+## Token Efficiency Rules
+
+- Steps 4 (tests) and 5 (review): delegate to `tester` and `code-reviewer` subagents — don't inline
+- Steps 8 (journal) and 9 (docs): run in **background** — don't block pipeline
+- Step 2 (issues): use single `gh` command batch — avoid multiple API calls
+- Skip steps early via flags to save tokens on unnecessary work
+- Beta mode auto-skips: docs update (Step 9)
+- Capture step outputs inline — don't re-read files already in context
+
+## Quick Start
+
+User says `/av:ship` → run full pipeline → output PR URL.
+User says `/av:ship beta` → ship to dev branch with lighter pipeline.
+User says `/av:ship official` → ship to main with full docs + journal.
+
+## Output Format
+
+```
+✓ Pre-flight: branch feature/foo, 5 commits, +200/-50 lines (mode: official)
+✓ Issues: linked #42, created #43
+✓ Merged: origin/main (up to date)
+✓ Tests: 42 passed, 0 failed
+✓ Review: 0 critical, 2 informational
+✓ Version: 1.2.3 → 1.2.4
+✓ Changelog: updated
+✓ Journal: written (background) / skipped (opt-out via --skip-journal or journal.auto)
+✓ Docs: updated (background)
+✓ Committed: feat(auth): add OAuth2 login flow
+✓ Pushed: origin/feature/foo
+✓ PR: https://github.com/org/repo/pull/123 (linked: #42, #43)
+```
+
+## Important Rules
+
+- **Never skip tests** (unless `--skip-tests`). If tests fail, stop.
+- **Never force push.** Regular `git push` only.
+- **Never ask for confirmation** except for critical review issues and major/minor version bumps.
+- **Auto-detect everything.** Test runner, version file, changelog format, target branch — detect from project files.
+- **Framework-agnostic.** Works for Node, Python, Rust, Go, Ruby, Java, or any project with a test command.
+- **Subagent delegation.** Use `tester` for tests, `code-reviewer` for review, `journal-writer` for journal, `docs-manager` for docs. Don't inline.
+- **Background tasks.** Journal and docs run in background to not block the pipeline.
+
+## Workflow Position
+
+**Typically follows:** `/av:code-review` (ship after review passes)
+**Typically precedes:** `/av:journal` (document after shipping)
+**Related:** `/av:code-review` (review before shipping), `/av:test` (test before shipping)

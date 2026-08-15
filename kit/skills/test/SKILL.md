@@ -1,78 +1,126 @@
 ---
 name: av:test
-description: Run unit, integration, and e2e suites with coverage and build verification, then emit a QA gate verdict. Use to validate an arbitrary target's tests standalone, not inside a cook run.
+description: "Run unit, integration, e2e, and UI tests. Use for test execution, coverage analysis, build verification, visual regression, and QA reports."
 user-invocable: true
-argument-hint: "[scope or path] [ui <url>]"
+when_to_use: "Invoke for running or designing validation suites."
+category: utilities
+keywords: [test, unit, integration, e2e, coverage]
+argument-hint: "[context] OR ui [url]"
 metadata:
-  author: vchun
+  origin: ported
+  author: upstream
   version: "1.0.0"
-  category: core-loop
 ---
 
-# Test
+# Testing & Quality Assurance
 
-Run and judge tests for a target you point it at — standalone, outside a full
-`av:cook` cycle. Produces a QA verdict against the project's own thresholds, not
-a vibe.
+Comprehensive testing framework covering code-level testing (unit, integration, e2e), UI/visual testing via browser automation, coverage analysis, and structured QA reporting.
 
-Handles: unit / integration / e2e suites, coverage analysis, build verification,
-and (with `ui <url>`) browser/visual checks. When a test reveals a real bug,
-hand off to `av:fix` — this skill validates and reports, it does not fix code.
+## Default (No Arguments)
 
-## Core rule
+If invoked with context (test scope), proceed with testing. If invoked WITHOUT arguments, use `ask_user capability` to present available test operations:
 
-**Never ignore a failing test.** No mocks, skips, or `.only` to force green. A
-red suite is the output, reported honestly — fixing the cause is `av:fix`.
+| Operation | Description |
+|-----------|-------------|
+| `(default)` | Run unit/integration/e2e tests |
+| `ui` | Run UI tests on a website |
 
-## Workflow
+Present as options via `ask_user capability` with header "Test Operation", question "What would you like to do?".
 
-1. **Scope** from the argument or recent changes: which suites cover the target.
-   No scope + no context → ask the user (`AskUserQuestion`).
-2. **Typecheck/lint first** — cheap syntax/type errors before running the slow
-   suite.
-3. **Run** the auto-detected runner (Vitest/Jest, pytest, `go test`, `cargo test`,
-   `flutter test`, …). Delegate the run + analysis to the `av-tester` agent.
-4. **Coverage + build** when the project defines them: compare against the
-   project's threshold; run the build for an exit-0 check.
-5. **UI** (`ui <url>`): browser checks — screenshots, responsive, a11y, console
-   errors — via the project's Playwright/native setup.
-6. **Classify** each result by proof layer (`unit`/`integration`/`e2e`/`platform`,
-   `cook/references/risk-lanes.md`) and emit the gate verdict.
+## Core Principle
 
-## Output format
+**NEVER IGNORE FAILING TESTS.** Fix root causes, not symptoms. No mocks/cheats/tricks to pass builds.
+
+## When to Use
+
+- **After implementation**: Validate new features or bug fixes
+- **Coverage checks**: Ensure coverage meets project thresholds (80%+)
+- **UI verification**: Visual regression, responsive layout, accessibility
+- **Build validation**: Verify build process, dependencies, CI/CD compatibility
+- **Pre-commit/push**: Final quality gate
+
+## Workflows
+
+### 1. Code Testing (`references/test-execution-workflow.md`)
+
+Execute test suites, analyze results, generate coverage. Supports JS/TS (Jest/Vitest/Mocha), Python (pytest), Go, Rust, Flutter. Includes working process, quality standards, and tool commands.
+
+**Load when:** Running unit/integration/e2e tests, checking coverage, validating builds
+
+### 2. UI Testing (`references/ui-testing-workflow.md`)
+
+Browser-based visual testing via `av:agent-browser`, `av:chrome-profile`, `av:web-testing`, or project-native Playwright/Vitest/k6 commands. Covers screenshots, responsive checks, accessibility audits, form automation, and console error collection.
+
+**Load when:** Visual regression testing, UI bugs, responsive layout checks, accessibility audits
+
+### 3. Report Format (`references/report-format.md`)
+
+Structured QA report template: test results overview, coverage metrics, failed tests, performance, build status, recommendations.
+
+**Load when:** Generating test summary reports
+
+## Quick Reference
 
 ```
-<verdict emoji> Gate: PASS | FAIL
-Suites: <N passed, M failed, K skipped> · runner: <detected>
-Build: <exit 0 | failed> · Typecheck: <clean | N errors>
+Code tests     → test-execution-workflow.md
+  npm test / pytest / go test / cargo test / flutter test
+  Coverage: npm run test:coverage / pytest --cov
 
-Coverage (if configured):
-| Layer | Covered | Threshold | Status |
-|-------|---------|-----------|--------|
-| unit  | 84%     | 80%       | ✅     |
+UI tests       → ui-testing-workflow.md
+  Screenshots, responsive, a11y, forms, console errors
+  Auth: chrome-profile for real user login/cookies, or project-native test setup
 
-Failures (if any):
-- <test name> — <file:line> — <assertion: expected vs actual>
-
-Next: <"green — ready for review/ship" | "route <failure> to av:fix">
+Reports        → report-format.md
+  Structured QA summary with metrics & recommendations
 ```
 
-Proof/risk: this skill *is* the proof step — it states which layers
-(`unit`/`integration`/`e2e`/`platform`) actually ran, so a downstream
-`av:code-review` or `av:ship` verdict rests on evidence, not assumption.
+## Working Process
 
-## Quality gates
+1. Identify testing scope from recent changes or requirements
+2. Run typecheck/analyze commands to catch syntax errors first
+3. Execute appropriate test suites
+4. Analyze results — focus on failures
+5. Generate coverage reports if applicable
+6. For frontend: run UI tests via `av:agent-browser`, `av:chrome-profile`, `av:web-testing`, or project-native browser tests
+7. Produce structured summary report
 
-Before returning, confirm:
-- The reported pass/fail reflects real command output pasted/summarized, not an
-  assumed result — no "should pass".
-- Gate is FAIL if any suite failed or the build broke, regardless of coverage.
-- Coverage compared against the *project's* threshold, not a guessed number.
-- Each failure names `file:line` + expected-vs-actual so `av:fix` can start.
+## Tools Integration
 
-## Workflow position
+- **Test runners**: Jest, Vitest, Mocha, pytest, go test, cargo test, flutter test
+- **Coverage**: Istanbul/c8/nyc, pytest-cov, go cover
+- **Browser**: `av:agent-browser` for live browser interaction without real user cookies; `av:chrome-profile` for the user's actual Chrome login state, opened with `chrome-profile open --json` and bound by the returned selector; `av:web-testing` or project-native Playwright/Vitest/k6 for repeatable UI tests
+- **Analysis**: `av:ai-multimodal` skill for screenshot analysis
+- **Debugging**: `av:debug` skill when tests reveal bugs requiring investigation
+- **Thinking**: `av:sequential-thinking` skill for complex test failure analysis
 
-**Typically follows:** `av:cook` (validate after implementing), `av:fix` (confirm a fix)
-**Typically precedes:** `av:code-review` (review once tests are green), `av:ship` (ship gate)
-**Related:** `av:fix` (fix what fails), `av:scenario` (design the cases before running)
+## Quality Standards
 
+- All critical paths must have test coverage
+- Validate happy path AND error scenarios
+- Ensure test isolation — no interdependencies
+- Tests must be deterministic and reproducible
+- Clean up test data after execution
+- Never ignore failing tests to pass the build
+
+## Report Output
+**IMPORTANT:** Invoke "the engineer project-organization skill" skill to organize the outputs.
+
+Use naming pattern from `## Naming` section injected by hooks.
+
+## Team Mode
+
+When operating as teammate:
+1. Discover the live task-management surface and the live team-coordination surface
+2. Claim the assigned or next unblocked item when supported; otherwise read and update the active plan
+3. Read the full work description before starting and wait for implementation prerequisites
+4. Respect file ownership — only create/edit test files assigned
+5. When done, record completion and report results through the live team surface
+
+Plan files are the durable source of truth when runtime task tracking is absent
+or session-scoped.
+
+## Workflow Position
+
+**Typically follows:** `/av:cook` (test after implementation), `/av:fix` (test after bug fix)
+**Typically precedes:** `the installed code-review skill` (review after tests pass)
+**Related:** `/av:cook` (implement then test), `/av:fix` (fix then test)

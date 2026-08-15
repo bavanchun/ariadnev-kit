@@ -1,107 +1,151 @@
 ---
 name: av:predict
-description: Run a 5-persona debate on a proposed change before implementing it. Use before a major feature, risky refactor, or when choosing between competing approaches.
+description: "5 expert personas debate proposed changes before implementation. Catches architectural, security, performance, and UX issues early. Use before major features or risky changes."
 user-invocable: true
-argument-hint: "<proposed change> [--files <glob>]"
+when_to_use: "Invoke before high-risk changes that need persona debate."
+category: utilities
+keywords: [prediction, debate, review, risk]
+argument-hint: "<feature description or change proposal> [--files <glob>] [--chain reason|probe]"
 metadata:
-  author: vchun
-  version: "1.0.0"
-  attribution: "Multi-persona debate pattern adapted from autoresearch by Udit Goenka (MIT)"
+  origin: ported
+  author: upstream
+  attribution: "Multi-persona prediction pattern adapted from autoresearch by Udit Goenka (MIT)"
+  license: MIT
+  version: "1.1.0"
 ---
 
-# Predict
+# av:predict — Multi-Persona Pre-Analysis
 
-Five expert personas independently analyze a proposed change, then debate
-where they disagree, producing a GO/CAUTION/STOP verdict before a line of
-code is written.
+Five expert personas independently analyze a proposed change, then debate conflicts to produce a consensus verdict before a single line of code is written.
 
-Handles: pre-implementation risk analysis for major features, refactors, or
-competing approaches.
-Does not handle: bugs (`av:fix`), already-decided work (`av:cook`), routine
-low-risk changes (the debate overhead isn't worth it — see
-`../cook/references/risk-lanes.md` for the lane check).
+## When to Use
 
-## The 5 personas
+- Before implementing a major or high-risk feature
+- Before a significant refactor or architecture change
+- Evaluating competing technical approaches
+- Stress-testing assumptions in a proposed design
 
-| Persona | Asks |
-|---|---|
-| Architect | Does this fit the existing design? What new coupling does it add? |
-| Security | What can be abused? Where is data exposed? Auth boundaries respected? |
-| Performance | Latency impact? N+1 queries? Memory or bundle bloat? |
-| UX | Is this intuitive? What's the error state? Accessible? |
-| Devil's Advocate | Why not do nothing? What's the simplest alternative? Which assumption might be wrong? |
+## When NOT to Use
 
-## Rule: ground every persona in the repo
+- Trivial or low-risk changes (use `av:debug` for bugs, `av:plan` for already-decided tasks)
+- Already-approved work with no open design questions
+- Pure dependency upgrades with no API changes
 
-Each persona's analysis must cite at least one real file or pattern from the
-codebase when the proposal touches existing code — a persona arguing purely
-in the abstract ("this could have performance issues") is not useful. If
-`--files` is given, read them first; otherwise scout enough to ground the
-debate before personas speak.
+---
 
-## Workflow
+## The 5 Personas
 
-1. Read the proposal (and files, if given).
-2. Each persona analyzes **independently** first — don't let one view
-   contaminate another before the debate step.
-3. Identify agreements (4+ personas align) and real conflicts.
-4. For each conflict, weigh which concern has higher impact given this
-   project's actual constraints (not generic best practice).
-5. Produce a verdict.
+| Persona | Focus | Core Questions |
+|---------|-------|----------------|
+| **Architect** | System design, scalability, coupling | Does this fit the architecture? Will it scale? What new coupling does it introduce? |
+| **Security** | Attack surface, data protection, auth | What can be abused? Where is data exposed? Are auth boundaries respected? |
+| **Performance** | Latency, memory, queries, bundle size | What is the latency impact? N+1 queries? Memory leaks? Bundle bloat? |
+| **UX** | User experience, accessibility, error states | Is this intuitive? What does the error state look like? Accessible on mobile? |
+| **Devil's Advocate** | Hidden assumptions, simpler alternatives | Why not do nothing? What is the simplest alternative? Which load-bearing assumption — one the proposal fails without — could be wrong, and what does it cost to reverse course once it is? |
 
-## Verdict levels
+---
 
-| Verdict | Meaning |
-|---|---|
-| GO | Personas aligned, no critical risk |
-| CAUTION | Manageable concerns, mitigations identified |
-| STOP | Unresolved critical issue — needs redesign or more info |
+## Debate Protocol
 
-STOP triggers (any one): Security finds an auth bypass/data exposure with no
-mitigation; Architect finds a fundamental incompatibility; Performance finds
-unacceptable latency/query explosion with no workaround; Devil's Advocate
-exposes a false assumption that invalidates the whole approach.
+1. **Read** the proposed change/feature description from the argument
+2. **Read relevant code** if file paths are provided (grep for affected areas)
+3. **Each persona analyzes independently** — do not let personas influence each other during this phase
+4. **Identify agreements** — points where all (or 4+) personas align
+5. **Identify conflicts** — points where personas meaningfully disagree
+6. **Weigh tradeoffs** — for each conflict, evaluate which concern has higher impact, comparing the options on their worst plausible case, not only their expected one
+7. **Produce verdict** — GO / CAUTION / STOP with actionable recommendations
 
-## Output format
+---
 
-```markdown
-## Prediction: <proposal>
+## Output Format
+
+```
+## Prediction Report: [proposal title]
+
 ## Verdict: GO | CAUTION | STOP
 
-### Agreements
-- <point, with file citation where it touches existing code>
+### Agreements (all personas align)
+- [Point 1 — what they all agree on]
+- [Point 2]
 
 ### Conflicts & Resolutions
+
 | Topic | Architect | Security | Performance | UX | Devil's Advocate | Resolution |
+|-------|-----------|----------|-------------|-----|-----------------|------------|
+| [Issue] | [View] | [View] | [View] | [View] | [View] | [Recommendation] |
 
 ### Risk Summary
-| Risk | Severity | Mitigation |
+
+| Risk | Severity | Early signal | Mitigation |
+|------|----------|--------------|------------|
+| [Risk description] | Critical/High/Medium/Low | [Observable sign this risk is materializing — omit when the risk is already certain] | [Concrete action] |
 
 ### Recommendations
-1. <action — rationale>
+1. [Action item — rationale]
+2. [Action item — rationale]
+3. [Action item — rationale]
 ```
 
-Feed CAUTION/STOP risk rows into `av:scenario` for deeper edge-case coverage,
-or into `av:plan`'s risk assessment when proceeding.
+---
 
-## Quality gates
+## Verdict Levels
 
-- [ ] Every persona that touches existing code cites at least one real
-      `file:line` or named pattern — no purely abstract concerns
-- [ ] Personas analyzed independently before the debate step
-- [ ] Each conflict has a resolution weighed against *this* project's
-      constraints, not generic best practice
-- [ ] The verdict follows the STOP triggers; a STOP names the specific
-      unresolved issue
-- [ ] Every CAUTION risk carries a concrete mitigation, not "monitor it"
+| Verdict | Meaning |
+|---------|---------|
+| **GO** | All personas aligned, no critical risks, proceed with confidence |
+| **CAUTION** | Concerns exist but are manageable — mitigations identified, proceed carefully |
+| **STOP** | Critical unresolved issue found — needs redesign or more information before proceeding |
 
-## Workflow position
+### STOP Triggers (any one is sufficient)
+- Security persona identifies auth bypass or data exposure with no viable mitigation
+- Architect identifies fundamental design incompatibility requiring significant rework
+- Performance persona identifies unacceptable latency or query explosion with no workaround
+- Devil's Advocate exposes a false assumption that invalidates the entire approach
 
-**Typically follows:** `av:brainstorm` (pressure-test the chosen approach before
-committing) or a direct proposal for a high-risk-lane change.
-**Typically precedes:** `av:plan` (feed the risk rows into its risk assessment),
-`av:scenario` (expand CAUTION/STOP rows into edge cases), `av:cook` (implement
-once the verdict is GO).
-**Related:** `av:brainstorm` picks *which* approach; `av:predict` stress-tests
-one already on the table. Skip it for tiny/normal lanes — see
-`../cook/references/risk-lanes.md`.
+---
+
+## Chain Modes
+
+After producing the verdict, predict can chain into a follow-on workflow that always runs as part of a predict session (not as a standalone skill).
+
+| Flag | Purpose | When to use |
+|------|---------|-------------|
+| `--chain reason` | Subjective refinement loop — generate → critique → synthesize → blind judge → repeat until convergence | Verdict is CAUTION with subjective tradeoffs (architecture polish, design coherence) |
+| `--chain probe` | Requirement interrogation — saturation-driven harvest of missing constraints + assumptions | Verdict is CAUTION or STOP because of "missing constraint" or "unstated assumption" findings |
+
+Use the chain-mode summaries below as the supported protocol for this kit.
+
+These chain modes absorb upstream `/autoresearch:reason` and `/autoresearch:probe` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). They're folded into av:predict — not shipped as standalone skills — because they always chain off a predict invocation. See `/av:autoresearch` for the family map.
+
+---
+
+## Integration with Other Skills
+
+| Workflow Step | Skill | How |
+|---------------|-------|-----|
+| Deepen risk scenarios | `av:scenario` | Feed Risk Summary rows as feature description |
+| Create implementation plan | `av:plan` | Attach Recommendations as constraints to planner |
+| High-risk feature implementation | `av:cook` | Reference CAUTION/STOP items as acceptance gates |
+
+---
+
+## Example Invocations
+
+```
+/av:predict "Add WebSocket support for real-time notifications"
+/av:predict "Migrate authentication from JWT to session cookies"
+/av:predict "Add multi-tenancy to the database layer"
+/av:predict "Replace REST API with GraphQL" --files src/api/**/*.ts
+
+# Chain modes
+/av:predict "Pick auth library: Passport vs Better Auth" --chain reason
+/av:predict "Move from REST to GraphQL" --chain probe
+```
+
+---
+
+## Lineage
+
+Faithful absorption (in scope) of upstream `/autoresearch:predict` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). The local version supports the 5-persona debate plus `--chain reason` (subjective refinement) and `--chain probe` (requirement interrogation), folding upstream's `/autoresearch:reason` and `/autoresearch:probe` sub-commands into chain modes rather than separate skills.
+
+See `/av:autoresearch` for the full family map.

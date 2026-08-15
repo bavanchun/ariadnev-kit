@@ -1,80 +1,121 @@
 ---
 name: av:scout
-description: Scout a codebase fast with parallel av-explore agents. Use for file discovery, task-context gathering, or mapping which modules a change will touch.
+description: "Fast codebase scouting using native search, optional Explore agents, and user-permitted OpenCode probes. Use for file discovery, task context gathering, and scoped searches across directories."
 user-invocable: true
-argument-hint: "<what to find or understand> [--quick]"
+when_to_use: "Invoke for fast file discovery and codebase orientation."
+category: dev-tools
+keywords: [codebase, scouting, file-discovery, search]
+argument-hint: "[search-target] [ext]"
 metadata:
-  author: vchun
+  origin: ported
+  author: upstream
   version: "1.0.0"
 ---
 
 # Scout
 
-Answer "where does X live and how does it work" quickly, by fanning out
-`av-explore` agents over non-overlapping regions and merging their findings
-into one report.
+Fast, token-efficient codebase scouting using parallel agents to find files needed for tasks.
 
-Handles: file discovery, pre-planning context, blast-radius mapping.
-Does not handle: fixing (`av:fix`), deciding (`av:brainstorm`), deep single
-file analysis (just read the file).
+## Arguments
+- Default: Scout using built-in Explore subagents in parallel when delegation is permitted (`./references/internal-scouting.md`)
+- `ext`: Scout using user-permitted OpenCode probes when native/local search is insufficient (`./references/external-scouting.md`)
 
-## Mode selection
+## When to Use
 
-| Situation | Mode |
-|---|---|
-| Small repo, or one clear question | **Solo**: search directly (Glob/Grep/Read), no agents |
-| Medium repo, 2-4 distinct areas | **Parallel**: one `av-explore` agent per area |
-| `--quick` flag | Solo, cap at ~10 file reads, report what you have |
+- Beginning work on feature spanning multiple directories
+- User mentions needing to "find", "locate", or "search for" files
+- Starting debugging session requiring file relationships understanding
+- User asks about project structure or where functionality lives
+- Before changes that might affect multiple codebase parts
 
-## Parallel workflow
+## Quick Start
 
-1. **Partition** — split the repo into non-overlapping scopes by directory
-   (e.g. `src/api` + `src/web` + `packages/*`). Never give two agents the
-   same tree; never assign generated dirs (node_modules, dist, .git).
-2. **Dispatch** — spawn `av-explore` agents in a single batch, each with
-   the prompt template from `references/agent-prompt-template.md` filled in:
-   scope dirs, the question, the report format, the status line.
-3. **Merge** — deduplicate findings, resolve conflicts by reading the
-   contested file yourself, drop anything an agent could not evidence with a
-   path.
-4. **Report** — to the user, and to
-   `plans/reports/scout-{yymmdd-hhmm}-{slug}-report.md` when the scout feeds
-   a plan or brainstorm.
+1. Analyze user prompt to identify search targets
+2. Use a wide range of `search_files` patterns to find relevant files and estimate scale of the codebase
+3. Spawn parallel agents with divided directories only when the active runtime permits delegate_agent usage
+4. Collect results into concise report
 
-## Output format
+## Runtime Tooling
+
+Use portable capabilities first:
+- `search_files` for local discovery.
+- `read_file` for scoped file reads.
+- `run_shell` for local commands such as `rg`, `wc`, or `sed`.
+- The live task-management surface for progress tracking when useful.
+- `delegate_agent` for Explore subagents only when user request and runtime policy allow delegation.
+
+Do not spawn subagents only because this skill mentions Explore. Some runtimes,
+including Codex Desktop, require the actual user request to explicitly ask for
+subagents, delegation, or parallel agent work. If that explicit request is
+absent, scout in the main agent with `search_files` and `read_file`.
+
+Runtime mapping for `delegate_agent`:
+- Claude Code: use the native delegate call with `subagent_type: "Explore"`.
+- Codex Desktop: Explore is a deferred multi-agent role. If `multi_agent_v1`
+  is not visible, call `tool_search` for multi-agent spawn tools first, then use
+  `multi_agent_v1.spawn_agent` with `agent_type: "Explore"`. Do not set a model
+  override; the Explore role owns its runtime model configuration.
+
+## Workflow
+
+### 1. Analyze Task
+- Parse user prompt for search targets
+- Identify key directories, patterns, file types, lines of code
+- Determine optimal SCALE value of subagents to spawn
+
+### 2. Divide and Conquer
+- Split codebase into logical segments per agent
+- Assign each agent specific directories or patterns
+- Ensure no overlap, maximize coverage
+
+### 3. Register Scout Work
+- **Skip if:** Agent count ≤ 2 (overhead exceeds benefit)
+- Discover the live task-management surface and check for existing scout work
+- If available, register one scoped item per agent; otherwise update the active plan
+- Keep tracking concise: scope, assigned directories, current status, and timeout
+- Treat the active plan as the durable source of truth
+
+### 4. Spawn Parallel Agents
+Load appropriate reference based on decision tree:
+- **Internal (Default):** `references/internal-scouting.md` (Explore subagents)
+- **External:** `references/external-scouting.md` (OpenCode)
+
+**Notes:**
+- Record each scope as in progress before spawning its agent
+- Prompt detailed instructions for each subagent with exact directories or files it should read
+- Remember that each subagent has less than 200K tokens of context window
+- Amount of subagents to-be-spawned depends on the current system resources available and amount of files to be scanned
+- Each subagent must return a detailed summary report to a main agent
+- In Codex Desktop, first expose deferred multi-agent tools through `tool_search` if they are not already visible.
+- If runtime policy blocks subagents because the user did not explicitly request delegation, continue with main-agent scouting instead of forcing a spawn.
+
+### 5. Collect Results
+**IMPORTANT:** Invoke "the engineer project-organization skill" skill to organize the outputs.
+
+- Timeout: 3 minutes per agent (skip non-responders)
+- Record completed scopes and log timed-out agents in the report
+- Aggregate findings into single report
+- List unresolved questions at end
+
+## Report Format
 
 ```markdown
-# Scout: <question>
-
-## Answer
-2-5 sentences: the shape of the thing you were asked to find.
+# Scout Report
 
 ## Relevant Files
-| Path | Why it matters |
-
-## Patterns & Conventions
-Existing idioms a change here must follow.
-
-## Risks / Gotchas
-Contracts, coupling, or surprises found.
+- `path/to/file.ts` - Brief description
+- ...
 
 ## Unresolved Questions
-What scouting could not settle, or "none".
+- Any gaps in findings
 ```
 
-## Quality gates
+## References
 
-- [ ] Every claim carries a file path (line ref where useful)
-- [ ] Agent scopes did not overlap
-- [ ] Report says what was NOT searched, when scope was cut
+- `references/internal-scouting.md` - Using Explore subagents
+- `references/external-scouting.md` - Using user-permitted OpenCode probes
 
-## Workflow position
+## Workflow Position
 
-**Typically follows:** any request that names an unfamiliar area — usually the
-first step of `av:brainstorm`, `av:plan`, `av:cook`, or `av:fix` rather than a
-standalone invocation.
-**Typically precedes:** `av:brainstorm` (options need grounding), `av:plan`
-(phases need real file paths), `av:cook` (match existing patterns), `av:fix`
-(widen the search after failed hypotheses).
-**Related:** `av:ask` answers a question about code already located; `av:scout`
-locates it. Deep analysis of one known file needs neither — just read it.
+**Typically precedes:** `the engineer debug skill` (debug after scouting), `/av:fix` (fix after locating code), `the installed code-review skill` (scout edge cases before review)
+**Related:** `the engineer debug skill` (investigate after scouting), `/av:brainstorm` (explore after scouting)

@@ -1,114 +1,109 @@
 ---
 name: av:docs
-description: Initialize and maintain project documentation in the docs/ folder. Use for doc setup, updating docs after behavior changes, auditing docs against the code, or recording a durable decision.
+description: "Analyze a codebase and create, refresh, summarize, or audit project documentation without imposing a fixed docs layout, including authoring and optimizing the root CLAUDE.md/AGENTS.md agent context file."
 user-invocable: true
-argument-hint: "init | update | audit | decision [scope]"
+when_to_use: "Invoke to create, refresh, summarize, or audit project documentation, or to author or optimize the root CLAUDE.md/AGENTS.md agent context file."
+category: utilities
+keywords: [documentation, init, update, summarize, audit, agent-context, claude-md, agents-md]
+argument-hint: "init|update|summarize|agent-context"
 metadata:
-  author: vchun
-  version: "1.0.0"
+  origin: ported
+  author: upstream
+  version: "1.4.0"
 ---
 
-# Docs
+# Documentation Management
 
-Keep `./docs` accurate and small. Documentation is a liability that must earn
-its maintenance cost — this skill updates docs when reality changed, and
-refuses churn when it didn't.
+Maintain the smallest documentation set that lets people and AI collaborators
+understand the project's intent, current contract, evidence, and operating
+workflow.
 
-## The update rule
+## Philosophy
 
-Update docs only when the change affects: user-visible behavior, setup or
-commands, architecture, public contracts, security posture, or a decision a
-future maintainer needs. Internal refactors with stable behavior get no doc
-edits — say so instead of inventing changelog noise.
+Code owns WHAT and HOW; docs own WHY and WHERE. Docs are a thin navigation
+layer plus knowledge code cannot express: decisions, rejected alternatives,
+business rules, domain terminology, and constraints. Point to executable owners
+instead of paraphrasing behavior. Load `references/doc-content-rules.md` for any
+doc-writing operation and include its relevant rules in delegated context.
 
-## Standard structure
+A root agent context file (`CLAUDE.md`/`AGENTS.md`) is a distinct artifact
+class: process memory that owns imperative HOW-TO-BEHAVE, not WHY/WHERE. It
+follows `references/agent-context-rules.md`, which shares this skill's
+deletion-test spine but keeps its own keep-or-cut filter and enforcement rules.
 
-```
-docs/
-├── project-overview-pdr.md    # what + why + requirements
-├── codebase-summary.md        # map of the code, for onboarding
-├── code-standards.md          # conventions actually enforced here
-├── system-architecture.md     # components, data flow, decisions
-├── deployment-guide.md        # how it ships
-└── project-roadmap.md         # where it's going
-```
+## Opening Gate
 
-Create only the files the project actually needs; an empty template is worse
-than an absent file.
+Start with a bounded brainstorm. Establish:
 
-## Modes
+- who consumes the docs: people, AI, or both;
+- the outcome and decisions the docs must make possible;
+- which sources prove current behavior;
+- what is evergreen guidance versus stateful evidence;
+- the acceptance criteria for this docs operation.
 
-**init** — scout the codebase (structure, stack, entry points, commands),
-then write the needed subset of the structure above. Every claim must be
-derived from the repo, not from what projects "usually" do.
+Reuse an accepted plan or prior brainstorm when it already answers these
+questions. Do not reopen settled intent without new evidence.
 
-**update** — given a change (diff, feature, session): identify which docs
-the update rule actually triggers; edit those sections in place; leave the
-rest untouched. Verify commands and paths you touch by running/checking
-them.
+## Routing
 
-**audit** — walk each doc claim against the code: commands still run, paths
-still exist, architecture still true, versions current. Output a findings
-list (doc, claim, reality) and fix the confirmed drift.
+Parse the first word of `$ARGUMENTS`:
 
-**decision** — record a durable architectural or behavioral decision that
-future sessions should inherit rather than re-debate. Write
-`docs/decisions/NNNN-<slug>.md` (next number, zero-padded):
+| Input | Load | Purpose |
+|---|---|---|
+| `init` | `references/init-workflow.md` | Establish a minimal project-specific docs route |
+| `update` | `references/update-workflow.md` | Reconcile impacted docs with current evidence |
+| `summarize` | `references/summarize-workflow.md` | Summarize current evidence without forcing a new file |
+| `agent-context` | `references/agent-context-rules.md` | Author, audit, or optimize the root `CLAUDE.md`/`AGENTS.md` agent context file |
+| empty or unclear | ask the user | Choose the operation; never assume `init` |
 
-```markdown
-# NNNN: <decision title>
+Other workflows deciding whether docs are affected should load
+`references/documentation-management.md`.
 
-## Context
-What forced this decision — the constraint, trade-off, or problem.
+## Flags
 
-## Decision
-What was chosen, one paragraph.
+Composable with any operation:
 
-## Consequences
-What this makes easier, what it makes harder, what it rules out.
-```
+- `--advice` — before writing or updating any doc or agent context file, spawn
+  `kongming` for counsel on what to keep, cut, or restructure, and factor it into
+  the change. `kongming` advises only; this skill stays responsible for every
+  edit and still confirms writes with the user. Spawn it again when stuck or
+  before an irreversible docs change.
+- `--audit` — for `agent-context`: first get a `kongming` audit pass over the
+  current `CLAUDE.md`/`AGENTS.md`, then interview the user one question at a time
+  (one keep / cut / fix decision per question) using the keep-or-cut filter in
+  `references/agent-context-rules.md`. Apply only the confirmed changes.
 
-Keep each record ≤40 lines. Use this mode when a plan, brainstorm, or fix
-session changed behavior, architecture, authorization, or a public contract
-in a way the next session must not silently reverse — not for routine changes.
+## Discovery Contract
 
-## Anti-bloat gate
+Do not assume filenames, a file count, or a universal documentation tree.
+Discover the project's contract in this order:
 
-The codebase is the single source of truth; docs are a thin, curated map on top
-of it. A pile of stale, contradictory docs is worse than fewer docs — an agent
-reading them trusts the wrong one and ships bugs (this is a documented failure
-mode, not a hypothetical). So:
+1. repository instructions such as `AGENTS.md` or `CLAUDE.md`;
+2. the root `README.md`;
+3. the project's docs index or navigation file, when present;
+4. existing files under `docs/` and links from the earlier routes;
+5. source, tests, scripts, generated artifacts, and live state that prove claims.
 
-- **Do not create a new doc when the code already answers the question.** Prefer
-  a `// why:` comment at the code site over a prose file that will drift.
-- **Do not open a `docs/decisions/NNNN` record for routine choices** — only for
-  decisions a future session would otherwise re-debate or silently reverse.
-- **Comments say WHY, never WHAT.** The code shows what it does; a comment that
-  restates it is future rot.
-- **Prune on sight.** If `audit` finds a doc the code no longer needs, delete it
-  and say so — keeping it "just in case" is the bloat this gate exists to stop.
+Use `docs/` for project documentation when that is the repository convention.
+Treat source and tests as evidence, not prose that must be copied into every
+document.
 
-## Quality gates
+## Maintenance Rules
 
-- Read the existing doc fully before editing; match its structure and tone.
-- Never document aspirations as facts — roadmap items go in the roadmap.
-- Examples must be real: taken from the repo or executed once.
-- Each doc stays under ~800 lines; split by concern when it grows past that.
-- After editing, verify links and file references resolve.
-- Every claim is derived from the repo, not from what projects "usually" have.
+- Update only documents whose contract or evidence changed.
+- Delete stale or duplicate guidance instead of preserving it for history.
+- Link to the owning script, manifest, or generated source instead of copying
+  command lists, inventories, or exact test names into multiple files.
+- Keep evergreen guidance free of dates, issue IDs, phase labels, and section
+  coordinates unless those values are the subject of the contract.
+- Keep stateful research, plans, audit results, and release evidence clearly
+  labeled and outside the evergreen authority path.
+- Do not create an ADR, governance layer, generator, or docs-only CI gate unless
+  the user explicitly requests that additional operating surface.
+- Verify every path, command, configuration key, and behavioral claim against
+  current evidence.
 
-## Output format
+For diagrams, use the installed diagram skill only when a visual materially
+improves understanding, then visually review the output.
 
-Report which docs changed and why, which were deliberately left alone
-(update rule not triggered), any doc pruned, and any drift found but not fixed
-(with a reason).
-
-## Workflow position
-
-**Typically follows:** `av:cook`/`av:plan` finalize (behavior changed, docs may
-need it), `av:journal` (a session decision worth making durable → `decision`
-mode).
-**Typically precedes:** nothing — docs are a terminal maintenance step.
-**Related:** `av:journal` records what happened in a session; `av:docs`
-`decision` mode records a choice future sessions must honor. Route consequential
-decisions here, reflections to `av:journal`.
+**Do not implement product code during a documentation operation.**

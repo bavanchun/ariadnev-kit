@@ -1,73 +1,142 @@
 ---
 name: av:worktree
-description: Create, inspect, or clean up isolated git worktrees for parallel feature development. Use for feature isolation, stale-worktree cleanup, or before running parallel implementation phases.
+description: "Create, inspect, and clean isolated git worktrees. Use for feature isolation, worktree health audits, stale cleanup, and monorepo or submodule workflows."
 user-invocable: true
-argument-hint: "create <feature> | list | status | prune"
+when_to_use: "Invoke for isolated worktrees, stale cleanup, or worktree audits."
+category: dev-tools
+keywords: [worktree, parallel, monorepo, isolation]
+argument-hint: "[feature-description] OR [project] [feature]"
 metadata:
-  author: vchun
-  version: "1.0.0"
+  origin: ported
+  author: upstream
+  version: "1.1.0"
 ---
 
-# Worktree
+# Git Worktree
 
-Isolate a feature in its own git worktree using plain `git worktree` — no
-bundled script, no monorepo-detection engine. Handles the common case
-directly; a genuinely unusual repo layout is better handled by hand.
-
-Handles: creating/removing/listing worktrees, stale-metadata cleanup.
-Does not handle: dependency install automation across every package manager
-— run the project's normal install command once the worktree exists.
-
-## Branch naming
-
-Detect prefix from the request: fix/bug/error → `fix`; refactor/restructure
-→ `refactor`; docs → `docs`; test/spec → `test`; chore/cleanup → `chore`;
-perf/optimize → `perf`; otherwise → `feat`. Slugify the description
-(kebab-case, ≤50 chars). If the caller gives an exact branch name already
-(ticket key, pre-formed slash path) — use it verbatim, skip prefixing.
-
-## Commands
-
-| Command | Do |
-|---|---|
-| Create | `git worktree add ../<repo>-<branch> -b <type>/<slug> <base>` — base is `origin/main` unless the caller names another |
-| List | `git worktree list --porcelain` |
-| Status | `git worktree list` + `git -C <path> status --short` + `git -C <path> log --oneline <base>..HEAD` for divergence |
-| Remove | `git worktree remove <path>` (add `--force` only if the caller confirmed discarding uncommitted changes) |
-| Prune | `git worktree prune --dry-run` first, then without `--dry-run` once confirmed |
+Create an isolated git worktree for parallel feature development.
 
 ## Workflow
 
-1. `git worktree list` to see current state before creating another.
-2. Determine base branch: prefer `main`, fall back to `master` if that's
-   what `git branch --show-current` on the primary checkout resolves to.
-3. Create at a sibling path (`../<repo-name>-<slug>`) unless the caller
-   specifies a location.
-4. Copy `.env*.example` → `.env*` in the new worktree if present (strip the
-   `.example` suffix) — never copy a real `.env` with secrets across worktrees.
-5. Report the path and remind the caller to run the project's install
-   command there — this skill doesn't guess which one applies.
+### Step 1: Get Repo Info
 
-## Output format
-
-```
-Worktree: <path>
-Branch: <name> (base: <base>)
-Next: cd <path> && <install command for this stack>
+```bash
+node scripts/worktree.cjs info --json
 ```
 
-## Quality gates
+Parse JSON response for: `repoType`, `baseBranch`, `projects`, `worktreeRoot`,
+`worktreeRootSource`, `dirtyState`, `dirtyDetails`.
 
-- [ ] Base branch stated explicitly, not silently assumed
-- [ ] `remove`/`prune` with actual data loss potential confirmed with the caller first
-- [ ] No secrets copied between worktrees (`.env` excluded, only `.example` templates copied)
+### Step 2: Detect Branch Naming Mode
 
-## Workflow position
+**Check for exact branch name first:**
+If caller provides a pre-formed branch name (contains uppercase letters, issue tracker keys like `ABC-1234`, forward slashes for multi-segment conventions like `user/type/feature`, or explicitly says "use this exact branch name"):
+→ Use `--no-prefix` flag — skip Step 3, pass name directly as slug.
+Examples:
+- `"ND-1377-cleanup-docs"` → `--no-prefix` → branch `ND-1377-cleanup-docs`
+- `"kai/feat/604-startup-option"` → `--no-prefix` → branch `kai/feat/604-startup-option`
 
-**Typically follows:** `av:plan` (a phase needs isolation from the current
-checkout) or a decision to run implementation streams in parallel.
-**Typically precedes:** `av:cook` / `av:fix` inside the new worktree, then
-`av:git` to commit and push from there.
-**Related:** `av:git` owns branches and commits; `av:worktree` owns the
-checkouts those branches live in. Cleanup (`prune`) usually follows a merged
-`av:ship` run.
+**Otherwise, detect prefix from description:**
+- "fix", "bug", "error", "issue" → `fix`
+- "refactor", "restructure", "rewrite" → `refactor`
+- "docs", "documentation", "readme" → `docs`
+- "test", "spec", "coverage" → `test`
+- "chore", "cleanup", "deps" → `chore`
+- "perf", "performance", "optimize" → `perf`
+- Default → `feat`
+
+### Step 3: Convert to Slug
+
+**Skip if `--no-prefix` was chosen in Step 2.**
+
+"add authentication system" → `add-auth`
+"fix login bug" → `login-bug`
+Max 50 chars, kebab-case.
+
+### Step 4: Handle Monorepo
+
+If `repoType === "monorepo"` and project not specified, use ask_user capability:
+```javascript
+ask_user capability({
+  questions: [{
+    header: "Project",
+    question: "Which project for the worktree?",
+    options: projects.map(p => ({ label: p.name, description: p.path })),
+    multiSelect: false
+  }]
+})
+```
+
+### Step 5: Execute
+
+**Monorepo:**
+```bash
+node scripts/worktree.cjs create "<PROJECT>" "<SLUG>" --prefix <TYPE>
+```
+
+**Standalone:**
+```bash
+node scripts/worktree.cjs create "<SLUG>" --prefix <TYPE>
+```
+
+**Options:**
+- `--prefix` - Branch type: feat|fix|refactor|docs|test|chore|perf
+- `--base <branch>` - Override auto-detected base branch (default: dev→develop→main→master)
+- `--checkout-submodules` - Run `git submodule update --init --checkout --recursive` in the new worktree after create
+- `--no-prefix` - Skip branch prefix and preserve original case and slashes (for Jira keys, multi-segment branches like `user/type/feature`)
+- `--worktree-root <path>` - Override default location (only if needed)
+- `--json` - JSON output
+- `--dry-run` - Preview
+
+### Step 6: Install Dependencies
+
+Based on project context, run in background:
+- `bun.lock` → `bun install`
+- `pnpm-lock.yaml` → `pnpm install`
+- `yarn.lock` → `yarn install`
+- `package-lock.json` → `npm install`
+- `poetry.lock` → `poetry install`
+- `requirements.txt` → `pip install -r requirements.txt`
+- `Cargo.toml` → `cargo build`
+- `go.mod` → `go mod download`
+
+## Commands
+
+| Command | Usage | Description |
+|---------|-------|-------------|
+| `create` | `create [project] <feature>` | Create worktree |
+| `remove` | `remove <name-or-path>` | Remove worktree |
+| `info` | `info` | Repo info with worktree location |
+| `list` | `list` | List worktrees |
+| `status` | `status` | Inspect worktree health, normalized paths, and base-branch divergence |
+| `prune` | `prune` | Clean stale worktree metadata (`--dry-run` supported) |
+
+## JSON Output Fields
+
+When using `--json`, the command surfaces these high-signal fields:
+
+| Field | Description |
+|-------|-------------|
+| `baseBranch` | Branch the worktree is based on |
+| `baseBranchSource` | `"explicit"` (from `--base`) or `"auto-detected"` |
+| `checkoutSubmodules` | Whether create will initialize submodules after checkout |
+| `currentWorktree` | Current worktree health record from `status --json` |
+| `worktrees` | Normalized worktree records from `list --json` or `status --json` |
+| `entries` | Prune output lines from `prune --json` |
+| `worktreePath` | Absolute path to the created worktree |
+| `worktreeRootSource` | How location was determined |
+
+## Notes
+
+- Script auto-detects superproject, monorepo, and standalone repos
+- Default worktree location is smart: superproject > monorepo > sibling
+- Use `--worktree-root` only to override defaults
+- Use `--base` for long-lived variant branches (e.g., `main-dsl`) that diverge from auto-detected base
+- `status` normalizes the main checkout path in submodule repos before reporting worktree health
+- `prune --dry-run` is the safe first pass when auditing stale metadata
+- Env templates (`.env*.example`) auto-copied with `.example` suffix removed
+
+## Workflow Position
+
+**Typically precedes:** `/av:cook` (implement in worktree), `/av:fix` (fix in worktree)
+**Setup skill** — creates isolated environment before implementation.

@@ -1,123 +1,147 @@
 ---
 name: av:bootstrap
-description: Bootstrap a new project end to end — stack choice, planning, and implementation. Use when starting a project from scratch or a full-stack feature with no existing scaffold.
+description: "Bootstrap new projects with research, tech stack, design, planning, and implementation. Modes: full (default interactive), auto (explicit autonomous), fast (skip research), parallel (multi-agent)."
 user-invocable: true
-argument-hint: "<requirements> [--full|--auto|--fast|--parallel]"
+when_to_use: "Invoke to start a new project or full-stack setup from scratch."
+category: utilities
+keywords: [scaffold, project, setup, boilerplate]
+license: MIT
+argument-hint: "[requirements] [--full|--auto|--fast|--parallel] [--yagni] [--skip-journal]"
 metadata:
-  author: vchun
+  origin: ported
+  author: upstream
   version: "1.0.0"
 ---
 
-# Bootstrap
+# Bootstrap - New Project Scaffolding
 
-Orchestrate a blank-slate project from a concrete product contract to verified
-running code. Bootstrap owns intake, repository initialization, stack/design
-gates, and handoffs; it does not implement application code directly.
+End-to-end project bootstrapping from idea to running code.
 
-Handles: new repositories and genuinely scaffold-free products.
+**Principles:** KISS, DRY | Full requested scope, nothing extra (`--yagni` to opt into scope-cutting) | Token efficiency | Concise reports
 
-Does not handle: adding a feature to an established codebase. Start with
-`av:brainstorm`, `av:plan`, or `av:cook` there instead.
+## Usage
 
-## Opening contract — all modes
+```
+/av:bootstrap <user-requirements>
+```
+
+**Flags** (optional, default `--full`):
+
+| Flag | Mode | Thinking | User Gates | Planning Skill | Cook Skill |
+|------|------|----------|------------|----------------|------------|
+| `--full` | Full interactive | Ultrathink | Every phase | `--hard` | (interactive) |
+| `--auto` | Automatic explicit opt-in | Ultrathink | Design only | `--auto` | `--auto` |
+| `--fast` | Quick | Think hard | Cook review gates | `--fast` | (interactive) |
+| `--parallel` | Multi-agent | Ultrathink | Design only | `--parallel` | `--parallel` |
+
+**Composable flags** (combine with any mode):
+
+| Flag | Effect |
+|------|--------|
+| `--yagni` | Opt into YAGNI: challenge and cut scope not needed for the stated outcome (default: scaffold the full requested scope). Passed through to `av:plan` and `av:cook` |
+
+**Example:**
+```
+/av:bootstrap "Build a SaaS dashboard with auth" --fast
+/av:bootstrap "E-commerce platform with Stripe" --parallel
+```
+
+## Opening brainstorm gate (all modes)
 
 Before Git initialization, research, design, planning, or scaffolding, capture:
 
-- intended product outcome;
+- the intended product outcome;
 - technology, safety, compatibility, and delivery constraints;
-- explicit non-goals;
+- explicit non-goals for this bootstrap;
 - observable acceptance criteria for the running project.
 
-Reuse an accepted brief or plan when it already contains these fields. Inspect
-available evidence before asking, and ask only about a missing decision that
-would materially change the product or safety.
-
+Reuse an accepted brief or plan when it already contains these fields. Ask only
+about a missing decision that would materially change the product or safety.
 `--fast`, `--parallel`, and explicit `--auto` do not skip this gate; they only
 change execution and approval behavior after the contract is concrete.
 
-## Modes
+## Workflow Overview
 
-| Flag | Purpose | Approval behavior |
-|---|---|---|
-| `--full` (default) | Research and compare before each major choice | User approves research, stack, optional design, and plan |
-| `--auto` | Explicit autonomous continuation | Contract remains mandatory; pause only for design approval or a true blocker |
-| `--fast` | Avoid duplicate research when requirements are clear | Fast setup, then normal `av:cook` review gates |
-| `--parallel` | Execute genuinely independent modules concurrently | Design approval plus normal cook gates; ownership must be disjoint |
-
-Read [mode routing](references/mode-routing.md) after selecting exactly one
-mode. Read [stack and planning](references/stack-and-planning.md) when stack
-choice or planning begins. After a plan exists, read
-[delivery gates](references/delivery-gates.md).
-
-## Workflow
-
-1. **Lock the opening contract.** Do not substitute a guessed stack or generic
-   “build an app” brief.
-2. **Initialize Git if needed.** In full mode, ask first. Other explicitly
-   selected modes may initialize a `main` branch through the git agent. Never
-   overwrite an existing repository.
-3. **Resolve stack and design.** Follow the selected mode's research and user
-   gates; write only durable, approved decisions to the repository's discovered
-   documentation surface.
-4. **Plan.** Pass requirements plus outcome, constraints, non-goals, and
-   acceptance criteria to `av:plan`, preserving mode intent.
-5. **Approve as required.** Full mode requires explicit plan approval. Fast and
-   parallel retain downstream cook gates. Auto proceeds only because the user
-   explicitly opted into it.
-6. **Implement through `av:cook`.** Pass the plan path and mode; do not write
-   application code directly from bootstrap.
-7. **Close the delivery.** Test, review, docs-impact check, onboarding, final
-   report, and optional Git actions follow the delivery reference.
-
-## Safety boundaries
-
-- Parallel work starts only after dependencies and exclusive file ownership are
-  recorded; pass the opening contract to every independent planning branch.
-- Never weaken, skip, fake, or ignore failed tests to pass build/CI.
-- Design generation is optional and capability-dependent. Do not promise
-  agents or asset tools that are not installed.
-- Docs are impact-driven: discover instructions and navigation, then update the
-  smallest justified owning surface.
-- Commit and push are separate user decisions. Explicit auto mode does not
-  authorize either one.
-
-## Output format
-
-```markdown
-Contract: <outcome; constraints; non-goals; acceptance criteria>
-Mode: <full|auto|fast|parallel>
-Stack/design: <approved decisions and document paths>
-Plan: <path>
-Implementation: <av:cook result and proof layers run>
-Onboarding: <first commands/config steps>
-Git: <not requested|commit offered|committed|pushed>
-Unresolved: <items or "none">
+```
+[Brainstorm Contract] → [Git Init] → [Research?] → [Tech Stack?] → [Design?] → [Planning] → [Implementation] → [Test] → [Review] → [Docs] → [Onboard] → [Final]
 ```
 
-Proof/risk: bootstrap delegates behavioral proof to `av:cook` and `av:test`.
-Its own proof is contract traceability, explicit gate history, a real plan path,
-and fresh command output from the delivered project.
+Each mode loads a specific workflow reference + shared phases.
 
-## Quality gates
+## Mode Detection
 
-Before finishing, confirm:
+If no flag provided, default to `--full`.
 
-1. The opening contract exists and was preserved through planning and cooking.
-2. The stack was chosen from requirements/evidence, not silently assumed.
-3. A plan existed before implementation and every required approval occurred.
-4. Parallel branches, if any, had explicit dependencies and file ownership.
-5. Real tests, typecheck/build, and review results are reported without hiding
-   failures.
-6. Documentation changed only where durable user or maintainer behavior changed.
-7. Onboarding explains how to run the project without exposing secrets.
-8. No commit or push occurred without the corresponding user authorization.
+Load the appropriate workflow reference:
+- `--full`: Load `references/workflow-full.md`
+- `--auto`: Load `references/workflow-auto.md` only when explicitly requested
+- `--fast`: Load `references/workflow-fast.md`
+- `--parallel`: Load `references/workflow-parallel.md`
 
-## Workflow position
+All mode references inherit the opening brainstorm contract. Load
+`references/shared-phases.md` for implementation through final report.
 
-**Typically follows:** `av:brainstorm` when the product idea needed exploration,
-or starts directly from an already concrete blank-slate brief.
+## Step 0: Git Init (ALL modes)
 
-**Typically precedes:** `av:plan` → `av:cook` → `av:test`/`av:code-review`, then
-`av:docs`, `av:journal`, and optional `av:git`.
+Check if Git initialized. If not:
+- `--full`: Ask user if they want to init → `git-manager` subagent (`main` branch)
+- Others: Auto-init via `git-manager` subagent (`main` branch)
 
-**Related:** use `av:cook` directly when a repository and stack already exist.
+## Skill Triggers (MANDATORY)
+
+After early phases (research, tech stack, design), trigger downstream skills:
+
+### Planning Phase
+Activate **av:plan** skill with mode-appropriate flag:
+- `--full` → `/av:plan --hard <requirements>` (thorough research + validation)
+- `--auto` → `/av:plan --auto <requirements>` (auto-detect complexity)
+- `--fast` → `/av:plan --fast <requirements>` (skip research)
+- `--parallel` → `/av:plan --parallel <requirements>` (file ownership + dependency graph)
+
+Pass the brainstorm contract with the requirements so planning preserves the
+accepted outcome, constraints, non-goals, and acceptance criteria.
+
+Planning skill outputs a plan path. Pass this to cook.
+
+### Implementation Phase
+Activate **av:cook** skill with the plan path and mode-appropriate flag:
+- `--full` → `/av:cook <plan-path>` (interactive review gates)
+- `--auto` → `/av:cook --auto <plan-path>` (explicit autonomous implementation)
+- `--fast` → `/av:cook <plan-path>` (skip extra research, keep cook review gates)
+- `--parallel` → `/av:cook --parallel <plan-path>` (multi-agent execution)
+
+## Role
+
+Elite software engineering expert specializing in system architecture and technical decisions. Brutally honest about feasibility and trade-offs.
+
+## Critical Rules
+
+- Activate relevant skills from catalog during the process
+- Keep all research reports ≤150 lines
+- All docs written to `./docs` directory
+- Plans written to `./plans` directory using naming from `## Naming` section
+- DO NOT implement code directly — delegate through planning + cook skills
+- Sacrifice grammar for concision in reports
+- List unresolved questions at end of reports
+- Run `/av:journal` to write a concise technical journal entry upon completion — unless the shared "Journal step — opt-out" below applies.
+
+### Journal step — opt-out
+
+Skip the automatic `/av:journal` step when either applies:
+- The invocation includes the `--skip-journal` flag, OR
+- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal.
+
+Precedence: flag > project config > user config > default (`true`).
+When skipped, print one line:
+- `journal skipped by --skip-journal` (flag), or
+- `journal skipped by preference` (config).
+
+Explicit `/av:journal` and `av journal create` are unaffected.
+
+## References
+
+- `references/workflow-full.md` - Full interactive workflow
+- `references/workflow-auto.md` - Explicit auto workflow
+- `references/workflow-fast.md` - Fast workflow
+- `references/workflow-parallel.md` - Parallel workflow
+- `references/shared-phases.md` - Common phases (implementation → final report)

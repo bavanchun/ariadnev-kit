@@ -168,6 +168,15 @@ describe("docs bundle projector", () => {
       changelog: `# Changelog\n\n## 0.11.0\npath ${process.cwd()}/private.txt\n`,
       workspaceRoot: process.cwd(),
     })).toThrow(/path/i);
+
+    // A slash command is not a path, and several ported skills name one in
+    // their description. Rejecting those would block the bundle over text that
+    // reveals nothing about any machine.
+    expect(normalizeReleaseNotes({
+      version: "0.11.0",
+      changelog: "# Changelog\n\n## 0.11.0\nUse /goal for durable objectives, or /plan.\n",
+      workspaceRoot: process.cwd(),
+    })).toContain("/goal");
   });
 
   it("matches the current canonical program shape", () => {

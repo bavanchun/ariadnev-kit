@@ -72,9 +72,10 @@ port. Chi tiết ở `phase-01`.
 
 ## Acceptance criteria
 
-1. `av validate` xanh với 103 skill, 16 agent (đều từ nguồn), số rules theo bảng ở
-   phase 12, **14 hook** (đếm lại từ nguồn ở phase 9 — 17 là số file trong thư mục, gồm
-   3 file của tool khác), và các artifact kind mới (`outputStyle`, `command`).
+1. `av validate` xanh với **103 skill** (101 port + 2 của repo; `ak-ak` và `ak-plan-i18n`
+   không port — xem phase 12), **16 agent** đều từ nguồn, **10 rules**, **14 hook** (đếm lại
+   từ nguồn ở phase 9 — 17 là số file trong thư mục, gồm 3 file của tool khác), và các
+   artifact kind mới (`outputStyle`, `command`).
 2. `av install --provider <p>` chạy được cho mọi provider **verify được** (xem phase 08);
    ô chưa verify skip + log rõ.
 3. `av skill verify` báo `ok` cho toàn bộ **22** skill Python, và "ok" nghĩa là import thật
@@ -111,7 +112,7 @@ port. Chi tiết ở `phase-01`.
 | 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | **completed** |
 | 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | **completed** |
 | 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | **completed** |
-| 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | pending |
+| 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | **completed** |
 | 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | **completed** |
 | 14 | Statusline | P2 | 9 | 3d | pending |
 | 15 | Artifact adapter sinh từ receipt | P2 | 6 | 4d | pending |

@@ -1,115 +1,105 @@
 ---
 name: av:docs-seeker
-description: Look up current documentation for a library, framework, or API before relying on memory. Use when an API might have changed, or the user asks about a specific package's current behavior.
+description: Search library/framework documentation via llms.txt (context7.com). Use for API docs, GitHub repository analysis, technical documentation lookup, latest library features.
 user-invocable: true
-argument-hint: "<library or framework> [topic]"
+when_to_use: "Invoke when current library or framework docs are needed."
+category: dev-tools
+keywords: [docs, llms-txt, api, library, context7]
+argument-hint: "[library-name] [topic]"
 metadata:
-  author: vchun
-  version: "1.0.0"
+  origin: ported
+  author: upstream
+  version: "3.1.0"
 ---
 
-# Docs Seeker
+# Documentation Discovery via Scripts
 
-Find the smallest set of current, authoritative documentation that answers a
-library, framework, CLI, or API question. Verify moving facts instead of
-answering from training data.
+## Overview
 
-Handles: pinpoint API lookup, version-specific behavior, setup flags, current
-framework conventions, and documentation gaps.
+**Script-first** documentation discovery using llms.txt standard.
 
-Does not handle: comparing several products or forming a broad technology
-recommendation. Route that work to `av:research`.
+Execute scripts to handle entire workflow - no manual URL construction needed.
 
-## Intake
+## Primary Workflow
 
-Extract before searching:
+**ALWAYS execute scripts in this order:**
 
-- target library or framework;
-- requested topic or API;
-- installed/requested version, runtime, and language when stated;
-- whether the user needs one answer or a general documentation map.
+```bash
+# 1. DETECT query type (topic-specific vs general)
+node scripts/detect-topic.js "<user query>"
 
-If a missing version would materially change the answer, inspect the project
-manifest or ask. Otherwise search latest and label that choice.
+# 2. FETCH documentation using script output
+node scripts/fetch-docs.js "<user query>"
 
-## Search modes
-
-| Mode | Trigger | First target |
-|---|---|---|
-| Topic | A feature, component, error, or symbol is named | The exact official topic/API page |
-| Library | Broad setup or overview request | Official getting-started and API index |
-| Repository | Official docs are absent, stale, or incomplete | Tagged README, docs, examples, and tests |
-
-For source precedence, language/version handling, plugins, incomplete docs,
-and conflicts, read [source selection](references/source-selection.md).
-
-For Context7/`llms.txt`, 404s, empty results, timeouts, and repository fallback,
-read [fallback playbook](references/fallback-playbook.md).
-
-## Workflow
-
-1. **Frame** one answerable documentation question and select a search mode.
-2. **Resolve version** from the request or project; avoid mixing latest and
-   versioned pages without saying so.
-3. **Fetch narrowly** through an available current-doc provider, official
-   search, or direct official page. Topic queries should not load a whole site.
-4. **Escalate progressively** only when the preferred source is unavailable:
-   official docs → official repository → clearly labelled secondary evidence.
-5. **Cross-check** examples against the documented version and runtime. When
-   prose and code disagree, preserve both facts and explain the likely cause.
-6. **Answer directly** with the relevant behavior or example, then cite source,
-   version, and check date. Do not dump fetched pages.
-
-## Evidence rules
-
-- Official latest documentation is the default only when no version is pinned.
-- A versioned official page outranks a latest page for a version-pinned project.
-- Repository code can fill a documentation gap, but label conclusions as
-  inferred from code and name the tag or commit inspected.
-- Community sources can explain an issue; they do not silently override the
-  official contract.
-- If no current source supports the answer, state that limitation. Never turn
-  remembered behavior into a verified claim.
-
-## Output format
-
-```markdown
-Answer: <concise, task-specific result>
-
-Evidence:
-- <official URL or repository path> — <version/tag>, checked <YYYY-MM-DD>
-
-Caveats: <version conflict, language fallback, inference, or "none">
+# 3. ANALYZE results (if multiple URLs returned)
+cat llms.txt | node scripts/analyze-llms-txt.js -
 ```
 
-For a general library request, add a short map of critical pages. For a topic
-request, return only the pages and snippets needed to act.
+Scripts handle URL construction, fallback chains, and error handling automatically.
 
-Proof/risk: this skill is read-only. Its proof is source traceability and
-version alignment; it does not prove that copied code works in the user's
-project, so implementation still needs `av:test` or the caller's test gate.
+## Scripts
 
-## Quality gates
+**`detect-topic.js`** - Classify query type
+- Identifies topic-specific vs general queries
+- Extracts library name + topic keyword
+- Returns JSON: `{topic, library, isTopicSpecific}`
+- Zero-token execution
 
-Before answering, confirm:
+**`fetch-docs.js`** - Retrieve documentation
+- Constructs context7.com URLs automatically
+- Handles fallback: topic → general → error
+- Outputs llms.txt content or error message
+- Zero-token execution
 
-1. Every moving claim is grounded in a fetched current source.
-2. Source version matches the requested or installed version, or the mismatch
-   is explicit.
-3. Official docs or the official repository were checked before community
-   sources.
-4. Inference from code, incomplete docs, conflicts, and language fallback are
-   labelled rather than flattened into certainty.
-5. Citations point to the exact pages or repository paths used, with check date.
-6. The response answers the question without reproducing an entire document.
+**`analyze-llms-txt.js`** - Process llms.txt
+- Categorizes URLs (critical/important/supplementary)
+- Recommends agent distribution (1 agent, 3 agents, 7 agents, phased)
+- Returns JSON with strategy
+- Zero-token execution
 
-## Workflow position
+## Workflow References
 
-**Typically follows:** `av:cook`, `av:fix`, `av:ask`, or `av:research` reaching
-a current-API question.
+**[Topic-Specific Search](./workflows/topic-search.md)** - Fastest path (10-15s)
 
-**Typically precedes:** returning the verified fact to that caller; `av:test`
-when a fetched example is implemented.
+**[General Library Search](./workflows/library-search.md)** - Comprehensive coverage (30-60s)
 
-**Related:** `av:research` for open comparison across options; this skill for a
-pinpoint lookup on a library already selected.
+**[Repository Analysis](./workflows/repo-analysis.md)** - Fallback strategy
+
+## References
+
+**[context7-patterns.md](./references/context7-patterns.md)** - URL patterns, known repositories
+
+**[errors.md](./references/errors.md)** - Error handling, fallback strategies
+
+**[advanced.md](./references/advanced.md)** - Edge cases, versioning, multi-language
+
+## Execution Principles
+
+1. **Scripts first** - Execute scripts instead of manual URL construction
+2. **Zero-token overhead** - Scripts run without context loading
+3. **Automatic fallback** - Scripts handle topic → general → error chains
+4. **Progressive disclosure** - Load workflows/references only when needed
+5. **Agent distribution** - Scripts recommend parallel agent strategy
+
+## Quick Start
+
+**Topic query:** "How do I use date picker in shadcn?"
+```bash
+node scripts/detect-topic.js "<query>"  # → {topic, library, isTopicSpecific}
+node scripts/fetch-docs.js "<query>"    # → 2-3 URLs
+# Read URLs with web_search capability
+```
+
+**General query:** "Documentation for Next.js"
+```bash
+node scripts/detect-topic.js "<query>"         # → {isTopicSpecific: false}
+node scripts/fetch-docs.js "<query>"           # → 8+ URLs
+cat llms.txt | node scripts/analyze-llms-txt.js -  # → {totalUrls, distribution}
+# Deploy agents per recommendation
+```
+
+## Environment
+
+Scripts load `.env`: `process.env` > this skill's `.env` > plugin-level `.env` > project `.env`
+
+See `.env.example` for configuration options.

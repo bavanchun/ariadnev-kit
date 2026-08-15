@@ -7,7 +7,10 @@ import type { Artifact } from "./kit-types.js";
 export const DESCRIPTION_MIN = 50;
 export const DESCRIPTION_MAX = 1200;
 export const AGENT_MAX_LINES = 120;
-export const VALID_MODELS = ["opus", "sonnet", "haiku"] as const;
+// Tiers, plus `inherit` — which is not a tier but a real, distinct choice: run
+// on whatever the caller is running on. Both were missing because the list was
+// written before the `fable` tier existed and before any agent declined to pin.
+export const VALID_MODELS = ["opus", "sonnet", "haiku", "fable", "inherit"] as const;
 
 const EXAMPLE_PAIR = /<example>[\s\S]*?<\/example>[\s\S]*?<commentary>[\s\S]*?<\/commentary>/i;
 
@@ -34,21 +37,32 @@ export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult
     model?: unknown;
   };
 
-  if (!fileStem.startsWith("av-")) {
-    errors.push(`${label}: agent file name must start with "av-" (kebab-case, e.g. av-explore.md)`);
-  }
-  if (typeof name !== "string" || name !== fileStem) {
+  // The `av-` prefix is the marker, not a separate flag: an agent we wrote
+  // carries it, a ported one keeps the name upstream gave it. House rules — the
+  // example pair, the checklist heading, the length budget — describe how we
+  // write an agent, and 7 of the 16 ported agents have no example pair, 8 no
+  // checklist, 9 exceed the budget. Enforcing them on copied content means
+  // rewriting it, which is not what a port is.
+  const ported = !fileStem.startsWith("av-");
+
+  // The name is what a provider addresses the agent by, so a mismatch makes it
+  // unreachable. Case is the exception, and only for ported agents: upstream
+  // ships `explore.md` declaring `name: Explore`, and the provider addresses it
+  // by the declared name — renaming either side would change how it is invoked.
+  const nameMatches =
+    typeof name === "string" && (ported ? name.toLowerCase() === fileStem.toLowerCase() : name === fileStem);
+  if (!nameMatches) {
     errors.push(`${label}: frontmatter name must equal "${fileStem}" (got ${String(name)})`);
   }
 
   if (typeof description === "string") {
     const len = description.trim().length;
-    if (len < DESCRIPTION_MIN || len > DESCRIPTION_MAX) {
-      errors.push(
-        `${label}: description must be ${DESCRIPTION_MIN}-${DESCRIPTION_MAX} chars (got ${len})`,
-      );
+    if (len < DESCRIPTION_MIN) {
+      errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
+    } else if (len > DESCRIPTION_MAX && !ported) {
+      errors.push(`${label}: description must be ${DESCRIPTION_MIN}-${DESCRIPTION_MAX} chars (got ${len})`);
     }
-    if (!EXAMPLE_PAIR.test(description)) {
+    if (!EXAMPLE_PAIR.test(description) && !ported) {
       errors.push(`${label}: description needs at least one <example>...</example><commentary>...</commentary> pair for auto-delegation`);
     }
   } else {
@@ -64,11 +78,11 @@ export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult
   }
 
   const lines = countLines(artifact.raw);
-  if (lines > AGENT_MAX_LINES) {
+  if (lines > AGENT_MAX_LINES && !ported) {
     errors.push(`${label}: agent file is ${lines} lines, limit ${AGENT_MAX_LINES}`);
   }
 
-  if (!/^#{1,6}\s+Behavioral Checklist\s*$/im.test(artifact.body)) {
+  if (!/^#{1,6}\s+Behavioral Checklist\s*$/im.test(artifact.body) && !ported) {
     errors.push(`${label}: missing a "Behavioral Checklist" heading`);
   }
 

@@ -1,49 +1,33 @@
 # Delegation Protocol
 
-When and how to spawn a subagent instead of doing the work inline.
+Which agent to spawn for which situation.
+
+The rest of delegation — what context to hand over, how to isolate it, when
+parallel work is safe, and the status format a subagent reports back with —
+lives in `orchestration-protocol.md`. This file is only the routing table,
+because two rules describing the same thing in different words is how they drift
+into contradicting each other.
 
 ## When to delegate
 
 | Situation | Delegate to |
 |---|---|
-| Need to locate files/patterns across a codebase | `av-explore` |
-| Architecture or phased implementation plan | `av-planner` |
-| Ideation, trade-off debate before building | `av-brainstormer` |
-| Diff needs a production-readiness pass | `av-reviewer` |
-| Test suite needs running/analyzing | `av-tester` |
-| Bug needs root-cause proof before a fix | `av-debugger` |
-| Implementation work itself | `av-developer` |
-| Stage/commit/push | `av-git-manager` |
-| Docs need to match code reality | `av-docs-manager` |
-| Plan progress needs tracking/sync-back | `av-project-manager` |
-| External research (libraries, best practices) | `av-researcher` |
-| Session-end technical journal entry | `av-journal-writer` |
-| Recently-touched code needs simplifying | `av-simplifier` |
+| Need to locate files/patterns across a codebase | `explore` |
+| Architecture or phased implementation plan | `planner` |
+| Ideation, trade-off debate before building | `brainstormer` |
+| Diff needs a production-readiness pass | `code-reviewer` |
+| Test suite needs running/analyzing | `tester` |
+| Bug needs root-cause proof before a fix | `debugger` |
+| Implementation work itself | `fullstack-developer` |
+| Stage/commit/push | `git-manager` |
+| Docs need to match code reality | `docs-manager` |
+| Plan progress needs tracking/sync-back | `project-manager` |
+| External research (libraries, best practices) | `researcher` |
+| Session-end technical journal entry | `journal-writer` |
+| Recently-touched code needs simplifying | `code-simplifier` |
+| Interface or interaction design | `ui-ux-designer` |
+| A hard call while running below the strongest model tier | `kongming` |
+| Interview-driven advice with the user in the loop | `advisor` |
 
 Do not delegate trivial, single-tool-call work — spawning overhead costs more
 than doing it directly.
-
-## Context to hand off
-
-Every delegation must include: the task, exact file paths (not "look
-around"), acceptance criteria, constraints, and where reports/plans live.
-Never pass full conversation history — summarize only the decisions the
-subagent needs. Keep merge decisions and user approvals in the lead session.
-
-## Status protocol
-
-Every delegated task ends with:
-
-```text
-Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-Summary: one or two sentences
-Concerns/Blockers: optional
-```
-
-`BLOCKED` or `NEEDS_CONTEXT` means change the context or scope before
-retrying — never resend the identical prompt.
-
-## Parallel work
-
-Only parallelize when file ownership is clear and non-overlapping. Never let
-two agents write the same file, migration, or generated artifact at once.

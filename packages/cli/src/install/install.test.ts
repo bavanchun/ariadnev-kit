@@ -312,25 +312,38 @@ describe("executeInstall + dry-run", () => {
 
 describe("full-kit install smoke (v2 roster)", () => {
   const ROSTER = [
-    "ask", "bootstrap", "brainstorm", "code-review",
-    "cook", "docs", "docs-seeker", "fix",
-    "folder-context", "git", "graphify", "handoff",
-    "interview-docs", "journal", "llms", "mcp-builder",
-    "media-processing", "mermaidjs-v11", "mintlify", "mobile-development",
-    "obsidian-second-brain-note", "payment-integration", "plan", "pm",
-    "predict", "problem-solving", "react-best-practices", "remotion",
-    "research", "research-prompt", "retro", "review-pr",
-    "scenario", "scout", "security", "security-scan",
-    "sequential-thinking", "shader", "ship", "shopify",
-    "skill-creator", "tanstack", "test", "threejs",
-    "ui-styling", "ui-ux-pro-max", "web-design-guidelines", "web-testing",
-    "worktree",
+    "advise", "agent-browser", "agentize", "ai-artist",
+    "ai-multimodal", "ariadnev", "ask", "autoresearch",
+    "backend-development", "better-auth", "bootstrap", "brainstorm",
+    "chrome-profile", "code-review", "codex-goal", "coding-level",
+    "common", "context-engineering", "cook", "copywriting",
+    "cti-expert", "databases", "debug", "deep-swe",
+    "deploy", "design", "devops", "docs",
+    "docs-seeker", "document-skills", "excalidraw", "fable-thinking",
+    "find-skills", "fix", "folder-context", "frontend-design",
+    "frontend-development", "git", "github", "gkg",
+    "goal-warmup", "google-adk-python", "graphify", "handoff",
+    "handover", "help", "html-video", "hyperframes",
+    "interview-docs", "issue-to-plan", "journal", "llms",
+    "loop", "markdown-novel-viewer", "mcp-builder", "media-processing",
+    "mermaidjs-v11", "mintlify", "mobile-development", "obsidian-second-brain-note",
+    "orchestrate", "payment-integration", "plan", "plans-kanban",
+    "pm", "predict", "preview", "problem-solving",
+    "project-management", "project-organization", "react-best-practices", "remotion",
+    "repomix", "research", "research-prompt", "retro",
+    "review-pr", "scenario", "scout", "security",
+    "security-scan", "sequential-thinking", "shader", "ship",
+    "shopify", "show-off", "skill-creator", "stitch",
+    "tanstack", "team", "tech-graph", "test",
+    "threejs", "ui-styling", "ui-ux-pro-max", "use-mcp",
+    "vibe", "watzup", "web-design-guidelines", "web-frameworks",
+    "web-testing", "worktree", "xia",
   ];
   const AGENTS = [
-    "av-brainstormer", "av-debugger", "av-developer", "av-docs-manager",
-    "av-explore", "av-git-manager", "av-journal-writer", "av-planner",
-    "av-project-manager", "av-researcher", "av-reviewer", "av-simplifier",
-    "av-tester",
+    "advisor", "brainstormer", "code-reviewer", "code-simplifier",
+    "debugger", "docs-manager", "explore", "fullstack-developer",
+    "git-manager", "journal-writer", "kongming", "planner",
+    "project-manager", "researcher", "tester", "ui-ux-designer",
   ];
   // The full ported hook set: 14 hooks over 8 events. `rules-inject` is gone —
   // `dev-rules-reminder` is the same idea from the source kit, and shipping both
@@ -352,7 +365,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "usage-quota-cache-refresh",
   ];
 
-  it("kit ships exactly the 49-skill + 13-agent roster + 14 hooks", () => {
+  it("kit ships exactly the 103-skill + 16-agent roster + 14 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
@@ -430,7 +443,7 @@ describe("full-kit install smoke (v2 roster)", () => {
   it("codex: skills + agents install, every hook skips and logs", () => {
     const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
     expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
-    expect(existsSync(join(ctx.home, ".codex/agents/av-explore.toml"))).toBe(true);
+    expect(existsSync(join(ctx.home, ".codex/agents/explore.toml"))).toBe(true);
     expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
   });
 });

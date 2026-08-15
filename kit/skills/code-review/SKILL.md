@@ -1,130 +1,203 @@
 ---
 name: av:code-review
-description: Review code changes for bugs, regressions, and risky patterns with evidence-based, ranked findings. Use for a diff, a PR number, a commit, or a whole-codebase audit — outside a cook cycle.
+description: "Review code quality with evidence-based rigor. Supports input modes: pending changes, PR number, commit hash, and codebase scan. Focuses on bugs, regressions, maintainability, reliability, and verification gaps."
 user-invocable: true
-argument-hint: "[#PR | <commit> | --pending | codebase [parallel]]"
+when_to_use: "Invoke to review diffs, PRs, commits, or full codebases."
+category: utilities
+keywords: [review, quality, verification, reliability]
+argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]] [--yagni]"
 metadata:
-  author: vchun
-  version: "1.0.0"
-  category: core-loop
+  origin: ported
+  author: upstream
+  version: "2.0.0"
 ---
 
 # Code Review
 
-Review an explicit target for requirement gaps, production defects,
-regressions, and unjustified complexity. Findings must be reproducible and
-ranked; a clean review is earned, not padded with stylistic suggestions.
+Production-readiness code review with technical rigor, evidence-based claims, and verification over performative responses. Reviews focus on production risks, regression paths, and whether the implementation matches the requested change.
 
-This skill is read-only. Route accepted fixes to `av:fix`, then review fresh
-evidence. Use `av:review-pr` instead when GitHub reply/merge actions are wanted.
+## Input Modes
 
-## Resolve input mode first
+Auto-detect from arguments. If ambiguous or no arguments, prompt via `ask_user capability`.
 
-| Argument | Mode | Evidence source |
-|---|---|---|
-| `#123` / PR URL | PR | `gh pr view` metadata + `gh pr diff` |
-| 7–40 hex characters | Commit | commit metadata + full `git show` diff |
-| `--pending` | Pending | staged and unstaged changes versus `HEAD` |
-| `codebase [scope]` | Audit | scoped source/test/config scan |
-| `codebase parallel` | Parallel audit | independent read-only reviewer scopes, then join |
-| no argument + recent context | Default | the concrete changes already in context |
+| Input | Mode | What Gets Reviewed |
+|-------|------|--------------------|
+| `#123` or PR URL | **PR** | Full PR diff fetched via `gh pr diff` |
+| `abc1234` (7+ hex chars) | **Commit** | Single commit diff via `git show` |
+| `--pending` | **Pending** | Staged + unstaged changes via `git diff` |
+| *(no args, recent changes)* | **Default** | Recent changes in context |
+| `codebase` | **Codebase** | Full codebase scan |
+| `codebase parallel` | **Codebase+** | Parallel multi-reviewer audit |
 
-No argument, no recent changes, or ambiguous input → ask for the review target.
-Read [input and pipeline](references/input-and-review-pipeline.md) for command
-resolution, errors, scouting, reviewer handoff, and tracked fix cycles.
+**Resolution details:** `references/input-mode-resolution.md`
 
-## Review order
+### No Arguments
 
-1. **Load intent and rules.** Read repository instructions, the target diff,
-   whole modified files, and the accepted plan/spec when one exists.
-2. **Stage 1 — spec compliance.** Map every requirement and acceptance criterion
-   to implementation evidence. This must pass before Stage 2.
-3. **Scout edge cases.** Trace affected files, callers, data flows, error paths,
-   boundary conditions, races, and compatibility surfaces.
-4. **Stage 2 — code quality.** Apply YAGNI, KISS, then DRY; check correctness,
-   security, reliability, performance, and maintainability.
-5. **Apply the baseline checklist.** Always read
-   [review checklist](references/review-checklist.md); use API/web overlays only
-   when the project surface matches.
-6. **Rank and prove findings.** Use
-   [severity rubric](references/severity-rubric.md). Every finding includes
-   `file:line`, problem, concrete failure path, and recommended fix.
-7. **Verify the verdict.** Read [spec and evidence](references/spec-and-evidence.md)
-   and name fresh commands/results or state exactly what remains unverified.
+If invoked WITHOUT arguments and no recent changes in context, use `ask_user capability` with header "Review Target", question "What would you like to review?":
 
-## Review stance
+| Option | Description |
+|--------|-------------|
+| Pending changes | Review staged/unstaged git diff |
+| Enter PR number | Fetch and review a specific PR |
+| Enter commit hash | Review a specific commit |
+| Full codebase scan | Deep codebase analysis |
+| Parallel codebase audit | Multi-reviewer codebase scan |
 
-- KISS and DRY always. Requested scope is a constraint, not a finding — do
-  not recommend cutting what the user asked for. Flag only additions beyond
-  the request, or genuinely unsafe / redundant requested scope raised as a
-  question with evidence. With `--yagni`, scope-cut recommendations are also
-  in scope. Technical correctness over social comfort.
-- Assume reviewed code may be AI-assisted. Do not trust polished shape,
-  confident comments, or happy-path tests; verify behavior, project-rule
-  compliance, and scope discipline from evidence.
-- Red flags include “should”, “probably”, “seems to”, satisfaction before
-  verification, and trusting agent reports.
-- Read the full relevant file and diff before flagging a local pattern; nearby
-  code may already address it.
-- Separate defects from preferences. Do not invent findings to look thorough.
-- Respect verified project and user decisions. Push back on review concerns that
-  lack new evidence rather than reversing accepted scope silently.
+## Core Principle
 
-## Scope depth
+**KISS**, **DRY** always. Requested scope is a constraint, not a finding — do not recommend cutting what the user asked for. If requested scope is genuinely unsafe, broken, or duplicates something that already exists, raise it as a question with the evidence, not as a cut. Flag speculative and unrequested code with its concrete cost. With `--yagni`, scope-cut findings are also in scope. Technical correctness over social comfort.
+**Be honest, be brutal, straight to the point, and be concise.**
 
-For changed public contracts, inspect every caller or list the search used to
-establish there are none. For auth, data model, external systems, concurrency,
-or migration changes, trace both success and failure paths and require the
-appropriate integration/e2e/platform proof.
+Default assumption: reviewed code may be AI-assisted. Do not trust polished shape, confident comments, or happy-path tests. Verify behavior, project-rule compliance, and scope discipline from evidence.
 
-Parallel audit is only for disjoint subsystem scopes. Every reviewer receives
-the same intent, rules, edge cases, and evidence format. Join all results before
-ranking; never duplicate or count an unverified agent report as a finding.
+No rubber-stamp reviews. The reviewer is not trying to please the author or preserve momentum; the reviewer enforces the rulebook and blocks defects, regressions, hidden scope drift, and AI-slop patterns.
 
-## Output format
+Verify before implementing. Ask before assuming. Evidence before claims.
 
-```markdown
-Verdict: Approve | Request changes | Comment
-Scope: <mode, range, files, +A/-D, risk>
-Spec compliance: PASS | FAIL — <requirement evidence/gaps>
+## Practices
 
-Findings (severity order):
-- [Critical|Important|Suggestion] <file:line> — <problem>
-  Failure: <input/state → wrong behavior>
-  Fix: <cause-aligned correction>
-  Proof: <unit|integration|e2e|platform check>
+| Practice | When | Reference |
+|----------|------|-----------|
+| **Spec compliance** | After implementing from plan/spec, BEFORE quality review | `references/spec-compliance-review.md` |
+| Receiving feedback | Unclear feedback, external reviewers, needs prioritization | `references/code-review-reception.md` |
+| Requesting review | After tasks, before merge, stuck on problem | `references/requesting-code-review.md` |
+| Verification gates | Before any completion claim, commit, PR | `references/verification-before-completion.md` |
+| Edge case scouting | After implementation, before review | `references/edge-case-scouting.md` |
+| **Checklist review** | Pre-landing, `the engineer ship skill` pipeline, security audit | `references/checklist-workflow.md` |
+| **Tracked reviews** | Multi-file features (3+ files), parallel reviewers, fix cycles | `references/task-management-reviews.md` |
 
-Verification: <fresh commands and results, or unverified reason>
-Residual risks: <items or "none">
+## Quick Decision Tree
+
+```
+SITUATION?
+│
+├─ Input mode? → Resolve diff (references/input-mode-resolution.md)
+│   ├─ #PR / URL → fetch PR diff
+│   ├─ commit hash → git show
+│   ├─ --pending → git diff (staged + unstaged)
+│   ├─ codebase → full scan (references/codebase-scan-workflow.md)
+│   ├─ codebase parallel → parallel audit (references/parallel-review-workflow.md)
+│   └─ default → recent changes in context
+│
+├─ Received feedback → STOP if unclear, verify if external, implement if human partner
+├─ Completed work from plan/spec:
+│   ├─ Stage 1: Spec compliance review (references/spec-compliance-review.md)
+│   │   └─ PASS? → Stage 2 │ FAIL? → Fix → Re-review Stage 1
+│   ├─ Stage 2: Code quality review (code-reviewer subagent)
+│   │   └─ Scout edge cases → Review standards, performance
+│   └─ Verification gate → Run required tests/builds before claims
+├─ Completed work (no plan) → Scout → Code quality → Verification
+├─ Pre-landing / ship → Load checklists → Two-pass review → Verification
+├─ Multi-file feature (3+ files) → Track review pipeline (scout→review→fix→verify)
+└─ About to claim status → RUN verification command FIRST
 ```
 
-No actionable finding means `Approve`; suggestions-only means `Comment`; any
-Critical or Important finding means `Request changes`.
+### Review Protocol
 
-Proof/risk: review findings are hypotheses until tied to source behavior or a
-reproduction. A downstream fix is complete only after the original failure and
-relevant regression suite pass with fresh evidence.
+**Stage 1 — Spec Compliance** (load `references/spec-compliance-review.md`)
+- Does code match what was requested?
+- Any missing requirements? Any unjustified extras?
+- MUST pass before Stage 2
 
-## Quality gates
+**Stage 2 — Code Quality** (code-reviewer subagent)
+- Only runs AFTER spec compliance passes
+- Standards, security, performance, edge cases
 
-Before returning, confirm:
+**Final Verification**
+- Runs AFTER Stage 2 passes
+- Re-run the relevant tests, build, lint, or manual reproduction
+- Verify accepted findings are fixed and no new regression is introduced
+- Critical findings block merge until fixed and re-verified
 
-1. Review target and intent are unambiguous.
-2. Spec compliance passed before quality review, or the review stopped on gaps.
-3. Edge cases and indirect callers were scouted before judging the diff.
-4. Every finding has `file:line`, problem, failure path, fix, and proof layer.
-5. Severity and verdict follow the shared rubric; style never blocks.
-6. Suppressed/no-op/already-fixed patterns were not reported.
-7. Verification is fresh command output, not “should pass” or an agent claim.
-8. The skill made no edits and named `av:fix` as the owner of accepted changes.
+## Receiving Feedback
 
-## Workflow position
+**Pattern:** READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND → IMPLEMENT
+No performative agreement. Verify before implementing. Push back if wrong.
 
-**Typically follows:** `av:cook` or `av:fix` after implementation and focused
-tests; can also start from an explicit diff, commit, PR, or audit scope.
+**Full protocol:** `references/code-review-reception.md`
 
-**Typically precedes:** `av:fix` for accepted findings, then re-review and
-`av:ship`/`av:git` after a clean verdict.
+## Requesting Review
 
-**Related:** `av:review-pr` for PR actions, `av:scout` for edge-case discovery,
-and `av:test` for execution proof.
+**When:** After each task, major features, before merge
+
+**Process:**
+1. **Scout edge cases first** (see below)
+2. Get SHAs: `BASE_SHA=$(git rev-parse HEAD~1)` and `HEAD_SHA=$(git rev-parse HEAD)`
+3. Dispatch code-reviewer subagent with: WHAT, PLAN, BASE_SHA, HEAD_SHA, DESCRIPTION
+4. Fix Critical immediately, Important before proceeding
+
+**Full protocol:** `references/requesting-code-review.md`
+
+## Edge Case Scouting
+
+**When:** After implementation, before requesting code-reviewer
+
+**Process:**
+1. Invoke `/av:scout` with edge-case-focused prompt
+2. Scout analyzes: affected files, data flows, error paths, boundary conditions
+3. Review scout findings for potential issues
+4. Address critical gaps before code review
+
+**Full protocol:** `references/edge-case-scouting.md`
+
+## Tracked Review Pipeline
+
+**When:** Multi-file features (3+ changed files), parallel code-reviewer scopes, review cycles with Critical fix iterations.
+
+Discover the live task-management surface at runtime. If available, represent
+the `scout → review → fix → verify` dependency chain there. Otherwise, record
+the same states in the active plan and run the chain sequentially. Plan files
+are the durable source of truth; runtime tracking is only a working view.
+
+**Parallel reviews:** Spawn scoped code-reviewer subagents for independent file groups (e.g., backend + frontend). Fix task blocks on all reviewers completing.
+
+**Re-review cycles:** If fixes introduce new issues, add another review cycle. Limit 3 cycles, then escalate to the user.
+
+**Full protocol:** `references/task-management-reviews.md`
+
+## Verification Gates
+
+**Iron Law:** NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+
+**Gate:** IDENTIFY command → RUN full → READ output → VERIFY confirms → THEN claim
+
+**Requirements:**
+- Tests pass: Output shows 0 failures
+- Build succeeds: Exit 0
+- Bug fixed: Original symptom passes
+- Requirements met: Checklist verified
+
+**Red Flags:** "should"/"probably"/"seems to", satisfaction before verification, trusting agent reports
+
+**Full protocol:** `references/verification-before-completion.md`
+
+## Integration with Workflows
+
+- **Subagent-Driven:** Scout → Review → Verify before next task
+- **Pull Requests:** Scout → Code quality → Verify → Merge
+- **Tracked Pipeline:** Record dependencies → advance only when prerequisites complete
+- **Cook Handoff:** Cook completes phase → review pipeline completes → cook proceeds
+- **PR Review:** `the installed code-review skill #123` → fetch diff → full review pipeline on PR changes
+- **Commit Review:** `the installed code-review skill abc1234` → review specific commit with full pipeline
+
+## Codebase Analysis Subcommands
+
+| Subcommand | Reference | Purpose |
+|------------|-----------|---------|
+| `the installed code-review skill codebase` | `references/codebase-scan-workflow.md` | Scan & analyze the codebase |
+| `the installed code-review skill codebase parallel` | `references/parallel-review-workflow.md` | Ultrathink edge cases, then parallel verify |
+
+## Bottom Line
+
+1. Resolve input mode first — know WHAT you're reviewing
+2. Technical rigor over social performance
+3. Scout edge cases before review
+4. Evidence before claims
+
+Verify. Scout. Question. Then implement. Evidence. Then claim.
+
+## Workflow Position
+
+**Typically follows:** `/av:cook` (review after implementation), `/av:fix` (review after bug fix)
+**Typically precedes:** `the engineer ship skill` (ship after review passes)
+**Related:** `/av:scout` (scout before reviewing), `the installed test skill` (test before reviewing)

@@ -1,7 +1,12 @@
 import { sanitize } from "../security/credential-sanitizer.js";
 import type { Command } from "commander";
 
-const ABSOLUTE_PATH = /(?:^|[\s(:=\[{"'])\/(?![\/\s])|(?:^|[\s:(])(?:\\\\[^\\]+\\[^\\]+|[A-Za-z]:[\\/])/;
+// What this is for: keeping a machine-private path — `/Users/someone/...`,
+// `C:\Users\...` — out of a bundle meant to be published. Such a path always has
+// a second segment, and requiring one is what separates it from a slash command
+// like `/goal`, which several ported skills name in their description and which
+// is not a path at all.
+const ABSOLUTE_PATH = /(?:^|[\s(:=\[{"'])\/(?![\/\s])[^\s"'()[\]{}]*\/|(?:^|[\s:(])(?:\\\\[^\\]+\\[^\\]+|[A-Za-z]:[\\/])/;
 
 export function sanitizePublicText(value: string, label: string): string {
   const normalized = value.replace(/\r\n/g, "\n");

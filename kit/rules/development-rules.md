@@ -1,37 +1,30 @@
 # Development Rules
 
-Baseline engineering discipline for every change in this repo.
+Use this file when editing code, tests, scripts, or configuration.
 
-## Principles
+## Baseline
 
-Prefer YAGNI, KISS, and DRY in that order. Implement real behavior — no fake
-data, mocks, or shortcuts just to satisfy a check. Keep changes scoped to the
-request and the contracts it touches. Split a module only when it reduces
-real complexity, not on line-count alone.
+- Follow project docs in `docs/` and existing local patterns.
+- Apply KISS and DRY. Deliver the full requested scope — do not trim, defer, or
+  simplify away features the user explicitly asked for. Add nothing beyond the
+  request. When the user passes `--yagni`, additionally apply YAGNI (You Aren't
+  Gonna Need It): challenge and cut any scope not needed for the stated outcome.
+- Implement real behavior. Do not add fake data, mocks, or temporary shortcuts just to satisfy a check.
+- Keep changes scoped to the request and the affected contracts.
+- Use descriptive kebab-case file names for new files when the repo has no stronger convention.
+- Split code only when it reduces real complexity or matches existing module boundaries.
 
-## Test-first
+## Quality Gates
 
-Write the failing test before the implementation. Watch it fail for the
-right reason, then make it pass. Never weaken an assertion to make a test
-green — if the expected behavior genuinely changed, say so in the commit.
+- Run the narrowest useful test first, then broaden when shared behavior or public contracts changed.
+- Do not hide failing tests, lint, type, build, or syntax errors.
+- Preserve public contracts unless the change intentionally updates them and the user accepted that scope.
+- Keep commits focused and use conventional commit format without AI references.
+- Never commit secrets, dotenv files, tokens, private keys, database credentials, or personal data.
 
-## Quality gates
+## Tooling
 
-- Run the narrowest test scope first; widen to the full suite when a shared
-  contract, exported symbol, or config file changed.
-- Do not hide failing tests, lint errors, type errors, or build errors.
-- Preserve public contracts (signatures, exported types, schemas, CLI flags,
-  env vars) unless the change intentionally updates them.
-- Keep commits focused; use conventional commit format.
-
-## Security
-
-Never commit secrets, tokens, private keys, or credentials. Validate
-user-supplied input at trust boundaries, not only in the UI layer. File
-writes stay inside intended roots — join paths, never concatenate them.
-
-## Commits
-
-Conventional commit format (`feat:`, `fix:`, `refactor:`, `test:`, ...). One
-concern per commit. No AI-authorship notes in commit messages or code
-comments — the diff and message should read like any other engineer's work.
+- Use `gh` for GitHub operations when needed.
+- Use current docs only when the API/tooling may have changed.
+- Use relevant skills by reading their descriptions first, then opening only the needed `SKILL.md`.
+- Use `/av:preview` only when a visual explanation will materially help the user understand the change.

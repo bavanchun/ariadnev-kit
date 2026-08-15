@@ -34,7 +34,7 @@
       "redaction": { "input": "sensitive", "output": "internal", "logs": "metadata-only" }
     },
     {
-      "id": "diagnose", "type": "agent", "handler": { "kind": "agent", "ref": "av-debugger" },
+      "id": "diagnose", "type": "agent", "handler": { "kind": "agent", "ref": "debugger" },
       "state": { "reads": ["request", "facts"], "writes": ["diagnosis"] },
       "authority": { "capabilities": ["state:read", "state:write", "workspace:read", "process:execute"], "effect": "none", "approval": "none", "idempotency": "none" },
       "proof": { "requires": ["repository-facts"], "produces": ["root-cause-proven"] }, "timeoutMs": 300000,

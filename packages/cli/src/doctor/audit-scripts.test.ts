@@ -75,7 +75,9 @@ describe("scanScript precision", () => {
   });
 
   it("still flags a `#` that is inside a string, not a comment", () => {
-    expect(ids('sudo apt-get install -y "pkg#1"\n')).toEqual(["privilege-escalation"]);
+    // Two findings, both true: the line asks for root *and* installs a system
+    // package. `ids` sorts, so this also pins that the pair is reported once.
+    expect(ids('sudo apt-get install -y "pkg#1"\n')).toEqual(["privilege-escalation", "remote-package-install"]);
   });
 
   it("handles an escaped quote without losing track of where the string ends", () => {
@@ -178,5 +180,47 @@ describe("comment styles", () => {
     const python = 'print("Install: npm install -g @shopify/cli@latest")\n';
     expect(scanScript("s.py", python).risks).toEqual([]);
     expect(scanScript("s.sh", "npm install -g rmbg-cli\n").risks.length).toBeGreaterThan(0);
+  });
+});
+
+describe("system package managers", () => {
+  it("flags a package install with or without sudo, in either language", () => {
+    // Without sudo the command usually fails for a non-root user, but a script
+    // that tries is still a script that mutates the machine — and the
+    // privilege-escalation rule only sees the ones that ask for root first.
+    expect(scanScript("s.sh", "apt install -y pandoc\n").risks.some((r) => r.id === "remote-package-install")).toBe(true);
+    expect(scanScript("s.sh", "brew install jq\n").risks.some((r) => r.id === "remote-package-install")).toBe(true);
+    const python = 'subprocess.check_call(["apt", "install", "-y", "pandoc"])\n';
+    expect(scanScript("s.py", python).risks.some((r) => r.id === "remote-package-install")).toBe(true);
+  });
+
+  it("does not flag a sentence that mentions one", () => {
+    expect(scanScript("s.sh", 'echo "install it with: apt install pandoc"\n').risks).toEqual([]);
+  });
+});
+
+describe("multi-line strings", () => {
+  it("does not read a Dockerfile pasted into a test fixture as a script", () => {
+    // Exactly what the ported corpus contained: a Python test embedding a
+    // Dockerfile, whose `RUN apt-get install` is data, not an install.
+    const python = [
+      "def test_optimize():",
+      '    dockerfile = """',
+      "FROM python:3.12",
+      "RUN apt-get update && apt-get install -y curl",
+      '    """',
+      "    assert optimize(dockerfile)",
+    ].join("\n");
+    expect(scanScript("t.py", python).risks).toEqual([]);
+  });
+
+  it("still flags the same command outside the string", () => {
+    const python = [
+      'doc = """',
+      "harmless text",
+      '"""',
+      "subprocess.run(['sudo', 'apt-get', 'install', '-y', 'jq'])",
+    ].join("\n");
+    expect(scanScript("t.py", python).risks.some((r) => r.id === "privilege-escalation")).toBe(true);
   });
 });

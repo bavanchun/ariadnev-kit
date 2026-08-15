@@ -13,6 +13,8 @@ test("rewrites the identifiers that are names", () => {
   assert.equal(rewriteText("state lives in ~/.agentkit/cache"), "state lives in ~/.ariadnev/cache");
   assert.equal(rewriteText("AgentKit installs it"), "ariadnev installs it");
   assert.equal(rewriteText("run `ak plan --help` first"), "run `av plan --help` first");
+  assert.equal(rewriteText("how to use ak, and what it does"), "how to use av, and what it does");
+  assert.equal(rewriteText("process.env.CLI || 'ak'"), "process.env.CLI || 'av'");
 });
 
 test("leaves the same two letters alone when they are English", () => {
@@ -157,4 +159,24 @@ test("catches the brand where it is a literal rather than a namespace", () => {
   assert.equal(rewriteText("interpreted by the `ak` skill-env manager"), "interpreted by the `av` skill-env manager");
   // The underscore forms still work, and are not double-rewritten.
   assert.equal(rewriteText("AGENTKIT_HOME"), "ARIADNEV_HOME");
+});
+
+test("renames the binary wherever it is running something", () => {
+  // The rule used to be limited to a list of verbs, which missed every command
+  // the port does not implement — the exact places a stale name would read as a
+  // different tool rather than a missing command.
+  assert.equal(rewriteText("run `ak codex-agent-runtime register` first"), "run `av codex-agent-runtime register` first");
+  assert.equal(rewriteText("ak doctor"), "av doctor");
+  // Placeholder namespace forms.
+  assert.equal(rewriteText("a `/ak:<slug>` skill"), "a `/av:<slug>` skill");
+  assert.equal(rewriteText("any ak:* skill"), "any av:* skill");
+  // Still not a rename when it is not a command.
+  assert.equal(rewriteText("ak."), "ak.");
+  assert.equal(rewriteText("./ak run"), "./ak run");
+});
+
+test("catches the binary before a flag and the namespace before an uppercase name", () => {
+  assert.equal(rewriteText("confirm `ak --version` works"), "confirm `av --version` works");
+  assert.equal(rewriteText("read `ak --help`"), "read `av --help`");
+  assert.equal(rewriteText("name: ck:CI"), "name: av:CI");
 });

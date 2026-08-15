@@ -1,10 +1,4 @@
 {
   "why": "Skills referenced by skills already in the kit, whose own port has not landed yet. The reference check treats a name here as known, so a two-wave port does not report a scheduling fact as a broken link \u2014 while a reference to a name that is on neither list stays an error. A test fails if a name here is already in kit/skills, so the list shrinks as the port lands and cannot quietly outlive it.",
-  "pending": [
-    "autoresearch",
-    "gkg",
-    "project-organization",
-    "repomix",
-    "tech-graph"
-  ]
+  "pending": []
 }

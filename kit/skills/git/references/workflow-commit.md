@@ -50,67 +50,6 @@ git reset && git add file1 file2 && git commit -m "type(scope): desc"
 ```
 Repeat for each group.
 
-## Tool 3b: Co-author Footer (--solo / --team)
-
-When `--solo` or `--team` flag is present, append `Co-authored-by:` to commit message.
-
-**Critical format:** blank line BEFORE the footer, otherwise GitHub will not parse it as a co-author trailer.
-
-```
-type(scope): description
-
-[optional body]
-                            ← BLANK LINE REQUIRED
-Co-authored-by: <Name> <<email>>
-```
-
-### --solo
-
-Read identity from `~/.claude/skills/git/co-authors.json`:
-```bash
-SOLO_NAME=$(jq -r .solo.name ~/.claude/skills/git/co-authors.json)
-SOLO_EMAIL=$(jq -r .solo.email ~/.claude/skills/git/co-authors.json)
-```
-
-Append: `Co-authored-by: $SOLO_NAME <$SOLO_EMAIL>`
-
-### --team
-
-Use `AskUserQuestion`:
-- Q: "Co-author teammate for this commit?"
-- Options:
-  - "Enter name + email" → user supplies `Full Name <email@example.com>`
-  - "Skip co-author for this commit" → no footer added
-- If entered: validate matches `^.+ <.+@.+\..+>$`, then append.
-- If skip: commit without co-author.
-
-### Commit with footer (HEREDOC)
-
-```bash
-git commit -m "$(cat <<'EOF'
-feat(scope): description
-
-Body if any.
-
-Co-authored-by: YOUR_NAME <YOUR_GITHUB_ID+YOUR_USERNAME@users.noreply.github.com>
-EOF
-)"
-```
-
-### Multiple co-authors
-
-Stack multiple `Co-authored-by:` lines (one per line, no blank between them):
-```
-Co-authored-by: Alice <alice@example.com>
-Co-authored-by: Bob <bob@example.com>
-```
-
-### When NOT to add co-author
-
-- No flag → never auto-add (default safe).
-- `--team` selected "skip" → no footer.
-- Multi-commit split: only add co-author to the **code group** commit, not to `chore(deps)` / `chore(config)` / `docs` groups.
-
 ## Tool 4: Push (if requested)
 ```bash
 git push && echo "✓ pushed: yes" || echo "✓ pushed: no"

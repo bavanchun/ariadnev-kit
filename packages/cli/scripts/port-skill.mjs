@@ -38,14 +38,6 @@ export const VERBATIM_FILES = new Set(["LICENSE", "LICENSE.md", "LICENSE.txt", "
  */
 export const SKIP_DIRS = new Set(["__pycache__", ".git", "node_modules", ".venv", ".pytest_cache", ".mypy_cache", ".DS_Store"]);
 
-// The CLI verbs an upstream `ak <verb>` line can carry. Listed rather than
-// matched loosely, so `ak` inside a sentence is never mistaken for a command.
-const CLI_VERBS = [
-  "plan", "config", "init", "doctor", "install", "skill", "journal", "validate",
-  "list", "update", "add-skill", "migrate", "run", "team", "coverage", "audit",
-  "backups", "contract", "eval", "query", "uninstall",
-].join("|");
-
 /**
  * Ordered substitutions. Most specific first: a later rule must never be able to
  * re-match text an earlier one already rewrote.
@@ -54,8 +46,10 @@ export const REPLACEMENTS = [
   // Skill and agent namespaces. `ak:cook` is a name; `ak-frontend-design` is a
   // directory or an agent id. Both are followed by a name character, which is
   // what separates them from prose.
-  [/(?<![\w-])ak:(?=[a-z0-9])/g, "av:"],
-  [/(?<![\w-])ck:(?=[a-z0-9])/g, "av:"],
+  // `<` and `*` cover the placeholder forms upstream writes in docs: `/ak:<slug>`
+  // and `ak:*`, which name the namespace rather than one skill.
+  [/(?<![\w-])ak:(?=[A-Za-z0-9<*])/g, "av:"],
+  [/(?<![\w-])ck:(?=[A-Za-z0-9<*])/g, "av:"],
   [/(?<![\w-])ak-(?=[a-z0-9])/g, "av-"],
   // The product name, in each casing, and NOT boundary-anchored. Unlike the
   // two-letter alias, these strings are never anything but the brand: upstream
@@ -68,10 +62,13 @@ export const REPLACEMENTS = [
   [/ClaudeKit/g, "ariadnev"],
   [/agentkit/g, "ariadnev"],
   [/claudekit/g, "ariadnev"],
-  // A bare `ak` only when it is running a command we can name, or when prose
-  // quotes the binary in backticks.
-  [new RegExp(String.raw`(?<![\w./-])ak(?= (?:${CLI_VERBS})\b)`, "g"), "av"],
-  [/`ak`/g, "`av`"],
+  // The bare alias, as a standalone word. This is deliberately the exact pattern
+  // the residue check hunts for, so anything the rewrite leaves behind is a bug
+  // in the rule rather than a judgement call made twice. Two letters are safe to
+  // rewrite here only because the boundaries exclude them inside a word
+  // ("make", "break") and after a path separator (`./ak`) — the corpus turned up
+  // no case where a standalone `ak` meant anything but the binary.
+  [/(?<![\w./-])ak(?![\w:.-])/g, "av"],
 ];
 
 /** Identifiers that must not survive; reported per file when they do. */

@@ -57,6 +57,12 @@ const RULES: Rule[] = [
   // first ported wave and would have been a standing false positive.
   { id: "remote-package-install", severity: "medium", scope: "command", rx: /\b(npm|pnpm|yarn)\s+(install|add|i)\b[^\n]*\s-g\b/ },
   { id: "remote-package-install", severity: "medium", scope: "command", rx: /\b(cargo|gem)\s+install\s+\S/ },
+  // A system package manager, with or without sudo. Without it the command
+  // usually fails for a non-root user — but a script that tries is still a
+  // script that mutates the machine, and the privilege-escalation rule only
+  // sees the ones that ask for root first.
+  { id: "remote-package-install", severity: "medium", scope: "command", rx: /\b(apt|apt-get|brew|dnf|yum|apk|pacman)\s+(install|add)\s+\S/ },
+  { id: "remote-package-install", severity: "medium", scope: "any", rx: /["'](apt|apt-get|brew|dnf|yum|apk|pacman)["']\s*,\s*["'](install|add)["']/ },
   // Anything landing in a system prefix or a shell startup file is reaching
   // well outside the skill's own directory.
   { id: "writes-outside-skill", severity: "medium", scope: "any", rx: /\b(mv|cp|install|tee|ln)\b[^\n]*\s\/(usr|etc|opt|bin|sbin)\// },
@@ -122,12 +128,38 @@ function parseLine(line: string, markers: string[] = ["#"]): { code: string; unq
   return { code: line, unquoted };
 }
 
+/** Multi-line string delimiters: Python's triple quotes, JS template literals. */
+const BLOCK_QUOTES = /"{3}|'{3}|`/g;
+
+/**
+ * Track whether a line falls inside a multi-line string.
+ *
+ * Without this, a Dockerfile pasted into a Python test fixture reads as a script
+ * running `apt-get install` — which is what the first scan of the ported corpus
+ * reported. A per-line quote parser cannot see that the whole block is data.
+ */
+function blockQuoteState(line: string, open: string | null): string | null {
+  let state = open;
+  for (const match of line.matchAll(BLOCK_QUOTES)) {
+    const token = match[0];
+    if (state === null) state = token;
+    else if (state === token) state = null;
+  }
+  return state;
+}
+
 /** Risky constructs in one script. Order follows the file, top to bottom. */
 export function scanScript(path: string, content: string): ScriptReport {
   const risks: ScriptRisk[] = [];
   const lines = content.split("\n");
+  let blockQuote: string | null = null;
 
   lines.forEach((raw, index) => {
+    const wasOpen = blockQuote;
+    blockQuote = blockQuoteState(raw, blockQuote);
+    // Inside a multi-line string, and on the line that opens one: what follows
+    // the delimiter there is the start of the data, not a command.
+    if (wasOpen !== null || blockQuote !== null) return;
     const { code, unquoted } = parseLine(raw, commentMarkers(path));
     if (code.trim() === "") return;
     const seen = new Set<RiskId>();

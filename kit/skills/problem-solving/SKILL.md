@@ -1,115 +1,104 @@
 ---
 name: av:problem-solving
-description: Break out of stuck states with systematic reframing. Use when circling a bug, over-complicating a design, hitting recurring failures, or unable to choose a direction.
+description: Apply systematic problem-solving techniques when stuck. Use for complexity spirals, innovation blocks, recurring patterns, assumption constraints, simplification cascades, scale uncertainty.
 user-invocable: true
-argument-hint: "<what you're stuck on>"
+when_to_use: "Invoke when stuck and needing structured reframing."
+category: utilities
+keywords: [problem-solving, stuck, patterns, simplify]
+argument-hint: "[problem description]"
 metadata:
-  author: vchun
-  version: "1.0.0"
+  origin: ported
+  author: upstream
+  version: "2.0.0"
 ---
 
-# Problem Solving
+# Problem-Solving Techniques
 
-Break a genuine stuck state by matching its symptom to a reframing technique,
-showing the work, and ending with one actionable move. This is not a substitute
-for ordinary debugging or planning when the path is already clear.
+Systematic approaches for different types of stuck-ness. Each technique targets specific problem patterns.
 
-## Diagnose before choosing
+## When to Use
 
-Name the observed stuck pattern, not the preferred technique:
+Apply when encountering:
+- **Complexity spiraling** - Multiple implementations, growing special cases, excessive branching
+- **Innovation blocks** - Conventional solutions inadequate, need breakthrough thinking
+- **Recurring patterns** - Same issue across domains, reinventing solutions
+- **Assumption constraints** - Forced into "only way", can't question premise
+- **Scale uncertainty** - Production readiness unclear, edge cases unknown
+- **General stuck-ness** - Unsure which technique applies
 
-| Symptom | Primary technique | Load |
-|---|---|---|
-| Same behavior implemented many ways; special cases keep growing | Simplification cascade | [patterns and simplification](references/patterns-and-simplification.md) |
-| The same shape appears across three or more domains | Meta-pattern recognition | [patterns and simplification](references/patterns-and-simplification.md) |
-| Solution feels forced; “must be done this way” | Inversion exercise | [inversion and collision](references/inversion-and-collision.md) |
-| Conventional approaches are exhausted; breakthrough needed | Collision-zone thinking | [inversion and collision](references/inversion-and-collision.md) |
-| Production limits or edge behavior are unknown | Scale game | [scale and recovery](references/scale-and-recovery.md) |
-| No symptom fits or the first technique fails | Stuck recovery | [scale and recovery](references/scale-and-recovery.md) |
+## Quick Dispatch
 
-A wrong result, failing test, or unexplained runtime behavior belongs first to
-`av:fix`. Use this skill only when the investigation itself is stuck or a
-problem needs reframing.
+**Match symptom to technique:**
 
-## Workflow
+| Stuck Symptom | Technique | Reference |
+|---------------|-----------|-----------|
+| Same thing implemented 5+ ways, growing special cases | **Simplification Cascades** | `references/simplification-cascades.md` |
+| Conventional solutions inadequate, need breakthrough | **Collision-Zone Thinking** | `references/collision-zone-thinking.md` |
+| Same issue in different places, reinventing wheels | **Meta-Pattern Recognition** | `references/meta-pattern-recognition.md` |
+| Solution feels forced, "must be done this way" | **Inversion Exercise** | `references/inversion-exercise.md` |
+| Will this work at production? Edge cases unclear? | **Scale Game** | `references/scale-game.md` |
+| Unsure which technique to use | **When Stuck** | `references/when-stuck.md` |
 
-1. **Identify stuck-type.** Record the symptom, attempts already made, and the
-   evidence that progress has stalled.
-2. **Load the detailed reference.** Read only the specific technique linked by
-   the dispatch table; do not preload every method.
-3. **Apply systematically.** Follow the technique's process and write down its
-   intermediate artifact: assumptions, collision, abstract pattern, or scale
-   table.
-4. **Document insights.** Separate what worked, what failed, and what changed
-   in the mental model.
-5. **Choose one next action.** Make it small and observable enough to start now.
-6. **Combine if needed.** If the first attempt fails, select a second technique
-   because of a newly observed symptom, not to avoid committing to a result.
+## Core Techniques
 
-## Combining techniques
+### 1. Simplification Cascades
+Find one insight eliminating multiple components. "If this is true, we don't need X, Y, Z."
 
-Useful sequences include:
+**Key insight:** Everything is a special case of one general pattern.
 
-- meta-pattern → simplification: abstract the repeated shape, then collapse its
-  implementations;
-- collision → inversion: borrow a model, then question the model's assumptions;
-- scale → simplification: expose what breaks at extremes, then remove machinery
-  irrelevant at the real scale;
-- meta-pattern → scale: test whether a supposedly universal pattern survives
-  both minimum and maximum conditions.
+**Red flag:** "Just need to add one more case..." (repeating forever)
 
-Use one technique at a time. Preserve the output from the first so the second
-has evidence to build on rather than restarting the discussion.
+### 2. Collision-Zone Thinking
+Force unrelated concepts together to discover emergent properties. "What if we treated X like Y?"
 
-## Decision discipline
+**Key insight:** Revolutionary ideas from deliberate metaphor-mixing.
 
-- Treat “should”, “probably”, and “must” as prompts for a check or inversion.
-- Do not call a metaphor an answer until its boundary has been tested.
-- Do not extract an abstraction merely because two names look similar; require
-  one clean domain-independent rule and verify every existing case fits.
-- A scale game is a thought experiment until measurements exist. Convert its
-  highest-risk break point into a real test when implementation depends on it.
-- Dropping or shrinking the problem is a valid result when the evidence says
-  the original scope is not worth solving.
+**Red flag:** "I've tried everything in this domain"
 
-## Output format
+### 3. Meta-Pattern Recognition
+Spot patterns appearing in 3+ domains to find universal principles.
 
-```markdown
-Stuck type: <observed symptom>
-Technique: <selected technique and why it fits>
+**Key insight:** Patterns in how patterns emerge reveal reusable abstractions.
 
-Work:
-<assumption list, collision map, pattern table, or scale extremes>
+**Red flag:** "This problem is unique" (probably not)
 
-Insight: <what changed>
-Next action: <one concrete, observable step>
-If it fails: <next technique or rescope condition>
-```
+### 4. Inversion Exercise
+Flip core assumptions to reveal hidden constraints. "What if the opposite were true?"
 
-Proof/risk: this skill produces a direction, not a code change. Any proposed
-technical behavior remains a hypothesis until the downstream workflow runs the
-appropriate unit, integration, e2e, or platform proof.
+**Key insight:** Valid inversions reveal context-dependence of "rules."
 
-## Quality gates
+**Red flag:** "There's only one way to do this"
 
-Before returning, confirm:
+### 5. Scale Game
+Test at extremes (1000x bigger/smaller, instant/year-long) to expose fundamental truths.
 
-1. The chosen technique matches an observed symptom from the dispatch table.
-2. The technique's intermediate work is shown, not summarized as “considered.”
-3. Assumptions and “should scale” claims are labelled as unverified until
-   checked empirically.
-4. Failed attempts and metaphor/abstraction boundaries remain visible.
-5. The next action can start now and has an observable result, or the output
-   explicitly recommends dropping/rescoping the problem.
-6. A second technique is justified by new evidence from the first attempt.
+**Key insight:** What works at one scale fails at another.
 
-## Workflow position
+**Red flag:** "Should scale fine" (without testing)
 
-**Typically follows:** `av:fix`, `av:cook`, or `av:brainstorm` reaching a real
-stuck state after direct work stopped producing evidence.
+## Application Process
 
-**Typically precedes:** returning to the originating workflow with a concrete
-experiment, or `av:brainstorm` when the reframing changes the design space.
+1. **Identify stuck-type** - Match symptom to technique above
+2. **Load detailed reference** - Read specific technique from `references/`
+3. **Apply systematically** - Follow technique's process
+4. **Document insights** - Record what worked/failed
+5. **Combine if needed** - Some problems need multiple techniques
 
-**Related:** `av:sequential-thinking` for step-by-step reasoning when the frame
-is sound; this skill when the frame itself is blocking progress.
+## Combining Techniques
+
+Powerful combinations:
+- **Simplification + Meta-pattern** - Find pattern, then simplify all instances
+- **Collision + Inversion** - Force metaphor, then invert its assumptions
+- **Scale + Simplification** - Extremes reveal what to eliminate
+- **Meta-pattern + Scale** - Universal patterns tested at extremes
+
+## References
+
+Load detailed guides as needed:
+- `references/when-stuck.md` - Dispatch flowchart and decision tree
+- `references/simplification-cascades.md` - Cascade detection and extraction
+- `references/collision-zone-thinking.md` - Metaphor collision process
+- `references/meta-pattern-recognition.md` - Pattern abstraction techniques
+- `references/inversion-exercise.md` - Assumption flipping methodology
+- `references/scale-game.md` - Extreme testing procedures
+- `references/attribution.md` - Source and adaptation notes

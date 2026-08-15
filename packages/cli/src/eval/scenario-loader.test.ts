@@ -125,8 +125,8 @@ describe("checked-in behavioral scenarios", () => {
     // away — but what they assert was calibrated against text that is gone, and
     // they need re-reading the next time the behavioral suite is run for real.
     const portedWithScenario = ported.map((name) => `av:${name}`).filter((skill) => coveredSkills.includes(skill));
-    expect(portedWithScenario.sort()).toEqual(["av:research", "av:scenario", "av:security-scan", "av:sequential-thinking"]);
-    expect(ported.length - portedWithScenario.length, "ported skills with no scenario at all").toBe(23);
+    expect(portedWithScenario.length, "scenarios written for skills since replaced by their upstream version").toBe(24);
+    expect(ported.length - portedWithScenario.length, "ported skills with no scenario at all").toBe(77);
     for (const scenario of scenarios) {
       expect(scenario.level).toBe("skill");
       expect(Object.keys(scenario.cases).sort()).toEqual(["negative", "positive"]);
