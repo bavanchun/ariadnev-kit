@@ -123,7 +123,11 @@ jobs:
         run: node packages/cli/scripts/stage-release-candidate.mjs packages/cli/dist/release packages/cli/dist/candidate/release-artifact-attestation.json packages/cli/dist/candidate-upload
       - name: Upload exact candidate artifact
         id: upload
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        # v4.6.2. The previous pin was v4.4.0, which exposes only artifact-id and
+        # artifact-url — so `artifact-digest` below resolved to nothing and the
+        # publish job rejected the candidate as having an invalid digest. Staying
+        # on v4: v5+ changed artifact overwrite semantics this job depends on.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.candidate_artifact_name }}
           path: packages/cli/dist/candidate-upload/*
