@@ -90,6 +90,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
 | `ariadnev run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
 | `ariadnev run resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
+| `ariadnev config prefs resolve [--json]` | Show the settings in effect after both config layers are applied, which files they came from, and every key that was rejected. Notification destinations print as `<redacted>` |
 | `ariadnev query [installs\|doctor\|history]` | Show the local history log (`~/.ariadnev/history.jsonl`) of installs, doctor runs, and updates |
 | `ariadnev add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `ariadnev migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
@@ -210,6 +211,22 @@ categorical enums (event name, provider id or `custom`, an `errorClass`) ever
 leave the machine. Check status with `ariadnev telemetry status`. Opt out any time
 with `ARIADNEV_TELEMETRY_DISABLED=1` or the standard `DO_NOT_TRACK=1`; it is also
 off automatically in CI.
+
+## Configuration
+
+Settings live in `~/.ariadnev/config.json` (yours) and `<project>/.ariadnev/config.json`
+(the repo's). The two layers do **not** have equal rights: a project file may set
+workspace-shaped keys (`paths.*`, `plan.*`, `locale.*`, `docs.maxLoc`, `project.*`,
+`statusline.*`), and everything else is **user-only** — `privacyBlock`, `trust.enabled`,
+`assertions`, `scripts.executionPolicy`, and notification destinations. A project
+file that sets a user-only key has that key dropped and named in a warning, so a
+repository you cloned cannot turn off your privacy blocking or point your
+notifications somewhere else. Notification destinations must be https URLs on an
+allowlisted host (`discord.com`, `slack.com`, `api.telegram.org`).
+
+Point your editor at [`schemas/av-config.schema.json`](schemas/av-config.schema.json)
+for completion; it is generated from the TypeScript definition, so it cannot drift.
+Run `ariadnev config prefs resolve` to see what took effect and what was rejected.
 
 ## Security
 

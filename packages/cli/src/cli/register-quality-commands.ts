@@ -5,11 +5,12 @@ import type { CommandRegistrationContext, GlobalOpts } from "./command-registrat
 import { runAudit } from "./audit-command.js";
 import { runContract } from "./contract-command.js";
 import { runSkillEnv, type SkillEnvAction } from "./skill-env-command.js";
-import { emit } from "./emit.js";
+import { emit, emitError } from "./emit.js";
 import { parseBehavioralCommand, runBehavioralEval } from "./behavioral-eval-command.js";
 import { realEvalDeps, runEval } from "./eval-command.js";
 import { runValidate } from "./validate-command.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
+import { loadConfig, realLoadDeps } from "../config/load-config.js";
 
 export function registerQualityCommands(program: Command, context: CommandRegistrationContext): void {
   program
@@ -62,6 +63,11 @@ export function registerQualityCommands(program: Command, context: CommandRegist
         throw new Error(`unknown skill action: ${action} (expected ${actions.join(" | ")})`);
       }
       const global = program.opts<GlobalOpts>();
+      const { config, warnings } = loadConfig({ home: global.home, cwd: global.cwd }, realLoadDeps());
+      // A rejected key is only a security control if the user can see it was
+      // rejected; silence here is how a project file's ignored setting turns
+      // into "ariadnev didn't respect my config".
+      for (const warning of warnings) emitError(`config: ${warning}`);
       const { output, exitCode } = runSkillEnv({
         action: action as SkillEnvAction,
         skill: name,
@@ -69,6 +75,7 @@ export function registerQualityCommands(program: Command, context: CommandRegist
         deep: !!opts.deep,
         json: !!opts.json,
         dryRun: !!global.dryRun,
+        executionPolicy: config.scripts.executionPolicy,
       });
       if (output) emit(output);
       if (exitCode !== 0) process.exitCode = exitCode;

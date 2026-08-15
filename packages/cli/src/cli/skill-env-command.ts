@@ -28,6 +28,8 @@ export interface SkillEnvOpts {
   systemPython?: string;
   /** Verify RECORD's files too, and (for verify) import in a child process. */
   deep?: boolean;
+  /** `scripts.executionPolicy` from the user's config; `never` blocks `run`. */
+  executionPolicy?: "allow" | "never";
   json?: boolean;
   dryRun?: boolean;
 }
@@ -175,6 +177,15 @@ function runScript(opts: SkillEnvOpts): SkillEnvResult {
   if (!opts.skill) throw new Error("ariadnev skill run requires a skill name");
   const [script, ...rest] = opts.args ?? [];
   if (!script) throw new Error("ariadnev skill run requires a script path");
+
+  // Checked before the skill is even resolved: a user who turned execution off
+  // gets a refusal, not a partial run with a nicer error later.
+  if (opts.executionPolicy === "never") {
+    return {
+      output: "ariadnev skill run — refused: scripts.executionPolicy is set to `never` in your ariadnev config",
+      exitCode: 1,
+    };
+  }
 
   const source = collectSources(opts)[0];
   const verdict = verifyOne(source, opts);

@@ -107,7 +107,7 @@ port. Chi tiết ở `phase-01`.
 | 7 | Skill runtime env | P1 | 2 | 5d | **partial** |
 | 8 | Bằng chứng provider (tự verify) + whitelist event | P1 | 2 | 7d | **completed** |
 | 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | pending |
-| 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | pending |
+| 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | **completed** |
 | 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | pending |
 | 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | pending |
 | 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | pending |
@@ -118,7 +118,9 @@ port. Chi tiết ở `phase-01`.
 Tổng ước lượng: **70 ngày công** (54d sau red-team vòng 1 → 70d sau audit vòng 2:
 phase 2 3d→6d, phase 3 1d→2d, phase 9 6d→7d, cộng 3 phase mới 14, 15, 16 = 11d).
 
-**Lịch chạy: tuần tự 1→16** (quyết định 2026-08-14). Nhiều phase chỉ phụ thuộc phase 2 nên
+**Lịch chạy: tuần tự 1→16** (quyết định 2026-08-14), với **một ngoại lệ do phụ
+thuộc**: phase 9 khai `dependencies: [8, 10]`, nên **10 chạy trước 9** (2026-08-15).
+Bảng liệt kê theo số, không phải theo thứ tự chạy. Nhiều phase chỉ phụ thuộc phase 2 nên
 về lý thuyết chạy song song được, nhưng phase 4 và 5 cùng sửa `packages/cli/src/install/`
 và sẽ xung đột. Tuần tự đổi lấy sự đơn giản và mỗi lúc chỉ một vùng code thay đổi.
 

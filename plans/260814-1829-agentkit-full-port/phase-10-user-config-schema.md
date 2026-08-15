@@ -1,7 +1,7 @@
 ---
 phase: 10
 title: "User config schema (tách quyền project/user)"
-status: pending
+status: completed
 priority: P2
 effort: "3d"
 dependencies: [2]
@@ -76,13 +76,64 @@ bỏ nguyên nhánh `trust` khỏi output.
 
 ## Success Criteria
 
-- [ ] Project layer không thể đặt `privacyBlock`, `trust.*`, `assertions[]`, đích notification
-- [ ] Cố đặt → cảnh báo nêu tên khoá và file, giá trị bị bỏ
-- [ ] Schema không có `trust.passphrase`
-- [ ] `resolve --json` không in giá trị nhạy cảm nào
-- [ ] Config sai kiểu → cảnh báo + mặc định, phiên vẫn chạy
-- [ ] JSON Schema xuất ra khớp định nghĩa TypeScript
-- [ ] `pnpm test` xanh, `src/config/` coverage ≥ 90%
+- [x] Project layer không thể đặt `privacyBlock`, `trust.*`, `assertions[]`, đích notification
+- [x] Cố đặt → cảnh báo nêu tên khoá và file, giá trị bị bỏ
+- [x] Schema không có `trust.passphrase`
+- [x] `resolve --json` không in giá trị nhạy cảm nào
+- [x] Config sai kiểu → cảnh báo + mặc định, phiên vẫn chạy
+- [x] JSON Schema xuất ra khớp định nghĩa TypeScript
+- [x] `pnpm test` xanh (117 file / 897 test), `src/config/` coverage **96.8%**
+
+## Kết quả (2026-08-15)
+
+**Bước 0 — ánh xạ khoá nguồn.** Đọc `ck-config.schema.json` (19K) và
+`~/.agentkit/config.yaml`. Quyết định từng nhánh:
+
+| Khoá nguồn | ariadnev | Lớp |
+|---|---|---|
+| `privacyBlock`, `assertions`, `trust.enabled` | giữ nguyên tên | user-only |
+| `trust.passphrase` | **bỏ** — secret plaintext trong file mà lệnh resolve in ra | — |
+| `paths.*`, `plan.{namingFormat,dateFormat,issuePrefix,reportsDir}`, `locale.*`, `docs.maxLoc`, `project.*` | giữ nguyên tên | project |
+| `statusline` (string) + `statuslineQuota` (bool) | `statusline.mode` + `statusline.quota` | project |
+| (mới) `scripts.executionPolicy` | consumer thật: `av skill run` | user-only |
+| (mới) `notifications.*` | đích + bật/tắt cho phase 9 | user-only |
+| `watch.*`, `content.*` | **bỏ** — Tier-3 nằm trong non-goals | — |
+| `gemini.*`, `skills.research.useGemini`, `codingLevel`, `simplify.*` | **bỏ** — không có consumer trong bản port | — |
+| `hooks.<name>` (10 khoá bật/tắt) | **hoãn sang phase 9** — khai field khi hook có thật, không khai trước | user-only |
+| `plan.resolution.*`, `plan.validation.*` | **hoãn** — không consumer; thêm khi lệnh plan được port | project |
+
+**Phân lớp là một phần của type.** Field khai qua `projectField.*`/`userField.*`;
+literal trần không phải `SchemaNode` nên không biên dịch được. Không có danh sách
+rời để quên đồng bộ.
+
+**Hai tầng chặn, không phải một.** `filterProjectLayer` loại khoá user-only trước
+khi resolve nhìn thấy; `resolveConfig` vẫn chỉ đọc khoá user-only từ lớp user, nên
+caller quên lọc cũng không mở được đường. Merge-rồi-kiểm bị loại: nó im lặng hỏng
+ngay lần thêm field đầu tiên mà ai đó quên thêm kiểm.
+
+**`scripts.executionPolicy` chỉ hai tầng** `allow` (mặc định) / `never`. Tầng
+`prompt` cần bề mặt tương tác mà `av skill run` không có; chính sách "đáng lẽ hỏi
+nhưng im lặng không hỏi" tệ hơn không có chính sách. Mặc định giữ nguyên hành vi
+hiện tại.
+
+**Host allowlist kiểm ở chỗ đọc, không ở chỗ gửi.** Đích notification phải là
+https trên `discord.com` / `slack.com` / `api.telegram.org` (đúng host hoặc
+subdomain — `hooks.slack.com.evil.test` bị loại). Giá trị sai không bao giờ tới
+tay sender, và cảnh báo không trích lại URL vì cảnh báo đi vào log.
+
+Chạy thật (HOME cô lập): project file đặt `privacyBlock` + `discordWebhook` → cả
+hai bị loại kèm cảnh báo nêu file; `resolve --json` in `<redacted>`, grep token
+thật ra 0 dòng; `executionPolicy: never` → `av skill run` từ chối, exit 1.
+
+ADR: `docs/decisions/0007-config-layers-and-no-stored-passphrase.md`.
+Schema xuất: `schemas/av-config.schema.json` (sinh từ định nghĩa TS, có test
+chống trôi).
+
+### Nợ chuyển sang phase 9
+
+- `hooks.<name>` toggles: khai khi hook có thật.
+- `av-config-client.cjs` phải soi lại cùng ranh giới lớp này (hoặc chỉ đọc file
+  user cho khoá nhạy cảm) — hook là tiến trình riêng, không import được TS.
 
 ## Risk Assessment
 

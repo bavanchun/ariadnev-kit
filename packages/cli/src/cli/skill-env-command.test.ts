@@ -229,6 +229,21 @@ describe("run", () => {
     addSkill("plain", {});
     expect(() => runSkillEnv({ action: "run", skill: "plain", ...opts() })).toThrow(/requires a script/);
   });
+
+  it("obeys a user who set the script execution policy to never", () => {
+    // The refusal has to come before anything is spawned, and it has to name
+    // the setting — a policy the user cannot find again is a trap.
+    addSkill("plain", { "scripts/hello.py": "import sys\nsys.exit(0)\n" });
+    const { output, exitCode } = runSkillEnv({
+      action: "run",
+      skill: "plain",
+      args: ["scripts/hello.py"],
+      executionPolicy: "never",
+      ...opts(),
+    });
+    expect(exitCode).toBe(1);
+    expect(output).toContain("scripts.executionPolicy");
+  });
 });
 
 describe("remove and garbage collection", () => {

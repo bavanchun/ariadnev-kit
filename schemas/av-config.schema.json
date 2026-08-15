@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ariadnev.com/schemas/av-config.schema.json",
+  "title": "ariadnev configuration",
+  "description": "Settings for the ariadnev CLI. Keys marked x-ariadnev-layer: user are ignored when set by a project config file.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "privacyBlock": {
+      "type": "boolean",
+      "description": "Block reads of .env files, keys, and other secrets.",
+      "default": true,
+      "x-ariadnev-layer": "user"
+    },
+    "assertions": {
+      "type": "array",
+      "description": "Standing instructions injected into every session.",
+      "default": [],
+      "x-ariadnev-layer": "user",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable trusted-mode workflows that skip confirmation prompts.",
+          "default": false,
+          "x-ariadnev-layer": "user"
+        }
+      }
+    },
+    "scripts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "executionPolicy": {
+          "type": "string",
+          "description": "Whether `ariadnev skill run` may execute the scripts a skill ships.",
+          "default": "allow",
+          "x-ariadnev-layer": "user",
+          "enum": [
+            "allow",
+            "never"
+          ]
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Send session notifications to the destinations below.",
+          "default": false,
+          "x-ariadnev-layer": "user"
+        },
+        "discordWebhook": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Discord webhook URL for notifications. Must be an https URL on an allowlisted host.",
+          "default": null,
+          "x-ariadnev-layer": "user",
+          "x-ariadnev-sensitive": true
+        },
+        "slackWebhook": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Slack webhook URL for notifications. Must be an https URL on an allowlisted host.",
+          "default": null,
+          "x-ariadnev-layer": "user",
+          "x-ariadnev-sensitive": true
+        },
+        "telegramBotToken": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Telegram bot token for notifications.",
+          "default": null,
+          "x-ariadnev-layer": "user",
+          "x-ariadnev-sensitive": true
+        },
+        "telegramChatId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Telegram chat id notifications are sent to.",
+          "default": null,
+          "x-ariadnev-layer": "user",
+          "x-ariadnev-sensitive": true
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "docs": {
+          "type": "string",
+          "description": "Directory holding project documentation.",
+          "default": "docs",
+          "x-ariadnev-layer": "project"
+        },
+        "plans": {
+          "type": "string",
+          "description": "Directory holding implementation plans.",
+          "default": "plans",
+          "x-ariadnev-layer": "project"
+        }
+      }
+    },
+    "docs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxLoc": {
+          "type": "integer",
+          "description": "Maximum lines a single documentation file should reach.",
+          "default": 800,
+          "x-ariadnev-layer": "project"
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namingFormat": {
+          "type": "string",
+          "description": "Naming format for new plan directories.",
+          "default": "{date}-{issue}-{slug}",
+          "x-ariadnev-layer": "project"
+        },
+        "dateFormat": {
+          "type": "string",
+          "description": "Date stamp format used inside plan names.",
+          "default": "YYMMDD-HHmm",
+          "x-ariadnev-layer": "project"
+        },
+        "issuePrefix": {
+          "type": "string",
+          "description": "Prefix applied to issue ids in plan names.",
+          "default": "GH-",
+          "x-ariadnev-layer": "project"
+        },
+        "reportsDir": {
+          "type": "string",
+          "description": "Directory under the plans dir holding reports.",
+          "default": "reports",
+          "x-ariadnev-layer": "project"
+        }
+      }
+    },
+    "locale": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "thinkingLanguage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Language used for reasoning, when the project prefers one.",
+          "default": null,
+          "x-ariadnev-layer": "project"
+        },
+        "responseLanguage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Language used for responses, when the project prefers one.",
+          "default": null,
+          "x-ariadnev-layer": "project"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Project type, or `auto` to detect it.",
+          "default": "auto",
+          "x-ariadnev-layer": "project"
+        },
+        "packageManager": {
+          "type": "string",
+          "description": "Package manager, or `auto` to detect it.",
+          "default": "auto",
+          "x-ariadnev-layer": "project"
+        },
+        "framework": {
+          "type": "string",
+          "description": "Primary framework, or `auto` to detect it.",
+          "default": "auto",
+          "x-ariadnev-layer": "project"
+        }
+      }
+    },
+    "statusline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "How much the statusline renders.",
+          "default": "full",
+          "x-ariadnev-layer": "project",
+          "enum": [
+            "full",
+            "compact",
+            "minimal",
+            "off"
+          ]
+        },
+        "quota": {
+          "type": "boolean",
+          "description": "Show remaining usage quota in the statusline.",
+          "default": true,
+          "x-ariadnev-layer": "project"
+        }
+      }
+    }
+  }
+}

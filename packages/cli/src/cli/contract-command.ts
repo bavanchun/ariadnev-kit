@@ -42,6 +42,7 @@ export const CAPABILITIES = [
   "history.query.v1",
   "graph.run.v1",
   "telemetry.optout.v1",
+  "config.prefs.v1",
 ] as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -63,6 +64,7 @@ export const KNOWN_COMMANDS = [
   "add-skill",
   "migrate",
   "run",
+  "config",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {
