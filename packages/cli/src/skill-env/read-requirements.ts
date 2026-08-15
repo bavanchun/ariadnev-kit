@@ -112,6 +112,17 @@ export function parseRequirements(content: string): RequirementsFile {
 }
 
 /**
+ * A requirements file inside a `tests/` directory declares what the test suite
+ * needs, not what the skill's scripts need. The name-based list above cannot
+ * see this: `databases` declares `mongomock` — a mock library no script
+ * imports — and no list of known dev packages would have caught it. Where the
+ * file sits is the reliable signal.
+ */
+export function isDevRequirementsPath(path: string): boolean {
+  return /(?:^|[/\\])tests?[/\\][^/\\]*$/.test(path);
+}
+
+/**
  * True when a skill needs no Python environment: it declares no runtime
  * dependency. Most skills that ship Python are in this state, and treating
  * them as needing an environment is what turns a 5-skill problem into a

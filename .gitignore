@@ -11,3 +11,8 @@ packages/cli/LICENSE
 
 # Hooks write their runtime log beside themselves when run from a checkout.
 kit/hooks/.logs/
+
+# Running a skill's Python from a checkout leaves bytecode in the kit. The
+# embedder already skips __pycache__; this keeps it out of the diff too.
+__pycache__/
+*.pyc

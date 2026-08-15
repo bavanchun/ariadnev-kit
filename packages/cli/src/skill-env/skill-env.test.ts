@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { parseRequirements, parseRequirementLine, normalizeName, needsEnvironment } from "./read-requirements.js";
+import {
+  parseRequirements,
+  parseRequirementLine,
+  normalizeName,
+  needsEnvironment,
+  isDevRequirementsPath,
+} from "./read-requirements.js";
 import { parseLockfile, serializeLockfile, validateLockfile, lockDigest, toPipRequirements, LockfileError, LOCKFILE_VERSION, type Lockfile } from "./lockfile.js";
 import { envsRoot, envPython, envSentinel } from "./env-root.js";
-import { verifyEnv, unknownEnv, type VerifyDeps } from "./verify-env.js";
+import { verifyEnv, unknownEnv, topLevelModules, importableModules, type VerifyDeps } from "./verify-env.js";
 import { planEnvBuild, planEnvGc, interpreterFor } from "./venv-manager.js";
 
 const ENV = { ARIADNEV_ENVS_DIR: "/envs" } as NodeJS.ProcessEnv;
@@ -88,6 +94,14 @@ scrapling>=0.2
     expect(normalizeName("Python_Docx")).toBe("python-docx");
     expect(normalizeName("zope.interface")).toBe("zope-interface");
   });
+
+  it("reads a requirements file's directory as the statement of what it is for", () => {
+    expect(isDevRequirementsPath("skills/databases/scripts/tests/requirements.txt")).toBe(true);
+    expect(isDevRequirementsPath("skills/databases/scripts/test/requirements.txt")).toBe(true);
+    expect(isDevRequirementsPath("skills/databases/scripts/requirements.txt")).toBe(false);
+    // A skill whose name contains "test" is not a test directory.
+    expect(isDevRequirementsPath("skills/tests-writer/scripts/requirements.txt")).toBe(false);
+  });
 });
 
 describe("lockfile", () => {
@@ -112,6 +126,42 @@ describe("lockfile", () => {
       .toThrow(/malformed hash/);
     const dup = { name: "numpy", version: "1.0", hashes: [`sha256:${"a".repeat(64)}`] };
     expect(() => validateLockfile(lock({ packages: [dup, dup] }))).toThrow(/locked twice/);
+  });
+
+  it("locks one name twice only when the markers keep them apart", () => {
+    // A universal resolution pins numpy differently per interpreter range, and
+    // refusing that would make every scientific lock impossible. Twice under
+    // the same condition is still a contradiction.
+    const hashes = [`sha256:${"a".repeat(64)}`];
+    const split = lock({
+      packages: [
+        { name: "numpy", version: "2.2.6", hashes, marker: "python_full_version < '3.11'" },
+        { name: "numpy", version: "2.5.2", hashes, marker: "python_full_version >= '3.11'" },
+      ],
+    });
+    expect(() => validateLockfile(split)).not.toThrow();
+    expect(lockDigest(split)).not.toBe(lockDigest(lock({ packages: split.packages.map((p) => ({ ...p, marker: undefined })) })));
+  });
+
+  it("refuses a marker that could smuggle a second requirement into the pip file", () => {
+    // Every package is one line of a requirements file. A marker carrying a
+    // newline or a continuation writes a line of its own — one nothing hashed.
+    const hashes = [`sha256:${"a".repeat(64)}`];
+    expect(() => validateLockfile(lock({ packages: [{ name: "numpy", version: "1.0", hashes, marker: "x\nevil==1" }] })))
+      .toThrow(/spans lines/);
+    expect(() => validateLockfile(lock({ packages: [{ name: "numpy", version: "1.0", hashes, marker: "weather == 'x'" }] })))
+      .toThrow(/unknown marker variable/);
+  });
+
+  it("writes the marker into the pip requirements, where pip can act on it", () => {
+    const body = toPipRequirements(
+      lock({
+        packages: [
+          { name: "pywin32", version: "312", hashes: [`sha256:${"a".repeat(64)}`], marker: "sys_platform == 'win32'" },
+        ],
+      }),
+    );
+    expect(body).toContain("pywin32==312 ; sys_platform == 'win32'");
   });
 
   it("rejects an unsupported lockfileVersion rather than reading it optimistically", () => {
@@ -268,10 +318,83 @@ describe("verifyEnv", () => {
     expect(deep.detail).toContain("missing an installed file");
   });
 
+  it("does not call a healthy environment corrupt over discarded bytecode", () => {
+    // RECORD names the `.pyc` pip compiled, down to the interpreter that
+    // compiled it. Python regenerates it on demand and renames it after an
+    // interpreter upgrade, so requiring it reports corruption on upgrade day.
+    const noBytecode = fakeFs(
+      {
+        [envSentinel(DIR)]: "{}",
+        [`${DIR}/bin/python`]: "",
+        [`${SITE}/numpy-2.1.0.dist-info/RECORD`]:
+          "numpy/__init__.py,sha256=x,10\nnumpy/__pycache__/__init__.cpython-314.pyc,,\n",
+        [`${SITE}/numpy/__init__.py`]: "",
+      },
+      [DIR, `${DIR}/lib`, `${DIR}/lib/python3.11`, SITE],
+    );
+    expect(verifyEnv("cti-expert", lock(), noBytecode, { env: ENV, platform: "darwin", thorough: true }).status).toBe("ok");
+  });
+
   it("executes nothing — the deps it is given cannot run anything", () => {
     // Guard on the shape of the contract: VerifyDeps exposes reads only.
     const deps = healthyEnv();
     expect(Object.keys(deps).sort()).toEqual(["dirExists", "fileExists", "listDir", "readFile"]);
+  });
+
+  it("does not require a package this platform's marker excludes", () => {
+    // `mcp` locks `pywin32 ; sys_platform == "win32"`. On a Mac it is meant to
+    // be absent, and calling that corrupt would fail every healthy environment
+    // outside Windows.
+    const windowsOnly: Lockfile = {
+      ...lock(),
+      packages: [
+        ...lock().packages,
+        { name: "pywin32", version: "312", hashes: [`sha256:${"d".repeat(64)}`], marker: "sys_platform == 'win32'" },
+      ],
+    };
+    const dir = `/envs/${lockDigest(windowsOnly)}`;
+    const site = `${dir}/lib/python3.11/site-packages`;
+    const deps = fakeFs(
+      {
+        [envSentinel(dir)]: "{}",
+        [`${dir}/pyvenv.cfg`]: "version = 3.11.9\n",
+        [`${dir}/bin/python`]: "",
+        [`${site}/numpy-2.1.0.dist-info/RECORD`]: "numpy/__init__.py,sha256=x,10\n",
+      },
+      [dir, `${dir}/lib`, `${dir}/lib/python3.11`, site],
+    );
+    expect(verifyEnv("mcp-builder", windowsOnly, deps, { env: ENV, platform: "darwin" }).status).toBe("ok");
+    // The same environment on Windows is missing something it should have.
+    const onWindows = verifyEnv("mcp-builder", windowsOnly, deps, { env: ENV, platform: "win32" });
+    expect(onWindows.status).toBe("corrupt");
+  });
+
+  it("refuses to judge a marked lock when it cannot tell which interpreter built the environment", () => {
+    const marked: Lockfile = {
+      ...lock(),
+      packages: [{ ...lock().packages[0], marker: "python_version >= '3.10'" }],
+    };
+    // No pyvenv.cfg and a Windows layout: nothing says what version this is.
+    const dir = `/envs/${lockDigest(marked)}`;
+    const deps = fakeFs(
+      { [envSentinel(dir)]: "{}", [`${dir}/Scripts/python.exe`]: "" },
+      [dir, `${dir}/Lib`, `${dir}/Lib/site-packages`],
+    );
+    const verdict = verifyEnv("cti-expert", marked, deps, { env: ENV, platform: "win32" });
+    expect(verdict.status).toBe("corrupt");
+    expect(verdict.detail).toContain("interpreter version");
+  });
+
+  it("reads import names from RECORD instead of guessing them from the package name", () => {
+    // `python-docx` imports as `docx`, `pillow` as `PIL`. Replacing hyphens
+    // with underscores — the obvious shortcut — gets both wrong and reports a
+    // healthy environment as broken.
+    expect(topLevelModules("docx/__init__.py,sha256=x,10\npython_docx-1.1.2.dist-info/RECORD,,\n")).toEqual(["docx"]);
+    expect(topLevelModules("PIL/Image.py,,\nsix.py,,\n../../bin/f2py,,\npillow.libs/x.dylib,,\n__pycache__/six.pyc,,\n")).toEqual([
+      "PIL",
+      "six",
+    ]);
+    expect(importableModules(lock(), healthyEnv(), { env: ENV, platform: "darwin" })).toEqual(["numpy"]);
   });
 
   it("distinguishes unknown from ok", () => {

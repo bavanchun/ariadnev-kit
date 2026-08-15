@@ -1,8 +1,8 @@
 ---
 phase: 7
 title: "Skill runtime env"
-status: partial
-completed: 2026-08-15  # engine xong; phần phụ thuộc nội dung chờ phase 11/12
+status: completed
+completed: 2026-08-15  # engine 2026-08-15; lock thật + kiểm chứng sau khi phase 11/12 mang nội dung tới
 priority: P1
 effort: "5d"
 dependencies: [2]
@@ -85,14 +85,15 @@ rewrite shebang — rewrite shebang làm hỏng byte-identical với nguồn và
 
 - [x] Bản nháp khai báo đã sinh cho **mọi** skill mang Python (không chỉ 12) — chờ người review
 - [x] Định dạng lockfile pin phiên bản + hash, từ chối range/thiếu hash/trùng gói
-- [ ] **Lockfile thật chưa sinh được** — cần requirements thật trong kit + resolve qua mạng (phase 11/12)
-- [x] `verify` mặc định không import code bên thứ ba; `--deep` chạy trong tiến trình con có timeout 30s
-- [ ] `av skill verify` báo `ok` cho cả 22 skill — 22 skill đó chưa có trong kit
-- [ ] `document-skills` chạy được sau khi cài — skill chưa có trong kit
+- [x] **Lockfile thật đã sinh** cho 5 skill có dependency thật, resolve universal qua `uv`
+- [x] `verify` mặc định không import code bên thứ ba; `--deep` chạy trong tiến trình con có timeout
+- [x] `av skill verify` báo `ok` cho cả 22 skill (5 skill có venv, 17 skill không cần)
+- [x] `document-skills` chạy được sau khi cài — `pdf/scripts/check_fillable_fields.py` chạy thật
 - [x] venv nằm ngoài thư mục đóng dấu version (XDG_DATA_HOME, không phải cache)
 - [x] GC gỡ được venv không còn tham chiếu; giữ venv dùng chung khi còn skill trỏ tới
 - [x] Script chạy được qua `av skill run` — kiểm bằng interpreter thật
-- [x] `pnpm test` xanh (839 test), `src/skill-env/` coverage **99.28%**
+- [x] Ngân sách dung lượng: 400 MB/venv, 1.5 GB tổng; cảnh báo chứ không chặn
+- [x] `pnpm test` xanh (1098 test), `src/skill-env/` coverage **98.9%**
 
 ## Kết quả thực thi (2026-08-15)
 
@@ -131,6 +132,76 @@ Kit hiện có **0 file Python**. Cả 22 skill Python tới ở phase 11/12, nh
 Đã **không** bịa lockfile giả để tick tiêu chí. Engine kiểm bằng lock thật của `six` (gói
 thuần Python, hash thật từ PyPI): dựng venv, `--require-hashes` qua, `verify` xanh, `--deep`
 import được, `av skill run` chạy script thật.
+
+## Hoàn tất (2026-08-15, sau phase 16)
+
+Nội dung đã có trong kit, nên phần treo ở trên làm được. Quyết định ghi ở
+`docs/decisions/0010-skill-environments-are-locked-and-universal.md`.
+
+### Khai báo: 9 skill câm giờ đã nói
+
+`av skill verify` báo `unknown` cho 12 skill. Quét AST toàn bộ 109 file `.py` trong kit
+(không phải grep — grep đọc đường dẫn `connections.py` thành import `io`) cho ra bức tranh
+thật, và mỗi skill nhận đúng một câu trả lời:
+
+- 6 skill chỉ dùng thư viện chuẩn → khai báo "không cần gì".
+- `design` → pillow, google-genai, numpy, scikit-learn. `from google import genai` không
+  gọi tên gói `google-genai`; đây là lý do bản nháp phải qua người, đúng như bước 3 dự liệu.
+- `document-skills` → 8 gói cho cả bốn định dạng, một khai báo chung vì chúng dùng chung
+  `lxml`/`defusedxml`/`pillow`. `pdf2image` cần **poppler**, `html2pptx.js` cần Node —
+  venv không giải quyết được, ghi rõ trong khai báo.
+- `excalidraw` → playwright (chỉ tải gói, không tải trình duyệt).
+
+`cti-expert` giữ nguyên khai báo nguồn kể cả `scrapling`/`whoisdomain` — không file `.py`
+nào import chúng, nhưng SKILL.md dùng chúng qua `python -c` và `install.sh` cài chúng. Khai
+báo là lời của tác giả skill về thứ skill cần, không phải kết quả của bộ quét.
+
+### Marker không phải chi tiết — thiếu nó là lock không cài được ở đâu cả
+
+Lock đầu tiên sinh ra không mang marker. `mcp` resolve ra `pywin32 ; sys_platform ==
+'win32'`; bỏ marker thì pip được yêu cầu cài một bản phân phối chỉ-có-trên-Windows trên
+macOS, không có artifact nào khớp, và **cả môi trường không dựng được**. Tức là bản lock
+không cài được ngay trên chính máy sinh ra nó.
+
+Nên `LockedPackage` có `marker`, `toPipRequirements` ghi nó ra, digest tính cả nó, và
+`verify` **đánh giá** nó: gói bị marker loại ra là gói *đáng lẽ* vắng mặt, đòi nó có nghĩa
+là mọi môi trường khoẻ mạnh ngoài Windows đều bị báo `corrupt`. Bộ đánh giá PEP 508
+(`marker.ts`) đọc phiên bản interpreter từ `pyvenv.cfg` — không chạy Python để trả lời một
+câu hỏi về trạng thái.
+
+Resolve `--universal` cũng khoá một tên nhiều lần: `numpy` ra 2.2.6 / 2.4.6 / 2.5.2 theo
+dải interpreter. Lock chấp nhận khi marker rời nhau, từ chối khi trùng điều kiện.
+
+### Ba lỗi nữa chỉ lộ khi chạy thật
+
+- **`--deep` đoán tên module** bằng cách đổi `-` thành `_`. Sai với `python-docx` (`docx`),
+  `pillow` (`PIL`), `scikit-learn` (`sklearn`) — ba trong năm skill. Trước đó chỉ test bằng
+  `six`, gói duy nhất mà phép đoán đúng. Giờ tên module đọc từ `RECORD` của từng gói.
+- **`requirements.txt` trong `tests/` bị đọc như runtime.** `databases` khai `mongomock`
+  ở đó, nên bị xếp "cần môi trường" cho một thư viện giả lập mà không script nào import.
+  Không danh sách tên gói dev nào bắt được ca này; thư mục chứa file mới là tín hiệu đúng.
+- **Kiểm `thorough` đòi cả file `.pyc`** mà `RECORD` liệt kê, kèm số hiệu interpreter
+  (`cpython-314.pyc`). Python sinh lại chúng theo nhu cầu và đổi tên khi nâng cấp — nên
+  ngày người dùng nâng Python là ngày mọi gói bị báo hỏng.
+
+Timeout `--deep` 30s cũng sai: lần import đầu của numpy+scipy+scikit-learn sau khi cài mới
+vượt 30s, các lần sau dưới 3s. Nó tồn tại để chặn treo, không phải để áp hạn tốc độ → 120s.
+
+### Số đo
+
+| Skill | Gói | Dung lượng |
+|---|---|---|
+| design | 38 | 246 MB |
+| cti-expert | 34 | 155 MB |
+| excalidraw | 4 | 146 MB |
+| mcp-builder | 41 | 56 MB |
+| document-skills | 11 | 55 MB |
+| **tổng** | | **659 MB** |
+
+Ngân sách đặt trên mức đó (400 MB/venv, 1.5 GB tổng) và chỉ cảnh báo: mục đích là bắt một
+lần resolve đi lạc, không phải cằn nhằn rằng bộ thư viện khoa học thì nặng. Con số 383MB
+của bản plan là venv gộp ở nguồn; ở đây venv tách theo tập dependency và chỉ dựng khi được
+yêu cầu, nên không ai trả cả 659 MB trừ khi dùng cả năm skill.
 
 ### `unknown` không được chặn `run` — lỗi thiết kế do test bắt
 

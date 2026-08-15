@@ -1,0 +1,31 @@
+# One declaration for all four document formats. They are separate directories
+# (`docx/`, `pdf/`, `pptx/`, `xlsx/`) but one installed skill, and they overlap
+# heavily — `lxml`, `defusedxml` and `pillow` are each imported from more than
+# one of them, so splitting this would build the same packages several times.
+#
+# Runtime imports, read off the scripts:
+#
+#   docx/ooxml/scripts/*        lxml, defusedxml
+#   pdf/scripts/*               pypdf, pillow, pdf2image
+#   pptx/scripts/*              python-pptx, lxml, defusedxml, six, pillow
+#   xlsx/recalc.py              openpyxl
+#
+# Not Python packages, and not installable from here: `pdf2image` drives
+# **poppler**, and `pptx/scripts/html2pptx.js` needs Node. Both are system
+# dependencies the skill documents separately.
+#
+# `python-pptx` is the distribution behind `import pptx`, and `pillow` the one
+# behind `from PIL import ...`; neither import names its package, which is why
+# this file is written by hand rather than generated from the scan.
+#
+# Unpinned here on purpose: the pinned, hash-verified set lives in
+# `ariadnev-lock.json` beside this file, and that is what `ariadnev skill
+# install` builds from.
+lxml
+defusedxml
+pypdf
+pdf2image
+pillow
+python-pptx
+openpyxl
+six

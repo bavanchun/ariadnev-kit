@@ -1,0 +1,11 @@
+# `references/render_excalidraw.py` imports playwright to render a drawing to
+# PNG/SVG. It is the skill's only Python file, and it sits here rather than
+# under `scripts/` — this skill has no `scripts/` directory.
+#
+# Installing the package is not enough to render: playwright downloads its
+# browsers separately (`playwright install chromium`, a few hundred MB), which
+# `ariadnev skill install` deliberately does not do for you.
+#
+# Unpinned here on purpose: the pinned, hash-verified set lives in
+# `ariadnev-lock.json` beside this file.
+playwright

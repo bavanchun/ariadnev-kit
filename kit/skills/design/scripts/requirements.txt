@@ -1,0 +1,19 @@
+# Runtime imports of this skill's generators, read off the scripts themselves:
+#
+#   scripts/cip/generate.py     PIL, google.genai
+#   scripts/icon/generate.py    google.genai
+#   scripts/logo/generate.py    google.genai
+#   scripts/poster/cluster.py   numpy, sklearn
+#
+# `google-genai` is the distribution behind `from google import genai`; the
+# import name does not name the package, which is why this file is written by
+# hand rather than generated from the scan.
+#
+# Unpinned here on purpose: the pinned, hash-verified set lives in
+# `ariadnev-lock.json` beside this file, and that is what `ariadnev skill
+# install` builds from. A version written here without a resolved hash would
+# look like a lock and verify nothing.
+pillow
+google-genai
+numpy
+scikit-learn

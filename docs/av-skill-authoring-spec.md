@@ -39,10 +39,25 @@ embedded build, and provider tree — and never text-transformed. A nested
 sub-skill is an ordinary skill directory inside another; `document-skills` ships
 four.
 
-Python under `scripts/` declares what it needs in `scripts/requirements.txt`,
-even when the answer is "nothing outside the standard library" — see
-`ariadnev skill verify`, which treats silence and "needs nothing" as different
-answers.
+Python declares what it needs in a `requirements.txt` beside it — usually
+`scripts/requirements.txt`, but wherever the skill keeps its Python — even when
+the answer is "nothing outside the standard library". `ariadnev skill verify`
+treats silence and "needs nothing" as different answers. A `requirements.txt`
+inside a `tests/` directory declares what the test suite needs, not what the
+scripts need, and is ignored for this purpose.
+
+A skill that names real packages also needs a pinned lock, `ariadnev-lock.json`,
+committed beside that declaration. A maintainer generates it once:
+
+```
+bun packages/cli/scripts/generate-skill-lock.ts <skill>
+```
+
+The resolution is universal — one lock covering every platform and interpreter,
+with PEP 508 markers carried through — so the same file installs on macOS,
+Linux and Windows. `ariadnev skill install` only replays it, and refuses to
+resolve anything on its own; see
+[0010](decisions/0010-skill-environments-are-locked-and-universal.md).
 
 ## Frontmatter contract
 

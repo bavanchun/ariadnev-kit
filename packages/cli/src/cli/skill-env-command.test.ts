@@ -73,6 +73,19 @@ describe("readSkillEnvSource", () => {
     expect(readSkillEnvSource(skillsRoot, "tested")).toMatchObject({ lock: null, undeclared: false });
   });
 
+  it("treats a requirements file under tests/ as dev, whatever it names", () => {
+    // `databases` declares `mongomock` in `scripts/tests/requirements.txt`. It
+    // is a mock library the test suite imports, not something a script needs —
+    // and no allow-list of dev package names would ever have caught it. The
+    // directory it sits in says what it is.
+    addSkill("db", {
+      "scripts/tool.py": "import json\n",
+      "scripts/requirements.txt": "# uses only the standard library\n",
+      "scripts/tests/requirements.txt": "pytest>=7.0.0\nmongomock>=4.1.0\n",
+    });
+    expect(readSkillEnvSource(skillsRoot, "db")).toMatchObject({ lock: null, undeclared: false });
+  });
+
   it("flags a skill that ships Python and declares nothing", () => {
     addSkill("silent", { "scripts/tool.py": "import requests\n" });
     expect(readSkillEnvSource(skillsRoot, "silent").undeclared).toBe("undeclared");
@@ -91,6 +104,28 @@ describe("readSkillEnvSource", () => {
   it("reads a reviewed lock when one is present", () => {
     addSkill("locked", { "scripts/t.py": "import x\n", "scripts/ariadnev-lock.json": serializeLockfile(fixtureLock()) });
     expect(readSkillEnvSource(skillsRoot, "locked").lock?.packages[0].name).toBe("six");
+  });
+
+  it("finds the lock wherever the skill keeps its Python", () => {
+    // `excalidraw` has no `scripts/` directory at all — its one script lives
+    // under `references/`. A fixed path would have reported it as undeclared
+    // while its lock sat right next to the script.
+    addSkill("elsewhere", {
+      "references/render.py": "import playwright\n",
+      "references/ariadnev-lock.json": serializeLockfile(fixtureLock()),
+    });
+    expect(readSkillEnvSource(skillsRoot, "elsewhere").lock?.packages[0].name).toBe("six");
+  });
+
+  it("refuses two locks rather than picking one", () => {
+    // Two locks mean two answers to "what does this skill run under", and the
+    // environment is keyed by exactly one of them.
+    addSkill("two-minds", {
+      "scripts/t.py": "import x\n",
+      "scripts/ariadnev-lock.json": serializeLockfile(fixtureLock()),
+      "other/ariadnev-lock.json": serializeLockfile(fixtureLock()),
+    });
+    expect(() => readSkillEnvSource(skillsRoot, "two-minds")).toThrow(/one lock/);
   });
 });
 
@@ -156,6 +191,17 @@ describe("install", () => {
     addSkill("a", { "scripts/t.py": "import json\n" , "scripts/requirements.txt": "pytest>=8.0.0\n" });
     const { output } = runSkillEnv({ action: "install", skill: "a", ...opts() });
     expect(output).toContain("no runtime dependencies");
+    expect(existsSync(envsRoot())).toBe(false);
+  });
+
+  it("refuses a skill that declares dependencies but has no lock", () => {
+    // Verify used to send the reader here, and install used to answer "no
+    // runtime dependencies — nothing to install" about a skill that plainly
+    // has some. Installing replays a lock; it does not resolve one.
+    addSkill("unlocked", { "scripts/t.py": "import numpy\n", "scripts/requirements.txt": "numpy>=1.24.0\n" });
+    const { output } = runSkillEnv({ action: "install", skill: "unlocked", ...opts() });
+    expect(output).toContain("has no lock");
+    expect(output).toContain("generate-skill-lock.ts unlocked");
     expect(existsSync(envsRoot())).toBe(false);
   });
 

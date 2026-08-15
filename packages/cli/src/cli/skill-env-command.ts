@@ -10,10 +10,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { parseLockfile, type Lockfile } from "../skill-env/lockfile.js";
-import { needsEnvironment, parseRequirements } from "../skill-env/read-requirements.js";
+import { isDevRequirementsPath, needsEnvironment, parseRequirements } from "../skill-env/read-requirements.js";
 import { envsRoot } from "../skill-env/env-root.js";
+import { envBudgetWarning, formatBytes, totalBudgetWarning } from "../skill-env/env-budget.js";
 import { interpreterFor, planEnvBuild, planEnvGc } from "../skill-env/venv-manager.js";
-import { unknownEnv, verifyEnv, type EnvVerdict, type VerifyDeps } from "../skill-env/verify-env.js";
+import { importableModules, unknownEnv, verifyEnv, type EnvVerdict, type VerifyDeps } from "../skill-env/verify-env.js";
 
 export type SkillEnvAction = "install" | "verify" | "repair" | "upgrade" | "remove" | "run";
 
@@ -40,8 +41,17 @@ export interface SkillEnvResult {
 }
 
 const LOCK_FILE = "ariadnev-lock.json";
-/** A locked import is allowed this long to prove itself before we give up. */
-const DEEP_IMPORT_TIMEOUT_MS = 30_000;
+/**
+ * A locked import is allowed this long to prove itself before we give up.
+ *
+ * Generous on purpose: this bounds a hang, it does not enforce a speed limit.
+ * The first import after installing a scientific stack pays for hundreds of
+ * freshly-downloaded shared libraries being checked by the OS — measured at
+ * over 30s for `design` (numpy, scipy, scikit-learn, cryptography) and under
+ * 3s on every run after. A tight bound turns that into a false "corrupt", and
+ * a healthy environment costs nothing here: the wait ends when the child does.
+ */
+const DEEP_IMPORT_TIMEOUT_MS = 120_000;
 
 const realVerifyDeps: VerifyDeps = {
   fileExists: (p) => existsSync(p),
@@ -85,9 +95,17 @@ function filesRecursive(dir: string, predicate: (name: string) => boolean, acc: 
 /** Read one skill's dependency situation from the kit. */
 export function readSkillEnvSource(skillsRoot: string, name: string): SkillEnvSource {
   const dir = join(skillsRoot, name);
-  const lockPath = join(dir, "scripts", LOCK_FILE);
-  if (existsSync(lockPath)) {
-    return { name, dir, lock: parseLockfile(readFileSync(lockPath, "utf8")), undeclared: false };
+  // The lock sits beside the declaration it was resolved from, and skills do
+  // not agree on where that is: most keep Python under `scripts/`, but
+  // `document-skills` splits it across `docx/`, `pdf/`, `pptx/`, `xlsx/` and
+  // `excalidraw` keeps its one script under `references/`. Searching beats
+  // inventing a `scripts/` directory in skills that have none.
+  const locks = filesRecursive(dir, (f) => f === LOCK_FILE);
+  if (locks.length > 1) {
+    throw new Error(`${name} has ${locks.length} locks; a skill gets one environment, so it gets one lock`);
+  }
+  if (locks.length === 1) {
+    return { name, dir, lock: parseLockfile(readFileSync(locks[0], "utf8")), undeclared: false };
   }
 
   const hasPython = filesRecursive(dir, (f) => f.endsWith(".py")).length > 0;
@@ -95,7 +113,9 @@ export function readSkillEnvSource(skillsRoot: string, name: string): SkillEnvSo
 
   // Python present but no lock: is there at least a declaration saying it needs
   // nothing at runtime? That is a real answer. Silence is not.
-  const declarations = filesRecursive(dir, (f) => /^requirements.*\.txt$/.test(f));
+  const declarations = filesRecursive(dir, (f) => /^requirements.*\.txt$/.test(f)).filter(
+    (p) => !isDevRequirementsPath(p),
+  );
   if (declarations.length === 0) return { name, dir, lock: null, undeclared: "undeclared" };
   const declaresRuntime = declarations.some((p) => needsEnvironment(parseRequirements(readFileSync(p, "utf8"))));
   // Declared-and-stdlib-only is a complete answer; declared-with-packages but
@@ -123,7 +143,10 @@ function listSkills(skillsRoot: string): string[] {
  */
 function deepImport(source: SkillEnvSource, python: string): EnvVerdict | null {
   if (!source.lock) return null;
-  const modules = source.lock.packages.map((p) => p.name.replace(/-/g, "_"));
+  // Module names come from each package's RECORD, not from its distribution
+  // name: `python-docx` imports as `docx`, `pillow` as `PIL`.
+  const modules = importableModules(source.lock, realVerifyDeps);
+  if (modules.length === 0) return null;
   const program = `import importlib,sys\nfor m in ${JSON.stringify(modules)}:\n    importlib.import_module(m)\n`;
   const run = spawnSync(python, ["-c", program], { timeout: DEEP_IMPORT_TIMEOUT_MS, encoding: "utf8" });
   if (run.error && (run.error as NodeJS.ErrnoException).code === "ETIMEDOUT") {
@@ -144,7 +167,29 @@ function verifyOne(source: SkillEnvSource, opts: SkillEnvOpts): EnvVerdict {
   return deepImport(source, python) ?? verdict;
 }
 
+/** Bytes on disk under a directory, following nothing outside it. */
+function directorySize(dir: string): number {
+  let total = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = join(dir, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) total += directorySize(abs);
+    else if (entry.isFile()) total += statSync(abs).size;
+  }
+  return total;
+}
+
 function buildEnv(source: SkillEnvSource, opts: SkillEnvOpts): string[] {
+  if (source.undeclared === "unlocked") {
+    // Building would mean resolving against PyPI here and now, which is the one
+    // thing a lock exists to prevent. Say who resolves it instead of installing
+    // something nobody reviewed.
+    return [
+      `  ${source.name}: declares dependencies but has no lock — a maintainer runs`,
+      `      bun packages/cli/scripts/generate-skill-lock.ts ${source.name}`,
+      "      and commits the result; installing resolves nothing on its own",
+    ];
+  }
   if (!source.lock) return [`  ${source.name}: no runtime dependencies — nothing to install`];
   const plan = planEnvBuild(source.lock, opts.systemPython ?? "python3");
   if (opts.dryRun) {
@@ -165,7 +210,11 @@ function buildEnv(source: SkillEnvSource, opts: SkillEnvOpts): string[] {
     }
   }
   writeFileSync(plan.sentinelPath, plan.sentinelBody);
-  return [`  ${source.name}: environment ready at ${plan.envDir}`];
+  const size = directorySize(plan.envDir);
+  const lines = [`  ${source.name}: environment ready at ${plan.envDir} (${formatBytes(size)})`];
+  const warning = envBudgetWarning(source.name, size);
+  if (warning) lines.push(`  warning: ${warning}`);
+  return lines;
 }
 
 function collectSources(opts: SkillEnvOpts): SkillEnvSource[] {
@@ -231,6 +280,10 @@ export function runSkillEnv(opts: SkillEnvOpts): SkillEnvResult {
     const lines = ["ariadnev skill verify"];
     for (const v of relevant) lines.push(`  ${v.status.padEnd(8)} ${v.skill}: ${v.detail}`);
     if (relevant.length === 0) lines.push("  no skill needs a Python environment");
+    const total = existsSync(envsRoot()) ? directorySize(envsRoot()) : 0;
+    if (total > 0) lines.push(`  ${formatBytes(total)} on disk under ${envsRoot()}`);
+    const overBudget = totalBudgetWarning(total);
+    if (overBudget) lines.push(`  warning: ${overBudget}`);
     return {
       output: lines.join("\n"),
       exitCode: relevant.some((v) => v.status === "corrupt" || v.status === "missing") ? 1 : 0,
