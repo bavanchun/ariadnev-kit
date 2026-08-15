@@ -76,6 +76,18 @@ test("all workflow actions are pinned to full SHAs and checkout disables persist
   assert.doesNotMatch(readWorkflow(finalize), /actions\/checkout@/);
 });
 
+test("the privileged gh helper can hold a whole candidate artifact", () => {
+  // spawnSync defaults to a 1MB buffer and the candidate zip is ~192MB, so every
+  // binary download failed as an opaque "GitHub API request failed". Both blocks
+  // download it, so both need the bound, and it is the same ceiling they assert
+  // on candidate contents.
+  for (const file of [publish, finalize]) {
+    const helper = readWorkflow(file).split("\n").find((line) => line.includes("spawnSync(\"gh\""));
+    assert.ok(helper, `${file} has no gh helper`);
+    assert.match(helper, /maxBuffer:\s*536870912/, file);
+  }
+});
+
 test("privileged publisher and finalizer run blocks contain no expression interpolation", () => {
   for (const file of [publish, finalize]) {
     for (const step of listRunBlocks(file)) {

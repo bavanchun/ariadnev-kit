@@ -56,7 +56,10 @@ jobs:
           const fail = (message) => { throw new Error(message); };
           const ok = (condition, message) => condition || fail(message);
           const digest = (bytes) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-          const runGh = (args, { binary = false, input } = {}) => spawnSync("gh", args, { encoding: binary ? null : "utf8", input });
+          // maxBuffer matches the candidate ceiling asserted below. The default
+          // is 1MB, and the candidate zip is ~192MB, so every binary download
+          // failed as an opaque "GitHub API request failed".
+          const runGh = (args, { binary = false, input } = {}) => spawnSync("gh", args, { encoding: binary ? null : "utf8", input, maxBuffer: 536870912 });
           const baseArgs = ["api", "-H", `X-GitHub-Api-Version: ${env.GITHUB_API_VERSION}`];
           const api = (path, { method, body, binary = false, accept } = {}) => {
             const args = [...baseArgs];
