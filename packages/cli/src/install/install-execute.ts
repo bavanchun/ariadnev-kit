@@ -10,7 +10,8 @@ import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
 import { mergeHookSettings, mergeStatusLine } from "./hook-settings-merge.js";
-import { buildReceipt, type ProviderResultForReceipt, type ReceiptSkillSelection } from "./install-receipt.js";
+import { buildReceipt, type ProviderResultForReceipt, type Receipt, type ReceiptSkillSelection } from "./install-receipt.js";
+import { writeAdapterArtifactsSafe } from "../adapters/write-adapter-artifacts.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
 import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, writeJournal } from "./intent-journal.js";
 
@@ -158,6 +159,20 @@ export function installKit(
     // The receipt is now the ownership record; the crash-window journal has
     // nothing left to describe.
     clearJournal(baseRoot);
+
+    // Project the receipt onto the adapter tree, for tools that read that
+    // format. Strictly downstream and strictly best-effort: an install that
+    // succeeded is not a failure because a side record could not be written.
+    for (const { id } of planned) {
+      writeAdapterArtifactsSafe({
+        receipt: JSON.parse(receiptJson) as Receipt,
+        provider: id,
+        kit: "engineer",
+        kitVersion: opts.ariadnevVersion ?? "0.0.0",
+        home: ctx.home,
+        cwd: ctx.cwd,
+      });
+    }
   }
   return results;
 }

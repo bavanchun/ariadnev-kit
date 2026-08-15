@@ -115,7 +115,7 @@ port. Chi tiết ở `phase-01`.
 | 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | **completed** |
 | 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | **completed** |
 | 14 | Statusline | P2 | 9 | 3d | **completed** |
-| 15 | Artifact adapter sinh từ receipt | P2 | 6 | 4d | pending |
+| 15 | Artifact adapter sinh từ receipt | P2 | 6 | 4d | **completed** |
 | 16 | Docs, release, e2e install | P2 | 12, 13, 14, 15 | 4d | pending |
 
 Tổng ước lượng: **70 ngày công** (54d sau red-team vòng 1 → 70d sau audit vòng 2:

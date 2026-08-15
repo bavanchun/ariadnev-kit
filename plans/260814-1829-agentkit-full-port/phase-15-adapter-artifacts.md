@@ -1,7 +1,7 @@
 ---
 phase: 15
 title: "Artifact adapter sinh từ receipt"
-status: pending
+status: completed
 priority: P2
 effort: "4d"
 dependencies: [6]
@@ -89,14 +89,59 @@ Hàm sinh là pure: `Receipt` + `KitMeta` → `Record<filename, content>`. Lớp
 
 ## Success Criteria
 
-- [ ] 5 artifact sinh đúng schema nguồn, đối chiếu với file mẫu ở bước 1
-- [ ] Hàm sinh là pure, không fs, coverage ≥ 90%
-- [ ] Không code nào **đọc** 5 file này để ra quyết định (grep chứng minh)
-- [ ] Cùng receipt → cùng byte (test deterministic)
-- [ ] Xoá artifact rồi `av adapters regenerate` → byte-identical
-- [ ] Ownership registry ≤ 500K hoặc đã nén
-- [ ] `av audit` và `av uninstall` vẫn chỉ đọc receipt, không đọc adapter artifact
-- [ ] `pnpm test` xanh
+- [x] 5 artifact đúng schema nguồn — đối chiếu từng field với file mẫu (bảng bên dưới)
+- [x] Hàm sinh pure, không fs; lớp ghi tách riêng
+- [x] Không code nào **đọc** chúng để quyết định — **gate là test**, quét
+      `install/`, `uninstall/`, `doctor/`, `kit/`, `providers/`, không phải quy ước
+- [x] Cùng receipt → cùng byte
+- [x] Xoá artifact rồi `adapters regenerate` → **byte-identical** (kiểm bằng `diff` thật)
+- [ ] Ownership registry **504K**, vượt ngưỡng 500K — **không nén**, lý do bên dưới
+- [x] `audit` và `uninstall` vẫn chỉ đọc receipt
+- [x] `pnpm test` xanh (1006 test)
+
+## Bước 1 — schema nguồn, đọc từ file thật
+
+| File | Schema |
+|---|---|
+| `install-manifest.json` | `{version:1, kit, kit_version, files:[{rel_path, sha256}], skill_selection:{mode, skills[], selected_count, total_count}}` |
+| `native-skill-paths.json` | mảng phẳng đường dẫn **tuyệt đối** (nguồn: 1515 mục) |
+| `native-skill-hashes.json` | `{<đường dẫn tuyệt đối>: sha256}` |
+| `native-hook-expectations.json` | `{version:1, kit, manifest:{hooks:{<event>:[{matcher?, hooks:[{type,command,args[]}]}]}}}` |
+| `<provider>-ownership.json` | `{paths[], path_hashes{}, hook_ids[]}` (codex nguồn: 10K, không phải 337K) |
+
+## Ngưỡng 500K — xem lại có số đo
+
+Đo trên bản cài đủ kit: ownership **504K** (paths 200K + path_hashes 300K, cùng 1514 đường
+dẫn tuyệt đối lặp hai lần).
+
+Phản ứng đã định sẵn là "nén theo prefix". **Không làm**, và đây là lý do có bằng chứng chứ
+không phải bỏ qua: mục đích duy nhất của 5 file này là **tương thích định dạng nguồn**. Nén
+prefix (hoặc bỏ `paths` vì nó bằng `Object.keys(path_hashes)`) đều đổi bố cục field — tức là
+đánh đổi đúng cái thứ chúng tồn tại để làm, lấy 200K trên một file cục bộ ghi một lần mỗi
+lần cài. 504K không phải vấn đề; **tăng không giới hạn** mới là. Nên thay vì nén, có test
+chặn ở mức thật sự đáng lo (2MB cho cả 5 file với 1600 file cài).
+
+Nếu sau này con số leo thang thật, nén là câu trả lời — và khi đó đổi định dạng là đánh đổi
+có lý do, không phải phản xạ theo một ngưỡng đặt trước khi có số.
+
+## Kết quả (2026-08-15)
+
+Hướng một chiều là điều duy nhất khiến thiết kế này không tái lập lỗi C2 (hai bản ghi
+ownership lệch nhau). Nó được giữ bằng **ba thứ cụ thể**, không phải bằng lời:
+
+1. Chữ ký hàm là `Receipt → Record<filename, content>`: không có fs, nên không có đường
+   ngược nào để viết nhầm.
+2. Hash lấy thẳng từ `ReceiptFile.sha256`, **không tính lại** — tính lại là ý kiến thứ hai
+   về cùng bộ file, và đó chính là cách hai bản ghi bắt đầu lệch.
+3. Một test quét source: bất kỳ file nào trong `install/`, `uninstall/`, `doctor/`, `kit/`,
+   `providers/` import `adapter-artifacts` là đỏ.
+
+`adapters regenerate` là **sửa chữa, không phải hoà giải**: vì hàm sinh deterministic, thứ
+nó ghi luôn byte-identical với thứ install đã ghi. Sửa một artifact bằng tay rồi regenerate
+thì bản sửa bị ghi đè và lệnh nói rõ "1 rewritten" — đúng ngữ nghĩa của một projection.
+
+Ghi artifact là **best-effort**: một lần cài thành công không bị gọi là thất bại chỉ vì bản
+chiếu của nó không ghi được.
 
 ## Risk Assessment
 

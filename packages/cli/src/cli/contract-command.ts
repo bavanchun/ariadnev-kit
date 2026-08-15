@@ -46,6 +46,7 @@ export const CAPABILITIES = [
   "plan.pointer.v1",
   "kit.paths.v1",
   "mcp.verify.v1",
+  "adapters.project.v1",
 ] as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -71,6 +72,7 @@ export const KNOWN_COMMANDS = [
   "plan",
   "kit",
   "mcp",
+  "adapters",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {

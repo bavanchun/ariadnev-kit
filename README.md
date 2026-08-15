@@ -94,6 +94,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev kit install-path <provider> [--global] [--json]` | Show where each artifact kind would be written for a provider, including the kinds that would be skipped |
 | `ariadnev kit refresh` | Discard the extracted kit cache and extract it again |
 | `ariadnev mcp list\|show\|add\|remove\|verify [--global] [--json]` | Inspect and edit the MCP servers configured for this project (`.mcp.json`) or for you (`~/.claude.json`); `verify` starts each server and checks it completes the MCP initialize handshake. Writes are atomic, backed up, and preserve every key they do not understand |
+| `ariadnev adapters regenerate [--global] [--json]` | Rebuild the adapter artifacts (`install-manifest.json`, skill paths/hashes, hook expectations, ownership) from the receipt. They are a projection for other tools to read — nothing in ariadnev reads them back |
 | `ariadnev config prefs resolve [--json]` | Show the settings in effect after both config layers are applied, which files they came from, and every key that was rejected. Notification destinations print as `<redacted>` |
 | `ariadnev query [installs\|doctor\|history]` | Show the local history log (`~/.ariadnev/history.jsonl`) of installs, doctor runs, and updates |
 | `ariadnev add-skill <name> [--description "…"]` | Scaffold a new canonical skill |

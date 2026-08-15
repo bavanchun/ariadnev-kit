@@ -14,6 +14,7 @@ import { EXIT } from "./exit-codes.js";
 import { runKitInstallPath, runKitRefresh } from "./kit-command.js";
 import { realVerifyDeps, runMcpAdd, runMcpList, runMcpRemove, runMcpShow, runMcpVerify } from "./mcp-command.js";
 import { runPlanShow, runPlanUse, type PlanDeps } from "./plan-command.js";
+import { runAdaptersRegenerate } from "./adapters-command.js";
 
 function realPlanDeps(cwd: string): PlanDeps {
   return {
@@ -190,7 +191,30 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
       emit(output);
       if (exitCode !== EXIT.ok) process.exitCode = exitCode;
     });
+
+  const adapters = program
+    .command("adapters")
+    .description("Adapter artifacts projected from the install receipt, for tools that read that format");
+
+  adapters
+    .command("regenerate")
+    .description("Rebuild the artifacts from the receipt (deterministic — a repair, not a reconcile)")
+    .option("--global", "use the ~/ scope", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((opts: { global?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = runAdaptersRegenerate({
+        home: global.home,
+        cwd: global.cwd,
+        scope: opts.global ? "global" : "project",
+        kitVersion: context.version,
+        json: !!opts.json,
+        dryRun: !!global.dryRun,
+      });
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
 }
 
 /** Exported for the registration guard test. */
-export const TIER1_COMMANDS = ["plan", "kit", "mcp"] as const;
+export const TIER1_COMMANDS = ["plan", "kit", "mcp", "adapters"] as const;
