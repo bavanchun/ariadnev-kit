@@ -43,7 +43,19 @@ export interface HookSettingsOp {
   bindings: HookBinding[];
 }
 
-export type InstallOp = WriteOp | AgentsMdOp | SkipOp | HookSettingsOp;
+export interface StatusLineOp {
+  action: "statusline-settings";
+  kind: "statusline";
+  name: string;
+  /** Absolute settings.json path. */
+  dest: string;
+  /** Command the provider should run to render the bar. */
+  command: string;
+  /** Directory this installer owns — how its own entry is recognised. */
+  ownedDir: string;
+}
+
+export type InstallOp = WriteOp | AgentsMdOp | SkipOp | HookSettingsOp | StatusLineOp;
 
 export interface ProviderInstallResult {
   provider: string;

@@ -25,6 +25,7 @@ export const MATRIX_ARTIFACTS: ArtifactKind[] = [
   "env",
   "hook",
   "outputStyle",
+  "statusline",
 ];
 
 export interface MatrixCell {

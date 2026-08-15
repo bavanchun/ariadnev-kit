@@ -9,7 +9,7 @@ import type { ResolverCtx } from "../providers/resolver.js";
 import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
-import { mergeHookSettings } from "./hook-settings-merge.js";
+import { mergeHookSettings, mergeStatusLine } from "./hook-settings-merge.js";
 import { buildReceipt, type ProviderResultForReceipt, type ReceiptSkillSelection } from "./install-receipt.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
 import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, writeJournal } from "./intent-journal.js";
@@ -30,6 +30,12 @@ export interface ExecuteOpts {
 function opContent(op: Exclude<InstallOp, { action: "skip" }>): string | Buffer {
   if (op.action === "agents-md") return mergeAgentsBlock(readAgentsMd(op.dest), op.block);
   if (op.action === "hook-settings") return mergeHookSettings(readAgentsMd(op.dest), op.bindings);
+  if (op.action === "statusline-settings") {
+    // `applied: false` means the user already has a statusline of their own.
+    // Returning the file unchanged writes it back byte-identical, which the
+    // receipt and the audit both read as "present and unmodified".
+    return mergeStatusLine(readAgentsMd(op.dest), op.command, op.ownedDir).json;
+  }
   return op.content;
 }
 
@@ -56,12 +62,14 @@ export function executeInstall(
       result.skipped.push(op);
       continue;
     }
-    if (op.action === "hook-settings" && !opts.applyHookSettings) {
-      // Prompt declined or non-interactive: never touch settings.json; the CLI
-      // layer prints a copy-pasteable snippet instead.
+    // Both of these edit settings.json, so both wait for the same confirmation.
+    // The statusline is what the user looks at all session; taking it over
+    // because they installed a kit is the kind of change noticed as "my terminal
+    // looks different now" with nothing to explain it.
+    if ((op.action === "hook-settings" || op.action === "statusline-settings") && !opts.applyHookSettings) {
       result.skipped.push({
         action: "skip",
-        kind: "hook",
+        kind: op.kind,
         name: op.name,
         reason: "settings.json merge not confirmed — snippet printed",
       });

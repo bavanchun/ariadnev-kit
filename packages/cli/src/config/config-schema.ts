@@ -144,7 +144,10 @@ export const SCHEMA = {
     framework: projectField.str("auto", "Primary framework, or `auto` to detect it."),
   },
   statusline: {
-    mode: projectField.choice(["full", "compact", "minimal", "off"] as const, "full", "How much the statusline renders."),
+    // `none`, not `off`: that is the value the statusline entrypoint switches on,
+    // and a schema that accepts a word the consumer does not recognise validates
+    // a setting that then silently does nothing.
+    mode: projectField.choice(["full", "compact", "minimal", "none"] as const, "full", "How much the statusline renders."),
     quota: projectField.bool(true, "Show remaining usage quota in the statusline."),
   },
 } satisfies SchemaBranch;

@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "pnpm --filter ariadnev build",
-    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\"",
-    "test:hooks": "node --test \"kit/hooks/**/*.test.cjs\"",
+    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" \"kit/statusline/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\"",
+    "test:hooks": "node --test \"kit/hooks/**/*.test.cjs\" \"kit/statusline/**/*.test.cjs\"",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "tsc -p packages/cli/tsconfig.json --noEmit",

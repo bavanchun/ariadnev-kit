@@ -70,6 +70,8 @@ export interface Kit {
   agents: Artifact[];
   commands: Artifact[];
   outputStyles: Artifact[];
+  /** Absolute path to the statusline entrypoint, when the kit ships one. */
+  statusline?: string;
   rules: Artifact[];
   hooks: KitHook[];
   workflows: KitWorkflow[];

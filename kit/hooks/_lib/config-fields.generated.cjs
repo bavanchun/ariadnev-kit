@@ -203,7 +203,7 @@ module.exports = {
         "full",
         "compact",
         "minimal",
-        "off"
+        "none"
       ]
     },
     "statusline.quota": {

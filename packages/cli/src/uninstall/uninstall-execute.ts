@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { assertWithinRoots } from "../install/path-guard.js";
 import { atomicWrite } from "../install/fs-atomic.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
-import { unmergeHookSettings } from "../install/hook-settings-merge.js";
+import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
 import { planUninstall, planUninstallFromJournal, type PlanUninstallDeps, type UninstallOp } from "./uninstall-plan.js";
 import type { InstallJournal } from "../install/intent-journal.js";
@@ -84,7 +84,9 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
       }
       if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "settings", opts.scopeRoot);
       const existing = existsSync(op.path) ? readFileSync(op.path, "utf8") : "";
-      atomicWrite(op.path, unmergeHookSettings(existing, op.bindings));
+      // The statusline is removed by the same pass, and only if it is ours: a
+      // bar the user configured themselves must survive an uninstall.
+      atomicWrite(op.path, unmergeStatusLine(unmergeHookSettings(existing, op.bindings), op.ownedDir ?? ""));
       result.settingsUnmerged = true;
       continue;
     }

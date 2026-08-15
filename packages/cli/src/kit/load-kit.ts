@@ -182,6 +182,9 @@ export function loadKit(kitRoot: string): Kit {
     root: kitRoot,
     skills,
     agents,
+    ...(existsSync(join(kitRoot, "statusline", "av-statusline.cjs"))
+      ? { statusline: join(kitRoot, "statusline", "av-statusline.cjs") }
+      : {}),
     commands: loadFlat(kitRoot, "commands", "command"),
     outputStyles: loadFlat(kitRoot, "output-styles", "outputStyle"),
     rules: loadFlat(kitRoot, "rules", "rule"),

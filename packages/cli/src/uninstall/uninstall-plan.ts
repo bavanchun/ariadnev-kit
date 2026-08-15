@@ -11,7 +11,7 @@ import {
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { HookBinding } from "../install/hook-settings-merge.js";
 import type { InstallJournal } from "../install/intent-journal.js";
-import { CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
+import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
 
 export class UninstallPlanError extends Error {
   constructor(message: string) {
@@ -35,6 +35,8 @@ export interface UnmergeSettingsOp {
   action: "unmerge-settings";
   path: string;
   bindings: HookBinding[];
+  /** Directory this install owns — how its own statusline entry is recognised. */
+  ownedDir?: string;
 }
 
 export interface RemoveAgentsBlockOp {
@@ -137,6 +139,7 @@ export function planUninstall(
       action: "unmerge-settings",
       path: join(root, CLAUDE_SETTINGS_FILE),
       bindings: applied.map(({ event, matcher, command }) => ({ event, matcher, command })),
+      ownedDir: join(root, CLAUDE_HOOKS_DIR),
     });
   }
 

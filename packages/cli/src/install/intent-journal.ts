@@ -18,7 +18,7 @@ import type { ProviderId } from "../providers/spec-verified.js";
 export const JOURNAL_SCHEMA_VERSION = 1;
 
 /** How a planned destination was going to be written. */
-export type JournalAction = "write" | "agents-md" | "hook-settings";
+export type JournalAction = "write" | "agents-md" | "hook-settings" | "statusline-settings";
 
 export interface JournalEntry {
   /** Portable path, same grammar as the receipt's. */

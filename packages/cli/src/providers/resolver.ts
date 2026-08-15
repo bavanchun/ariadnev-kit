@@ -194,6 +194,12 @@ export function targetPathFor(id: ProviderId, kind: ArtifactKind, ctx: ResolverC
       return r.supports.hook ? `${base}/${CLAUDE_HOOKS_DIR}/*.cjs` : null;
     case "outputStyle":
       return mk("outputStyle", "*");
+    case "statusline":
+      // Installed beside the hooks, in the same directory this installer owns.
+      // A separate `.claude/statusline/` would need a third `_lib` lookup path
+      // for one file; the settings key carries an absolute path either way, so
+      // the location is invisible to the user.
+      return r.supports.statusline ? `${base}/${CLAUDE_HOOKS_DIR}/av-statusline.cjs` : null;
   }
 }
 
@@ -222,6 +228,7 @@ export function makeResolver(id: ProviderId): ProviderResolver {
       rules: isVerified(id, "rules"),
       scripts: isVerified(id, "scripts"),
       env: isVerified(id, "env"),
+      statusline: isVerified(id, "statusline"),
       hook: isVerified(id, "hook"),
       outputStyle: isVerified(id, "outputStyle") && cfg.outputStylePath !== null,
     },

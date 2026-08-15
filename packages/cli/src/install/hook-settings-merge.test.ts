@@ -4,6 +4,8 @@ import {
   unmergeHookSettings,
   renderHookSettingsSnippet,
   type HookBinding,
+  mergeStatusLine,
+  unmergeStatusLine,
 } from "./hook-settings-merge.js";
 
 const bindings: HookBinding[] = [
@@ -104,5 +106,41 @@ describe("renderHookSettingsSnippet", () => {
     expect(snippet).toContain("SessionStart");
     expect(snippet).toContain("session-init.cjs");
     expect(snippet).toContain("Read|Grep|Glob");
+  });
+});
+
+describe("statusLine merge", () => {
+  const OWNED = "/.claude/hooks/av/";
+  const OURS = `node "/home/u/.claude/hooks/av/av-statusline.cjs"`;
+
+  it("installs into an empty settings file", () => {
+    const { json, applied } = mergeStatusLine("", OURS, OWNED);
+    expect(applied).toBe(true);
+    expect(JSON.parse(json).statusLine).toEqual({ type: "command", command: OURS, padding: 0 });
+  });
+
+  it("leaves a statusline the user chose exactly where it is", () => {
+    // The failure this prevents: a terminal that looks different after an
+    // install, with nothing saying why.
+    const mine = JSON.stringify({ statusLine: { type: "command", command: 'node "$HOME/.claude/my-bar.cjs"' } });
+    const { json, applied, reason } = mergeStatusLine(mine, OURS, OWNED);
+    expect(applied).toBe(false);
+    expect(JSON.parse(json).statusLine.command).toContain("my-bar.cjs");
+    expect(reason).toContain("my-bar.cjs");
+  });
+
+  it("replaces its own entry, so reinstalling is not a conflict", () => {
+    const older = JSON.stringify({ statusLine: { type: "command", command: `node "/home/u/.claude/hooks/av/av-statusline.cjs" --old` } });
+    expect(mergeStatusLine(older, OURS, OWNED).applied).toBe(true);
+  });
+
+  it("removes only its own entry on uninstall", () => {
+    const withOurs = JSON.stringify({ other: 1, statusLine: { type: "command", command: OURS } });
+    const after = JSON.parse(unmergeStatusLine(withOurs, OWNED));
+    expect(after.statusLine).toBeUndefined();
+    expect(after.other).toBe(1);
+
+    const withTheirs = JSON.stringify({ statusLine: { type: "command", command: 'node "$HOME/mine.cjs"' } });
+    expect(JSON.parse(unmergeStatusLine(withTheirs, OWNED)).statusLine).toBeDefined();
   });
 });

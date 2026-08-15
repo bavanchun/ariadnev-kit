@@ -312,7 +312,7 @@
             "full",
             "compact",
             "minimal",
-            "off"
+            "none"
           ]
         },
         "quota": {

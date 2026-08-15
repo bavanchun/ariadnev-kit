@@ -1,7 +1,7 @@
 ---
 phase: 14
 title: "Statusline"
-status: pending
+status: completed
 priority: P2
 effort: "3d"
 dependencies: [9]
@@ -70,13 +70,67 @@ tuỳ biến) và `ak-engineer-statusline.cjs` (bản kit ship). Port bản kit 
 
 ## Success Criteria
 
-- [ ] Statusline hiện đúng trên claude-code ở cả `full | compact | minimal`; `none` thì tắt
-- [ ] 5 module `_lib` có consumer thật, không còn mồ côi
-- [ ] Statusline throw → phiên vẫn chạy, thanh render rỗng (test)
-- [ ] Không phát request mạng nào (test)
-- [ ] `settings.json` người dùng đã có `statusLine` khác → được backup trước khi ghi
-- [ ] Ô ma trận statusline có `evidence` hoặc là `unverified` có lý do
-- [ ] `pnpm test` xanh
+- [x] Bốn chế độ chạy thật, khác nhau thật: `full`/`compact`/`minimal` đều vẽ model,
+      `none` in ra **rỗng** (test chạy tiến trình thật cho cả bốn)
+- [x] 5 module render có consumer thật; port thêm 5 module nữa mà entrypoint cần
+      (`colors`, `git-info-cache`, `monthly-cost-cache`, `config-counter`, `writing-language`)
+- [x] Payload rác / stdin rỗng → exit 0, vẫn vẽ dòng dự phòng (test 4 dạng payload)
+- [x] Không có `http`/`https`/`fetch` trong entrypoint (test đọc source)
+- [x] `statusLine` người dùng đã đặt → **không bị đụng**, và gỡ cài cũng không xoá nhầm
+- [x] Ô ma trận `statusline`: claude-code `observed`, 5 provider còn lại `none` có lý do
+- [x] `pnpm test` xanh (987 vitest + 37 + 71 node:test)
+
+## Kết quả (2026-08-15)
+
+### Bước 1 — statusline là artifact kind riêng
+
+Nó cần khoá `statusLine` riêng trong `settings.json`, không phải một binding hook, và cài
+được hay không là câu hỏi **theo provider**. Ma trận là chỗ repo này trả lời "cái gì đi đâu
+cho ai" — nhét statusline vào `hook` sẽ khiến bảng nói sai. Phase 3 đã mở đường với
+`outputStyle`, nên đi lại đường đó.
+
+File cài vào **cùng thư mục `av/` với hook**, không phải `.claude/statusline/`: cách dò
+`_lib` khi đó vẫn đúng nguyên (bằng không phải thêm trường hợp thứ ba cho đúng một file),
+và khoá settings mang đường dẫn tuyệt đối nên vị trí vô hình với người dùng.
+
+### Hai lỗi nối dây, cả hai đều thuộc loại "im lặng không chạy"
+
+1. **Entrypoint đọc `config.statusline` phẳng** (kiểu upstream), schema phase 10 lồng
+   `statusline.mode`. Đọc phẳng nghĩa là **luôn undefined** → thanh luôn vẽ `full` bất kể
+   người dùng đặt gì, và không có gì báo. Sửa sang `config.statusline?.mode` / `?.quota`.
+2. **Enum schema là `off`, entrypoint switch trên `none`.** Đặt `off` thì lớp config loại
+   giá trị (ngoài enum) → về mặc định `full`. Đổi schema sang `none` — tên mà consumer thật
+   sự hiểu.
+
+Cả hai chỉ lộ ra khi **chạy thật cả bốn chế độ**; validate và test đơn vị đều không thấy.
+
+### Không cướp statusline của người dùng
+
+Đây là thứ người dùng nhìn suốt phiên. Ba lớp:
+
+- `mergeStatusLine` **không ghi đè** entry trỏ ra ngoài thư mục installer sở hữu — báo lại
+  và để nguyên.
+- Ghi `settings.json` cho statusline **dùng chung cổng xác nhận** với merge hook: từ chối
+  hoặc chạy non-interactive thì chỉ chép file entrypoint, không đụng settings.
+- `unmergeStatusLine` khi gỡ **chỉ xoá entry của mình**.
+
+Kiểm bằng chạy thật: máy sandbox có sẵn `statusLine` trỏ `my-own-bar.cjs` → sau khi cài vẫn
+nguyên vẹn.
+
+### Một sửa hành vi so với nguồn
+
+stdin rỗng: bản nguồn `console.error('No input provided')` rồi `exit(1)`. Statusline chạy
+lại mỗi lần provider vẽ lại thanh — một dòng lỗi ở đây thành một dòng lỗi mỗi lần gõ phím.
+Đổi sang vẽ dòng dự phòng và exit 0, giống hệt nhánh catch ngay bên dưới nó.
+
+### Nợ đã trả và nợ mới
+
+`statusline-custom.cjs` **không port**: không nằm trong hash manifest của AgentKit, mtime
+12/07 — file riêng của người dùng, và đang là thứ `settings.json` của họ trỏ tới.
+
+Glob test mở rộng sang `kit/statusline/**` nhưng **không** mở sang `kit/**`: skill đã port
+mang theo test của upstream (`worktree`, `markdown-novel-viewer`), chạy chúng sẽ làm build
+đỏ vì kỳ vọng của người khác về môi trường của người khác.
 
 ## Risk Assessment
 

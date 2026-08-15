@@ -34,7 +34,8 @@ export type ArtifactKind =
   | "scripts"
   | "env"
   | "hook"
-  | "outputStyle";
+  | "outputStyle"
+  | "statusline";
 
 export type EvidenceLevel = "observed" | "convention" | "none";
 
@@ -79,6 +80,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — nothing reports reading it"),
       hook: observed("hooks fire and their output appears in session transcripts"),
       outputStyle: none("`.claude/output-styles/` is observed on disk but nothing was seen to load from it"),
+      statusline: observed("the settings.json `statusLine` key runs a command and its output is the bar shown in the session; observed working on this machine with a user-configured one"),
     },
     toolNames: observed("canonical format — identity rewrite, nothing to translate"),
   },
@@ -96,6 +98,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — nothing reports reading it"),
       hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
+      statusline: none("no statusline surface observed; nothing in prompt-input or the config reports one"),
     },
     toolNames: none("no observation of which tool names codex accepts; the previous claim cited a generator that is not in this repo"),
   },
@@ -114,6 +117,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — nothing reports reading it"),
       hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
+      statusline: none("no statusline surface observed for cursor"),
     },
     toolNames: none("no verified equivalents — identity rewrite plus a capability footer"),
   },
@@ -129,6 +133,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — nothing reports reading it"),
       hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
+      statusline: none("no CLI to observe with, and no neutral convention for a statusline"),
     },
     toolNames: none("no observation — the app ships no CLI to observe with"),
   },
@@ -144,6 +149,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — nothing reports reading it"),
       hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
+      statusline: none("no statusline surface observed in `opencode debug config`"),
     },
     toolNames: none("no observation of which tool names opencode accepts"),
   },
@@ -161,6 +167,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("template file only — no consumer observed reading it"),
       hook: none("no neutral hook mechanism — hooks are a Claude Code event contract"),
       outputStyle: none("no neutral equivalent for output styles in the .agents layout"),
+      statusline: none("a statusline is a provider UI affordance; the neutral .agents layout defines none"),
     },
     toolNames: none("no tool-name mapping for a non-product target — identity rewrite only"),
   },
@@ -178,6 +185,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       env: convention("mock"),
       hook: none("mock has no hook support"),
       outputStyle: none("mock has no output-style support"),
+      statusline: none("mock has no statusline support"),
     },
     toolNames: none("mock"),
   },

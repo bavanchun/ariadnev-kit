@@ -199,6 +199,7 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 | env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` |
 | hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
 | outputStyle | skip | skip | skip | skip | skip | skip |
+| statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip |
 <!-- END provider-matrix (generated) -->
 
 Cells marked `skip` are unverified target paths — ariadnev never guesses; it

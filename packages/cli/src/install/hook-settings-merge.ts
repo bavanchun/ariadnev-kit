@@ -87,3 +87,47 @@ export function renderHookSettingsSnippet(bindings: HookBinding[]): string {
     JSON.stringify({ hooks: merged.hooks }, null, 2),
   ].join("\n");
 }
+
+/**
+ * Merge a `statusLine` command into settings.json.
+ *
+ * A statusline is one slot, not a list — so unlike hook bindings, installing one
+ * means *replacing* whatever is there. Silently taking over a statusline the
+ * user chose is the sort of change that gets noticed as "my terminal looks wrong
+ * now" with no clue why, so an existing entry that is not ours is left alone and
+ * reported instead. Ours is recognisable by the path: it lives in the directory
+ * this installer owns.
+ */
+export interface StatusLineMerge {
+  json: string;
+  applied: boolean;
+  /** Why it was not applied, when it was not. */
+  reason?: string;
+}
+
+export function mergeStatusLine(existing: string, command: string, ownedDir: string): StatusLineMerge {
+  const settings: SettingsJson = existing.trim().length ? (JSON.parse(existing) as SettingsJson) : {};
+  const current = (settings as { statusLine?: { command?: string } }).statusLine;
+  const currentCommand = typeof current?.command === "string" ? current.command : null;
+
+  if (currentCommand !== null && !currentCommand.includes(ownedDir) && currentCommand !== command) {
+    return {
+      json: existing,
+      applied: false,
+      reason: `settings.json already has a statusLine (${currentCommand.slice(0, 60)}) — left as it is`,
+    };
+  }
+
+  (settings as { statusLine?: unknown }).statusLine = { type: "command", command, padding: 0 };
+  return { json: `${JSON.stringify(settings, null, 2)}\n`, applied: true };
+}
+
+/** Remove our statusLine, leaving one the user set themselves untouched. */
+export function unmergeStatusLine(existing: string, ownedDir: string): string {
+  const settings: SettingsJson = existing.trim().length ? (JSON.parse(existing) as SettingsJson) : {};
+  const current = (settings as { statusLine?: { command?: string } }).statusLine;
+  if (typeof current?.command === "string" && current.command.includes(ownedDir)) {
+    delete (settings as { statusLine?: unknown }).statusLine;
+  }
+  return `${JSON.stringify(settings, null, 2)}\n`;
+}

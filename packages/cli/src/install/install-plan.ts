@@ -130,6 +130,32 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   if (existsSync(libDir)) {
     ops.push(...planDirTree(libDir, join(base, CLAUDE_HOOKS_DIR, "_lib"), r.id, "hook"));
   }
+  // The statusline is not a hook — it is a command the provider runs to draw a
+  // bar — but it lives in the same owned directory and loads the same `_lib`,
+  // so it is written here rather than through a parallel tree of its own.
+  if (kit.statusline) {
+    if (!isVerified(r.id, "statusline")) {
+      ops.push(skip("statusline", "av-statusline.cjs", `unsupported/unverified (${r.id})`));
+    } else {
+      const dest = join(base, CLAUDE_HOOKS_DIR, "av-statusline.cjs");
+      ops.push({
+        action: "write",
+        kind: "statusline",
+        name: "av-statusline.cjs",
+        dest,
+        content: readFileSync(kit.statusline, "utf8"),
+      });
+      ops.push({
+        action: "statusline-settings",
+        kind: "statusline",
+        name: "settings.json",
+        dest: join(base, CLAUDE_SETTINGS_FILE),
+        command: `node ${JSON.stringify(dest)}`,
+        ownedDir: join(base, CLAUDE_HOOKS_DIR),
+      });
+    }
+  }
+
   ops.push({
     action: "hook-settings",
     kind: "hook",

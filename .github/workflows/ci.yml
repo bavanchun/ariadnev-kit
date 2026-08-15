@@ -77,4 +77,7 @@ jobs:
       - name: Test scripts + hooks (node:test)
         run: |
           find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
-          find kit/hooks -name '*.test.cjs' -print0 | xargs -0 -r node --test
+          # Only the trees this repo authors. A ported skill ships upstream's own
+          # tests, which are content — running them would make this build red on
+          # someone else's expectations about someone else's environment.
+          find kit/hooks kit/statusline -name '*.test.cjs' -print0 | xargs -0 -r node --test
