@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 effort: xl
 branch: main
 blockedBy: []
@@ -116,7 +116,7 @@ port. Chi tiết ở `phase-01`.
 | 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | **completed** |
 | 14 | Statusline | P2 | 9 | 3d | **completed** |
 | 15 | Artifact adapter sinh từ receipt | P2 | 6 | 4d | **completed** |
-| 16 | Docs, release, e2e install | P2 | 12, 13, 14, 15 | 4d | pending |
+| 16 | Docs, release, e2e install | P2 | 12, 13, 14, 15 | 4d | **completed** |
 
 Tổng ước lượng: **70 ngày công** (54d sau red-team vòng 1 → 70d sau audit vòng 2:
 phase 2 3d→6d, phase 3 1d→2d, phase 9 6d→7d, cộng 3 phase mới 14, 15, 16 = 11d).

@@ -32,6 +32,7 @@ const ALLOWLIST = [
   { prefix: "docs/decisions/0004-", why: "ADR describing a decision made under the old name" },
   { prefix: "docs/decisions/0005-", why: "ADR describing a decision made under the old name" },
   { prefix: "docs/decisions/0006-", why: "ADR naming the upstream paths and generators the verification evidence was checked against" },
+  { prefix: "docs/migration-from-the-old-name.md", why: "tells users which old-name files to delete, so it has to name them" },
   { prefix: "docs/decisions-ledger-historical.json", why: "retired claim ledger, kept verbatim as a record" },
   { prefix: "plans/", why: "dated plans and reports describe work as it was scoped" },
   { prefix: "packages/cli/CHANGELOG.md", why: "release history under the published package name" },

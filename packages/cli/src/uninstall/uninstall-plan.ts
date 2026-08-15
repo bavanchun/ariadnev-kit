@@ -48,7 +48,13 @@ export type UninstallOp = RemoveFileOp | PreserveFileOp | UnmergeSettingsOp | Re
 
 export interface PlanUninstallDeps {
   fileExists(absPath: string): boolean;
-  readFileContent(absPath: string): string;
+  /**
+   * Read a file for hashing. Bytes, not text: the receipt's hash was taken over
+   * bytes, so reading a font or an image back as utf8 produces a different
+   * digest, every binary file looks user-modified, and uninstall preserves the
+   * whole lot. That is what happened — 55 files survived a full uninstall.
+   */
+  readFileContent(absPath: string): Buffer | string;
 }
 
 function scopeRoot(scope: "project" | "global", home: string, cwd: string): string {

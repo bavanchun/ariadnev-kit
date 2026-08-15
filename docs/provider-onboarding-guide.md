@@ -34,26 +34,41 @@ Add an entry to the `SPEC_VERIFIED` map in [`packages/cli/src/providers/spec-ver
 1. Add the provider ID to the `ProviderId` union type
 2. Add a verification record to `SPEC_VERIFIED`
 
+Every cell states **how it was checked**, at one of three levels, and a shipping
+provider cannot use a one-word note — a guard test rejects that. See
+[ADR 0006](decisions/0006-provider-verification-evidence.md).
+
 ```ts
 // In ProviderId union:
 export type ProviderId = /* existing */ | "windsurf";
 
-// In SPEC_VERIFIED map:
+// In SPEC_VERIFIED map — nine artifact kinds, all of them:
 windsurf: {
+  observedVersion: "windsurf 1.4.0",  // what you ran; null if you could not
+  observedOn: "2026-08-15",           // when
   paths: {
-    skill: true,    // verified against windsurf docs
-    agent: true,    // verified against windsurf docs
-    command: true,  // verified against windsurf docs
-    rules: true,    // verified against windsurf docs
-    scripts: true,  // verified against windsurf docs
-    env: true,      // verified against windsurf docs
+    skill: observed("`windsurf debug skills` lists the installed skills by name"),
+    agent: none("no agent surface observed"),
+    command: none("no command surface observed"),
+    rules: convention("AGENTS.md is the cross-tool layout observed working elsewhere"),
+    scripts: convention("shares the tree whose skill root was observed"),
+    env: convention("template file only — nothing reports reading it"),
+    hook: none("hooks are a Claude Code event contract; nothing equivalent surfaced"),
+    outputStyle: none("no equivalent concept observed"),
+    statusline: none("no statusline surface observed"),
   },
-  toolNames: false, // set true only when tool rewrite table is verified
-  source: "windsurf official docs <URL>",
+  toolNames: none("no observation of which tool names windsurf accepts"),
 },
 ```
 
-**Critical:** Set `false` for any artifact path you haven't verified against the provider's actual behavior. Unverified cells are skip-and-logged — never guessed.
+| Level | What it means |
+|---|---|
+| `observed` | You ran the provider and saw it load the artifact — listed by name, or present in the prompt it builds. Records version and date. |
+| `convention` | No provider-specific observation; the path is the neutral cross-tool layout that *was* observed working in another provider. |
+| `none` | No evidence. The cell is false and the installer skips it. |
+
+**Critical:** "I installed it and it looked fine" is not an observation. An
+unverified cell is skip-and-logged — never guessed.
 
 ### S3: Configure the resolver in `resolver.ts`
 

@@ -125,3 +125,56 @@ describe("planUninstall (pure-ish, injected fs)", () => {
     expect(() => planUninstall(receipt, "claude-code", home, cwd, makeDeps({}))).toThrow(UninstallPlanError);
   });
 });
+
+describe("binary files", () => {
+  it("removes an unmodified binary instead of mistaking it for user work", () => {
+    // The bug this pins: hashing was done over a utf8 read, so a font's digest
+    // never matched the receipt, every binary looked edited, and uninstall
+    // preserved it. A full uninstall left 55 files behind.
+    const bytes = Buffer.from([0x00, 0x01, 0xff, 0xfe, 0x80, 0x7f]);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    const receipt: Receipt = {
+      schemaVersion: 2,
+      ariadnevVersion: "1.0.0",
+      installs: {
+        "claude-code": {
+          timestamp: "20260815-000000",
+          scope: "project",
+          files: [{ path: "~/.claude/skills/ui/canvas-fonts/A.ttf", sha256: digest }],
+          agentsMdManaged: false,
+          hookBindings: [],
+          skipped: [],
+        },
+      },
+    };
+    const ops = planUninstall(receipt, "claude-code", "/home/u", "/repo", {
+      fileExists: () => true,
+      readFileContent: () => bytes,
+    });
+    const removals = ops.filter((op) => op.action === "remove-file");
+    expect(removals).toHaveLength(1);
+    expect(ops.some((op) => op.action === "preserve-file")).toBe(false);
+  });
+
+  it("still preserves a binary the user actually replaced", () => {
+    const receipt: Receipt = {
+      schemaVersion: 2,
+      ariadnevVersion: "1.0.0",
+      installs: {
+        "claude-code": {
+          timestamp: "20260815-000000",
+          scope: "project",
+          files: [{ path: "~/.claude/skills/ui/canvas-fonts/A.ttf", sha256: "0".repeat(64) }],
+          agentsMdManaged: false,
+          hookBindings: [],
+          skipped: [],
+        },
+      },
+    };
+    const ops = planUninstall(receipt, "claude-code", "/home/u", "/repo", {
+      fileExists: () => true,
+      readFileContent: () => Buffer.from([0x01, 0x02]),
+    });
+    expect(ops.some((op) => op.action === "preserve-file")).toBe(true);
+  });
+});

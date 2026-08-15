@@ -107,7 +107,9 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
 
 const realPlanDeps: PlanUninstallDeps = {
   fileExists: (p) => existsSync(p),
-  readFileContent: (p) => readFileSync(p, "utf8"),
+  // Bytes, deliberately: hashing a font read back as utf8 never matches the
+  // receipt, so every binary file would look edited and be preserved forever.
+  readFileContent: (p) => readFileSync(p),
 };
 
 export interface UninstallKitOpts {

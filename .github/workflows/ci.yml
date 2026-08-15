@@ -46,6 +46,14 @@ jobs:
       - name: Build-binaries integration gate
         run: pnpm run test:build-binaries
 
+      - name: End-to-end install gate
+        # Installs the whole kit into a temp tree for every provider with a
+        # verified cell, checks each recorded file against its recorded hash and
+        # its declared target root, checks hook binding order, then uninstalls
+        # and checks nothing survives. The provider evidence table is a dated
+        # snapshot; this is what re-checks it after the install path changes.
+        run: pnpm exec vitest run packages/cli/src/install/e2e-install.test.ts
+
       - name: Brand drift gate
         run: node packages/cli/scripts/check-brand-drift.mjs
 

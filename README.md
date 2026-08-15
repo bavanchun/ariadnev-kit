@@ -140,17 +140,24 @@ documented in [the release guide](docs/release-and-publish-guide.md).
 
 ## What's in the kit
 
-26 skills + 13 agents + 14 hooks today. Broader kit expansion remains paused
-until a later benchmark justifies it. Claim-tracked skills pass an offline
-omission ratchet. This is a static structure and traceability guarantee, not
-proof of behavioral parity.
+Run `ariadnev validate` for the current counts — it prints skills, agents, and
+hooks from the kit itself, which is the only number that cannot go stale in a
+README.
 
-Every skill meets one cook-grade bar — a real workflow, an `## Output format`
-contract, `## Quality gates` self-checks, and a `## Workflow position` so the kit
-reads as one graph. Risk lanes and proof vocabulary
-(`unit`/`integration`/`e2e`/`platform`) are shared across skills, not siloed in
-`av:cook`. The three named headings and every cross-skill `av:<slug>` reference
-are enforced by `ariadnev validate`, not left to convention. See
+Most of the corpus is **ported**: copied from the kit this project was built
+from, rebranded, and otherwise left alone. A ported skill carries
+`metadata.origin: ported`, and a ported agent is the one without the `av-`
+prefix. That distinction is not decoration — the authoring rules below apply to
+what this project writes, and cannot apply to content a port exists to preserve
+without rewriting it.
+
+Skills this project authors meet one cook-grade bar: a real workflow, an
+`## Output format` contract, `## Quality gates` self-checks, and a
+`## Workflow position` so they read as one graph. Ported skills are still checked
+for everything that makes a skill *valid* — frontmatter shape, a description that
+says something, no unknown fields — and their size is reported as a warning
+rather than ignored. `ariadnev validate` enforces both, and every cross-skill
+`av:<slug>` reference, rather than leaving it to convention. See
 [`docs/av-skill-authoring-spec.md`](docs/av-skill-authoring-spec.md) for the
 machine-enforced authoring contract.
 

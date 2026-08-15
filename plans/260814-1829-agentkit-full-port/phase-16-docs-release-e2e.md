@@ -1,7 +1,7 @@
 ---
 phase: 16
 title: "Docs, release, e2e install"
-status: pending
+status: completed
 priority: P2
 effort: "4d"
 dependencies: [12, 13, 14, 15]
@@ -72,13 +72,15 @@ phase 8, một lần, thủ công, có ngày).
 
 ## Success Criteria
 
-- [ ] E2E cài + gỡ sạch cho mọi provider verified, chạy trong CI
-- [ ] E2E kiểm được thứ tự hook binding, không chỉ sự tồn tại của file
-- [ ] 4 tài liệu phản ánh đúng kit sau port; không còn số liệu chép tay lỗi thời
-- [ ] ADR 0007, 0008 tồn tại
-- [ ] Migration guide nêu rõ state cũ không được nhận diện và cách dọn
-- [ ] Changeset major cho `1.0.0`; pipeline chạy tới candidate không lỗi
-- [ ] `pnpm test` xanh
+- [x] E2E cài + gỡ sạch cho **6 provider** có ô verified, đã nối vào CI
+- [x] E2E kiểm thứ tự binding từng event, không chỉ sự tồn tại của file
+- [x] 4 tài liệu cập nhật; số liệu chép tay thay bằng "chạy `av validate`"
+- [x] ADR **0008** (port nội dung) và **0009** (adapter là projection) — đánh số
+      0007 đã bị phase 10 dùng cho config layer, nên dịch lên
+- [x] Migration guide: `docs/migration-from-the-old-name.md`
+- [x] Changeset major cho `1.0.0`
+- [ ] **Không chạy được** pipeline tới candidate cục bộ — xem bên dưới
+- [x] `pnpm test` xanh (1033 test)
 
 ## Risk Assessment
 
@@ -88,3 +90,52 @@ chính là mục đích — sửa `spec-verified` theo thực tế và cập nh�
 **Docs lại lỗi thời ngay sau khi viết.** Tín hiệu: số liệu chép tay trong docs lệch với
 `av validate`. Phản ứng: docs chỉ nêu con số khi trỏ được vào lệnh sinh ra nó; còn lại dùng
 liên kết.
+
+
+## Kết quả (2026-08-15)
+
+### E2E bắt được đúng thứ nó sinh ra để bắt
+
+Viết e2e **trước** (bước 1), rồi chạy — và nó đỏ ngay ở một lỗi thật:
+
+**Gỡ cài bỏ sót 55 file nhị phân.** `planUninstall` quyết định xoá hay giữ bằng cách so
+hash hiện tại với hash trong receipt; deps đọc file bằng `readFileSync(p, "utf8")`. Với
+font hay ảnh, đọc utf8 rồi băm ra digest khác digest ghi theo byte → **mọi file nhị phân
+trông như người dùng đã sửa** → được "bảo toàn" vĩnh viễn. Cùng họ lỗi utf8 mà phase 4 đã
+sửa cho đường **ghi**; đường **gỡ** vẫn còn nguyên và không test nào chạm tới.
+
+Sửa: deps đọc bytes. Thêm test đơn vị ở `uninstall-plan.test.ts` cho cả hai chiều (nhị phân
+chưa sửa → xoá; nhị phân đã bị thay → giữ), để lần sau không phải chờ e2e phát hiện.
+
+Hai kỳ vọng **của tôi** cũng sai và đã sửa lại theo sự thật:
+- "script `.sh` phải có bit thực thi" — nguồn ship 0600/0644 và tài liệu hướng dẫn chạy
+  bằng `bash …`. Đổi thành: **cài không được đổi mode** (không thêm, không bớt).
+- so sánh thư mục đích quên chuẩn hoá dấu `/` cuối → 1441 báo động giả.
+
+### Bốn tài liệu
+
+Bỏ mọi con số chép tay. `README` nay nói "chạy `ariadnev validate` để lấy số hiện tại" —
+con số duy nhất không thể lỗi thời. Spec tác giả và onboarding guide viết lại theo hai thực
+tế mới: **ported vs authored**, và mô hình bằng chứng 3 mức của phase 8 (kèm ví dụ đủ 9
+artifact kind, có `statusline`).
+
+### Không chạy được release tới candidate — lý do, không phải bỏ qua
+
+`build-binaries.mjs` đòi ba nhóm input theo thứ tự, và cả ba guard đều bắn đúng khi thiếu:
+
+1. `--source-sha`, `--generated-at`, `--source-date-epoch` — cấp được cục bộ.
+2. `--final-consumer-lock` + digest — file này **không nằm trong repo**; CI dựng nó bằng
+   cách checkout repo `ariadnev-web` rồi preflight. Không có nó ở đây.
+3. `--previous-source-tree/tag/sha` — cấp được (tag `vcskill@0.12.0`).
+
+Không bịa lock: đó chính là bằng chứng reproducibility mà pipeline tồn tại để tạo ra, và
+một file giả sẽ biến gate thành nghi thức. Thứ kiểm được và đã kiểm: `test:build-binaries`
+xanh, binary compile được (82MB), và pipeline **từ chối đúng chỗ** khi thiếu input.
+
+Chạy thật tới candidate là việc của CI, khi repo web companion có mặt.
+
+### Đánh số ADR
+
+Plan ghi ADR mới là 0007 và 0008. Nhưng 0007 đã bị phase 10 dùng cho quyết định phân lớp
+config, nên hai ADR của phase này là **0008** (port nội dung) và **0009** (adapter artifact
+là projection).

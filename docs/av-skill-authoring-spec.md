@@ -1,8 +1,25 @@
 # av Skill Authoring Spec
 
-Rules for every skill in `kit/skills/`. Enforced automatically by the lint gate
-in `packages/cli/src/kit/skill-lint.ts`, which runs inside `loadKit` — so
-`pnpm test`, CI, and every `ariadnev install` all reject a non-conforming skill.
+Rules for a skill **this project writes**. Enforced by the lint gate in
+`packages/cli/src/kit/skill-lint.ts`, which runs inside `loadKit` — so
+`pnpm test`, CI, and every `ariadnev install` reject a non-conforming skill.
+
+## Two kinds of skill
+
+Most of `kit/skills/` is **ported**: copied from the kit this one was built from
+and left as it was apart from identifiers. A ported skill carries
+`metadata.origin: ported`.
+
+The house rules on this page — the three required sections, the description
+length, the trigger verb, the size budgets — apply to skills we author. They
+cannot apply to a copy without rewriting it, which is the one thing a port must
+not do. What still applies to *everything* is validity: frontmatter shape, no
+unknown fields, a `name` matching the directory, a description long enough to
+route on. Size over budget is reported as a warning for a ported skill, because
+the context cost is real even when it is not ours to fix.
+
+See [ADR 0008](decisions/0008-porting-upstream-content.md) for why, with the
+numbers that forced the split.
 
 ## Anatomy
 
@@ -11,10 +28,21 @@ kit/skills/<slug>/
   SKILL.md              # required — frontmatter + tier-1 content
   references/*.md       # optional — tier-2/3 detail, loaded on demand
   scripts/*             # optional — runnable helpers
-  *.json, assets        # optional — data files the skill reads
+  <sub-skill>/SKILL.md  # optional — a nested skill with its own frontmatter
+  *.json, assets, fonts # optional — data files, copied byte for byte
 ```
 
 Naming: `<slug>` is kebab-case; frontmatter `name` must equal `av:<slug>`.
+
+Binary files (fonts, images, archives) are copied as bytes at every hop — kit,
+embedded build, and provider tree — and never text-transformed. A nested
+sub-skill is an ordinary skill directory inside another; `document-skills` ships
+four.
+
+Python under `scripts/` declares what it needs in `scripts/requirements.txt`,
+even when the answer is "nothing outside the standard library" — see
+`ariadnev skill verify`, which treats silence and "needs nothing" as different
+answers.
 
 ## Frontmatter contract
 
@@ -62,6 +90,8 @@ deciding to load the skill. Formula: *what it does* + *when to fire*.
 | `SKILL.md` | ≤ 300 lines (override: `metadata.maxLines`, hard ceiling 400) |
 | each `references/*.md` | ≤ 300 lines |
 
+An error for an authored skill; a warning for a ported one.
+
 Tier model — spend context only when needed:
 
 1. **Tier 1 — `SKILL.md`**: a ~100–150-line router for the common workflow,
@@ -97,7 +127,8 @@ section in one file and linking from the other.
 
 ## Cook-grade skill standard
 
-Every skill in `kit/skills/` must clear this seven-point bar. `av:cook` is the
+Every skill **this project writes** must clear this seven-point bar; a ported
+skill is judged by its upstream's standards, not this one. `av:cook` is the
 reference implementation; measure new and rewritten skills against it. The lint
 gate enforces frontmatter, size, and the exact `## Output format`,
 `## Quality gates`, and `## Workflow position` headings. Workflow depth and
@@ -130,15 +161,20 @@ proof/risk quality remain authoring contracts reviewers check by reading.
 
 ## Agent authoring
 
-Agents live in `kit/agents/av-<slug>.md`; enforced by
+Agents live in `kit/agents/`; enforced by
 `packages/cli/src/kit/agent-lint.ts` inside `loadKit`.
+
+The `av-` prefix is the marker here, doing the job `metadata.origin` does for
+skills: an agent we wrote is `av-<slug>.md`, a ported one keeps the name upstream
+gave it (`code-reviewer.md`, `explore.md`). House rules — the example pair, the
+checklist heading, the length budget — apply to the first kind only.
 
 | Field | Required | Rule |
 |---|---|---|
-| `name` | yes | exactly the file stem (`av-<slug>.md` → `name: av-<slug>`) |
-| `description` | yes | 50–1200 chars, must contain ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
+| `name` | yes | the file stem (`av-<slug>.md` → `name: av-<slug>`); a ported agent may differ in case only, because the provider addresses it by the declared name |
+| `description` | yes | ≥50 chars; for an authored agent, ≤1200 and containing ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
 | `tools` | no | comma-separated string or array of tool names |
-| `model` | no | one of `opus`, `sonnet`, `haiku` — tier by task weight (opus: planning/brainstorming; sonnet: review/debug/implement; haiku: mechanical/read-heavy work) |
+| `model` | no | one of `opus`, `sonnet`, `haiku`, `fable`, or `inherit` — tier by task weight (fable: hardest calls; opus: planning/brainstorming; sonnet: review/debug/implement; haiku: mechanical/read-heavy work; `inherit`: run on whatever the caller runs on) |
 | `memory` | no | claude-code only |
 
 Body ≤ 120 lines, must contain a `## Behavioral Checklist` heading (5-8
