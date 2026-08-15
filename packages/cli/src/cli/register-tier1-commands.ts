@@ -1,0 +1,196 @@
+// Registration for the commands added in the Tier-1 group: `plan`, `kit`, and
+// `mcp`. Kept in one file because each group is a handful of lines of wiring —
+// the behavior lives in the command modules, which are testable without
+// Commander.
+
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import type { Command } from "commander";
+import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
+import { loadConfig, realLoadDeps } from "../config/load-config.js";
+import { emit } from "./emit.js";
+import { EXIT } from "./exit-codes.js";
+import { runKitInstallPath, runKitRefresh } from "./kit-command.js";
+import { realVerifyDeps, runMcpAdd, runMcpList, runMcpRemove, runMcpShow, runMcpVerify } from "./mcp-command.js";
+import { runPlanShow, runPlanUse, type PlanDeps } from "./plan-command.js";
+
+function realPlanDeps(cwd: string): PlanDeps {
+  return {
+    listDir: (path) => {
+      try {
+        return readdirSync(path);
+      } catch {
+        return null;
+      }
+    },
+    readFile: (path) => {
+      try {
+        return readFileSync(path, "utf8");
+      } catch {
+        return null;
+      }
+    },
+    writeFile: (path, content) => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, content);
+    },
+    branch: () => {
+      try {
+        const out = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+        const name = out.trim();
+        // A detached HEAD reports "HEAD", which is not a branch and would file
+        // every detached checkout under one shared pointer.
+        return name && name !== "HEAD" ? name : null;
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+export function registerTier1Commands(program: Command, context: CommandRegistrationContext): void {
+  const plan = program.command("plan").description("The plan this branch is working from");
+
+  plan
+    .command("use")
+    .description("Point this branch at a plan directory under the plans dir")
+    .argument("<name>", "plan directory name")
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string, opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { config } = loadConfig({ home: global.home, cwd: global.cwd }, realLoadDeps());
+      const { output, exitCode } = runPlanUse(
+        name,
+        { cwd: global.cwd, plansDir: config.paths.plans, json: !!opts.json },
+        realPlanDeps(global.cwd),
+      );
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  plan
+    .command("show")
+    .description("Show the plan this branch points at, with its phases")
+    .option("--json", "emit the machine envelope", false)
+    .action((opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { config } = loadConfig({ home: global.home, cwd: global.cwd }, realLoadDeps());
+      const { output, exitCode } = runPlanShow(
+        { cwd: global.cwd, plansDir: config.paths.plans, json: !!opts.json },
+        realPlanDeps(global.cwd),
+      );
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  const kit = program.command("kit").description("Where the kit installs from and to");
+
+  kit
+    .command("install-path")
+    .description("Show where each artifact kind would be written for a provider")
+    .argument("<provider>", "provider id")
+    .option("--global", "resolve against the ~/ scope", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((provider: string, opts: { global?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = runKitInstallPath({
+        provider,
+        home: global.home,
+        cwd: global.cwd,
+        scope: opts.global ? "global" : "project",
+        json: !!opts.json,
+      });
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  kit
+    .command("refresh")
+    .description("Discard the extracted kit cache and extract it again")
+    .option("--json", "emit the machine envelope", false)
+    .action((opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output } = runKitRefresh({ json: !!opts.json, dryRun: !!global.dryRun });
+      emit(output);
+    });
+
+  const mcp = program.command("mcp").description("MCP servers this project and this user have configured");
+
+  mcp
+    .command("list")
+    .description("List configured servers across both scopes")
+    .option("--json", "emit the machine envelope", false)
+    .action((opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runMcpList({ home: global.home, cwd: global.cwd, json: !!opts.json }).output);
+    });
+
+  mcp
+    .command("show")
+    .description("Show one server's definition (env variable names only, never values)")
+    .argument("<name>")
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string, opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = runMcpShow(name, { home: global.home, cwd: global.cwd, json: !!opts.json });
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  mcp
+    .command("add")
+    .description("Add a stdio server to this project (or to your own config with --global)")
+    .argument("<name>")
+    .argument("<command>", "executable to run")
+    .argument("[args...]", "arguments passed to it")
+    .option("--global", "write to your own config instead of the project's", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string, command: string, args: string[], opts: { global?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output } = runMcpAdd(
+        name,
+        { command, ...(args.length > 0 ? { args } : {}) },
+        { home: global.home, cwd: global.cwd, global: !!opts.global, json: !!opts.json, dryRun: !!global.dryRun },
+      );
+      emit(output);
+    });
+
+  mcp
+    .command("remove")
+    .description("Remove a server from this project (or from your own config with --global)")
+    .argument("<name>")
+    .option("--global", "remove from your own config instead of the project's", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string, opts: { global?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = runMcpRemove(name, {
+        home: global.home,
+        cwd: global.cwd,
+        global: !!opts.global,
+        json: !!opts.json,
+        dryRun: !!global.dryRun,
+      });
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  mcp
+    .command("verify")
+    .description("Start each server and check it completes the MCP initialize handshake")
+    .argument("[name]", "verify one server instead of all of them")
+    .option("--json", "emit the machine envelope", false)
+    .action(async (name: string | undefined, opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const { output, exitCode } = await runMcpVerify(
+        name,
+        { home: global.home, cwd: global.cwd, json: !!opts.json, version: context.version },
+        realVerifyDeps,
+      );
+      emit(output);
+      if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+}
+
+/** Exported for the registration guard test. */
+export const TIER1_COMMANDS = ["plan", "kit", "mcp"] as const;

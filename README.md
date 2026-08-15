@@ -90,10 +90,27 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
 | `ariadnev run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
 | `ariadnev run resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
+| `ariadnev plan use <name>` / `ariadnev plan show [--json]` | Point the current branch at a plan directory under the plans dir, and show that plan with its phases and their status |
+| `ariadnev kit install-path <provider> [--global] [--json]` | Show where each artifact kind would be written for a provider, including the kinds that would be skipped |
+| `ariadnev kit refresh` | Discard the extracted kit cache and extract it again |
+| `ariadnev mcp list\|show\|add\|remove\|verify [--global] [--json]` | Inspect and edit the MCP servers configured for this project (`.mcp.json`) or for you (`~/.claude.json`); `verify` starts each server and checks it completes the MCP initialize handshake. Writes are atomic, backed up, and preserve every key they do not understand |
 | `ariadnev config prefs resolve [--json]` | Show the settings in effect after both config layers are applied, which files they came from, and every key that was rejected. Notification destinations print as `<redacted>` |
 | `ariadnev query [installs\|doctor\|history]` | Show the local history log (`~/.ariadnev/history.jsonl`) of installs, doctor runs, and updates |
 | `ariadnev add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `ariadnev migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
+
+### Exit codes
+
+Commands added after the CLI's first release use one table: **0** did what was
+asked, **1** ran and the answer is negative (drift found, verify failed), **2**
+could not run as invoked (unknown subcommand, bad flag), **3** could not run
+because the environment is not ready.
+
+`doctor` is a deliberate exception and keeps its original mapping — `0` healthy,
+`1` degraded, `2` unhealthy. CI jobs gate on it, and adopting the table above
+would turn "this install is broken" into "you passed a bad flag" on the exit code
+alone. `audit`, `validate`, `eval`, `skill`, and `run` likewise keep the codes
+they shipped with.
 
 ### Graph execution
 

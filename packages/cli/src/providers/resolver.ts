@@ -5,6 +5,7 @@ import {
   type ArtifactKind,
   isVerified,
 } from "./spec-verified.js";
+import { CLAUDE_HOOKS_DIR } from "../adapt/paths.js";
 
 export type Scope = "project" | "global";
 
@@ -160,46 +161,53 @@ function toTemplate(resolved: string): string {
 }
 
 /**
- * Human-readable target-path template for one (provider, artifact) cell, or null
- * when unverified/unsupported (→ skip). Single-sources the same CONFIGS/resolver
- * the installer uses, so the docs matrix + `contract` can never drift from real
- * install behavior. Rules in AGENTS.md mode render as "AGENTS.md".
+ * Where one (provider, artifact) cell writes under a real home/cwd, or null when
+ * unverified/unsupported (→ skip). `*` stands in for the artifact name, which is
+ * the part a caller supplies later.
+ *
+ * `targetTemplate` is this function under sentinel roots, so the docs matrix,
+ * `contract`, `kit install-path`, and the installer can never disagree about a
+ * path — there is one implementation and three readings of it.
  */
-export function targetTemplate(id: ProviderId, kind: ArtifactKind): string | null {
+export function targetPathFor(id: ProviderId, kind: ArtifactKind, ctx: ResolverCtx): string | null {
   const r = makeResolver(id);
-  const ctx: ResolverCtx = { home: HOME_SENTINEL, cwd: CWD_SENTINEL, scope: "project" };
   const mk = (type: Artifact["type"], name: string) =>
     r.targetFor({ type, name } as Artifact, ctx);
   const dir = (p: string) => (p.endsWith("/") ? p : p + "/");
+  const base = ctx.scope === "global" ? ctx.home : ctx.cwd;
   switch (kind) {
     case "skill":
-      return r.supports.skill ? dir(toTemplate(mk("skill", "") ?? "")) : null;
-    case "agent": {
-      const p = mk("agent", "*");
-      return p ? toTemplate(p) : null;
-    }
-    case "command": {
-      const p = mk("command", "*");
-      return p ? toTemplate(p) : null;
-    }
+      return r.supports.skill ? dir(mk("skill", "") ?? "") : null;
+    case "agent":
+      return mk("agent", "*");
+    case "command":
+      return mk("command", "*");
     case "rules":
       if (!r.supports.rules) return null;
-      if (r.rulesMode === "agents-md") return "AGENTS.md";
-      {
-        const p = mk("rule", "*");
-        return p ? toTemplate(p) : null;
-      }
+      if (r.rulesMode === "agents-md") return `${r.agentsMdRoot(ctx)}/AGENTS.md`;
+      return mk("rule", "*");
     case "scripts":
-      return r.supports.scripts ? dir(toTemplate(r.scriptsTarget(ctx))) : null;
+      return r.supports.scripts ? dir(r.scriptsTarget(ctx)) : null;
     case "env":
-      return r.supports.env ? toTemplate(r.envTarget(ctx)) : null;
+      return r.supports.env ? r.envTarget(ctx) : null;
     case "hook":
-      return r.supports.hook ? ".claude/hooks/av/*.cjs" : null;
-    case "outputStyle": {
-      const p = mk("outputStyle", "*");
-      return p ? toTemplate(p) : null;
-    }
+      return r.supports.hook ? `${base}/${CLAUDE_HOOKS_DIR}/*.cjs` : null;
+    case "outputStyle":
+      return mk("outputStyle", "*");
   }
+}
+
+/**
+ * Human-readable target-path template for one cell: the same resolution under
+ * sentinel roots, rendered with `~`/`<project>` placeholders.
+ */
+export function targetTemplate(id: ProviderId, kind: ArtifactKind): string | null {
+  const ctx: ResolverCtx = { home: HOME_SENTINEL, cwd: CWD_SENTINEL, scope: "project" };
+  if (kind === "rules" && makeResolver(id).rulesMode === "agents-md" && makeResolver(id).supports.rules) {
+    return "AGENTS.md";
+  }
+  const resolved = targetPathFor(id, kind, ctx);
+  return resolved === null ? null : toTemplate(resolved);
 }
 
 export function makeResolver(id: ProviderId): ProviderResolver {

@@ -112,7 +112,7 @@ port. Chi tiết ở `phase-01`.
 | 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | **completed** |
 | 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | **completed** |
 | 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | pending |
-| 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | pending |
+| 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | **completed** |
 | 14 | Statusline | P2 | 9 | 3d | pending |
 | 15 | Artifact adapter sinh từ receipt | P2 | 6 | 4d | pending |
 | 16 | Docs, release, e2e install | P2 | 12, 13, 14, 15 | 4d | pending |

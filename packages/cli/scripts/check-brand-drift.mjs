@@ -36,6 +36,8 @@ const ALLOWLIST = [
   { prefix: "plans/", why: "dated plans and reports describe work as it was scoped" },
   { prefix: "packages/cli/CHANGELOG.md", why: "release history under the published package name" },
   { prefix: "packages/cli/scripts/check-brand-drift.mjs", why: "this gate names the patterns it hunts for" },
+  { prefix: "packages/cli/scripts/port-skill.mjs", why: "the port's substitution table names the identifiers it rewrites" },
+  { prefix: "packages/cli/scripts/port-skill.test.mjs", why: "proves the substitution table, so it must state both sides of it" },
   { prefix: ".gitignore", why: "deliberately keeps the old state dir ignored for checkouts installed before the rename" },
 ];
 

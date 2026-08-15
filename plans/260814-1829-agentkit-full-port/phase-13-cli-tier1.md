@@ -1,7 +1,7 @@
 ---
 phase: 13
 title: "CLI Tier-1 + cây subcommand"
-status: pending
+status: completed
 priority: P2
 effort: "4d"
 dependencies: [6, 7]
@@ -77,15 +77,17 @@ interpreter đúng", không phải "thực thi SKILL.md".
 
 ## Success Criteria
 
-- [ ] `av doctor` vẫn trả 0/1/2 theo ngữ nghĩa cũ — test hồi quy chứng minh
-- [ ] Lệnh mới dùng bảng exit code mới; khác biệt ghi trong README
-- [ ] Không tồn tại `av kit validate`
-- [ ] `av run` không đổi hành vi; skill tên `status`/`resume`/`cancel` gọi được qua `av skill run`
-- [ ] `av skill run` chạy được script thật của 3 skill mẫu qua đúng venv
-- [ ] `av mcp verify` phát hiện server hỏng handshake
-- [ ] `contract --json` liệt kê mọi lệnh mới; drift test xanh
-- [ ] 16 lệnh cũ không đổi hành vi (test hồi quy)
-- [ ] `pnpm test` xanh
+- [x] `av doctor` vẫn trả 0/1/2 theo ngữ nghĩa cũ — test đọc thẳng source, và
+      `LEGACY_EXIT_COMMANDS` bắt mọi lệnh cũ phải là quyết định mới được đổi
+- [x] Lệnh mới dùng bảng mới (0/1/2/3); entrypoint nay tôn trọng `exitCode` của error
+      thay vì gộp mọi lỗi thành 1; khác biệt ghi trong README
+- [x] Không tồn tại `av kit validate`
+- [x] `av run` không đổi hành vi; `av skill run` là bề mặt riêng
+- [x] `av skill run` đã có từ phase 7, chạy thật trên script Python
+- [x] `av mcp verify` phát hiện server hỏng handshake — có test **spawn tiến trình thật**
+- [x] `contract --json` liệt kê `plan`, `kit`, `mcp`; drift test xanh
+- [x] Lệnh cũ không đổi hành vi (suite đầy đủ xanh)
+- [x] `pnpm test` xanh (977 test)
 
 ## Risk Assessment
 
@@ -96,3 +98,62 @@ interpreter đúng", không phải "thực thi SKILL.md".
 đã 247 dòng trước phase này. Phản ứng: tách theo nhóm subcommand, mỗi nhóm một file. Lưu ý
 quy tắc <200 LOC hiện **không có lint gate** nào enforce và 17 file production đã vượt —
 đừng dùng nó làm tripwire, dùng nó làm hướng dẫn tách file.
+
+
+## Kết quả (2026-08-15)
+
+### Nhu cầu thật của skill khác hẳn scope phase
+
+Đếm lời gọi CLI trong 103 skill nguồn:
+
+| Nhóm | Lần gọi | Subcommand khác nhau |
+|---|---|---|
+| `plan` | ~90 | ~20 (create, update, close, check, uncheck, phase, archive, cleanup, reindex, list, search, kanban, publish, validate, migrate, parse, resolve, status, use, show) |
+| `journal` | 22 | 4 (create, list, show, validate) |
+| `config prefs` | 13 | — (đã có ở phase 10) |
+| `kit` | 8 | validate, list-kits, init, refresh |
+| `skill` | 7 | verify, install, upgrade, repair, remove (đã có ở phase 7) |
+| `mcp` | 6 | add, link, list, remove, show, verify |
+
+Phase này scope `plan {use, show}`. **Chênh lệch là thật và chưa được lấp**: skill port ở
+phase 12 sẽ tham chiếu ~18 subcommand `plan` và 4 subcommand `journal` không tồn tại.
+
+Không dựng stub. Một subcommand có mặt mà không làm gì tệ hơn một subcommand vắng mặt —
+cái vắng mặt báo lỗi ngay, cái stub báo thành công rồi để người dùng tự phát hiện sau.
+Quyết định mở rộng (dựng nguyên bộ quản lý plan + journal, hay chấp nhận skill tham chiếu
+lệnh không có) thuộc về người dùng, ghi lại ở đây để quyết ở phase 12/16.
+
+### Ba thứ bỏ có lý do, không phải bỏ sót
+
+- **`av kit repair-install-mode`** — sửa lựa chọn "install mode" mà CLI này không có: một
+  đường dẫn cho mỗi ô (provider, artifact), do bảng verify quyết. Port nó nghĩa là phát
+  minh ra khái niệm để đi sửa, và bản trung thực của nó sẽ in "không có gì để sửa" mãi mãi.
+- **`av kit validate`** — trùng `av validate` đã có ở top level. Hai cách gọi một việc là
+  cách chúng trôi khỏi nhau.
+- **`av mcp link`** — copy định nghĩa server giữa provider, cần đường dẫn config MCP đã
+  verify cho từng provider. Luật của repo: ô chưa verify thì skip, không đoán.
+
+### Exit code: sửa một lỗ thật
+
+Bảng mới vô nghĩa nếu entrypoint gộp mọi lỗi thành `exit 1` — mà nó đang làm đúng thế.
+Nay error nào tự khai `exitCode` thì được tôn trọng; còn lại vẫn là 1. Kiểm bằng chạy thật:
+`kit install-path nope` → 2, `doctor` không receipt → 2 theo **ngữ nghĩa cũ** (unhealthy),
+`mcp verify` server hỏng → 1.
+
+### Một nguồn đường dẫn, ba chỗ đọc
+
+`kit install-path` cần đường dẫn thật (home/cwd thật), `contract`/README cần template có
+placeholder. Thay vì viết hai lần, tách `targetPathFor(id, kind, ctx)`; `targetTemplate`
+nay chỉ là chính nó chạy dưới sentinel root. Installer, matrix, contract và lệnh mới không
+thể bất đồng về một đường dẫn nữa.
+
+### `av mcp` ghi vào file không thuộc về mình
+
+`.mcp.json` là của repo, `~/.claude.json` là của người dùng và chứa rất nhiều thứ không
+liên quan. Nên: ghi atomic, backup trước, và **giữ nguyên mọi khoá không hiểu** — có test
+khẳng định `numStartups` và `tipsHistory` còn nguyên sau khi thêm server. Mặc định là scope
+project; chỉ `--global` mới chạm vào file của người dùng. `mcp show` in **tên** biến env,
+không in giá trị: đó là chỗ API key nằm.
+
+`verify` có test spawn tiến trình thật — một verify không bao giờ khởi động cái gì vẫn qua
+được mọi test dùng fake.

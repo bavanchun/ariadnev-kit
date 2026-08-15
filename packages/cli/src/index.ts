@@ -7,6 +7,7 @@ import { emit, emitError, setEmitTransform } from "./cli/emit.js";
 import type { CommandRegistrationContext } from "./cli/command-registration-context.js";
 import { registerCatalogCommands } from "./cli/register-catalog-commands.js";
 import { registerConfigCommands } from "./cli/register-config-commands.js";
+import { registerTier1Commands } from "./cli/register-tier1-commands.js";
 import { registerInstallCommands } from "./cli/register-install-commands.js";
 import { registerHarnessCommands } from "./cli/register-harness-commands.js";
 import { registerMaintenanceCommands } from "./cli/register-maintenance-commands.js";
@@ -58,6 +59,7 @@ export function buildProgram(): Command {
   registerQualityCommands(program, context);
   registerCatalogCommands(program, context);
   registerConfigCommands(program, context);
+  registerTier1Commands(program, context);
   registerHarnessCommands(program);
 
   program.addHelpText("beforeAll", () => `${banner()}\n`);
@@ -97,8 +99,12 @@ if (isEntry()) {
   buildProgram()
     .parseAsync(process.argv)
     .then(nudgeAfterCommand)
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error(sanitize(String(error instanceof Error ? error.message : error)));
-      process.exit(1);
+      // An error that names its own exit code gets it: a usage mistake and a
+      // failed check are different answers, and a caller reading only the code
+      // has no other way to tell them apart. Anything else stays 1.
+      const named = (error as { exitCode?: unknown }).exitCode;
+      process.exit(typeof named === "number" ? named : 1);
     });
 }

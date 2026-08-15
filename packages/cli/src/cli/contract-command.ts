@@ -43,6 +43,9 @@ export const CAPABILITIES = [
   "graph.run.v1",
   "telemetry.optout.v1",
   "config.prefs.v1",
+  "plan.pointer.v1",
+  "kit.paths.v1",
+  "mcp.verify.v1",
 ] as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -65,6 +68,9 @@ export const KNOWN_COMMANDS = [
   "migrate",
   "run",
   "config",
+  "plan",
+  "kit",
+  "mcp",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {
