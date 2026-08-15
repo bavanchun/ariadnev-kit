@@ -47,6 +47,8 @@ export const CAPABILITIES = [
   "kit.paths.v1",
   "mcp.verify.v1",
   "adapters.project.v1",
+  "plan.files.v1",
+  "journal.entries.v1",
 ] as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -70,6 +72,7 @@ export const KNOWN_COMMANDS = [
   "run",
   "config",
   "plan",
+  "journal",
   "kit",
   "mcp",
   "adapters",

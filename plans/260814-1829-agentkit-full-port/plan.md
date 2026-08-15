@@ -278,3 +278,37 @@ bước 0. `kit/commands/` → phase 3. Docs nội dung + changeset + e2e → ph
 - Skill nặng asset (`ui-styling` 5.8MB) nhúng hết hay tách sidecar? Quyết ở phase 4 theo số đo.
 - Hosting cho `ariadnev.com` dựng khi nào? Ngoài scope plan này, nhưng phase 2 bước 8 cần
   `ARIADNEV_BASE_URL` trỏ local để test.
+
+
+## Sau phase 16 — lấp khoảng trống CLI (2026-08-15)
+
+Người dùng chọn: **dựng nốt `av plan` và `av journal`** thay vì để nội dung port tham chiếu
+lệnh không tồn tại.
+
+Đã dựng, files-first (không có database, không có index — file **là** bản ghi):
+
+| Nhóm | Subcommand |
+|---|---|
+| `av plan` | `use`, `show`, `list`, `resolve`, `update`, `check`, `uncheck`, `status`, `close`, `phase`, `search`, `reindex`, `archive`, `cleanup` |
+| `av journal` | `create`, `list`, `show`, `validate` |
+
+Ba quyết định đáng ghi:
+
+- **Sửa một dòng frontmatter, không round-trip file.** Plan là Markdown viết tay và được
+  đọc dưới dạng diff; parse rồi serialize lại sẽ format lại bài của người khác và làm diff
+  mất tác dụng — vốn là công dụng chính của file plan.
+- **`update` ghi cả phase file lẫn bảng trong index.** Hai người đọc khác nhau: file là bản
+  ghi, bảng là thứ ai mở plan cũng nhìn. Sửa một bên là cách plan bắt đầu nói dối chính nó.
+- **Không đoán plan nào.** Không có tên và không có pointer thì từ chối. Đoán "cái mới nhất"
+  sẽ sửa nhầm plan, và sửa im lặng.
+- **`reindex` nói thật.** Không có index để build lại, nên nó đọc lại toàn bộ và báo cái gì
+  hỏng. Một lệnh in "rebuilt" mà không làm gì tệ hơn một lệnh không tồn tại.
+
+Kết quả đo lại: **69 → 15** tham chiếu tới lệnh không tồn tại. 15 còn lại là:
+
+| Còn lại | Số | Vì sao không dựng |
+|---|---|---|
+| `av config start/stop/status` | 7 | Quản lý daemon nền — thuộc nhóm Tier-3 ở non-goals |
+| `av plan publish` | 2 | Chiếu plan lên GitHub issue; cần `gh` + repo companion, và bản nguồn cũng ghi là tuỳ chọn |
+| `av not` | 2 | Dương tính giả của phép đếm — là câu `av not found` trong thông báo lỗi |
+| `av hooks`, `av kit init`, `av ship`, `av codex-agent-runtime` | 4 | Tier-3 / non-goals |

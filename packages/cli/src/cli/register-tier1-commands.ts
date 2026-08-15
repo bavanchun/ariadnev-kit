@@ -4,16 +4,32 @@
 // Commander.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Command } from "commander";
 import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
 import { loadConfig, realLoadDeps } from "../config/load-config.js";
 import { emit } from "./emit.js";
-import { EXIT } from "./exit-codes.js";
+import { EXIT, UsageError } from "./exit-codes.js";
 import { runKitInstallPath, runKitRefresh } from "./kit-command.js";
 import { realVerifyDeps, runMcpAdd, runMcpList, runMcpRemove, runMcpShow, runMcpVerify } from "./mcp-command.js";
-import { runPlanShow, runPlanUse, type PlanDeps } from "./plan-command.js";
+import {
+  runPlanArchive,
+  runPlanCheck,
+  runPlanCleanup,
+  runPlanList,
+  runPlanPhase,
+  runPlanReindex,
+  runPlanResolve,
+  runPlanSearch,
+  runPlanShow,
+  runPlanStatus,
+  runPlanUpdate,
+  runPlanUse,
+  type PlanDeps,
+} from "./plan-command.js";
+import { runJournalCreate, runJournalList, runJournalShow, runJournalValidate, type JournalDeps } from "./journal-command.js";
+import { assertStatus } from "../plan/plan-mutations.js";
 import { runAdaptersRegenerate } from "./adapters-command.js";
 
 function realPlanDeps(cwd: string): PlanDeps {
@@ -36,6 +52,10 @@ function realPlanDeps(cwd: string): PlanDeps {
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, content);
     },
+    moveDir: (from, to) => {
+      mkdirSync(dirname(to), { recursive: true });
+      renameSync(from, to);
+    },
     branch: () => {
       try {
         const out = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -47,6 +67,37 @@ function realPlanDeps(cwd: string): PlanDeps {
         return null;
       }
     },
+  };
+}
+
+
+function positiveInt(value: string, label: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) throw new UsageError(`${label} must be a positive integer (got ${value})`);
+  return parsed;
+}
+
+function realJournalDeps(): JournalDeps {
+  return {
+    listDir: (path) => {
+      try {
+        return readdirSync(path);
+      } catch {
+        return null;
+      }
+    },
+    readFile: (path) => {
+      try {
+        return readFileSync(path, "utf8");
+      } catch {
+        return null;
+      }
+    },
+    writeFile: (path, content) => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, content);
+    },
+    fileExists: (path) => existsSync(path),
   };
 }
 
@@ -83,6 +134,194 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
       );
       emit(output);
       if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  const planOpts = (json?: boolean) => {
+    const global = program.opts<GlobalOpts>();
+    const { config } = loadConfig({ home: global.home, cwd: global.cwd }, realLoadDeps());
+    return {
+      opts: { cwd: global.cwd, plansDir: config.paths.plans, json: !!json, dryRun: !!global.dryRun },
+      deps: realPlanDeps(global.cwd),
+    };
+  };
+  const finish = ({ output, exitCode }: { output: string; exitCode: number }): void => {
+    if (output) emit(output);
+    if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+  };
+
+  plan
+    .command("list")
+    .description("List plan directories with their status and phase progress")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanList(opts, deps));
+    });
+
+  plan
+    .command("resolve")
+    .description("Print the directory of the plan this branch points at")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanResolve(opts, deps));
+    });
+
+  plan
+    .command("update")
+    .description("Set a phase's status, in the phase file and the index table")
+    .argument("<phase>", "phase number")
+    .argument("<status>", "pending | in-progress | completed | cancelled")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((phase: string, status: string, o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanUpdate(o.plan, { phase: positiveInt(phase, "phase"), status: assertStatus(status) }, opts, deps));
+    });
+
+  plan
+    .command("check")
+    .description("Mark a phase completed")
+    .argument("<phase>", "phase number")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((phase: string, o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanCheck(o.plan, positiveInt(phase, "phase"), true, opts, deps));
+    });
+
+  plan
+    .command("uncheck")
+    .description("Put a phase back to pending")
+    .argument("<phase>", "phase number")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((phase: string, o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanCheck(o.plan, positiveInt(phase, "phase"), false, opts, deps));
+    });
+
+  plan
+    .command("status")
+    .description("Show or set the plan's own status")
+    .argument("[status]", "pending | in-progress | completed | cancelled; omit to read it")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((status: string | undefined, o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanStatus(o.plan, status ? assertStatus(status) : null, opts, deps));
+    });
+
+  plan
+    .command("close")
+    .description("Mark the plan completed")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanStatus(o.plan, "completed", opts, deps));
+    });
+
+  plan
+    .command("phase")
+    .description("Print one phase file in full")
+    .argument("<phase>", "phase number")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((phase: string, o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanPhase(o.plan, positiveInt(phase, "phase"), opts, deps));
+    });
+
+  plan
+    .command("search")
+    .description("Search every plan's files")
+    .argument("<query>")
+    .option("--json", "emit the machine envelope", false)
+    .action((query: string, o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanSearch(query, opts, deps));
+    });
+
+  plan
+    .command("reindex")
+    .description("Re-read every plan and report what is malformed (there is no index to rebuild)")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanReindex(opts, deps));
+    });
+
+  plan
+    .command("archive")
+    .description("Move a finished plan under the archive dir")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--force", "archive it even though it is not finished", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { plan?: string; force?: boolean; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanArchive(o.plan, opts, deps, !!o.force));
+    });
+
+  plan
+    .command("cleanup")
+    .description("List finished plans still in the plans root; --archive moves them")
+    .option("--archive", "move them instead of just listing", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { archive?: boolean; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanCleanup(opts, deps, !!o.archive));
+    });
+
+  const journal = program.command("journal").description("The technical journal: one dated entry per notable event");
+  const journalOpts = (json?: boolean) => {
+    const global = program.opts<GlobalOpts>();
+    const { config } = loadConfig({ home: global.home, cwd: global.cwd }, realLoadDeps());
+    return { cwd: global.cwd, docsDir: config.paths.docs, json: !!json, dryRun: !!global.dryRun };
+  };
+
+  journal
+    .command("create")
+    .description("Write a dated entry")
+    .argument("<title>")
+    .option("--component <name>", "what it is about", "")
+    .option("--status <status>", "Resolved | Ongoing | Blocked | Abandoned", "Resolved")
+    .option("--body <text>", "the entry body")
+    .option("--json", "emit the machine envelope", false)
+    .action((title: string, o: { component: string; status: string; body?: string; json?: boolean }) => {
+      finish(
+        runJournalCreate(
+          { title, component: o.component, status: o.status, body: o.body, at: new Date().toISOString() },
+          journalOpts(o.json),
+          realJournalDeps(),
+        ),
+      );
+    });
+
+  journal
+    .command("list")
+    .description("List entries, newest first")
+    .option("--limit <count>", "how many to show", "20")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { limit: string; json?: boolean }) => {
+      finish(runJournalList(journalOpts(o.json), realJournalDeps(), positiveInt(o.limit, "--limit")));
+    });
+
+  journal
+    .command("show")
+    .description("Print one entry, by file name or a fragment of it")
+    .argument("<term>")
+    .option("--json", "emit the machine envelope", false)
+    .action((term: string, o: { json?: boolean }) => {
+      finish(runJournalShow(term, journalOpts(o.json), realJournalDeps()));
+    });
+
+  journal
+    .command("validate")
+    .description("Check every entry has a title, a date, a status, and a body")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { json?: boolean }) => {
+      finish(runJournalValidate(journalOpts(o.json), realJournalDeps()));
     });
 
   const kit = program.command("kit").description("Where the kit installs from and to");
@@ -217,4 +456,4 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
 }
 
 /** Exported for the registration guard test. */
-export const TIER1_COMMANDS = ["plan", "kit", "mcp", "adapters"] as const;
+export const TIER1_COMMANDS = ["plan", "journal", "kit", "mcp", "adapters"] as const;

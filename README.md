@@ -90,7 +90,12 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
 | `ariadnev run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
 | `ariadnev run resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
-| `ariadnev plan use <name>` / `ariadnev plan show [--json]` | Point the current branch at a plan directory under the plans dir, and show that plan with its phases and their status |
+| `ariadnev plan use\|show\|list\|resolve [--json]` | Point the current branch at a plan directory, show it with its phases, list every plan, or print the resolved directory path |
+| `ariadnev plan update <phase> <status>` / `check\|uncheck <phase>` / `status [status]` / `close` | Set a phase's status in both the phase file and the index table, or set the plan's own status. Acts on the branch's plan unless `--plan <name>` says otherwise |
+| `ariadnev plan phase <n>` / `search <query>` / `reindex` | Print one phase in full, search every plan's files, or re-read them all and report what is malformed — there is no index to rebuild, the files are the record |
+| `ariadnev plan archive [--force]` / `cleanup [--archive]` | Move a finished plan under `plans/archive/`; `cleanup` lists (or moves) every finished plan. Archiving unfinished work needs `--force` |
+| `ariadnev journal create <title> [--component] [--status] [--body]` | Write a dated entry under the docs dir. Never overwrites an existing one |
+| `ariadnev journal list\|show <term>\|validate [--json]` | List entries newest first, print one, or check every entry has a title, date, status, and body |
 | `ariadnev kit install-path <provider> [--global] [--json]` | Show where each artifact kind would be written for a provider, including the kinds that would be skipped |
 | `ariadnev kit refresh` | Discard the extracted kit cache and extract it again |
 | `ariadnev mcp list\|show\|add\|remove\|verify [--global] [--json]` | Inspect and edit the MCP servers configured for this project (`.mcp.json`) or for you (`~/.claude.json`); `verify` starts each server and checks it completes the MCP initialize handshake. Writes are atomic, backed up, and preserve every key they do not understand |
