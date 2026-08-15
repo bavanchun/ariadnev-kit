@@ -34,11 +34,11 @@
   },
   "scripts": {
     "build": "tsup",
-    "generate:embedded": "node scripts/generate-embedded-kit.mjs",
+    "generate:embedded": "bun scripts/generate-embedded-kit.mjs",
     "generate:matrix": "bun scripts/generate-provider-matrix.ts",
     "generate:config-schema": "bun scripts/generate-config-schema.ts",
     "generate:skill-lock": "bun scripts/generate-skill-lock.ts",
-    "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/ariadnev",
+    "build:binary": "bun scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/ariadnev",
     "build:release": "node scripts/build-binaries.mjs",
     "docs-bundle:generate": "bun scripts/generate-docs-bundle.ts",
     "test:build-binaries": "node --test scripts/build-binaries.test.mjs",

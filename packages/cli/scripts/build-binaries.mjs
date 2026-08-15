@@ -52,7 +52,10 @@ if (Number.isNaN(Date.parse(generatedAt))) throw new Error("generated-at must be
 if (releaseTag !== `ariadnev@${version}`) throw new Error("release tag must match the package version");
 if (only && !TARGETS.some(({ asset }) => asset === only)) throw new Error(`unknown binary target: ${only}`);
 
-execFileSync("node", [join(pkgDir, "scripts", "generate-embedded-kit.mjs")], { stdio: "inherit", cwd: pkgDir });
+// bun, not node: the generator imports the ignore lists straight from
+// install-types.ts so they are defined once, and only bun (or a node new enough
+// to strip types — which the CI runner is not) can load that.
+execFileSync("bun", [join(pkgDir, "scripts", "generate-embedded-kit.mjs")], { stdio: "inherit", cwd: pkgDir });
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 

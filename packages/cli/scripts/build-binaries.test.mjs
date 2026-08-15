@@ -19,6 +19,26 @@ function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+test("the embedded-kit generator is never invoked with node", () => {
+  // It imports install-types.ts, so it needs a runtime that loads TypeScript.
+  // Node 22+ strips types and node 20 — the release runner — does not, so a
+  // machine-dependent pass is the failure mode: this ran green locally and died
+  // in the release build. A static check is the only one that cannot be fooled
+  // by whichever node happens to be installed here.
+  const sources = [
+    join(pkgDir, "scripts", "build-binaries.mjs"),
+    join(pkgDir, "scripts", "generate-embedded-kit.test.mjs"),
+    join(pkgDir, "package.json"),
+  ];
+  for (const source of sources) {
+    const text = readFileSync(source, "utf8");
+    for (const line of text.split("\n")) {
+      if (!line.includes("generate-embedded-kit.mjs")) continue;
+      assert.doesNotMatch(line, /["']node["']|\bnode /, `${source}: ${line.trim()}`);
+    }
+  }
+});
+
 test("build-binaries writes a fresh release tree with exact assets and checksum coverage", () => {
   const tempRoot = mkdtempSync(join(tmpdir(), "ariadnev-build-binaries-"));
   const outputDir = join(tempRoot, "release");

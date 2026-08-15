@@ -36,7 +36,10 @@ function runGenerator(build) {
   writeFileSync(join(pkgDir, "scripts", "generate-embedded-kit.mjs"), readFileSync(generator));
 
   build(join(root, "kit"));
-  execFileSync("node", [join(pkgDir, "scripts", "generate-embedded-kit.mjs")], { stdio: "pipe" });
+  // bun, matching how build-binaries invokes it. Running this under node would
+  // pass on a node new enough to strip types and hide that the release runner's
+  // node is not — which is exactly how this reached CI.
+  execFileSync("bun", [join(pkgDir, "scripts", "generate-embedded-kit.mjs")], { stdio: "pipe" });
 
   const generated = readFileSync(join(pkgDir, "src", "kit", "kit-embedded.generated.ts"), "utf8");
   const body = generated.slice(generated.indexOf("EMBEDDED_ASSETS: Record<string, EmbeddedAsset> = "));

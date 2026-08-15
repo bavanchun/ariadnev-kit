@@ -8,7 +8,7 @@ import { releaseDecision, releaseOutputs } from "./detect-release-source.mjs";
 // exact state this repository was in, where 1.0.0 had been in package.json for
 // nineteen commits and no push could ever have produced a release.
 test("releases a version that has never been tagged", () => {
-  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@0.12.0"] });
+  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@0.12.0"] }); // brand-drift-allow: the real pre-rename tag in this repository
   assert.equal(decision.release, true);
   assert.match(decision.reason, /no tag/i);
 });
@@ -16,7 +16,7 @@ test("releases a version that has never been tagged", () => {
 test("refuses a version that is already tagged, however it was reached", () => {
   // This is what stops a second push from cutting the same release twice — the
   // property the version-diff shape did not have.
-  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@0.12.0", "ariadnev@1.0.0"] });
+  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@0.12.0", "ariadnev@1.0.0"] }); // brand-drift-allow: the real pre-rename tag in this repository
   assert.equal(decision.release, false);
   assert.match(decision.reason, /already/i);
 });
@@ -35,8 +35,8 @@ test("matches the tag exactly — a prefix or suffix is a different release", ()
 
 test("a pre-rename tag at the same version does not count as released", () => {
   // Tag grammar for what this project *produces* is the current name only, so a
-  // vcskill@1.0.0 tag would not mean ariadnev@1.0.0 was ever cut.
-  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@1.0.0"] });
+  // vcskill@1.0.0 tag would not mean ariadnev@1.0.0 was ever cut. brand-drift-allow: names the pre-rename grammar
+  const decision = releaseDecision({ version: "1.0.0", tags: ["vcskill@1.0.0"] }); // brand-drift-allow: the pre-rename grammar, deliberately not a match
   assert.equal(decision.release, true);
 });
 
