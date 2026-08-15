@@ -87,29 +87,12 @@ jobs:
           test "$(git -C previous-stable rev-parse "${PREVIOUS_SOURCE_TAG}^{commit}")" = "$PREVIOUS_SOURCE_SHA"
           test -z "$(git -C previous-stable status --porcelain)"
           find previous-stable -path previous-stable/.git -prune -o \( -type f -o -type d \) -exec chmod a-w {} +
-      - name: Resolve exact web lock metadata
-        id: lock
-        run: |
-          mkdir -p packages/cli/dist/candidate
-          node packages/cli/scripts/verify-web-consumer-lock.mjs --metadata .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web > packages/cli/dist/candidate/lock-metadata.json
-          node -e "const fs=require('node:fs');const value=JSON.parse(fs.readFileSync('packages/cli/dist/candidate/lock-metadata.json'));console.log('repository='+value.repository+'\ncommit_sha='+value.commitSha+'\nlock_digest='+value.lockDigest)" >> "$GITHUB_OUTPUT"
-      - name: Checkout web consumer exact commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: ${{ steps.lock.outputs.repository }}
-          ref: ${{ steps.lock.outputs.commit_sha }}
-          path: web-consumer
-          fetch-depth: 1
-          persist-credentials: false
-      - name: Preflight exact web lock
-        run: node packages/cli/scripts/verify-web-consumer-lock.mjs --preflight web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web
       - name: Build release assets
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           GENERATED_AT: ${{ inputs.generated_at }}
           SOURCE_DATE_EPOCH: ${{ inputs.source_date_epoch }}
           RELEASE_VERSION: ${{ inputs.version }}
-          LOCK_DIGEST: ${{ steps.lock.outputs.lock_digest }}
           PREVIOUS_SOURCE_TAG: ${{ steps.previous.outputs.release_tag }}
           PREVIOUS_SOURCE_SHA: ${{ steps.previous.outputs.source_sha }}
         run: |
@@ -118,14 +101,9 @@ jobs:
             --generated-at "$GENERATED_AT" \
             --source-date-epoch "$SOURCE_DATE_EPOCH" \
             --release-tag "ariadnev@$RELEASE_VERSION" \
-            --final-consumer-lock ".github/release/web-consumer-lock.json" \
-            --final-consumer-lock-digest "$LOCK_DIGEST" \
             --previous-source-tree "$GITHUB_WORKSPACE/previous-stable" \
             --previous-source-tag "$PREVIOUS_SOURCE_TAG" \
             --previous-source-sha "$PREVIOUS_SOURCE_SHA"
-      - name: Execute final consumer
-        run: |
-          node packages/cli/scripts/verify-web-consumer-lock.mjs --execute web-consumer .github/release/web-consumer-lock.json .github/release/web-consumer-lock.schema.json . bavanchun/ariadnev-web > packages/cli/dist/candidate/final-consumer-result.json
       - name: Create inner provenance A
         env:
           GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
@@ -135,7 +113,8 @@ jobs:
           RELEASE_TAG: ariadnev@${{ inputs.version }}
           CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
         run: |
-          node packages/cli/scripts/create-release-attestation.mjs packages/cli/dist/release packages/cli/dist/candidate/final-consumer-result.json .github/release/web-consumer-lock.json packages/cli/dist/candidate/release-artifact-attestation.json .github/release/release-artifact-attestation.schema.json
+          mkdir -p packages/cli/dist/candidate
+          node packages/cli/scripts/create-release-attestation.mjs packages/cli/dist/release packages/cli/dist/candidate/release-artifact-attestation.json .github/release/release-artifact-attestation.schema.json
       - name: Stage flat candidate inventory
         run: node packages/cli/scripts/stage-release-candidate.mjs packages/cli/dist/release packages/cli/dist/candidate/release-artifact-attestation.json packages/cli/dist/candidate-upload
       - name: Upload exact candidate artifact

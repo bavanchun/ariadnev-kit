@@ -103,12 +103,10 @@ jobs:
           ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 536870912, "candidate expands beyond the byte limit");
           execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
           const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
-          ok(attestation.schemaVersion === 1 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
+          ok(attestation.schemaVersion === 2 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
           ok(attestation.workflow?.runId === runId && attestation.workflow?.runAttempt === attempt && attestation.workflow?.path === ".github/workflows/release.yml" && attestation.workflow?.ref === `${repo}/.github/workflows/release.yml@refs/heads/main` && attestation.workflow?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.workflow?.digest), "attestation workflow drift");
           ok(attestation.product?.sha === sha && attestation.product?.tag === tag && tag === `ariadnev@${attestation.product?.version}`, "attestation product drift");
           ok(attestation.generator?.path === "packages/cli/scripts/generate-docs-bundle.ts" && attestation.generator?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.generator?.digest), "attestation generator drift");
-          ok(attestation.consumer?.repository === "bavanchun/ariadnev-web" && /^[a-f0-9]{40}$/.test(attestation.consumer?.commitSha) && attestation.consumer?.lockPath === ".github/release/web-consumer-lock.json", "attestation consumer drift");
-          for (const field of ["lockDigest", "contractDigest", "invocationDigest", "resultDigest", "outputDigest", "previousDescriptorDigest"]) ok(/^sha256:[a-f0-9]{64}$/.test(attestation.consumer?.[field]), `attestation ${field} drift`);
           const required = ["checksums.txt", "docs-bundle-manifest-v1.schema.json", "docs-bundle.manifest.json", "docs-bundle.tar.gz", "ariadnev-darwin-arm64", "ariadnev-darwin-x64", "ariadnev-linux-arm64", "ariadnev-linux-x64", "ariadnev-windows-x64.exe"].sort((left, right) => left.localeCompare(right));
           const assets = [...(attestation.releaseAssets || [])].sort((left, right) => left.name.localeCompare(right.name));
           ok(JSON.stringify(assets.map((entry) => entry.name)) === JSON.stringify(required), "release asset inventory drift");

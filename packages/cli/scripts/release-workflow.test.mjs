@@ -73,7 +73,7 @@ test("publisher and finalizer call only extracted privileged scripts and known s
   const buildJob = loadJobs(build).build;
   const buildSteps = buildJob.steps.map((step) => step.name);
   assert.deepEqual(buildSteps.slice(-4), [
-    "Execute final consumer",
+    "Build release assets",
     "Create inner provenance A",
     "Stage flat candidate inventory",
     "Upload exact candidate artifact",
@@ -85,16 +85,14 @@ test("publisher and finalizer call only extracted privileged scripts and known s
   assert.doesNotMatch(readWorkflow(finalize), /pnpm install|actions\/setup-node|npm install/);
 });
 
-test("exact lock preflight precedes build and one flat retained artifact follows the final consumer", () => {
+test("the previous stable source is locked before build, and one flat artifact is retained", () => {
   const steps = loadJobs(build).build.steps;
   const names = steps.map((step) => step.name);
-  assert.ok(names.indexOf("Resolve exact web lock metadata") < names.indexOf("Checkout web consumer exact commit"));
   assert.ok(names.indexOf("Resolve immediate previous stable") < names.indexOf("Checkout previous stable exact commit"));
   assert.ok(names.indexOf("Checkout previous stable exact commit") < names.indexOf("Lock previous stable source tree"));
   assert.ok(names.indexOf("Lock previous stable source tree") < names.indexOf("Build release assets"));
-  assert.ok(names.indexOf("Preflight exact web lock") < names.indexOf("Build release assets"));
-  assert.ok(names.indexOf("Build release assets") < names.indexOf("Execute final consumer"));
-  assert.ok(names.indexOf("Execute final consumer") < names.indexOf("Stage flat candidate inventory"));
+  assert.ok(names.indexOf("Build release assets") < names.indexOf("Create inner provenance A"));
+  assert.ok(names.indexOf("Create inner provenance A") < names.indexOf("Stage flat candidate inventory"));
   const upload = steps.find((step) => step.name === "Upload exact candidate artifact");
   assert.equal(upload.with.path, "packages/cli/dist/candidate-upload/*");
   assert.equal(upload.with.overwrite, false);
@@ -106,7 +104,6 @@ test("exact lock preflight precedes build and one flat retained artifact follows
   assert.equal(previousLockEnv.PREVIOUS_SOURCE_TAG, "${{ steps.previous.outputs.release_tag }}");
   assert.equal(previousLockEnv.PREVIOUS_SOURCE_SHA, "${{ steps.previous.outputs.source_sha }}");
   assert.match(previousLock.run, /rev-parse \"\$\{PREVIOUS_SOURCE_TAG\}\^\{commit\}\"/);
-  assert.match(extractRun(build, "Preflight exact web lock"), /--preflight/);
   assert.match(extractRun(build, "Build release assets"), /--previous-source-tree[\s\S]*--previous-source-tag[\s\S]*--previous-source-sha/);
 });
 

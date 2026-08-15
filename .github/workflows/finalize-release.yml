@@ -100,13 +100,11 @@ jobs:
           ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 536870912, "candidate expands beyond the byte limit");
           execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
           const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
-          ok(attestation.schemaVersion === 1 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
+          ok(attestation.schemaVersion === 2 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
           ok(attestation.workflow?.runId === runId && attestation.workflow?.runAttempt === attempt && attestation.workflow?.path === ".github/workflows/release.yml" && attestation.workflow?.ref === `${repo}/.github/workflows/release.yml@refs/heads/main` && attestation.workflow?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.workflow?.digest), "attestation workflow drift");
           ok(attestation.product?.sha === sha && attestation.product?.tag === tag && tag === `ariadnev@${attestation.product?.version}`, "attestation product drift");
           ok(attestation.generator?.path === "packages/cli/scripts/generate-docs-bundle.ts" && attestation.generator?.sha === sha && /^sha256:[a-f0-9]{64}$/.test(attestation.generator?.digest), "attestation generator drift");
-          ok(attestation.consumer?.repository === "bavanchun/ariadnev-web" && /^[a-f0-9]{40}$/.test(attestation.consumer?.commitSha) && attestation.consumer?.lockPath === ".github/release/web-consumer-lock.json", "attestation consumer drift");
-          for (const field of ["lockDigest", "contractDigest", "invocationDigest", "resultDigest", "outputDigest", "previousDescriptorDigest"]) ok(/^sha256:[a-f0-9]{64}$/.test(attestation.consumer?.[field]), `attestation ${field} drift`);
-          const sourceFiles = [{ path: attestation.workflow.path, expected: attestation.workflow.digest }, { path: attestation.generator.path, expected: attestation.generator.digest }, { path: attestation.consumer.lockPath, expected: attestation.consumer.lockDigest }];
+          const sourceFiles = [{ path: attestation.workflow.path, expected: attestation.workflow.digest }, { path: attestation.generator.path, expected: attestation.generator.digest }];
           const rawSource = (path) => api(`repos/${repo}/contents/${path}?ref=${sha}`, { binary: true, accept: "application/vnd.github.raw+json" });
           for (const file of sourceFiles) ok(/^sha256:[a-f0-9]{64}$/.test(file.expected) && digest(rawSource(file.path)) === file.expected, `source digest drift: ${file.path}`);
           const finalizerWorkflowDigest = digest(rawSource(".github/workflows/finalize-release.yml"));

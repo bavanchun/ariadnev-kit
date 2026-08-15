@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateReleaseJson } from "./validate-release-json.mjs";
 
@@ -22,16 +22,10 @@ function simpleName(name) {
   return name;
 }
 
-function readJson(path) {
-  return JSON.parse(readFileSync(path, "utf8"));
-}
-
 export function createReleaseAttestation({
-  assetDir, consumerResultPath, lockPath, outputPath, schemaPath,
+  assetDir, outputPath, schemaPath,
   workflowPath, generatorPath,
 }) {
-  const consumerResult = readJson(consumerResultPath);
-  const lock = readJson(lockPath);
   const releaseAssets = readdirSync(assetDir).sort((a, b) => a.localeCompare(b)).map((name) => {
     const file = join(assetDir, simpleName(name));
     const stat = lstatSync(file);
@@ -39,7 +33,10 @@ export function createReleaseAttestation({
     return { name, size: stat.size, digest: sha256(readFileSync(file)) };
   });
   const payload = {
-    schemaVersion: 1,
+    // 2 drops the `consumer` block. Version 1 attestations were never published,
+    // but the bump is what keeps "the gate never existed" from reading as "the
+    // gate was silently dropped" to anything that meets both shapes.
+    schemaVersion: 2,
     schema: schemaUrl,
     artifactName: process.env.CANDIDATE_ARTIFACT_NAME,
     workflow: {
@@ -60,19 +57,6 @@ export function createReleaseAttestation({
       digest: sha256(readFileSync(generatorPath)),
       sha: process.env.SOURCE_SHA,
     },
-    consumer: {
-      repository: consumerResult.repository,
-      commitSha: consumerResult.commitSha,
-      lockPath: basename(lockPath) === "web-consumer-lock.json" ? ".github/release/web-consumer-lock.json" : lockPath,
-      lockDigest: sha256(readFileSync(lockPath)),
-      contractDigest: consumerResult.contractDigest,
-      contractDigests: lock.contractDigests,
-      invocationDigest: consumerResult.invocationDigest,
-      resultDigest: consumerResult.resultDigest,
-      outputDigest: consumerResult.outputDigest,
-      previousDescriptorPath: lock.previousSource.descriptorPath,
-      previousDescriptorDigest: lock.previousSource.descriptorDigest,
-    },
     releaseAssets,
   };
   writeFileSync(outputPath, stable(payload));
@@ -82,11 +66,9 @@ export function createReleaseAttestation({
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
-    const [assetDir, consumerResultPath, lockPath, outputPath, schemaPath] = process.argv.slice(2);
+    const [assetDir, outputPath, schemaPath] = process.argv.slice(2);
     createReleaseAttestation({
       assetDir,
-      consumerResultPath,
-      lockPath,
       outputPath,
       schemaPath,
       workflowPath: ".github/workflows/release.yml",

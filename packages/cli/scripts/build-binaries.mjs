@@ -33,8 +33,6 @@ const sourceSha = arg("--source-sha");
 const generatedAt = arg("--generated-at");
 const sourceDateEpoch = arg("--source-date-epoch");
 const releaseTag = arg("--release-tag", `ariadnev@${version}`);
-const finalConsumerLock = arg("--final-consumer-lock");
-const finalConsumerLockDigest = arg("--final-consumer-lock-digest");
 const previousSourceTreeValue = arg("--previous-source-tree");
 const previousSourceTag = arg("--previous-source-tag");
 const previousSourceSha = arg("--previous-source-sha");
@@ -42,7 +40,6 @@ const previousSourceSha = arg("--previous-source-sha");
 if (!sourceSha || !generatedAt || !sourceDateEpoch) {
   throw new Error("build-binaries requires --source-sha, --generated-at, and --source-date-epoch");
 }
-if (!finalConsumerLock || !finalConsumerLockDigest) throw new Error("build-binaries requires the final consumer lock and its preflight digest");
 if (!previousSourceTreeValue || !previousSourceTag || !previousSourceSha) throw new Error("build-binaries requires the immediate previous stable source");
 const previousSourceTree = resolve(previousSourceTreeValue);
 if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error("source SHA must be a full lowercase commit SHA");
@@ -53,7 +50,6 @@ if (!/^[a-f0-9]{40}$/.test(previousSourceSha)) throw new Error("previous source 
 if (!Number.isSafeInteger(Number(sourceDateEpoch)) || Number(sourceDateEpoch) < 0) throw new Error("source date epoch must be a non-negative safe integer");
 if (Number.isNaN(Date.parse(generatedAt))) throw new Error("generated-at must be an ISO date-time");
 if (releaseTag !== `ariadnev@${version}`) throw new Error("release tag must match the package version");
-if (!/^sha256:[a-f0-9]{64}$/.test(finalConsumerLockDigest)) throw new Error("final consumer lock digest must be SHA-256");
 if (only && !TARGETS.some(({ asset }) => asset === only)) throw new Error(`unknown binary target: ${only}`);
 
 execFileSync("node", [join(pkgDir, "scripts", "generate-embedded-kit.mjs")], { stdio: "inherit", cwd: pkgDir });
@@ -68,8 +64,6 @@ execFileSync("bun", [
   "--generated-at", generatedAt,
   "--source-date-epoch", sourceDateEpoch,
   "--release-tag", releaseTag,
-  "--final-consumer-lock", finalConsumerLock,
-  "--final-consumer-lock-digest", finalConsumerLockDigest,
   "--previous-source-tree", previousSourceTree,
   "--previous-source-tag", previousSourceTag,
   "--previous-source-sha", previousSourceSha,

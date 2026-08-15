@@ -22,10 +22,8 @@ function sha256(path) {
 test("build-binaries writes a fresh release tree with exact assets and checksum coverage", () => {
   const tempRoot = mkdtempSync(join(tmpdir(), "ariadnev-build-binaries-"));
   const outputDir = join(tempRoot, "release");
-  const lockPath = join(tempRoot, "web-consumer-lock.json");
   try {
     writeFileSync(join(tempRoot, "stale.txt"), "ignore\n");
-    writeFileSync(lockPath, JSON.stringify({ schemaVersion: 1 }, null, 2));
     mkdirSync(outputDir, { recursive: true });
     writeFileSync(join(outputDir, "stale.txt"), "stale\n");
 
@@ -43,8 +41,6 @@ test("build-binaries writes a fresh release tree with exact assets and checksum 
       "--source-sha", sourceSha,
       "--generated-at", generatedAt,
       "--source-date-epoch", sourceDateEpoch,
-      "--final-consumer-lock", lockPath,
-      "--final-consumer-lock-digest", `sha256:${sha256(lockPath)}`,
       "--previous-source-tree", previousSourceTree,
       "--previous-source-tag", previous.releaseTag,
       "--previous-source-sha", previous.productSha,

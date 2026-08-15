@@ -41,12 +41,9 @@ async function main(): Promise<void> {
   const generatedAt = arg("--generated-at") ?? git(["show", "-s", "--format=%cI", sourceSha], repoRoot);
   const sourceDateEpoch = Number(arg("--source-date-epoch") ?? git(["show", "-s", "--format=%ct", sourceSha], repoRoot));
   const generatorSha = arg("--generator-sha", sourceSha)!;
-  const finalConsumerLockPath = arg("--final-consumer-lock");
-  const finalConsumerLockDigest = arg("--final-consumer-lock-digest");
   const previousSourceTree = arg("--previous-source-tree");
   const previousSourceTag = arg("--previous-source-tag");
   const previousSourceSha = arg("--previous-source-sha");
-  if (Boolean(finalConsumerLockPath) !== Boolean(finalConsumerLockDigest)) throw new Error("final consumer lock path and digest must be supplied together");
   const previousSourceParts = [previousSourceTree, previousSourceTag, previousSourceSha].filter(Boolean).length;
   if (previousSourceParts !== 0 && previousSourceParts !== 3) throw new Error("previous source tree, tag, and SHA must be supplied together");
   if (mode === "final" && previousSourceParts !== 3) throw new Error("final mode requires the immediate previous stable source");
@@ -75,9 +72,6 @@ async function main(): Promise<void> {
       attestations: [],
     },
     changelog,
-    finalConsumerLock: finalConsumerLockPath && finalConsumerLockDigest
-      ? { lockPath: finalConsumerLockPath, digest: finalConsumerLockDigest as `sha256:${string}` }
-      : undefined,
     previousSource: previousSourceTree && previousSourceTag && previousSourceSha
       ? { sourceTree: previousSourceTree, releaseTag: previousSourceTag, productSha: previousSourceSha, generatorSha }
       : undefined,

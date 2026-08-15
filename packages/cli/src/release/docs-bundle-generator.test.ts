@@ -1,12 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../index.js";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
 import { buildProviderMatrix } from "../providers/provider-matrix.js";
-import { cleanupTemps, sha256File, tempDir } from "./docs-bundle-generator-test-helpers.js";
+import { cleanupTemps, tempDir } from "./docs-bundle-generator-test-helpers.js";
 import { generateDocsBundle, readArchiveMember, validateDocsBundleManifest } from "./docs-bundle-generator.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -26,8 +26,6 @@ describe("docs bundle generator", () => {
     execFileSync("git", ["clone", "--quiet", "--no-checkout", repoRoot, "."], { cwd: previousSourceTree });
     execFileSync("git", ["checkout", "--quiet", "--detach", "vcskill@0.7.0"], { cwd: previousSourceTree }); // brand-drift-allow: real pre-rename tag in this repository
     const previousProductSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: previousSourceTree, encoding: "utf8" }).trim();
-    const lockPath = join(first, "web-consumer-lock.json");
-    writeFileSync(lockPath, JSON.stringify({ schemaVersion: 1 }, null, 2));
     const common = {
       mode: "final" as const,
       version: "0.12.0",
@@ -48,7 +46,6 @@ describe("docs bundle generator", () => {
         attestations: [{ id: "att-1", producer: "evaluator" as const, proof: "outcome" as const, status: "pass" as const }],
       },
       changelog: "# Changelog\n\n## 0.12.0\nDeterministic docs bundle.\n",
-      finalConsumerLock: { lockPath, digest: sha256File(lockPath) },
       previousSource: {
         sourceTree: previousSourceTree,
         releaseTag: "vcskill@0.7.0", // brand-drift-allow: real pre-rename tag in this repository
@@ -82,27 +79,7 @@ describe("docs bundle generator", () => {
     })).rejects.toThrow(/generator SHA must match/i);
   });
 
-  it("rejects final generation without the exact consumer lock and manifest identity drift", async () => {
-    await expect(generateDocsBundle({
-      mode: "final",
-      version: "0.12.0",
-      releaseTag: "ariadnev@0.12.0",
-      sourceSha: "d".repeat(40),
-      generatorSha: "d".repeat(40),
-      generatedAt,
-      sourceDateEpoch,
-      outputDir: tempDir("ariadnev-docs-final-missing-"),
-      workspaceRoot: repoRoot,
-      cli: buildProgram(),
-      kit: loadKit(resolveKitRoot(process.cwd())),
-      providers: buildProviderMatrix(),
-      proof: { schemaVersion: 1, boundary: "allowlist:v1", sourceDigests: {}, claims: [], attestations: [] },
-      changelog: "# Changelog\n\n## 0.12.0\nCandidate\n",
-    })).rejects.toThrow(/web-consumer lock/i);
-
-    const lockDirectory = tempDir("ariadnev-docs-final-lock-");
-    const lockPath = join(lockDirectory, "web-consumer-lock.json");
-    writeFileSync(lockPath, "{}\n");
+  it("rejects final generation without the previous stable source, and manifest identity drift", async () => {
     await expect(generateDocsBundle({
       mode: "final",
       version: "0.12.0",
@@ -118,7 +95,6 @@ describe("docs bundle generator", () => {
       providers: buildProviderMatrix(),
       proof: { schemaVersion: 1, boundary: "allowlist:v1", sourceDigests: {}, claims: [], attestations: [] },
       changelog: "# Changelog\n\n## 0.12.0\nCandidate\n",
-      finalConsumerLock: { lockPath, digest: sha256File(lockPath) },
     })).rejects.toThrow(/previous stable source/i);
 
     expect(validateDocsBundleManifest({

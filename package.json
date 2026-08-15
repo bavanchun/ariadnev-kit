@@ -16,7 +16,6 @@
     "build:release": "pnpm --filter ariadnev build:release",
     "docs-bundle:generate": "pnpm --filter ariadnev docs-bundle:generate",
     "test:build-binaries": "pnpm --filter ariadnev test:build-binaries",
-    "docs-bundle:verify-web-lock": "pnpm --filter ariadnev verify:web-consumer-lock",
     "changeset": "changeset",
     "version-packages": "changeset version"
   },

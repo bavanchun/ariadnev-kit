@@ -14,7 +14,7 @@ const mutate = (kind) => state.mutations.push({ kind, method, path, body });
 const json = (value) => process.stdout.write(JSON.stringify(value));
 const binary = (value) => process.stdout.write(Buffer.from(value, "base64"));
 const notFound = () => { save(); process.stderr.write("gh: HTTP 404: Not Found\\n"); process.exit(1); };
-const sourceKey = (value) => value.includes("finalize-release") ? "finalizer" : value.includes("generate-docs") ? "generator" : value.includes("web-consumer") ? "lock" : "workflow";
+const sourceKey = (value) => value.includes("finalize-release") ? "finalizer" : value.includes("generate-docs") ? "generator" : "workflow";
 
 if (args[0] === "release" && args[1] === "upload") {
   mutate("release-upload");

@@ -8,9 +8,10 @@
 // current name.
 //
 // Kept as one module because the allowance was previously written out twice,
-// in two languages, and the JSON copy was missed: the web-consumer lock schema
-// demanded `ariadnev@…` for a predecessor at a time when no such tag could
-// exist, which made the first ariadnev release unreleasable.
+// in two languages, and the JSON copy was missed: a schema demanded
+// `ariadnev@…` for a predecessor at a time when no such tag could exist, which
+// made the first ariadnev release unreleasable. Restating a grammar in a second
+// language is how the two drift.
 
 const SEMVER = String.raw`(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)`;
 

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import manifestSchema from "../../schemas/docs-bundle-manifest-v1.schema.json";
 import { createDeterministicArchive, extractArchiveMember } from "./docs-bundle-archive.js";
@@ -35,11 +35,7 @@ function validateIdentity(options: DocsBundleOptions): void {
   assertSha(options.generatorSha, "generatorSha");
   if (options.mode === "final") {
     if (options.releaseTag !== `ariadnev@${options.version}`) throw new Error("final docs bundle requires releaseTag to match package version");
-    if (!options.finalConsumerLock) throw new Error("final docs bundle requires the exact Phase 9 web-consumer lock");
     if (!options.previousSource) throw new Error("final docs bundle requires the immediate previous stable source");
-    if (!existsSync(options.finalConsumerLock.lockPath)) throw new Error(`final consumer lock not found: ${options.finalConsumerLock.lockPath}`);
-    const actual = sha256(readFileSync(options.finalConsumerLock.lockPath));
-    if (actual !== options.finalConsumerLock.digest) throw new Error("final consumer lock digest drift detected");
   } else if (options.releaseTag !== null) {
     throw new Error("provisional docs bundle must not claim a publishable release tag");
   }

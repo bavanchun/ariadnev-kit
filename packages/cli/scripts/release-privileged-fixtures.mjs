@@ -23,20 +23,14 @@ export function createCandidate(dir) {
     .map((name) => `${digest(files[name]).slice(7)}  ${name}`).join("\n") + "\n");
   const source = {
     workflow: Buffer.from("release workflow\n"), generator: Buffer.from("generator\n"),
-    lock: Buffer.from("consumer lock\n"), finalizer: Buffer.from("finalizer workflow\n"),
+    finalizer: Buffer.from("finalizer workflow\n"),
   };
   const attestation = {
-    schemaVersion: 1, schema: "https://ariadnev.com/schemas/release-artifact-attestation.schema.json",
+    schemaVersion: 2, schema: "https://ariadnev.com/schemas/release-artifact-attestation.schema.json",
     artifactName: ARTIFACT_NAME,
     workflow: { runId: RUN_ID, runAttempt: ATTEMPT, path: ".github/workflows/release.yml", ref: "octo/example/.github/workflows/release.yml@refs/heads/main", digest: digest(source.workflow), sha: SHA },
     product: { sha: SHA, version: "1.2.3", tag: TAG },
     generator: { path: "packages/cli/scripts/generate-docs-bundle.ts", digest: digest(source.generator), sha: SHA },
-    consumer: {
-      repository: "bavanchun/ariadnev-web", commitSha: "b".repeat(40), lockPath: ".github/release/web-consumer-lock.json",
-      lockDigest: digest(source.lock), contractDigest: digest("contract"), contractDigests: { "contract.json": digest("contract") },
-      invocationDigest: digest("invocation"), resultDigest: digest("result"), outputDigest: digest("output"),
-      previousDescriptorPath: "previous.json", previousDescriptorDigest: digest("previous"),
-    },
     releaseAssets: ASSET_NAMES.map((name) => ({ name, size: files[name].length, digest: digest(files[name]) })),
   };
   const entries = { ...Object.fromEntries(Object.entries(files).map(([name, bytes]) => [name, new Uint8Array(bytes)])),

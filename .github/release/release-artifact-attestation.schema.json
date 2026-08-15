@@ -3,9 +3,9 @@
   "$id": "https://ariadnev.com/schemas/release-artifact-attestation.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "schema", "artifactName", "workflow", "product", "generator", "consumer", "releaseAssets"],
+  "required": ["schemaVersion", "schema", "artifactName", "workflow", "product", "generator", "releaseAssets"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "schema": { "const": "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" },
     "artifactName": { "type": "string", "pattern": "^[A-Za-z0-9._@-]+$" },
     "workflow": {
@@ -39,24 +39,6 @@
         "path": { "const": "packages/cli/scripts/generate-docs-bundle.ts" },
         "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
         "sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
-      }
-    },
-    "consumer": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["repository", "commitSha", "lockPath", "lockDigest", "contractDigest", "contractDigests", "invocationDigest", "resultDigest", "outputDigest", "previousDescriptorPath", "previousDescriptorDigest"],
-      "properties": {
-        "repository": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
-        "commitSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
-        "lockPath": { "const": ".github/release/web-consumer-lock.json" },
-        "lockDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "contractDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "contractDigests": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" } },
-        "invocationDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "resultDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "outputDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "previousDescriptorPath": { "type": "string", "minLength": 1 },
-        "previousDescriptorDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
       }
     },
     "releaseAssets": {

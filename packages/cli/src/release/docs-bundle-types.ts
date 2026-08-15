@@ -124,11 +124,6 @@ export interface PreviousSourceOptions {
   releaseTag: string;
 }
 
-export interface FinalConsumerLockInput {
-  lockPath: string;
-  digest: DocsBundleDigest;
-}
-
 export interface DocsBundleOptions {
   mode: DocsBundleMode;
   version: string;
@@ -144,7 +139,6 @@ export interface DocsBundleOptions {
   providers: MatrixData;
   proof: DocsBundleProofInput;
   changelog: string;
-  finalConsumerLock?: FinalConsumerLockInput;
   previousSource?: PreviousSourceOptions;
 }
 
