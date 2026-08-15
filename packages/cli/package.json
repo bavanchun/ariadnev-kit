@@ -8,12 +8,12 @@
   "author": "VChun",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bavanchun/ariadnev.git",
+    "url": "git+https://github.com/bavanchun/ariadnev-kit.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/bavanchun/ariadnev#readme",
+  "homepage": "https://github.com/bavanchun/ariadnev-kit#readme",
   "bugs": {
-    "url": "https://github.com/bavanchun/ariadnev/issues"
+    "url": "https://github.com/bavanchun/ariadnev-kit/issues"
   },
   "keywords": [
     "agent-skills",

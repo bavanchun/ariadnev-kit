@@ -1,9 +1,9 @@
 # ariadnev
 
-[![Release](https://img.shields.io/github/v/release/bavanchun/ariadnev?label=release&color=b8232c)](https://github.com/bavanchun/ariadnev/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/bavanchun/ariadnev/ci.yml?branch=main&label=CI)](https://github.com/bavanchun/ariadnev/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/bavanchun/ariadnev-kit?label=release&color=b8232c)](https://github.com/bavanchun/ariadnev-kit/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/bavanchun/ariadnev-kit/ci.yml?branch=main&label=CI)](https://github.com/bavanchun/ariadnev-kit/actions/workflows/ci.yml)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows-informational)](#install)
-[![License: MIT](https://img.shields.io/github/license/bavanchun/ariadnev?color=blue)](LICENSE)
+[![License: MIT](https://img.shields.io/github/license/bavanchun/ariadnev-kit?color=blue)](LICENSE)
 
 Install the curated av workflow kit across coding-agent targets from one
 local-first CLI. Its Agent Skills, specialist agents, and Claude Code hooks pass
@@ -66,7 +66,7 @@ No need to re-run the curl installer.
 ### Build from source
 
 ```bash
-git clone https://github.com/bavanchun/ariadnev.git && cd ariadnev
+git clone https://github.com/bavanchun/ariadnev-kit.git && cd ariadnev-kit
 pnpm install
 pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ariadnev
 ```

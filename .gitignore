@@ -16,3 +16,6 @@ kit/hooks/.logs/
 # embedder already skips __pycache__; this keeps it out of the diff too.
 __pycache__/
 *.pyc
+
+# Agent memory is one machine's working state, not repository content.
+.claude/agent-memory/

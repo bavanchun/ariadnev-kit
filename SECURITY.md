@@ -6,7 +6,7 @@ Please report suspected vulnerabilities **privately** — do not open a public
 issue for security problems.
 
 - Preferred: open a private advisory via GitHub Security → **Report a
-  vulnerability** on `bavanchun/ariadnev`.
+  vulnerability** on `bavanchun/ariadnev-kit`.
 - Or email the maintainer (see the `author` field in `packages/cli/package.json`).
 
 Please include what you found, how to reproduce it, and the impact. We aim to
