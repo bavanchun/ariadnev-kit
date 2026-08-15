@@ -1,0 +1,76 @@
+{
+  "comment": "Shared redaction cases. Read by the TypeScript sanitizer test AND by the hook-process sanitizer test (kit/hooks/_lib/__tests__/sanitizer.test.cjs), because the two implementations exist in different runtimes and would otherwise drift apart silently — one redacting, the other not. `env` seeds the environment the sanitizer is given. `absent` strings must not survive; `present` strings must.",
+  "cases": [
+    {
+      "name": "discord webhook url in a log line",
+      "text": "send failed: POST https://discord.com/api/webhooks/123456789/abcDEF-ghiJKL_mnoPQR returned 404",
+      "absent": ["abcDEF-ghiJKL_mnoPQR"],
+      "present": ["send failed", "404"]
+    },
+    {
+      "name": "slack webhook url",
+      "text": "target=https://hooks.slack.com/services/T00000000/B11111111/XXXXXXXXXXXXXXXXXXXXXXXX",
+      "absent": ["XXXXXXXXXXXXXXXXXXXXXXXX"],
+      "present": ["target="]
+    },
+    {
+      "name": "telegram bot token in a url",
+      "text": "GET https://api.telegram.org/bot123456789:AAF-abcdefghijklmnopqrstuvwxyz012345/sendMessage",
+      "absent": ["AAF-abcdefghijklmnopqrstuvwxyz012345"],
+      "present": ["sendMessage"]
+    },
+    {
+      "name": "bare telegram bot token",
+      "text": "token 987654321:AAHxyz-abcdefghijklmnopqrstuvwxyz0123 was rejected",
+      "absent": ["AAHxyz-abcdefghijklmnopqrstuvwxyz0123"],
+      "present": ["was rejected"]
+    },
+    {
+      "name": "webhook url held in an env var",
+      "env": { "MY_WEBHOOK_URL": "https://discord.com/api/webhooks/42/env-held-secret-value" },
+      "text": "configured destination: https://discord.com/api/webhooks/42/env-held-secret-value",
+      "absent": ["env-held-secret-value"],
+      "present": ["configured destination"]
+    },
+    {
+      "name": "env var named _WEBHOOK",
+      "env": { "TEAM_WEBHOOK": "https://slack.com/api/hooks/team-channel-secret" },
+      "text": "posting to https://slack.com/api/hooks/team-channel-secret now",
+      "absent": ["team-channel-secret"],
+      "present": ["posting to"]
+    },
+    {
+      "name": "github token shape",
+      "text": "auth ghp_0123456789abcdefghijklmnopqrstuvwxyz failed",
+      "absent": ["ghp_0123456789abcdefghijklmnopqrstuvwxyz"],
+      "present": ["auth", "failed"]
+    },
+    {
+      "name": "url userinfo",
+      "text": "cloning https://user:hunter2pass@example.com/repo.git",
+      "absent": ["hunter2pass"],
+      "present": ["example.com/repo.git"]
+    },
+    {
+      "name": "env secret by key name",
+      "env": { "SERVICE_API_KEY": "sk-live-abcdefghijklmnop" },
+      "text": "using key sk-live-abcdefghijklmnop for the call",
+      "absent": ["sk-live-abcdefghijklmnop"],
+      "present": ["for the call"]
+    },
+    {
+      "name": "short env value never shreds output",
+      "env": { "GH_TOKEN": "1" },
+      "text": "step 1 of 1 completed",
+      "absent": [],
+      "present": ["step 1 of 1 completed"]
+    },
+    {
+      "name": "an ordinary url survives",
+      "env": { "DOCS_URL": "https://example.com/docs" },
+      "text": "see https://example.com/docs for details",
+      "absent": [],
+      "present": ["https://example.com/docs", "for details"]
+    }
+  ]
+}

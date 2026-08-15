@@ -1,0 +1,14 @@
+{
+  "bindings": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Write|Edit",
+      "order": 10
+    },
+    {
+      "event": "UserPromptSubmit",
+      "order": 30
+    }
+  ],
+  "description": "Remind about the project's development rules after a write, and on prompt submit."
+}

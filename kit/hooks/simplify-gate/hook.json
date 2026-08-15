@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {
+      "event": "UserPromptSubmit",
+      "order": 20
+    }
+  ],
+  "description": "Gate ship-shaped prompts on a simplification pass when the diff is large."
+}

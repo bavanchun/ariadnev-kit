@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "order": 20
+    }
+  ],
+  "description": "Keep plan files in the kanban format the plan commands expect after an edit."
+}

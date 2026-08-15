@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Write",
+      "order": 10
+    }
+  ],
+  "description": "Reject vague new-file names before the write happens."
+}

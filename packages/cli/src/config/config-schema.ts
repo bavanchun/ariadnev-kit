@@ -91,6 +91,27 @@ export const SCHEMA = {
       "Whether `ariadnev skill run` may execute the scripts a skill ships.",
     ),
   },
+  // Per-hook off switches. User-only for the same reason `privacyBlock` is: a
+  // project file that could set `hooks.privacy-block: false` would disable the
+  // guard by another route. Every shipped hook has an entry, and a test compares
+  // this list against the hooks the kit actually ships — a hook with no switch
+  // would look configurable in the docs and silently ignore the setting.
+  hooks: {
+    "cook-after-plan-reminder": userField.bool(true, "Run the cook-after-plan-reminder hook."),
+    "descriptive-name": userField.bool(true, "Run the descriptive-name hook."),
+    "dev-rules-reminder": userField.bool(true, "Run the dev-rules-reminder hook."),
+    "plan-format-kanban": userField.bool(true, "Run the plan-format-kanban hook."),
+    "precompact-capture": userField.bool(true, "Run the precompact-capture hook."),
+    "privacy-block": userField.bool(true, "Run the privacy-block hook."),
+    "scout-block": userField.bool(true, "Run the scout-block hook."),
+    "secret-output-guardrail": userField.bool(true, "Run the secret-output-guardrail hook."),
+    "session-init": userField.bool(true, "Run the session-init hook."),
+    "session-state": userField.bool(true, "Run the session-state hook."),
+    "simplify-gate": userField.bool(true, "Run the simplify-gate hook."),
+    "subagent-init": userField.bool(true, "Run the subagent-init hook."),
+    "team-context-inject": userField.bool(true, "Run the team-context-inject hook."),
+    "usage-quota-cache-refresh": userField.bool(true, "Run the usage-quota-cache-refresh hook."),
+  },
   notifications: {
     enabled: userField.bool(false, "Send session notifications to the destinations below."),
     discordWebhook: userField.webhook("Discord webhook URL for notifications."),

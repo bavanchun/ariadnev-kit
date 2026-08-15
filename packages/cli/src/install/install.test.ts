@@ -324,16 +324,27 @@ describe("full-kit install smoke (v2 roster)", () => {
     "av-project-manager", "av-researcher", "av-reviewer", "av-simplifier",
     "av-tester",
   ];
+  // The full ported hook set: 14 hooks over 8 events. `rules-inject` is gone —
+  // `dev-rules-reminder` is the same idea from the source kit, and shipping both
+  // would inject the project's rules twice.
   const HOOKS = [
+    "cook-after-plan-reminder",
+    "descriptive-name",
+    "dev-rules-reminder",
+    "plan-format-kanban",
+    "precompact-capture",
     "privacy-block",
-    "rules-inject",
     "scout-block",
+    "secret-output-guardrail",
     "session-init",
     "session-state",
+    "simplify-gate",
     "subagent-init",
+    "team-context-inject",
+    "usage-quota-cache-refresh",
   ];
 
-  it("kit ships exactly the 26-skill + 13-agent roster + 6 hooks", () => {
+  it("kit ships exactly the 26-skill + 13-agent roster + 14 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
@@ -355,11 +366,60 @@ describe("full-kit install smoke (v2 roster)", () => {
     }
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
     expect(Object.keys(settings.hooks).sort()).toEqual([
-      "PreToolUse", "SessionStart", "Stop", "SubagentStart", "SubagentStop", "UserPromptSubmit",
+      "PostToolUse", "PreCompact", "PreToolUse", "SessionStart",
+      "Stop", "SubagentStart", "SubagentStop", "UserPromptSubmit",
     ]);
+
+    // The source manifest's topology, reproduced here as data. Order inside an
+    // event is a contract — the secret guardrail runs before the gate that acts
+    // on the prompt — and nothing else in the install would notice it changing.
+    const installed: Record<string, { hook: string; matcher?: string }[]> = {};
+    for (const [event, groups] of Object.entries(settings.hooks as Record<string, { matcher?: string; hooks: { command: string }[] }[]>)) {
+      installed[event] = groups.flatMap((group) =>
+        group.hooks.map((entry) => ({
+          hook: (entry.command.match(/hooks\/av\/([a-z-]+)\.cjs/) ?? [])[1],
+          ...(group.matcher ? { matcher: group.matcher } : {}),
+        })),
+      );
+    }
+    expect(installed).toEqual({
+      PostToolUse: [
+        { hook: "dev-rules-reminder", matcher: "Write|Edit" },
+        { hook: "plan-format-kanban", matcher: "Edit|Write" },
+        { hook: "session-state", matcher: "Agent|Task|TodoWrite|TodoRead" },
+        { hook: "usage-quota-cache-refresh", matcher: "*" },
+      ],
+      PreCompact: [{ hook: "precompact-capture", matcher: "*" }],
+      PreToolUse: [
+        { hook: "descriptive-name", matcher: "Write" },
+        { hook: "privacy-block", matcher: "Read|Write|Edit|Bash" },
+        { hook: "scout-block", matcher: "Bash|Read" },
+      ],
+      SessionStart: [{ hook: "session-init", matcher: "*" }],
+      Stop: [
+        { hook: "cook-after-plan-reminder" },
+        { hook: "session-state" },
+        { hook: "usage-quota-cache-refresh" },
+      ],
+      SubagentStart: [
+        { hook: "subagent-init", matcher: "*" },
+        { hook: "team-context-inject", matcher: "*" },
+      ],
+      SubagentStop: [{ hook: "session-state" }],
+      UserPromptSubmit: [
+        { hook: "secret-output-guardrail" },
+        { hook: "simplify-gate" },
+        { hook: "dev-rules-reminder" },
+        { hook: "usage-quota-cache-refresh" },
+      ],
+    });
+    // 19, not the source's 21: `secret-output-guardrail` and `simplify-gate`
+    // each appear in both of the source's UserPromptSubmit matcher groups, which
+    // runs them twice per prompt for no additional effect.
+    expect(Object.values(installed).flat()).toHaveLength(19);
   });
 
-  it("codex: skills + agents install, all 6 hooks skip-and-log", () => {
+  it("codex: skills + agents install, every hook skips and logs", () => {
     const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
     expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
     expect(existsSync(join(ctx.home, ".codex/agents/av-explore.toml"))).toBe(true);

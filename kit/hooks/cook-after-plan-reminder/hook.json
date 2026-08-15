@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {
+      "event": "Stop",
+      "order": 10
+    }
+  ],
+  "description": "Remind to run the implementation workflow once a plan has been accepted."
+}

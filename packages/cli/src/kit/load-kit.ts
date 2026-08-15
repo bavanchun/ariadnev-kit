@@ -6,6 +6,7 @@ import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 import { lintAgent } from "./agent-lint.js";
 import { KitValidationError } from "./kit-validation-error.js";
 import { assertKnownHookEvents } from "./hook-events.js";
+import { hookBindingSpecs } from "./hook-bindings.js";
 // One ignore list for both walkers: if the loader accepted a tree the installer
 // never copies, `validate` would pass on files that can never reach a provider.
 import { IGNORE_DIRS } from "../install/install-types.js";
@@ -124,8 +125,11 @@ function loadHooks(kitRoot: string): KitHook[] {
   if (!existsSync(hooksDir)) return [];
   const out: KitHook[] = [];
   for (const entry of readdirSync(hooksDir)) {
-    // `_lib` and friends hold shared helpers, not installable hooks.
-    if (entry.startsWith("_") || IGNORE_DIRS.has(entry)) continue;
+    // `_lib` and friends hold shared helpers, not installable hooks. A dot-dir
+    // is not one either: the hooks write their own `.logs` beside themselves at
+    // runtime, so it appears in every installed tree and in any checkout where a
+    // hook has been run — treating it as a malformed hook would fail the load.
+    if (entry.startsWith("_") || entry.startsWith(".") || IGNORE_DIRS.has(entry)) continue;
     const dir = join(hooksDir, entry);
     if (!statSync(dir).isDirectory()) continue;
     const file = join(dir, "hook.cjs");
@@ -147,15 +151,22 @@ function loadHooks(kitRoot: string): KitHook[] {
       Array.isArray(manifest.events) &&
       manifest.events.length > 0 &&
       manifest.events.every((e) => typeof e === "string" && e.length > 0);
-    if (!hasEvent && !hasEvents) {
-      throw new KitValidationError(`hook "${entry}": manifest must declare an event (or events[])`);
+    const hasBindings = Array.isArray(manifest.bindings) && manifest.bindings.length > 0;
+    if (hasBindings) {
+      for (const binding of manifest.bindings!) {
+        if (typeof binding?.event !== "string" || binding.event.length === 0) {
+          throw new KitValidationError(`hook "${entry}": every bindings[] entry must declare an event`);
+        }
+      }
+    } else if (!hasEvent && !hasEvents) {
+      throw new KitValidationError(`hook "${entry}": manifest must declare an event (or events[]/bindings[])`);
     }
     if (typeof manifest.description !== "string" || manifest.description.length === 0) {
       throw new KitValidationError(`hook "${entry}": manifest must declare a description`);
     }
     // A well-formed but unrecognized event name is the failure this catches:
     // the hook installs, binds, and then never fires, with nothing to report it.
-    assertKnownHookEvents(entry, manifest.event ? [manifest.event] : (manifest.events ?? []));
+    assertKnownHookEvents(entry, hookBindingSpecs(manifest).map((b) => b.event));
     out.push({ name: entry, manifest, file });
   }
   return out;

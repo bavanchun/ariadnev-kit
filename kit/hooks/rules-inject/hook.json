@@ -1,4 +1,0 @@
-{
-  "event": "UserPromptSubmit",
-  "description": "Inject project rules from .claude/rules/*.md into context, throttled per session and re-injected when rules change."
-}

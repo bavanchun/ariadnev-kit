@@ -2,7 +2,7 @@
 
 The packaged, parameterized version of an engagement pattern validated 4× (see §8). When Cluster Mode is selected, **follow this file**; do not re-invent the scaffolding or re-discover the bugs in §9. Only the per-domain *content* and *freshness research* are bespoke each run — everything structural below is fixed.
 
-Pipeline: **Scout → (1 decision point) → /brainstorm → /ck:plan --hard → /ck:cook(parallel) → /excalidraw(inside P6) → /ck:journal**. After the decision point it runs autonomously; surface only a true BLOCKER or the final summary.
+Pipeline: **Scout → (1 decision point) → /brainstorm → /av:plan --hard → /av:cook(parallel) → /excalidraw(inside P6) → /av:journal**. After the decision point it runs autonomously; surface only a true BLOCKER or the final summary.
 
 ---
 
@@ -109,4 +109,4 @@ Always scout the **most recent completed** one as the live template (note shape,
 7. **Subagent 32k output ceiling** → produces nothing. Fix: one-artifact-at-a-time commit (§7); main-agent recovery preserves machinery byte-exact.
 8. **Dashboard/MOC pattern assumed** → wrong wiring. Fix: P7 reads `Dashboard.md` + the precedent `<Domain> MOC.md` before editing.
 
-Because §9 is encoded, `/ck:plan --hard`'s red-team should focus its scrutiny on the NEW per-domain content/structure, not re-litigate these.
+Because §9 is encoded, `/av:plan --hard`'s red-team should focus its scrutiny on the NEW per-domain content/structure, not re-litigate these.

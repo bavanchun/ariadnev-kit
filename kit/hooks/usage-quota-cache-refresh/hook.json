@@ -1,0 +1,18 @@
+{
+  "bindings": [
+    {
+      "event": "PostToolUse",
+      "matcher": "*",
+      "order": 40
+    },
+    {
+      "event": "Stop",
+      "order": 30
+    },
+    {
+      "event": "UserPromptSubmit",
+      "order": 40
+    }
+  ],
+  "description": "Refresh the cached usage-quota figures the statusline reads."
+}

@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { sanitize } from "./credential-sanitizer.js";
 import { emit, setEmitTransform, resetEmitTransform } from "../cli/emit.js";
 
@@ -69,4 +72,27 @@ describe("emit boundary wired to sanitize (the path the top-level catch missed)"
     expect(printed).not.toContain("ghp_");
     expect(printed).toContain("••••");
   });
+});
+
+// The corpus is shared with the hook-process sanitizer (a .cjs file in a
+// separate runtime that cannot import this one). Running the same cases through
+// both is what keeps the two from drifting into disagreement — one redacting a
+// webhook, the other logging it.
+describe("shared redaction corpus", () => {
+  const corpus = JSON.parse(
+    readFileSync(join(fileURLToPath(new URL(".", import.meta.url)), "redaction-corpus.json"), "utf8"),
+  ) as { cases: { name: string; text: string; env?: Record<string, string>; absent: string[]; present: string[] }[] };
+
+  it("covers the destination shapes notifications can carry", () => {
+    const names = corpus.cases.map((c) => c.name).join(" ");
+    for (const shape of ["discord", "slack", "telegram"]) expect(names).toContain(shape);
+  });
+
+  for (const testCase of corpus.cases) {
+    it(`redacts: ${testCase.name}`, () => {
+      const out = sanitize(testCase.text, testCase.env ?? {});
+      for (const secret of testCase.absent) expect(out, `leaked in: ${out}`).not.toContain(secret);
+      for (const kept of testCase.present) expect(out).toContain(kept);
+    });
+  }
 });

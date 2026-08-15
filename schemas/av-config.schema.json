@@ -49,6 +49,96 @@
         }
       }
     },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cook-after-plan-reminder": {
+          "type": "boolean",
+          "description": "Run the cook-after-plan-reminder hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "descriptive-name": {
+          "type": "boolean",
+          "description": "Run the descriptive-name hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "dev-rules-reminder": {
+          "type": "boolean",
+          "description": "Run the dev-rules-reminder hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "plan-format-kanban": {
+          "type": "boolean",
+          "description": "Run the plan-format-kanban hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "precompact-capture": {
+          "type": "boolean",
+          "description": "Run the precompact-capture hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "privacy-block": {
+          "type": "boolean",
+          "description": "Run the privacy-block hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "scout-block": {
+          "type": "boolean",
+          "description": "Run the scout-block hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "secret-output-guardrail": {
+          "type": "boolean",
+          "description": "Run the secret-output-guardrail hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "session-init": {
+          "type": "boolean",
+          "description": "Run the session-init hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "session-state": {
+          "type": "boolean",
+          "description": "Run the session-state hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "simplify-gate": {
+          "type": "boolean",
+          "description": "Run the simplify-gate hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "subagent-init": {
+          "type": "boolean",
+          "description": "Run the subagent-init hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "team-context-inject": {
+          "type": "boolean",
+          "description": "Run the team-context-inject hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        },
+        "usage-quota-cache-refresh": {
+          "type": "boolean",
+          "description": "Run the usage-quota-cache-refresh hook.",
+          "default": true,
+          "x-ariadnev-layer": "user"
+        }
+      }
+    },
     "notifications": {
       "type": "object",
       "additionalProperties": false,

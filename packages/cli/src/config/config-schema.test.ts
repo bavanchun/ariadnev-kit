@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CONFIG_FIELDS,
   defaults,
@@ -77,5 +80,29 @@ describe("config schema", () => {
     expect(shown.notifications.slackWebhook).toBeNull();
     // Redaction must not disturb the non-sensitive fields.
     expect(shown.paths.docs).toBe("docs");
+  });
+});
+
+describe("per-hook switches", () => {
+  const repoRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
+
+  it("has exactly one switch per shipped hook", () => {
+    // Two ways to drift: a hook with no switch (the setting is silently
+    // ignored) and a switch with no hook (a setting that does nothing). Both
+    // fail here.
+    const shipped = readdirSync(join(repoRoot, "kit", "hooks"))
+      .filter((entry) => existsSync(join(repoRoot, "kit", "hooks", entry, "hook.json")))
+      .sort();
+    const declared = CONFIG_FIELDS.filter((f) => f.path.startsWith("hooks."))
+      .map((f) => f.path.slice("hooks.".length))
+      .sort();
+    expect(declared).toEqual(shipped);
+  });
+
+  it("keeps the switches user-only, so a project file cannot disable a guard", () => {
+    for (const field of CONFIG_FIELDS.filter((f) => f.path.startsWith("hooks."))) {
+      expect(field.spec.layer, field.path).toBe("user");
+      expect(field.spec.default, `${field.path} should ship enabled`).toBe(true);
+    }
   });
 });

@@ -7,6 +7,8 @@ import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
 import { isVerified } from "../providers/spec-verified.js";
 import { buildRulesBlock } from "./agents-md.js";
 import type { HookBinding } from "./hook-settings-merge.js";
+import { compareBindings, hookBindingSpecs } from "../kit/hook-bindings.js";
+import type { HookBindingSpec } from "../kit/kit-types.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
 import { IGNORE_DIRS, IGNORE_FILES, isTextFile, type InstallOp } from "./install-types.js";
 
@@ -100,7 +102,10 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   }
   const base = ctx.scope === "global" ? ctx.home : ctx.cwd;
   const ops: InstallOp[] = [];
-  const bindings: HookBinding[] = [];
+  // Bindings are collected across every hook first, then ordered: within one
+  // event the sequence is a contract (a guardrail before the gate that reads its
+  // result), and hook discovery order is alphabetical, which is not it.
+  const collected: { spec: HookBindingSpec; name: string; dest: string }[] = [];
   for (const hook of kit.hooks) {
     const dest = join(base, CLAUDE_HOOKS_DIR, `${hook.name}.cjs`);
     ops.push({
@@ -110,15 +115,16 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
       dest,
       content: readFileSync(hook.file, "utf8"),
     });
-    const events = hook.manifest.events ?? [hook.manifest.event!];
-    for (const event of events) {
-      bindings.push({
-        event,
-        ...(hook.manifest.matcher ? { matcher: hook.manifest.matcher } : {}),
-        command: `node ${JSON.stringify(dest)}`,
-      });
+    for (const spec of hookBindingSpecs(hook.manifest)) {
+      collected.push({ spec, name: hook.name, dest });
     }
   }
+  collected.sort(compareBindings);
+  const bindings: HookBinding[] = collected.map(({ spec, dest }) => ({
+    event: spec.event,
+    ...(spec.matcher ? { matcher: spec.matcher } : {}),
+    command: [`node ${JSON.stringify(dest)}`, ...(spec.args ?? [])].join(" "),
+  }));
   // Shared helpers required by hook bodies at runtime.
   const libDir = join(kit.root, "hooks", "_lib");
   if (existsSync(libDir)) {

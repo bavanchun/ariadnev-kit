@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Hook engine port"
-status: pending
+status: completed
 priority: P2
 effort: "7d"
 dependencies: [8, 10]
@@ -103,17 +103,17 @@ entrypoint thay vì 17 lời gọi riêng.
 
 ## Success Criteria
 
-- [ ] 17 hook cài được và bind đúng event **và đúng thứ tự** trên claude-code
-- [ ] `notifications/` nằm dưới `_lib/` và mọi file của nó có mặt sau khi cài
-- [ ] Không hook nào tham chiếu `ak`, `AGENTKIT_*`, `~/.agentkit`
-- [ ] Webhook URL không bao giờ xuất hiện trong JSONL log (test có case lỗi gửi)
-- [ ] Đích notification lấy từ user-scope config; project layer đặt không có tác dụng
-- [ ] Egress ngoài allowlist bị chặn
-- [ ] Hook throw → phiên vẫn chạy
-- [ ] Session start trong ngân sách đo được ở bước 1
-- [ ] `node --test kit/hooks/**/*.test.cjs` xanh; `av validate` báo 17 hooks
-- [ ] Hook `.sh` cài và chạy được (hoặc đã chuyển `.cjs` có ghi lý do)
-- [ ] Với mỗi event nguồn, thứ tự binding sau khi cài khớp `hooks.json` gốc (test)
+- [x] **14** hook cài được và bind đúng event **và đúng thứ tự** trên claude-code
+- [x] `notifications/` nằm dưới `_lib/` và mọi file của nó có mặt sau khi cài
+- [x] Không hook nào tham chiếu `ak`, `AGENTKIT_*`, `~/.agentkit` — nay có **cổng CI** săn cả họ định danh upstream
+- [x] Webhook URL không bao giờ xuất hiện trong JSONL log (corpus dùng chung cho cả hai bản sanitizer)
+- [x] Đích notification lấy từ user-scope config; project layer đặt không có tác dụng (test)
+- [x] Egress ngoài allowlist bị chặn ở cả nơi đọc config lẫn nơi gửi
+- [x] Hook throw → phiên vẫn chạy (test chạy 14 hook × 3 payload rác)
+- [x] Session start **96–109ms** (đo trên cây đã cài), dưới mốc 150ms của plan
+- [x] `node --test kit/hooks/**/*.test.cjs` xanh; `av validate` báo **14 hooks**
+- [x] Không có hook `.sh` để chuyển — nguồn không ship cái nào (xem "Số liệu sai" bên dưới)
+- [x] Thứ tự binding sau khi cài khớp topology nguồn — kiểm bằng test trên bản cài thật
 
 ## Risk Assessment
 
@@ -127,3 +127,83 @@ không. Phản ứng: test dùng chung bộ input cho cả hai bản, chạy tro
 **Dịch `hooks.json` làm mất binding im lặng.** Tín hiệu: số binding sau khi cài < 21.
 Phản ứng: test đối chiếu số lượng và thứ tự per-event là tiêu chí bắt buộc, không phải
 kiểm bằng mắt.
+
+
+## Kết quả (2026-08-15)
+
+### Số liệu nguồn sai trong plan — đã đo lại
+
+| Hạng mục | Plan ghi | Thực tế | Bằng chứng |
+|---|---|---|---|
+| Hook | 17 (15 `.cjs` + 2 `.sh`) | **14, toàn `.cjs`** | `hooks.json` chỉ tham chiếu 14 file; backup gốc của AgentKit không có file `.sh` nào |
+| Binding | 21 | **19 sau khi gỡ trùng** | `secret-output-guardrail` và `simplify-gate` nằm trong **cả hai** matcher group của `UserPromptSubmit` |
+| Module `_lib` | 28 | **18 có thể chạm tới** từ 14 hook | quét bao đóng `require`; 10 module còn lại thuộc statusline (phase 14) |
+
+Ba file trong `~/.claude/hooks/` **không phải của AgentKit**: `typeburn-protect-main.sh`,
+`herdr-agent-state.sh`, `usage-limits-refresh.cjs` — chúng do settings riêng của người
+dùng bind (`bash "$HOME/..."`), không phải qua `${CLAUDE_PLUGIN_ROOT}` như hooks.json.
+Port chúng vào kit sẽ là chép công cụ của tool khác vào sản phẩm này. Audit vòng 2 đếm
+file trong thư mục, không đếm file của AgentKit.
+
+Bỏ 2 binding trùng tiết kiệm ~120ms mỗi prompt và không mất hành vi nào — chạy guardrail
+hai lần trên cùng một prompt không tạo thêm kết quả gì.
+
+### Ngân sách (bước 1) — đo trên cây đã cài, không phải trong repo
+
+| Event | Số hook | Tốt nhất | Xấu nhất |
+|---|---|---|---|
+| SessionStart | 1 | 96ms | 109ms |
+| PreCompact | 1 | 63ms | 66ms |
+| SubagentStop | 1 | 61ms | 67ms |
+| SubagentStart | 2 | 138ms | 148ms |
+| PreToolUse | 3 | 177ms | 183ms |
+| Stop | 3 | 182ms | 189ms |
+| UserPromptSubmit | 4 | 242ms | 244ms |
+| PostToolUse | 4 | 273ms | 319ms |
+
+Giả định "17 tiến trình lạnh lúc session start" của plan sai: SessionStart chỉ bind **một**
+hook. Chi phí thật ~60–70ms/hook, gần như toàn bộ là node khởi động lạnh. Không cần gộp
+entrypoint; rủi ro "mô hình spawn không đạt ngân sách" không xảy ra.
+
+### Bốn lỗi thật do test phát hiện, không phải do đọc code
+
+1. **`scout-checker.cjs` require sai đường** (`../scout-block/` trong khi layout mới là
+   `./scout-block/`). Hook fail-open nên **im lặng tắt guard**: node_modules không còn bị
+   chặn, không có dòng log nào. Nếu chỉ smoke-test "hook chạy không crash" thì lỗi này qua cửa.
+2. **`path.dirname(__dirname)` giả định layout cũ.** ariadnev cài sâu hơn một cấp
+   (`.claude/hooks/av/`), nên `.claude` bị trỏ nhầm thành `.claude/hooks` → file pattern
+   "không tồn tại" → lại fail-open im lặng. Thay bằng `_lib/provider-paths.cjs` dò ngược lên.
+3. **`require('../_lib/…')` chỉ đúng ở một trong hai layout.** Kit lồng hook thêm một cấp
+   so với bản cài. Dùng lại quy ước dò `_lib` mà 6 hook distill cũ đã dùng.
+4. **Hook tự tạo `.logs/` cạnh chính nó**, và loader coi mọi thư mục là hook → `av validate`
+   chết vì `hook ".logs": missing hook.cjs`. Loader nay bỏ qua thư mục dấu chấm.
+
+### Chệch có chủ đích so với plan
+
+- **Không tạo `translate-hooks-json.mjs`.** Đây là port một chiều của một phiên bản cố
+  định; một script chạy đúng một lần rồi nằm lại là code chết. Thứ bảo vệ thật là test
+  đối chiếu topology (8 event / 19 binding, kèm thứ tự và matcher) trên **bản cài thật** —
+  rủi ro "dịch làm mất binding im lặng" được chặn ở chỗ đó, không phải ở script.
+- **Viết lại `notifications/`, không port.** Bản nguồn gửi `cwd` tuyệt đối, tên project và
+  session id tới dịch vụ chat, và lấy đích từ cascade env (`process.env` > `~/.claude/.env`
+  > `.claude/.env`) — chính là kênh exfil S3. Bản mới dựng payload theo **allowlist trường**
+  (event + tên agent), lấy đích **chỉ** từ config user, và chặn host ở cả hai đầu.
+- **`bindings[]` thay vì `order`/`args` rời.** `events[] + matcher` không diễn tả nổi một
+  hook cần matcher trên PostToolUse và không matcher trên UserPromptSubmit — plan không
+  nêu ràng buộc này. `order` và `args` nằm trong cùng cấu trúc đó.
+- **`hooks.<name>` chốt luôn ở phase này**, không hoãn: 14 hook đã gọi `isHookEnabled`, nên
+  không khai field nghĩa là tính năng im lặng không chạy. User-only, có test đối chiếu
+  danh sách hook thật.
+
+### Đã kiểm bằng chạy thật
+
+Cài vào HOME cô lập → `doctor` **healthy, 141 file**; chạy chính bản đã cài: privacy-block
+chặn `.env` (exit 2), scout-block chặn `node_modules`, `hooks.privacy-block: false` trong
+config user tắt được guard, đặt trong config project thì **không**.
+
+### Nợ chuyển tiếp
+
+- 10 module `_lib` nhóm statusline chưa port → phase 14 (đã có consumer ở đó).
+- `.ariadnev-runtime.json` marker: installer chưa ghi, `runtime-state-identity` rơi về
+  fallback. Vô hại khi chỉ cài claude-code; xem lại nếu hook mở sang provider khác.
+- `av plan --help` xuất hiện trong 2 chuỗi hướng dẫn — lệnh đó tới ở phase 13.

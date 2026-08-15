@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {
+      "event": "UserPromptSubmit",
+      "order": 10
+    }
+  ],
+  "description": "Warn the model away from echoing secrets before the prompt is answered."
+}

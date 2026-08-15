@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HOOK_EVENTS, isKnownHookEvent, assertKnownHookEvents, UnknownHookEventError } from "./hook-events.js";
 import { loadKit } from "./load-kit.js";
+import { hookBindingSpecs } from "./hook-bindings.js";
+import type { HookManifest } from "./kit-types.js";
 
 const repoRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 const kitRoot = join(repoRoot, "kit");
@@ -19,8 +21,8 @@ describe("hook event vocabulary", () => {
     for (const entry of readdirSync(hooksDir)) {
       const manifestPath = join(hooksDir, entry, "hook.json");
       if (!existsSync(manifestPath)) continue;
-      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { event?: string; events?: string[] };
-      for (const e of manifest.event ? [manifest.event] : (manifest.events ?? [])) bound.add(e);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as HookManifest;
+      for (const binding of hookBindingSpecs(manifest)) bound.add(binding.event);
     }
 
     expect(bound.size).toBeGreaterThan(0);

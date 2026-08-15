@@ -8,3 +8,6 @@ coverage/
 .vcskill/
 packages/cli/portable-manifest.json
 packages/cli/LICENSE
+
+# Hooks write their runtime log beside themselves when run from a checkout.
+kit/hooks/.logs/

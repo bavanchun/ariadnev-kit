@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {
+      "event": "PreCompact",
+      "matcher": "*",
+      "order": 10
+    }
+  ],
+  "description": "Capture the session state that compaction is about to discard."
+}

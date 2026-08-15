@@ -1,100 +1,196 @@
 #!/usr/bin/env node
-// av privacy-block — PreToolUse hook for Read|Edit|Write|Bash. Denies access
-// to secret-bearing files (.env family, key material, credentials) with an
-// AskUserQuestion marker; user approval is expressed by re-running the command
-// with a VC_APPROVED=1 prefix. Fail-open: internal errors never block.
-const path = require("node:path");
-const fs = require("node:fs");
+/**
+ * privacy-block.cjs - Block access to sensitive files unless user-approved
+ *
+ * PRIVACY-based blocking (separate from SIZE-based scout-block)
+ * Blocks sensitive files. LLM must get user approval and use APPROVED: prefix.
+ *
+ * Flow:
+ * 1. LLM tries: Read ".env" → BLOCKED
+ * 2. LLM asks user for permission
+ * 3. User approves
+ * 4. LLM retries: Read "APPROVED:.env" → ALLOWED
+ *
+ * Core logic extracted to lib/privacy-checker.cjs for OpenCode plugin reuse.
+ */
 
-const LIB = [path.join(__dirname, "_lib"), path.join(__dirname, "..", "_lib")].find((d) =>
-  fs.existsSync(d),
-);
-const { failOpen, readStdinJson } = require(path.join(LIB, "fail-open.cjs"));
+// The shared library sits beside the hooks when installed and one level up in
+// the kit checkout. Probing for it means one file works in both layouts — a
+// hard-coded relative path silently resolves to nothing in the other one, and
+// these hooks fail open, so "nothing" looks exactly like "fine".
+const AV_LIB = [require('node:path').join(__dirname, '_lib'), require('node:path').join(__dirname, '..', '_lib')]
+  .find((dir) => require('node:fs').existsSync(dir));
 
-const ALLOWED_ENV = /^\.env\.(example|sample|template)$/;
-const SENSITIVE_BASENAMES = [
-  /^\.env(\..+)?$/,
-  /\.(pem|key|p12|pfx)$/,
-  /^id_(rsa|dsa|ecdsa|ed25519)(\..*)?$/,
-  /credentials/,
-  /^secrets\.(json|ya?ml|toml|env)$/,
-];
-
-function stripQuotes(s) {
-  return s.replace(/^['"]+|['"]+$/g, "");
-}
-
-function isSensitiveBasename(base) {
-  const b = base.toLowerCase();
-  if (ALLOWED_ENV.test(b)) return false;
-  return SENSITIVE_BASENAMES.some((re) => re.test(b));
-}
-
-function isSensitivePath(rawPath) {
-  const cleaned = stripQuotes(String(rawPath).trim());
-  if (!cleaned) return false;
-  // normalize collapses traversal segments so "foo/../.env" -> ".env"
-  if (isSensitiveBasename(path.basename(path.normalize(cleaned)))) return true;
-  // symlink escape: check what the path actually resolves to
+(async () => {
   try {
-    const real = fs.realpathSync(cleaned);
-    if (isSensitiveBasename(path.basename(real))) return true;
-  } catch {
-    // nonexistent path: the basename check above is all we can do
-  }
-  return false;
-}
+  const path = require('path');
+  const { createHookTimer, logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
 
-function findSensitiveInCommand(command) {
-  if (/\bVC_APPROVED=1\b/.test(command)) return null;
-  for (const token of command.split(/\s+/)) {
-    const cleaned = stripQuotes(token.replace(/[;|&<>()]+$/g, ""));
-    if (cleaned && isSensitivePath(cleaned)) return cleaned;
-  }
-  return null;
-}
+    // Import shared privacy checking logic
+    const {
+      checkPrivacy,
+      isSafeFile,
+      isPrivacyBlockDisabled,
+      isPrivacySensitive,
+      hasApprovalPrefix,
+      stripApprovalPrefix,
+      extractPaths,
+      isSuspiciousPath
+    } = require(require('node:path').join(AV_LIB, 'privacy-checker.cjs'));
+    const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
 
-/** Pure-ish gate: returns {decision:"allow"} or {decision:"deny", file}. */
-function evaluatePrivacy(toolName, toolInput) {
-  const input = toolInput || {};
-  if (toolName === "Bash") {
-    const hit = findSensitiveInCommand(String(input.command || ""));
-    return hit ? { decision: "deny", file: hit } : { decision: "allow" };
-  }
-  const filePath = input.file_path || input.path || input.notebook_path;
-  if (filePath && isSensitivePath(filePath)) {
-    return { decision: "deny", file: stripQuotes(String(filePath)) };
-  }
-  return { decision: "allow" };
-}
+    // Early exit if hook disabled in config
+    if (!isHookEnabled('privacy-block')) {
+      process.exit(0);
+    }
 
-function denyMarker(toolName, file) {
-  const payload = {
-    file,
-    tool: toolName,
-    reason: "This file may contain secrets (env vars, keys, or credentials).",
-    question: `I need to access "${file}" which may contain sensitive data. Approve?`,
-    options: [
-      { label: "Yes, approve access", description: "Allow this access once" },
-      { label: "No, skip this file", description: "Continue without it" },
-    ],
-    approve_hint:
-      "If the user approves via AskUserQuestion, re-run the operation as a Bash command prefixed with VC_APPROVED=1 (e.g. `VC_APPROVED=1 cat \"<file>\"`).",
+/**
+ * Format block message with approval instructions and JSON marker for AskUserQuestion
+ * @param {string} filePath - Blocked file path
+ * @returns {string} Formatted block message with JSON marker
+ */
+function formatBlockMessage(filePath) {
+  const basename = path.basename(filePath);
+
+  // JSON marker for LLM to parse and use AskUserQuestion tool
+  const promptData = {
+    type: 'PRIVACY_PROMPT',
+    file: filePath,
+    basename: basename,
+    question: {
+      header: 'File Access',
+      text: `I need to read "${basename}" which may contain sensitive data (API keys, passwords, tokens). Do you approve?`,
+      options: [
+        { label: 'Yes, approve access', description: `Allow reading ${basename} this time` },
+        { label: 'No, skip this file', description: 'Continue without accessing this file' }
+      ]
+    }
   };
-  return `@@VC_PRIVACY_START@@${JSON.stringify(payload)}@@VC_PRIVACY_END@@`;
+
+  return `
+\x1b[36mNOTE:\x1b[0m This is not an error - this block protects sensitive data.
+
+\x1b[33mPRIVACY BLOCK\x1b[0m: Sensitive file access requires user approval
+
+  \x1b[33mFile:\x1b[0m ${filePath}
+
+  This file may contain secrets (API keys, passwords, tokens).
+
+\x1b[90m@@PRIVACY_PROMPT_START@@\x1b[0m
+${JSON.stringify(promptData, null, 2)}
+\x1b[90m@@PRIVACY_PROMPT_END@@\x1b[0m
+
+  \x1b[34mClaude:\x1b[0m Use AskUserQuestion tool with the JSON above, then:
+  \x1b[32mIf "Yes":\x1b[0m Use bash to read: cat "${filePath}"
+  \x1b[31mIf "No":\x1b[0m  Continue without this file.
+`;
 }
 
-function main() {
-  const input = readStdinJson();
-  if (!input) return;
-  const result = evaluatePrivacy(input.tool_name, input.tool_input);
-  if (result.decision === "deny") {
-    process.stderr.write(
-      `av privacy-block: access to "${result.file}" requires user approval.\n${denyMarker(input.tool_name, result.file)}\n`,
-    );
+/**
+ * Format approval notice
+ * @param {string} filePath - Approved file path
+ * @returns {string} Formatted approval notice
+ */
+function formatApprovalNotice(filePath) {
+  return `\x1b[32m✓\x1b[0m Privacy: User-approved access to ${path.basename(filePath)}`;
+}
+
+// Main
+async function main() {
+  const timer = createHookTimer('privacy-block', { event: 'PreToolUse' });
+  let input = '';
+  for await (const chunk of process.stdin) {
+    input += chunk;
+  }
+
+  let hookData;
+  try {
+    hookData = JSON.parse(input);
+  } catch (e) {
+    timer.end({ status: 'warn', exit: 0, note: 'json-parse-failed', error: e.message });
+    process.exit(0); // Invalid JSON, allow
+  }
+
+  const { tool_input: toolInput, tool_name: toolName } = hookData;
+
+  // Use shared privacy checker
+  const result = checkPrivacy({
+    toolName,
+    toolInput,
+    options: { allowBash: true }
+  });
+
+  // Handle results
+  if (result.approved) {
+    // User approved - allow with notice
+    if (result.suspicious) {
+      console.error('\x1b[33mWARN:\x1b[0m Approved path is outside project:', result.filePath);
+    }
+    console.error(formatApprovalNotice(result.filePath));
+    timer.end({
+      tool: toolName,
+      status: 'ok',
+      exit: 0,
+      target: path.basename(result.filePath || ''),
+      note: result.suspicious ? 'approved-suspicious-path' : 'approved'
+    });
+    process.exit(0);
+  }
+
+  if (result.isBash) {
+    // Bash: warn but don't block - allows "Yes → bash cat" flow
+    console.error(`\x1b[33mWARN:\x1b[0m ${result.reason}`);
+    timer.end({
+      tool: toolName,
+      status: 'warn',
+      exit: 0,
+      target: path.basename(result.filePath || ''),
+      note: 'bash-sensitive-file'
+    });
+    process.exit(0);
+  }
+
+  if (result.blocked) {
+    // No approval - block
+    console.error(formatBlockMessage(result.filePath));
+    timer.end({
+      tool: toolName,
+      status: 'block',
+      exit: 2,
+      target: path.basename(result.filePath || ''),
+      note: 'approval-required'
+    });
     process.exit(2);
   }
+
+  timer.end({ tool: toolName, status: 'ok', exit: 0 });
+  process.exit(0); // Allow
 }
 
-if (require.main === module) failOpen("privacy-block", main);
-module.exports = { evaluatePrivacy };
+    // Run main only when executed directly (not when required for testing)
+    if (require.main === module) {
+      main().catch((error) => {
+        logHookCrash('privacy-block', error, { event: 'PreToolUse' });
+        process.exit(0);
+      });
+    }
+
+    // Export functions for unit testing
+    if (typeof module !== 'undefined') {
+      module.exports = {
+        isSafeFile,
+        isPrivacyBlockDisabled,
+        isPrivacySensitive,
+        hasApprovalPrefix,
+        stripApprovalPrefix,
+        extractPaths,
+      };
+    }
+} catch (e) {
+  try {
+    const { logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
+    logHookCrash('privacy-block', e, { event: 'PreToolUse' });
+    } catch (_) {}
+    process.exit(0); // fail-open
+  }
+})();

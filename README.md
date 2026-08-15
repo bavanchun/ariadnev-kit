@@ -122,7 +122,7 @@ documented in [the release guide](docs/release-and-publish-guide.md).
 
 ## What's in the kit
 
-26 skills + 13 agents + 6 hooks today. Broader kit expansion remains paused
+26 skills + 13 agents + 14 hooks today. Broader kit expansion remains paused
 until a later benchmark justifies it. Claim-tracked skills pass an offline
 omission ratchet. This is a static structure and traceability guarantee, not
 proof of behavioral parity.
@@ -244,7 +244,9 @@ Hooks (`kit/hooks/`) are a Claude Code event contract: installing to
 claude-code copies hook files and — after a y/n confirmation — merges event
 bindings into `.claude/settings.json` (idempotent, backed up). Declining or
 running non-interactively prints a copy-pasteable snippet instead. Other
-providers skip-and-log. Agents (`kit/agents/av-*.md`) follow the same
+providers skip-and-log. 14 hooks bind 19 times across 8 events; order within an
+event is declared in each `hook.json` rather than inherited from directory
+order — see [`kit/hooks/README.md`](kit/hooks/README.md). Agents (`kit/agents/av-*.md`) follow the same
 frontmatter contract as skills, enforced by `packages/cli/src/kit/agent-lint.ts`
 (name==file-stem, description with `<example>`/`<commentary>`, ≤120 lines,
 required `Behavioral Checklist` heading) — see `docs/av-skill-authoring-spec.md`.

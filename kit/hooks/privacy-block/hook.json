@@ -1,5 +1,10 @@
 {
-  "event": "PreToolUse",
-  "matcher": "Read|Edit|Write|Bash",
-  "description": "Block access to .env files, key material, and credentials; emit an AskUserQuestion marker with a VC_APPROVED=1 retry path."
+  "bindings": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Read|Write|Edit|Bash",
+      "order": 20
+    }
+  ],
+  "description": "Block reads of .env files, key material, and credentials before the tool runs."
 }

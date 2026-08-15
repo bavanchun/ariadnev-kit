@@ -1,4 +1,10 @@
 {
-  "event": "SessionStart",
-  "description": "Detect project type, package manager, framework, and git branch; inject VC_* context lines at session start."
+  "bindings": [
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "order": 10
+    }
+  ],
+  "description": "Detect project type, package manager, framework, and branch at session start."
 }

@@ -1,4 +1,18 @@
 {
-  "events": ["Stop", "SubagentStop"],
-  "description": "Persist a per-project markdown session snapshot on stop; archives last 5, expires after 7 days."
+  "bindings": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Agent|Task|TodoWrite|TodoRead",
+      "order": 30
+    },
+    {
+      "event": "Stop",
+      "order": 20
+    },
+    {
+      "event": "SubagentStop",
+      "order": 10
+    }
+  ],
+  "description": "Persist a per-project session snapshot after task activity and on stop."
 }

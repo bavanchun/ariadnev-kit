@@ -1,89 +1,54 @@
 #!/usr/bin/env node
-// av session-state — Stop/SubagentStop hook. Persists a small markdown state
-// snapshot per project so the next session can pick up context. Previous state
-// is archived (max 5), everything expires after 7 days. Atomic writes,
-// fail-open throughout.
-const path = require("node:path");
-const fs = require("node:fs");
-const os = require("node:os");
-const crypto = require("node:crypto");
-const { execFileSync } = require("node:child_process");
+// The shared library sits beside the hooks when installed and one level up in
+// the kit checkout. Probing for it means one file works in both layouts — a
+// hard-coded relative path silently resolves to nothing in the other one, and
+// these hooks fail open, so "nothing" looks exactly like "fine".
+const AV_LIB = [require('node:path').join(__dirname, '_lib'), require('node:path').join(__dirname, '..', '_lib')]
+  .find((dir) => require('node:fs').existsSync(dir));
 
-const LIB = [path.join(__dirname, "_lib"), path.join(__dirname, "..", "_lib")].find((d) =>
-  fs.existsSync(d),
-);
-const { failOpen, readStdinJson } = require(path.join(LIB, "fail-open.cjs"));
-const { atomicWrite } = require(path.join(LIB, "atomic-write.cjs"));
-const { detectProject } = require(path.join(LIB, "project-detect.cjs"));
+'use strict';
 
-const MAX_ARCHIVES = 5;
-const TTL_MS = 7 * 24 * 3600 * 1000;
+try {
+  const fs = require('fs');
+  const {
+    createSessionStateContext,
+    isHookEnabled
+  } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
+  const {
+    persistProjectCheckpoint,
+    refreshStatuslineSnapshot
+  } = require(require('node:path').join(AV_LIB, 'session-state-manager.cjs'));
 
-function cwdHash(cwd) {
-  return crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-}
+  if (!isHookEnabled('session-state')) process.exit(0);
 
-/** git status --short lines for cwd; [] outside a repo or on any failure. */
-function gitFilesChanged(cwd) {
-  try {
-    const out = execFileSync("git", ["status", "--short"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    return out.split("\n").filter((l) => l.trim().length > 0);
-  } catch {
-    return [];
+  const TRACKED_POST_TOOL_EVENTS = new Set(['Agent', 'Task', 'TaskCreate', 'TaskUpdate', 'TodoWrite']);
+
+  async function main() {
+    const stdin = fs.readFileSync(0, 'utf8').trim();
+    const data = stdin ? JSON.parse(stdin) : {};
+    const eventType = data.hook_event_name || null;
+    const context = createSessionStateContext({
+      sessionId: data.session_id,
+      cwd: process['env'].AV_PROJECT_ROOT || data.cwd || process.cwd(),
+      requireBinding: true
+    });
+    if (!context) process.exit(0);
+
+    if (eventType === 'PostToolUse' && TRACKED_POST_TOOL_EVENTS.has(data.tool_name || '')) {
+      await refreshStatuslineSnapshot(context, data);
+    } else if (eventType === 'SubagentStop') {
+      await refreshStatuslineSnapshot(context, data);
+    } else if (eventType === 'Stop') {
+      await persistProjectCheckpoint(context, data);
+    }
+
+    if (eventType === 'PostToolUse') {
+      process.stdout.write(JSON.stringify({ continue: true }));
+    }
+    process.exit(0);
   }
-}
 
-function buildStateMarkdown(input, project, now, filesChanged) {
-  const outcome = filesChanged.length === 0 ? "clean" : `${filesChanged.length} files changed`;
-  return [
-    "# av session state",
-    "",
-    `- updated: ${now.toISOString()}`,
-    `- session: ${input.session_id || "unknown"}`,
-    `- event: ${input.hook_event_name || "Stop"}`,
-    `- cwd: ${input.cwd || ""}`,
-    `- project: ${project.type}${project.packageManager ? ` (${project.packageManager})` : ""}`,
-    `- branch: ${project.branch || "n/a"}`,
-    `- outcome: ${outcome}`,
-    "",
-    "## Files changed",
-    filesChanged.length === 0 ? "(none)" : filesChanged.map((l) => `- ${l.trim()}`).join("\n"),
-    "",
-  ].join("\n");
+  main().catch(() => process.exit(0));
+} catch {
+  process.exit(0);
 }
-
-/** Cap archives at MAX_ARCHIVES (newest kept) and drop anything past TTL. */
-function pruneStateDir(dir, nowMs) {
-  const archives = fs
-    .readdirSync(dir)
-    .filter((f) => f.startsWith("archive-"))
-    .sort()
-    .reverse(); // name embeds timestamp: sort desc = newest first
-  for (const [i, f] of archives.entries()) {
-    const abs = path.join(dir, f);
-    const expired = nowMs - fs.statSync(abs).mtimeMs > TTL_MS;
-    if (i >= MAX_ARCHIVES || expired) fs.rmSync(abs, { force: true });
-  }
-}
-
-function archiveStamp(now) {
-  return now.toISOString().replace(/[-:T]/g, "").slice(0, 15).replace(/^(\d{8})/, "$1-");
-}
-
-function main() {
-  const input = readStdinJson();
-  if (!input) return;
-  const cwd = input.cwd || process.cwd();
-  const now = new Date();
-  const dir = path.join(os.homedir(), ".claude", "session-states", cwdHash(cwd));
-  fs.mkdirSync(dir, { recursive: true });
-  const latest = path.join(dir, "latest.md");
-  if (fs.existsSync(latest)) {
-    fs.renameSync(latest, path.join(dir, `archive-${archiveStamp(now)}.md`));
-  }
-  atomicWrite(latest, buildStateMarkdown(input, detectProject(cwd), now, gitFilesChanged(cwd)));
-  pruneStateDir(dir, now.getTime());
-}
-
-if (require.main === module) failOpen("session-state", main);
-module.exports = { buildStateMarkdown, cwdHash, pruneStateDir, gitFilesChanged };

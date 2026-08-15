@@ -31,6 +31,7 @@ const ALLOWLIST = [
   { prefix: "docs/decisions/0003-", why: "ADR describing a decision made under the old name" },
   { prefix: "docs/decisions/0004-", why: "ADR describing a decision made under the old name" },
   { prefix: "docs/decisions/0005-", why: "ADR describing a decision made under the old name" },
+  { prefix: "docs/decisions/0006-", why: "ADR naming the upstream paths and generators the verification evidence was checked against" },
   { prefix: "docs/decisions-ledger-historical.json", why: "retired claim ledger, kept verbatim as a record" },
   { prefix: "plans/", why: "dated plans and reports describe work as it was scoped" },
   { prefix: "packages/cli/CHANGELOG.md", why: "release history under the published package name" },
@@ -45,7 +46,21 @@ const ALLOWLIST = [
 const INLINE_ALLOW = /brand-drift-allow:/;
 
 // Ordered most-specific first so a hit reports the narrowest identifier.
+//
+// Two brands are hunted here, for two different reasons. The `vc*` family is the
+// project's own former name — leaving one behind points a path or an env var at
+// nothing. The `ak`/AgentKit/claudekit family is the *upstream* kit this one was
+// ported from: the requirement is that no identifier of it survives anywhere in
+// the tree, so the gate has to look for it rather than trusting a port to have
+// been thorough. A bare `ak` is checked the same way a bare `vc` is — matched
+// only as a standalone word, because those two letters live inside ordinary
+// English ("make", "break") and a naive substring hunt would report every one.
 const PATTERNS = [
+  { id: "upstream-env-prefix", rx: /AGENTKIT_|CLAUDEKIT_/g },
+  { id: "upstream-package", rx: /agentkit|claudekit/gi },
+  { id: "upstream-state-dir", rx: /\.agentkit\b/g },
+  { id: "upstream-skill-namespace", rx: /(?<![\w-])(?:ak|ck):/g },
+  { id: "upstream-bare-alias", rx: /(?<![\w.-])ak(?![\w:.-])/g },
   { id: "repo-consumer", rx: /bavanchun\/vcskill/gi },
   { id: "domain", rx: /vcskill\.dev|vchun\.dev/gi },
   { id: "env-prefix", rx: /VCSKILL_/g },

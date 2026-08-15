@@ -19,6 +19,23 @@ export interface Artifact {
 }
 
 /** Data-driven hook binding manifest (kit/hooks/<name>/hook.json). */
+/**
+ * One event binding. `bindings[]` exists because `events[] + matcher` cannot
+ * express what real hooks need: the same hook on PostToolUse with a tool matcher
+ * and on UserPromptSubmit with none, and a fixed position among the other hooks
+ * bound to the same event.
+ */
+export interface HookBindingSpec {
+  /** Claude Code hook event, e.g. "SessionStart", "PreToolUse". */
+  event: string;
+  /** Tool-name matcher, for PreToolUse/PostToolUse. */
+  matcher?: string;
+  /** Position within the event, ascending. Undeclared binds after declared ones. */
+  order?: number;
+  /** Extra argv appended after the hook path. */
+  args?: string[];
+}
+
 export interface HookManifest {
   /** Claude Code hook event, e.g. "SessionStart", "PreToolUse". */
   event?: string;
@@ -26,6 +43,8 @@ export interface HookManifest {
   events?: string[];
   /** Optional tool-name matcher for PreToolUse/PostToolUse events. */
   matcher?: string;
+  /** Per-event bindings, when one matcher for every event is not enough. */
+  bindings?: HookBindingSpec[];
   description: string;
 }
 

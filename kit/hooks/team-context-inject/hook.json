@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {
+      "event": "SubagentStart",
+      "matcher": "*",
+      "order": 20
+    }
+  ],
+  "description": "Inject the active team's shared context into a spawned subagent."
+}

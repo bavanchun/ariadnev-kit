@@ -12,7 +12,7 @@ blocks: []
 
 `ariadnev` (alias `av`, domain `ariadnev.com`) chứa toàn bộ năng lực của AgentKit 2.12.0
 dưới thương hiệu riêng: 103 skill (kèm asset nhị phân và 154 script chạy được), 16 agent,
-rules, 17 hook + 28 module `_lib`, kiểm toàn vẹn cài đặt, user config schema, và CLI mở
+rules, 14 hook + 18 module `_lib`, kiểm toàn vẹn cài đặt, user config schema, và CLI mở
 rộng — cài được cho các provider tự verify được, bằng quan sát thật chứ không kế thừa niềm
 tin.
 
@@ -73,7 +73,8 @@ port. Chi tiết ở `phase-01`.
 ## Acceptance criteria
 
 1. `av validate` xanh với 103 skill, 16 agent (đều từ nguồn), số rules theo bảng ở
-   phase 12, **17 hook**, và các artifact kind mới (`outputStyle`, `command`).
+   phase 12, **14 hook** (đếm lại từ nguồn ở phase 9 — 17 là số file trong thư mục, gồm
+   3 file của tool khác), và các artifact kind mới (`outputStyle`, `command`).
 2. `av install --provider <p>` chạy được cho mọi provider **verify được** (xem phase 08);
    ô chưa verify skip + log rõ.
 3. `av skill verify` báo `ok` cho toàn bộ **22** skill Python, và "ok" nghĩa là import thật
@@ -84,7 +85,8 @@ port. Chi tiết ở `phase-01`.
 6. Giết tiến trình giữa lúc install → `av uninstall` gỡ đúng số file đã ghi.
 7. Ghi đè N file → backup chứa đúng N entry khôi phục được.
 8. Zero tham chiếu `ak`/`AgentKit`/`AGENTKIT_*` trong kit và src.
-9. Thứ tự binding hook sau khi cài khớp `hooks.json` gốc (8 event / 21 binding).
+9. Thứ tự binding hook sau khi cài khớp `hooks.json` gốc (8 event / **19 binding** —
+   21 trừ 2 binding trùng lặp trong nguồn; xem phase 9).
 10. Statusline hiện đúng ở cả 4 chế độ; 5 module `statusline-*` có consumer thật.
 11. E2E cài + gỡ sạch cho mọi provider verified, chạy trong CI.
 12. 5 artifact adapter sinh đúng schema nguồn, và **không code nào đọc chúng** để ra quyết định.
@@ -106,7 +108,7 @@ port. Chi tiết ở `phase-01`.
 | 6 | `av audit` như reader trên receipt | P1 | 5 | 1d | **completed** |
 | 7 | Skill runtime env | P1 | 2 | 5d | **partial** |
 | 8 | Bằng chứng provider (tự verify) + whitelist event | P1 | 2 | 7d | **completed** |
-| 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | pending |
+| 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | **completed** |
 | 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | **completed** |
 | 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | pending |
 | 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | pending |
