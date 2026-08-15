@@ -104,6 +104,10 @@ jobs:
             --previous-source-tree "$GITHUB_WORKSPACE/previous-stable" \
             --previous-source-tag "$PREVIOUS_SOURCE_TAG" \
             --previous-source-sha "$PREVIOUS_SOURCE_SHA"
+      # Before the attestation exists, so it is only ever created for artifacts
+      # that ran. Writes nothing into dist/release, so asset digests are unaffected.
+      - name: Smoke the built binaries
+        run: node packages/cli/scripts/smoke-binary.mjs
       - name: Create inner provenance A
         env:
           GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}

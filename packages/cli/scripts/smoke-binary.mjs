@@ -7,17 +7,17 @@
 //   default path: dist/release/<hostAssetName()>
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, openSync, readSync, closeSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { hostAssetName } from "./binary-targets.mjs";
+import { hostAssetName, TARGETS, expectedHeader } from "./binary-targets.mjs";
 
 /**
  * Pure assertion over what the binary printed. Returns { ok, failures[] } so it
  * is unit-testable without spawning anything.
  */
-export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion }) {
+export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion, buildRoot }) {
   const failures = [];
 
   if (versionOut.trim() !== expectedVersion.trim()) {
@@ -58,24 +58,67 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
   }
 
   // A build-machine absolute path in output means a dev path was baked into the
-  // binary instead of resolving at runtime.
-  if ([versionOut, validateOut, runHelpOut, graphValidateOut].some((output) => /\/Users\//.test(output))) {
+  // binary instead of resolving at runtime. `/Users/` catches a macOS author's
+  // machine; `buildRoot` catches the runner this actually runs on in CI, where
+  // the path is `/home/runner/work/…` and the hardcoded pattern never fires.
+  const outputs = [versionOut, validateOut, runHelpOut, graphValidateOut];
+  if (outputs.some((output) => /\/Users\//.test(output))) {
     failures.push("output leaked an absolute dev path (/Users/…)");
+  }
+  if (buildRoot && outputs.some((output) => output.includes(buildRoot))) {
+    failures.push(`output leaked the build root (${buildRoot})`);
   }
 
   return { ok: failures.length === 0, failures };
 }
 
-function run(bin, args) {
-  const scratch = mkdtempSync(join(tmpdir(), "ariadnev-smoke-"));
-  return execFileSync(bin, args, { cwd: scratch, encoding: "utf8", timeout: 20000 });
+// Bun cross-compiles four assets this runner cannot execute. They still get
+// checked for the failure classes that "exists and is non-empty" misses: a
+// target that silently produced garbage, a truncated upload, and — the reason
+// the architecture field is read rather than just the magic — a swapped pair.
+const MIN_ASSET_BYTES = 10 * 1024 * 1024;
+
+export function checkAssetHeader(asset, head, size) {
+  const failures = [];
+  const { magic, archOffset, archBytes, arch } = expectedHeader(asset);
+  if (size < MIN_ASSET_BYTES) {
+    failures.push(`${asset} is ${size} bytes, too small to contain the embedded kit`);
+  }
+  if (!head.subarray(0, magic.length).equals(Buffer.from(magic))) {
+    failures.push(`${asset} does not start with the expected header for its format`);
+  } else if (archBytes.length > 0
+    && !head.subarray(archOffset, archOffset + archBytes.length).equals(Buffer.from(archBytes))) {
+    failures.push(`${asset} was built for the wrong architecture (expected ${arch})`);
+  }
+  return { ok: failures.length === 0, failures };
 }
 
-// CLI entry — only when invoked directly, so the pure export stays importable.
+// First run loads the embedded kit cold. The bound exists to catch a hang, not
+// to measure speed — the same lesson the skill-env deep import taught at 30s.
+const RUN_TIMEOUT_MS = 120000;
+
+function run(bin, args) {
+  const scratch = mkdtempSync(join(tmpdir(), "ariadnev-smoke-"));
+  return execFileSync(bin, args, { cwd: scratch, encoding: "utf8", timeout: RUN_TIMEOUT_MS });
+}
+
+/** First bytes of a file, without reading the whole 100MB binary. */
+function headBytes(path, length) {
+  const fd = openSync(path, "r");
+  try {
+    const buffer = Buffer.alloc(length);
+    return buffer.subarray(0, readSync(fd, buffer, 0, length, 0));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+// CLI entry — only when invoked directly, so the pure exports stay importable.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const releaseDir = join(pkgDir, "dist", "release");
   const asset = hostAssetName();
-  const bin = process.argv[2] ?? (asset && join(pkgDir, "dist", "release", asset));
+  const bin = process.argv[2] ?? (asset && join(releaseDir, asset));
   if (!bin) {
     console.error(`smoke: no binary for this host (${process.platform}/${process.arch}) — pass a path`);
     process.exit(1);
@@ -97,11 +140,39 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(1);
   }
 
-  const { ok, failures } = checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion });
+  const { ok, failures } = checkSmokeOutput({
+    versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion,
+    buildRoot: process.env.GITHUB_WORKSPACE ?? resolve(pkgDir, "..", ".."),
+  });
   if (!ok) {
     console.error(`smoke FAILED for ${bin}:`);
     for (const f of failures) console.error(`  - ${f}`);
     process.exit(1);
   }
   console.log(`smoke OK: ${bin} (v${expectedVersion.trim()}, kit and graph lifecycle load, no leaked paths)`);
+
+  // The other four assets are what most users download and this runner cannot
+  // execute any of them. Say so explicitly, and check what can be checked —
+  // silence here would read as a pass.
+  const headerFailures = [];
+  for (const { asset: name } of TARGETS) {
+    if (name === asset) continue;
+    const path = join(releaseDir, name);
+    let size;
+    try {
+      size = statSync(path).size;
+    } catch {
+      headerFailures.push(`${name} is missing from ${releaseDir}`);
+      continue;
+    }
+    const { magic, archOffset, archBytes } = expectedHeader(name);
+    const head = headBytes(path, Math.max(magic.length, archOffset + archBytes.length));
+    headerFailures.push(...checkAssetHeader(name, head, size).failures);
+    console.log(`smoke: ${name} not executable on ${process.platform}/${process.arch} — header and size checked only`);
+  }
+  if (headerFailures.length > 0) {
+    console.error("smoke FAILED on cross-compiled assets:");
+    for (const f of headerFailures) console.error(`  - ${f}`);
+    process.exit(1);
+  }
 }

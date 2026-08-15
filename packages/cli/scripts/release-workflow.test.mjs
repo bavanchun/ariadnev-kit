@@ -72,8 +72,9 @@ test("privileged publisher and finalizer run blocks contain no expression interp
 test("publisher and finalizer call only extracted privileged scripts and known safe tooling", () => {
   const buildJob = loadJobs(build).build;
   const buildSteps = buildJob.steps.map((step) => step.name);
-  assert.deepEqual(buildSteps.slice(-4), [
+  assert.deepEqual(buildSteps.slice(-5), [
     "Build release assets",
+    "Smoke the built binaries",
     "Create inner provenance A",
     "Stage flat candidate inventory",
     "Upload exact candidate artifact",
@@ -91,7 +92,10 @@ test("the previous stable source is locked before build, and one flat artifact i
   assert.ok(names.indexOf("Resolve immediate previous stable") < names.indexOf("Checkout previous stable exact commit"));
   assert.ok(names.indexOf("Checkout previous stable exact commit") < names.indexOf("Lock previous stable source tree"));
   assert.ok(names.indexOf("Lock previous stable source tree") < names.indexOf("Build release assets"));
-  assert.ok(names.indexOf("Build release assets") < names.indexOf("Create inner provenance A"));
+  // Smoke before the attestation: provenance should only ever be created for an
+  // artifact set that was actually run.
+  assert.ok(names.indexOf("Build release assets") < names.indexOf("Smoke the built binaries"));
+  assert.ok(names.indexOf("Smoke the built binaries") < names.indexOf("Create inner provenance A"));
   assert.ok(names.indexOf("Create inner provenance A") < names.indexOf("Stage flat candidate inventory"));
   const upload = steps.find((step) => step.name === "Upload exact candidate artifact");
   assert.equal(upload.with.path, "packages/cli/dist/candidate-upload/*");

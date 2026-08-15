@@ -41,7 +41,8 @@
     "build:binary": "node scripts/generate-embedded-kit.mjs && bun build --compile src/index.ts --outfile dist/ariadnev",
     "build:release": "node scripts/build-binaries.mjs",
     "docs-bundle:generate": "bun scripts/generate-docs-bundle.ts",
-    "test:build-binaries": "node --test scripts/build-binaries.test.mjs"
+    "test:build-binaries": "node --test scripts/build-binaries.test.mjs",
+    "smoke:release": "node scripts/smoke-binary.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",
