@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runValidate } from "./validate-command.js";
+import { fileURLToPath } from "node:url";
+import { pendingPortNames, runValidate } from "./validate-command.js";
 import { resolveKitRoot } from "../kit/load-kit.js";
 
 const GOOD_FRONTMATTER = `---
@@ -147,4 +148,26 @@ describe("runValidate", () => {
     }));
   });
 
+});
+
+describe("pending-port allowances", () => {
+  const kitRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..", "kit");
+
+  it("never lists a skill that has already been ported", () => {
+    // The list exists to cover a port in progress. A name that stayed on it
+    // after its skill landed would silently keep a real broken reference
+    // invisible, so the list has to shrink as the port lands.
+    const pending = pendingPortNames(kitRoot);
+    const shipped = new Set(
+      readdirSync(join(kitRoot, "skills"), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name),
+    );
+    const stale = pending.filter((name) => shipped.has(name));
+    expect(stale, "remove these from kit/skills-pending-port.json").toEqual([]);
+  });
+
+  it("falls back to strict checking when the file is absent or broken", () => {
+    expect(pendingPortNames(join(kitRoot, "does-not-exist"))).toEqual([]);
+  });
 });

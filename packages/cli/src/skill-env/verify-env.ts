@@ -136,13 +136,20 @@ export function verifyEnv(skill: string, lock: Lockfile | null, deps: VerifyDeps
 }
 
 /**
- * The skill ships Python but nothing states what it needs, so no honest claim
- * about its environment is possible. Distinct from `ok` on purpose: silence is
- * not evidence of health.
+ * No honest claim about the environment is possible. Two different situations
+ * reach here and they need different sentences: nothing states what the skill
+ * needs, or something does but there is no pinned lock to build and verify
+ * against. Reporting the first sentence for the second case tells the reader to
+ * go declare dependencies that are already declared.
+ *
+ * Distinct from `ok` on purpose: silence is not evidence of health.
  */
-export function unknownEnv(skill: string): EnvVerdict {
+export function unknownEnv(skill: string, reason: "undeclared" | "unlocked" = "undeclared"): EnvVerdict {
   return {
     status: "unknown",
-    detail: `${skill} ships Python but declares no dependencies — run scan-python-imports.mjs and review the draft`,
+    detail:
+      reason === "unlocked"
+        ? `${skill} declares Python dependencies but has no pinned lock — run \`ariadnev skill install ${skill}\` to build and pin one`
+        : `${skill} ships Python but declares no dependencies — run scan-python-imports.mjs and review the draft`,
   };
 }

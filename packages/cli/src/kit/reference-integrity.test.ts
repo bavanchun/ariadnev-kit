@@ -59,3 +59,27 @@ describe("checkReferenceIntegrity", () => {
     expect(result.dangling).toEqual(["references/x.md"]);
   });
 });
+
+describe("reference mention forms", () => {
+  const files = ["references/alpha.md", "references/beta.md"];
+
+  it("counts an explicitly relative mention as a mention", () => {
+    // The form the ported corpus uses throughout: `./references/x.md` inside a
+    // code span. Treating it as unmentioned reported 43 files that the skill
+    // lists by name as orphans.
+    const body = "See `./references/alpha.md` and also references/beta.md for detail.";
+    expect(checkReferenceIntegrity(body, files)).toEqual({ dangling: [], orphans: [] });
+  });
+
+  it("still ignores a reference that belongs to another skill", () => {
+    const body = "Borrow the table from ../cook/references/alpha.md if useful.";
+    const result = checkReferenceIntegrity(body, files);
+    expect(result.dangling).toEqual([]);
+    expect(result.orphans).toEqual(["references/alpha.md", "references/beta.md"]);
+  });
+
+  it("still reports a mention with no file behind it", () => {
+    const result = checkReferenceIntegrity("Read `./references/missing.md`.", files);
+    expect(result.dangling).toEqual(["references/missing.md"]);
+  });
+});

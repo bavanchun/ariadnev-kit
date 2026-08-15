@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
+import { isPorted } from "../kit/skill-lint.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
@@ -14,6 +15,21 @@ import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 // `ariadnev validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
 // (dangling + orphan) which loadKit does not check. Read-only; CI-able.
+
+/**
+ * Names declared in `kit/skills-pending-port.json`. Missing or malformed file =
+ * no allowances, which is the safe direction: the check goes back to strict.
+ */
+export function pendingPortNames(kitRoot: string): string[] {
+  try {
+    const raw = readFileSync(join(kitRoot, "skills-pending-port.json"), "utf8");
+    const parsed = JSON.parse(raw) as { pending?: unknown };
+    if (!Array.isArray(parsed.pending)) return [];
+    return parsed.pending.filter((name): name is string => typeof name === "string");
+  } catch {
+    return [];
+  }
+}
 
 export interface ValidateFinding {
   skill: string;
@@ -110,7 +126,12 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({ skill: requested, kind: "missing-skill", message: "skill not found in kit" });
     }
   }
-  const knownSkillNames = kit.skills.map((skill) => skill.name);
+  // A skill already ported can reference one whose port lands in a later wave.
+  // That is a scheduling fact, not a broken link, and reporting it as an error
+  // would make `validate` red for the whole port — which trains everyone to
+  // ignore it. A name on neither list is still an error, so a genuine typo or a
+  // reference to something that exists nowhere is caught exactly as before.
+  const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingPortNames(kit.root)];
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
     const referenceFiles = existsSync(refsDir)
@@ -127,7 +148,17 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({ skill: skill.name, kind: "dangling", message: `links ${d} but it does not exist` });
     }
     for (const o of orphans) {
-      findings.push({ skill: skill.name, kind: "orphan", message: `${o} exists but is never linked from SKILL.md` });
+      // A pointer to a file that does not exist stays an error for everyone: the
+      // model follows it and gets nothing. A file nobody points at is different
+      // — in ported content it is upstream's editorial choice, and 22 of them
+      // arrived in the first wave. Reporting the fact is useful; failing the
+      // build over content we chose to copy verbatim is not.
+      findings.push({
+        skill: skill.name,
+        kind: "orphan",
+        level: isPorted(skill) ? "warn" : "error",
+        message: `${o} exists but is never linked from SKILL.md`,
+      });
     }
     const unresolved = findUnresolvedSkillReferences(
       [

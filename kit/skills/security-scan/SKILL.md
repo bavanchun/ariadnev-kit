@@ -1,97 +1,146 @@
 ---
 name: av:security-scan
-description: Scan a codebase for hardcoded secrets, vulnerable dependencies, and common OWASP-style code patterns. Use for "security scan", "check for secrets", or before a release.
+description: "Scan codebase for security vulnerabilities, hardcoded secrets, dependency issues, and OWASP patterns. Use when asked to 'security scan', 'check for secrets', 'audit security', or before major releases."
 user-invocable: true
-argument-hint: "[path] [--secrets-only|--deps-only]"
+when_to_use: "Invoke for secrets, dependency, and OWASP-style scans."
+category: utilities
+keywords: [security, secrets, vulnerabilities, OWASP]
+argument-hint: "[scope] [--secrets-only] [--deps-only] [--full]"
 metadata:
-  author: vchun
+  origin: ported
+  author: upstream
   version: "1.0.0"
 ---
 
 # Security Scan
 
-Lightweight scanner using grep patterns + reasoning — no external service, no
-API key, no paid dependency.
+Lightweight security scanner using Claude's reasoning + shell tools. No external dependencies required.
 
-Handles: secret detection, dependency audit, common code-level vulnerability
-patterns.
-Does not handle: penetration testing, runtime analysis, infrastructure
-security, compliance audits.
+## Usage
+
+```
+/av:security-scan              # Full scan of current project
+/av:security-scan --secrets-only   # Only secret/credential detection
+/av:security-scan --deps-only      # Only dependency audit
+/av:security-scan src/api/         # Scan specific directory
+```
+
+## Scan Categories
+
+| Category | Method | Speed | Reference |
+|----------|--------|-------|-----------|
+| Secrets | search_files capability regex patterns | Fast | `references/secret-patterns.md` |
+| Dependencies | `npm audit` / `pip audit` | Medium | Built-in |
+| Code patterns | search_files capability + Claude analysis | Medium | `references/vulnerability-patterns.md` |
 
 ## Workflow
 
-1. **Detect stack** (package.json / requirements.txt / go.mod / Cargo.toml)
-   to pick the right dependency-audit command.
-2. **Secrets first** — grep the patterns in `references/secret-patterns.md`,
-   excluding `.env.example`/`.sample`/`.template`, test fixtures, and
-   generated dirs. For each hit, confirm it isn't an obvious placeholder
-   (`YOUR_API_KEY`, `xxx`) before reporting it as real.
-3. **Dependency audit** — run the stack's native audit command
-   (`npm audit --json`, `pip audit --format json`, etc.); parse and
-   categorize by severity. Missing tool → note it, don't fail the scan.
-4. **Code patterns** — grep the patterns in
-   `references/vulnerability-patterns.md`; read 5-10 lines of context around
-   each hit and reason about whether it's a real vulnerability or a false
-   positive before reporting it.
-5. **`.env` exposure** — check `git ls-files` for tracked `.env*` files and
-   that `.gitignore` actually excludes them.
+### 1. Detect Project Type
 
-## Severity
+```
+- Check for package.json → Node.js
+- Check for requirements.txt / pyproject.toml → Python
+- Check for go.mod → Go
+- Check for Cargo.toml → Rust
+```
 
-| Level | Meaning |
-|---|---|
-| Critical | Exploitable now: exposed prod credential, confirmed injection path |
-| High | Real credential or vulnerability pattern, exploitation plausible |
-| Medium | Possible credential/pattern, needs a human look |
-| Low | Style/hardening suggestion, not exploitable as-is |
+### 2. Secret Scanning (Always runs first)
 
-## Output format
+Load `references/secret-patterns.md` for regex patterns.
+
+Use search_files capability to search for each pattern category:
+- API keys and tokens (AWS, GitHub, Stripe, etc.)
+- Private keys and certificates
+- Database connection strings with credentials
+- Hardcoded passwords in code
+
+**Exclude**: `.env.example`, test fixtures, documentation, `node_modules/`, `dist/`
+
+For each match:
+- Verify it's a real secret (not a placeholder like `YOUR_API_KEY`)
+- Rate severity: CRITICAL (exposed prod key), HIGH (real credential), MEDIUM (possible credential)
+
+### 3. Dependency Audit (If applicable)
+
+Run the appropriate command:
+```bash
+# Node.js
+npm audit --json 2>/dev/null || echo '{"error":"npm audit failed"}'
+
+# Python (if pip-audit available)
+pip audit --format json 2>/dev/null || echo '{"error":"pip audit unavailable"}'
+```
+
+Parse output, categorize by severity (critical/high/moderate/low).
+
+### 4. Code Pattern Analysis
+
+Load `references/vulnerability-patterns.md` for patterns.
+
+Use search_files capability to search for dangerous patterns:
+- SQL injection (string concatenation in queries)
+- XSS (innerHTML, dangerouslySetInnerHTML without sanitization)
+- Command injection (exec/spawn with unsanitized input)
+- Path traversal (user input in file paths)
+- Insecure randomness (Math.random for security)
+- eval() / Function() with dynamic input
+
+For each match:
+- Read surrounding code context (5-10 lines)
+- Use Claude reasoning to determine if it's a real vulnerability or false positive
+- Rate severity and suggest fix
+
+### 5. .env Exposure Check
+
+```bash
+# Check if .env files are tracked by git
+git ls-files --error-unmatch .env .env.local .env.production 2>/dev/null
+# Check .gitignore for .env patterns
+grep -n "\.env" .gitignore 2>/dev/null
+```
+
+### 6. Generate Report
+
+Output a markdown report directly in chat:
 
 ```markdown
 # Security Scan Report
-Scanned: <path> | Files checked: <n>
+
+**Project:** {name}
+**Scanned:** {date}
+**Files checked:** {count}
 
 ## Summary
 | Category | Critical | High | Medium | Low |
-|---|---|---|---|---|
+|----------|----------|------|--------|-----|
+| Secrets  | X | X | X | - |
+| Deps     | X | X | X | X |
+| Code     | X | X | X | - |
 
 ## Findings
+
 ### CRITICAL
-1. [SECRET] <redacted-pattern> in `path:line` — fix: <concrete action>
+1. **[SECRET]** Hardcoded AWS key in `src/config.js:42`
+   - Pattern: `AKIA[0-9A-Z]{16}`
+   - Fix: Move to environment variable
+
+### HIGH
+...
 
 ## Recommendations
-1. <prioritized>
+1. ...
 ```
 
-Confirmed Critical/High findings route to `av:fix` for remediation — this
-skill reports, it does not patch code automatically. Each fix recommendation
-names the proof that would confirm it (`integration` test that the injection
-path is closed, `unit` test that the validator rejects the payload) so `av:fix`
-inherits a testable done-condition, not just "sanitize the input".
+If `--auto` mode active in cook workflow: save report to `{CK_REPORTS_PATH}` or `plans/reports/security-scan-{date}.md`.
 
-## Security policy
+## Scope Declaration
 
-- Never print an actual secret value — redact to first 4 + last 2 chars
-- Never execute a credential found during scanning
-- Never modify code automatically, only report + recommend
-- A confirmed real credential → recommend immediate rotation, not just a code fix
+This skill handles: Secret detection, dependency auditing, common vulnerability patterns.
+This skill does NOT handle: Penetration testing, runtime security analysis, infrastructure security, compliance audits.
 
-## Quality gates
+## Security Policy
 
-Before delivering the report:
-
-1. Every finding cites `path:line` — no "there may be secrets somewhere".
-2. Every reported hit passed the false-positive check (placeholder excluded,
-   5-10 lines of context read) — a wall of grep noise is not a scan.
-3. Secret values are redacted; no raw credential appears in the report.
-4. Each Critical/High finding has a concrete fix + its confirming proof layer.
-5. Severity is justified by exploitability, not by pattern-match count.
-
-## Workflow position
-
-**Typically follows:** a pre-release checkpoint, `av:cook` finalize on
-security-sensitive work, or a direct "scan for secrets" request.
-**Typically precedes:** `av:fix` (remediate confirmed Critical/High findings).
-**Related:** `av:fix` handles the actual patching; this skill only finds and
-reports. For dependency-only or secret-only runs, use the `--deps-only` /
-`--secrets-only` flags.
+- NEVER output actual secret values in reports — redact to first 4 + last 2 chars
+- NEVER execute secrets or credentials found during scanning
+- NEVER modify code automatically — only report findings with fix suggestions
+- If a real credential is found, recommend immediate rotation

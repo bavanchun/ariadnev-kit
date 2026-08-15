@@ -105,7 +105,7 @@ function renderScripts(result: ScriptsAuditResult): string {
 
 /** Every executable-ish script in the kit, with its content. */
 function collectScripts(kitRoot: string): { path: string; content: string }[] {
-  const exts = new Set([".sh", ".bash", ".zsh"]);
+  const exts = new Set([".sh", ".bash", ".zsh", ".py", ".js", ".mjs", ".cjs"]);
   const out: { path: string; content: string }[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {

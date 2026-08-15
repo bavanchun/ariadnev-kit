@@ -101,15 +101,32 @@ describe("parseScenario", () => {
 });
 
 describe("checked-in behavioral scenarios", () => {
-  it("covers every skill with positive and nearest-negative routing cases", () => {
+  it("covers every authored skill with positive and nearest-negative routing cases", () => {
+    // The suite proves routing for the skills this project wrote. A ported skill
+    // arrives with upstream's own description and no scenario, and inventing one
+    // would measure this project's guess at what upstream meant rather than
+    // anything about the skill. They are listed as an uncovered count instead of
+    // being silently excluded, so the gap stays a visible number.
     const scenarios = loadScenarioDirectory(join(process.cwd(), "evals", "scenarios", "skills"));
-    const expectedSkills = readdirSync(join(process.cwd(), "kit", "skills"))
-      .sort()
-      .map((name) => `av:${name}`);
+    const skillsRoot = join(process.cwd(), "kit", "skills");
+    const all = readdirSync(skillsRoot).sort();
+    const ported = all.filter((name) =>
+      /^\s*origin:\s*ported\s*$/m.test(readFileSync(join(skillsRoot, name, "SKILL.md"), "utf8")),
+    );
+    const authored = all.filter((name) => !ported.includes(name)).map((name) => `av:${name}`);
     const coveredSkills = scenarios.flatMap((scenario) => scenario.subjects.skills).sort();
 
-    expect(scenarios).toHaveLength(26);
-    expect(coveredSkills).toEqual(expectedSkills);
+    const uncovered = authored.filter((skill) => !coveredSkills.includes(skill));
+    expect(uncovered, "authored skills with no routing scenario").toEqual([]);
+
+    // Four scenarios outlived the skill they were written for: those skills were
+    // replaced by their upstream version, which carries a different description.
+    // The scenarios still name real skills, so they are kept rather than thrown
+    // away — but what they assert was calibrated against text that is gone, and
+    // they need re-reading the next time the behavioral suite is run for real.
+    const portedWithScenario = ported.map((name) => `av:${name}`).filter((skill) => coveredSkills.includes(skill));
+    expect(portedWithScenario.sort()).toEqual(["av:research", "av:scenario", "av:security-scan", "av:sequential-thinking"]);
+    expect(ported.length - portedWithScenario.length, "ported skills with no scenario at all").toBe(23);
     for (const scenario of scenarios) {
       expect(scenario.level).toBe("skill");
       expect(Object.keys(scenario.cases).sort()).toEqual(["negative", "positive"]);

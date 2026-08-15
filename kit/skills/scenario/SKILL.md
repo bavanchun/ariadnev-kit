@@ -1,95 +1,230 @@
 ---
 name: av:scenario
-description: Generate edge cases and test scenarios by decomposing a feature across risk dimensions. Use for pre-implementation risk discovery, QA planning, or regression design.
+description: "Generate comprehensive edge cases and test scenarios by decomposing features across 12 dimensions. Use for pre-implementation risk discovery, QA planning, regression design, and iterative saturation when coverage must be exhaustive."
 user-invocable: true
-argument-hint: "<file path or feature description>"
+when_to_use: "Invoke to expand requirements into edge cases and QA scenarios."
+category: utilities
+keywords: [edge-cases, test-scenarios, dimensions, saturation, iterations]
+argument-hint: "<file path or feature description> [--iterations N] [--saturation]"
 metadata:
-  author: vchun
-  version: "1.0.0"
-  attribution: "Dimension-decomposition pattern adapted from autoresearch by Udit Goenka (MIT)"
+  origin: ported
+  author: upstream
+  attribution: "Scenario exploration pattern adapted from autoresearch by Udit Goenka (MIT)"
+  license: MIT
+  version: "1.2.0"
 ---
 
-# Scenario
+# av:scenario — Edge Case & Scenario Explorer
 
-Decompose a feature across the dimensions that actually apply to it, and
-generate concrete edge cases per dimension — output that plugs directly into
-`av:cook`'s test-gate as ready-made test targets.
+Decompose any feature or code path across 12 dimensions to surface edge cases, risks, and test targets before implementation begins.
 
-Handles: pre-implementation risk discovery, test-case generation, QA/regression
-design.
-Does not handle: trivial single-line changes, already well-tested stable code.
+Supports two modes:
+- **One-shot** (default): single pass, 3–5 scenarios per relevant dimension. Fast, backwards-compatible.
+- **Iterative** (`--iterations N` or `--saturation`): loop until bounded count or novelty exhausted.
 
-## Dimensions
+## When to Use
 
-Not all apply to every feature — mark which ones do first, skip the rest
-explicitly (state why).
+- Before implementing complex or stateful features
+- Before writing tests (generates test targets)
+- Risk assessment during planning or code review
+- API design review — surface contract edge cases early
+- Deep pre-release coverage audit (`--saturation`)
 
-| # | Dimension | Look for |
-|---|---|---|
-| 1 | User types | admin, guest, banned, new, power user, bot |
-| 2 | Input extremes | empty, null, max length, unicode, injection payloads |
-| 3 | Timing | concurrent access, race conditions, timeout, retry storms |
-| 4 | Scale | 0 items, 1, very many, pagination boundary |
-| 5 | State transitions | first use, mid-flow abort, resume after crash |
-| 6 | Environment | low-end device, no JS, screen reader, different locale |
-| 7 | Error cascades | DB down, timeout, disk full, partial write |
-| 8 | Authorization | expired token, wrong role, shared link, privilege escalation |
-| 9 | Data integrity | duplicates, orphan references, concurrent migration |
-| 10 | Integration | webhook replay, API version mismatch, third-party outage |
-| 11 | Compliance | deletion request, audit-log gap, PII exposure |
-| 12 | Business logic | zero/negative pricing, coupon stacking, partial refund |
+## When NOT to Use
+
+- Trivial single-line changes or cosmetic UI tweaks
+- Already well-tested, stable code with no recent modifications
+- Pure configuration changes with no logic paths
+
+---
+
+## Flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--iterations N` | — | Bounded loop: run exactly N iterations, then stop with summary |
+| `--saturation` | off | Saturation loop: keep iterating until 2 consecutive iterations produce no novel scenarios |
+| `--domain <type>` | auto | Domain hint: `software`, `product`, `business`, `security`, `marketing` |
+| `--focus <dim>` | auto | Prioritize dimension: `edge-cases`, `failures`, `security`, `scale` |
+| `--format <type>` | table | Output format: `table`, `use-cases`, `test-scenarios`, `threat-scenarios` |
+
+When neither `--iterations` nor `--saturation` is set: one-shot mode (original behavior, default).
+
+---
+
+## 12 Decomposition Dimensions
+
+Not all 12 apply to every feature. Identify relevant dimensions first, then generate scenarios only for those.
+
+| # | Dimension | What to Look For |
+|---|-----------|------------------|
+| 1 | **User Types** | admin, guest, banned, new user, power user, bot/scraper |
+| 2 | **Input Extremes** | empty, null, max length, unicode, special chars, SQL/script injection |
+| 3 | **Timing** | concurrent access, race conditions, timeout, slow network, retry storms |
+| 4 | **Scale** | 0 items, 1 item, 1M items, pagination boundary, cursor wrap |
+| 5 | **State Transitions** | first use, mid-flow abort, resume after crash, partial completion |
+| 6 | **Environment** | mobile/low-end CPU, no JS, screen reader, proxy/VPN, different timezone/locale |
+| 7 | **Error Cascades** | DB down, API timeout, disk full, OOM, network partition, partial write |
+| 8 | **Authorization** | expired token, wrong role, shared/public link, CORS, CSRF, privilege escalation |
+| 9 | **Data Integrity** | duplicate entries, orphan references, encoding mismatch, concurrent schema migration |
+| 10 | **Integration** | webhook replay, API version mismatch, third-party outage, contract drift |
+| 11 | **Compliance** | GDPR deletion request, audit logging gap, data retention, accidental PII exposure |
+| 12 | **Business Logic** | edge pricing (zero/negative), coupon stacking, refund after partial delivery, free tier limits |
+
+---
 
 ## Workflow
 
-1. Read the target file(s) or parse the feature description.
-2. Mark which dimensions apply; state why the rest are skipped.
-3. Generate 3-5 concrete scenarios per relevant dimension — a real trigger,
-   flow, and expected outcome, not a vague category restatement.
-4. Rate severity: Critical (data loss/security/auth bypass) → High (broken
-   for a subset of users) → Medium (degraded UX, recoverable) → Low (cosmetic).
-5. Output the table; map each Critical/High row to a concrete test in
-   `av:cook`'s test-gate before calling the feature covered.
+### One-Shot Mode (default)
 
-## Output format
+1. **Read** target file(s) or parse feature description from argument
+2. **Filter dimensions** — mark which of the 12 apply; skip irrelevant ones explicitly, naming the assumption behind each skip. A dimension skipped on an assumption that could break within the life of this feature is itself a scenario, not a skip
+3. **Generate 3–5 scenarios** per relevant dimension
+4. **Categorize severity** — Critical / High / Medium / Low
+5. **Output** as structured table (see format below)
+6. **Summarize** total scenario count by severity
 
-```markdown
-## Scenarios: <target>
-Dimensions analyzed: <list> | Skipped: <list + reason>
+### Iterative Mode (`--iterations N` or `--saturation`)
 
-| # | Dimension | Scenario | Severity | Expected behavior |
+Iterative mode runs this saturation loop:
+
+1. **Read** target and build understanding (actors, components, preconditions)
+2. **Filter dimensions** — same as one-shot
+3. **Loop** — each iteration:
+   a. Pick highest-priority unexplored dimension or combination
+   b. Generate **one** concrete situation (specific trigger, flow, expected outcome)
+   c. **Classify** against all previously kept situations:
+      - **New**: different dimension AND different trigger/precondition → KEEP
+      - **Variant**: same dimension but different actor, data, or outcome → KEEP
+      - **Duplicate**: same dimension + same trigger + same outcome → DISCARD
+      - **Out of scope / Low value** → DISCARD, log reason
+   d. If kept: expand edge cases (what-if, boundary, interruption, ordering, missing data, stale data)
+   e. Log row to `scenario-results.tsv`
+   f. Every 5 iterations: print progress summary (see format below)
+4. **Halt**:
+   - `--iterations N`: stop after N iterations
+   - `--saturation`: stop when 2 consecutive iterations produce zero `New` classifications
+5. **Output** final summary with coverage matrix and composite score
+
+**Force dimension rotation** after 3 consecutive same-dimension iterations. Rotate through:
+Dimension walk → Combination → Negation → Amplification → Persona shift → Temporal shift
+
+### Severity Criteria
+
+| Level | Meaning |
+|-------|---------|
+| **Critical** | Data loss, security breach, auth bypass, silent corruption |
+| **High** | Feature broken for a subset of users, data inconsistency |
+| **Medium** | Degraded UX, recoverable error not surfaced to user |
+| **Low** | Minor visual glitch, non-blocking warning |
+
+---
+
+## Output Format
+
+### One-Shot
+
+```
+## Scenario Report: [target]
+
+Dimensions analyzed: [list]
+Dimensions skipped: [list + reason]
+
+| # | Dimension | Scenario | Severity | Expected Behavior |
+|---|-----------|----------|----------|-------------------|
+| 1 | Input Extremes | Empty string for required name field | High | Return 400 with field error |
+| 2 | Authorization | Expired JWT accessing protected route | Critical | Redirect to login, invalidate session |
+| 3 | Timing | Two users submit same form simultaneously | High | Idempotency key or conflict error |
 
 ### Summary
-Critical: N | High: N | Medium: N | Low: N | Total: N across X dimensions
+- Critical: N
+- High: N
+- Medium: N
+- Low: N
+- Total: N scenarios across X dimensions
 ```
 
-Feed Critical/High rows into `av:predict` (as the change proposal) for a
-deeper debate, or straight into `av:plan`'s risk assessment.
+### Iterative — Progress Summary (every 5 iterations)
 
-Each scenario also implies the proof layer that would cover it (see
-`../cook/references/risk-lanes.md`): input-extreme and business-logic rows are
-usually `unit`; integration/error-cascade rows need `integration`; user-type and
-state-transition flows are `e2e`. Tag the layer so `av:cook`'s test-gate knows
-what kind of test each Critical/High row demands, not just that one is owed.
+```
+=== Scenario Progress (iteration 15) ===
+Scenarios kept:    12  (8 new, 4 variants)
+Discarded:          3  (2 duplicates, 1 out-of-scope)
+Dimensions covered: 7/12 (58%)
+Edge cases found:  18
+Severity:          2 Critical, 4 High, 8 Medium, 4 Low
+Coverage gaps:     scale, temporal, recovery
+```
 
-## Quality gates
+### Iterative — TSV Log (`scenario-results.tsv`)
 
-Before delivering:
+```tsv
+iteration	dimension	classification	severity	title	description	parent
+1	happy_path	new	-	Successful checkout	User completes standard checkout	-
+2	error_path	new	HIGH	Payment declined	Card rejected during checkout	-
+3	edge_case	duplicate	-	Empty cart	Already covered by #1	#1
+```
 
-1. Applicable dimensions were chosen deliberately, and skipped ones say *why* —
-   not silently omitted.
-2. Every scenario is concrete: a real trigger + flow + expected outcome, not a
-   restatement of the dimension name.
-3. Every Critical/High row names its proof layer, so it converts to a test
-   rather than a worry.
-4. Severity reflects real blast radius (data loss/security = Critical), not the
-   order scenarios were thought of.
+### Iterative — Final Summary
 
-## Workflow position
+```
+## Scenario Report: [target]  (iterations: N)
 
-**Typically follows:** `av:predict` (a CAUTION/STOP verdict whose risk rows need
-concrete edge cases), or `av:plan` building a phase's test targets.
-**Typically precedes:** `av:cook`'s test-gate (scenarios become tests), or back
-into `av:plan`'s risk assessment.
-**Related:** `av:predict` debates *whether* a change is sound across 5 personas;
-`av:scenario` enumerates *what could break* across risk dimensions. Predict for
-the go/no-go, scenario for the test matrix.
+[Full table of kept scenarios, grouped by dimension]
+
+### Coverage Matrix
+[dimension × severity grid]
+
+### Composite Score: NNN
+  scenarios_generated * 10  = X
+  edge_cases_found * 15     = X
+  dimensions_covered * 30   = X
+  unique_actors * 5         = X
+  high_severity * 3         = X
+
+### Saturation
+Halted: [after N iterations — bounded] | [saturation — 2 consecutive iterations with no novel cases]
+```
+
+---
+
+## Integration with Other Skills
+
+| Next Step | Skill | How |
+|-----------|-------|-----|
+| Generate test cases from scenarios | `av:test` | Pass scenario table as input context |
+| Inform implementation plan risks | `av:plan` | Paste Critical/High rows into risk assessment |
+| Deep persona debate on top risks | `av:predict` | Feed Critical scenarios as the change proposal |
+
+---
+
+## Reference
+
+Saturation loop mechanics, novelty detection, and generation strategy are embedded in the iterative-mode instructions above.
+
+---
+
+## Example Invocations
+
+```
+# One-shot (default — backwards compatible)
+/av:scenario src/api/payment.ts
+/av:scenario "User registration with OAuth providers"
+
+# Bounded iterative — exactly 25 iterations
+/av:scenario src/api/payment.ts --iterations 25
+
+# Saturation — stop when coverage exhausted
+/av:scenario "Add multi-tenancy to the database layer" --saturation
+
+# Saturation with domain hint for priority dimension ordering
+/av:scenario src/middleware/auth.ts --saturation --domain security
+```
+
+---
+
+## Lineage
+
+Faithful absorption (in scope) of upstream `/autoresearch:scenario` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). The local version supports both one-shot generation and the iterative saturation loop.
+
+See `/av:autoresearch` for the full family map.

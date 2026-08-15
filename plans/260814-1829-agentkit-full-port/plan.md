@@ -110,7 +110,7 @@ port. Chi tiết ở `phase-01`.
 | 8 | Bằng chứng provider (tự verify) + whitelist event | P1 | 2 | 7d | **completed** |
 | 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | **completed** |
 | 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | **completed** |
-| 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | pending |
+| 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | **completed** |
 | 12 | Port nội dung wave B — 76 skill + agents + rules | P2 | 11, 13 | 12d | pending |
 | 13 | CLI Tier-1 + cây subcommand | P2 | 6, 7 | 4d | pending |
 | 14 | Statusline | P2 | 9 | 3d | pending |

@@ -67,8 +67,10 @@ interface SkillEnvSource {
   dir: string;
   /** Reviewed, pinned dependency set; null when the skill needs no environment. */
   lock: Lockfile | null;
-  /** The skill ships Python but nothing says what it needs. */
-  undeclared: boolean;
+  /** false = a complete answer; otherwise why no claim can be made:
+   *  `undeclared` (nothing says what it needs) or `unlocked` (it says, but
+   *  there is no pinned lock to verify against). */
+  undeclared: false | "undeclared" | "unlocked";
 }
 
 function filesRecursive(dir: string, predicate: (name: string) => boolean, acc: string[] = []): string[] {
@@ -94,9 +96,11 @@ export function readSkillEnvSource(skillsRoot: string, name: string): SkillEnvSo
   // Python present but no lock: is there at least a declaration saying it needs
   // nothing at runtime? That is a real answer. Silence is not.
   const declarations = filesRecursive(dir, (f) => /^requirements.*\.txt$/.test(f));
-  if (declarations.length === 0) return { name, dir, lock: null, undeclared: true };
+  if (declarations.length === 0) return { name, dir, lock: null, undeclared: "undeclared" };
   const declaresRuntime = declarations.some((p) => needsEnvironment(parseRequirements(readFileSync(p, "utf8"))));
-  return { name, dir, lock: null, undeclared: declaresRuntime };
+  // Declared-and-stdlib-only is a complete answer; declared-with-packages but
+  // no lock is not, and the two say different things to the reader.
+  return { name, dir, lock: null, undeclared: declaresRuntime ? "unlocked" : false };
 }
 
 function skillsRootOf(opts: SkillEnvOpts): string {
@@ -133,7 +137,7 @@ function deepImport(source: SkillEnvSource, python: string): EnvVerdict | null {
 }
 
 function verifyOne(source: SkillEnvSource, opts: SkillEnvOpts): EnvVerdict {
-  if (source.undeclared) return unknownEnv(source.name);
+  if (source.undeclared) return unknownEnv(source.name, source.undeclared);
   const verdict = verifyEnv(source.name, source.lock, realVerifyDeps, { thorough: opts.deep });
   if (verdict.status !== "ok" || !opts.deep) return verdict;
   const python = interpreterFor(source.lock, opts.systemPython ?? "python3");

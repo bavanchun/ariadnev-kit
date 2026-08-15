@@ -1,0 +1,11 @@
+# Runtime imports of scripts/connections.py and scripts/evaluation.py, which are
+# a working evaluation harness rather than a template — they import these at run
+# time and fail without them.
+#
+# Unpinned on purpose: a pinned, hash-verified lock is what `ariadnev skill
+# install` builds from, and generating one means resolving against PyPI. Until
+# that lock exists, `verify` reports this skill as missing its environment,
+# which is the true answer. A version written here without a resolved hash would
+# look like a lock and verify nothing.
+mcp
+anthropic

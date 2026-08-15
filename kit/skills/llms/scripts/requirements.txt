@@ -1,0 +1,4 @@
+# Declared for `ariadnev skill verify`: this skill's Python imports only the
+# standard library, so it needs no environment built for it. The file exists
+# because silence and "needs nothing" are different answers — without it the
+# verifier can only report that nobody has checked.

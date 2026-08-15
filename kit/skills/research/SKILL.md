@@ -1,98 +1,178 @@
 ---
 name: av:research
-description: Research technologies, libraries, and best practices with sourced findings. Use for tech evaluation, solution comparison, or gathering current docs before building.
+description: "Research technical solutions, analyze architectures, gather requirements thoroughly. Use for technology evaluation, best practices research, solution design, scalability/security/maintainability analysis."
 user-invocable: true
-argument-hint: "<topic or technology to research>"
+when_to_use: "Invoke for deep technical research before implementation."
+category: utilities
+keywords: [research, evaluation, analysis, solutions]
+license: MIT
+argument-hint: "[topic] [--yagni]"
 metadata:
-  author: vchun
+  origin: ported
+  author: upstream
   version: "1.0.0"
 ---
 
 # Research
 
-Produce a decision-ready research report: current facts, real sources, and a
-recommendation scored against this project's constraints — not a generic
-listicle.
+## Research Methodology
 
-Handles: technology evaluation, library comparison, best-practice surveys,
-"how do others solve X".
-Does not handle: deciding architecture (`av:brainstorm` consumes this),
-implementing (`av:cook`).
+Always honoring **KISS** and **DRY** principles. Deliver the full requested scope — never trim or defer what the user explicitly asked for. Add nothing unrequested. With `--yagni`, additionally challenge and cut any scope not needed for the stated outcome.
+**Be honest, be brutal, straight to the point, and be concise.**
 
-## Rules
+### Phase 1: Scope Definition
 
-1. **Recency beats memory.** For anything that moves (frameworks, APIs,
-   pricing, versions), verify against current documentation or the source
-   repo; note the date/version checked. Training-data recall alone is not a
-   finding.
-2. **Project context in.** Read enough of the repo to weight findings by
-   fit: stack, constraints, team conventions. A "best" library that fights
-   the existing stack is not best here.
-3. **Primary sources first.** Official docs, changelogs, source code, issue
-   trackers — then community posts as color, never as sole evidence.
-4. **Contradictions are findings.** When sources disagree, report the
-   disagreement and which one you weighted, and why.
+First, you will clearly define the research scope by:
+- Identifying key terms and concepts to investigate
+- Determining the recency requirements (how current must information be)
+- Establishing evaluation criteria for sources
+- Setting boundaries for the research depth
 
-## Workflow
+### Phase 2: Systematic Information Gathering
 
-1. Frame: what decision will this research feed? 1-3 questions max.
-2. Gather: docs lookups, targeted web searches, source reading. Track
-   (claim, source, date) as you go.
-3. Evaluate candidates against project-fit criteria (maintenance health,
-   API stability, license, bundle/runtime cost, learning curve).
-4. Write the report to
-   `plans/reports/research-{yymmdd-hhmm}-{slug}-report.md`; summarize
-   verbally with the recommendation up front.
+You will employ a multi-source research strategy:
 
-## Output format
+1. **Search Strategy**:
+   - Use the runtime's native `web_search capability` for current external research.
+   - Treat legacy `.claude/.ck.json` keys `skills.research.useGemini` and `gemini.model` as compatibility input only; they do not enable retired CLI dispatch.
+   - Run multiple independent `web_search capability` queries in parallel when the runtime supports parallel tool calls.
+   - Craft precise search queries with relevant keywords
+   - Include terms like "best practices", "2024", "latest", "security", "performance"
+   - Search for official documentation, GitHub repositories, and authoritative blogs
+   - Prioritize results from recognized authorities (official docs, major tech companies, respected developers)
+   - **IMPORTANT:** You are allowed to perform at most **5 researches (max 5 tool calls)**, user might request less than this amount, **strictly respect it**, think carefully based on the task before performing each related research topic.
+
+2. **Deep Content Analysis**:
+   - When you found a potential Github repository URL, use `av:docs-seeker` skill to find read it.
+   - Focus on official documentation, API references, and technical specifications
+   - Analyze README files from popular GitHub repositories
+   - Review changelog and release notes for version-specific information
+
+3. **Video Content Research**:
+   - Prioritize content from official channels, recognized experts, and major conferences
+   - Focus on practical demonstrations and real-world implementations
+
+4. **Cross-Reference Validation**:
+   - Verify information across multiple independent sources
+   - Check publication dates to ensure currency
+   - Identify consensus vs. controversial approaches
+   - Note any conflicting information or debates in the community
+
+### Phase 3: Analysis and Synthesis
+
+You will analyze gathered information by:
+- Identifying common patterns and best practices
+- Evaluating pros and cons of different approaches
+- Assessing maturity and stability of technologies
+- Recognizing security implications and performance considerations
+- Determining compatibility and integration requirements
+
+### Phase 4: Report Generation
+
+**Notes:**
+- Research reports are saved using `Report:` path from `## Naming` section.
+- If `## Naming` section is not available, ask main agent to provide the output path.
+
+You will create a comprehensive markdown report with the following structure:
 
 ```markdown
-# Research: <topic>
+# Research Report: [Topic]
 
-## Question
-What decision this feeds.
+## Executive Summary
+[2-3 paragraph overview of key findings and recommendations]
 
-## Recommendation
-One paragraph, committed (conditions that would change it noted).
+## Research Methodology
+- Sources consulted: [number]
+- Date range of materials: [earliest to most recent]
+- Key search terms used: [list]
 
-## Findings
-Per candidate/claim: evidence + source + checked date/version.
+## Key Findings
 
-## Comparison
-| Option | Fit | Maturity | Cost | Notes |
+### 1. Technology Overview
+[Comprehensive description of the technology/topic]
 
-## Sources
-Links, versions, dates.
+### 2. Current State & Trends
+[Latest developments, version information, adoption trends]
 
-## Unresolved questions
-Or "none".
+### 3. Best Practices
+[Detailed list of recommended practices with explanations]
+
+### 4. Security Considerations
+[Security implications, vulnerabilities, and mitigation strategies]
+
+### 5. Performance Insights
+[Performance characteristics, optimization techniques, benchmarks]
+
+## Comparative Analysis
+[If applicable, comparison of different solutions/approaches]
+
+## Implementation Recommendations
+
+### Quick Start Guide
+[Step-by-step getting started instructions]
+
+### Code Examples
+[Relevant code snippets with explanations]
+
+### Common Pitfalls
+[Mistakes to avoid and their solutions]
+
+## Resources & References
+
+### Official Documentation
+- [Linked list of official docs]
+
+### Recommended Tutorials
+- [Curated list with descriptions]
+
+### Community Resources
+- [Forums, Discord servers, Stack Overflow tags]
+
+### Further Reading
+- [Advanced topics and deep dives]
+
+## Appendices
+
+### A. Glossary
+[Technical terms and definitions]
+
+### B. Version Compatibility Matrix
+[If applicable]
+
+### C. Raw Research Notes
+[Optional: detailed notes from research process]
 ```
 
-When the recommendation implies building, name the proof layer the eventual
-change will need (`unit`/`integration`/`e2e`/`platform`, see
-`../cook/references/risk-lanes.md`) — e.g. "adopting library X needs an
-integration proof against the real API, not just a unit mock". This hands the
-downstream `av:plan`/`av:cook` a proof expectation instead of a bare verdict.
+## Quality Standards
 
-## Quality gates
+You will ensure all research meets these criteria:
+- **Accuracy**: Information is verified across multiple sources
+- **Currency**: Prioritize information from the last 12 months unless historical context is needed
+- **Completeness**: Cover all aspects requested by the user
+- **Actionability**: Provide practical, implementable recommendations
+- **Clarity**: Use clear language, define technical terms, provide examples
+- **Attribution**: Always cite sources and provide links for verification
 
-Before delivering, confirm:
+## Special Considerations
 
-1. Every moving-target claim (version, API, pricing) carries a checked
-   date/version — no un-dated "X supports Y".
-2. Every important claim has ≥2 independent sources, or is flagged as
-   single-source.
-3. Findings are weighted by *this* project's stack and constraints, not ranked
-   in the abstract.
-4. Source disagreements are reported, not silently resolved to the tidier answer.
-5. The recommendation is committed (names the condition that flips it), not an
-   "it depends" survey.
+- When researching security topics, always check for recent CVEs and security advisories
+- For performance-related research, look for benchmarks and real-world case studies
+- When investigating new technologies, assess community adoption and support levels
+- For API documentation, verify endpoint availability and authentication requirements
+- Always note deprecation warnings and migration paths for older technologies
 
-## Workflow position
+## Output Requirements
+**IMPORTANT:** Invoke "/av:project-organization" skill to organize the outputs.
 
-**Typically follows:** `av:ask` (a question grew into "I need to evaluate
-options"), the research phase of `av:brainstorm`.
-**Typically precedes:** `av:brainstorm` (consumes findings to pick an approach),
-`av:plan` (turns the chosen tech into phases).
-**Related:** `av:docs-seeker` — use it for pinpoint "what's the API for X in the
-version we already use"; use `av:research` for open evaluation across options.
+Your final report must:
+1. Be saved using the `Report:` path from `## Naming` section with a descriptive filename
+2. Include a timestamp of when the research was conducted
+3. Provide clear section navigation with a table of contents for longer reports
+4. Use code blocks with appropriate syntax highlighting
+5. Include diagrams or architecture descriptions where helpful (in mermaid or ASCII art)
+6. Conclude with specific, actionable next steps
+
+**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
+**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
+
+**Remember:** You are not just collecting information, but providing strategic technical intelligence that enables informed decision-making. Your research should anticipate follow-up questions and provide comprehensive coverage of the topic while remaining focused and practical.

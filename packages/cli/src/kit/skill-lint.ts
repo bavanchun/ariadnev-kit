@@ -6,6 +6,30 @@ import type { Artifact } from "./kit-types.js";
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
+
+/**
+ * A skill copied from upstream, marked `metadata.origin: ported` by the port
+ * script.
+ *
+ * The house rules below — the three required sections, the description length,
+ * the trigger verb, the line budget — describe how *we* write a skill. They were
+ * written for a corpus of 26 hand-authored skills and every one of them met the
+ * bar. The ported corpus does not: all 103 lack `## Output format` and
+ * `## Quality gates`, 44 carry a longer description, 17 run past the line
+ * budget. Enforcing the rules on copied content leaves two options, and both are
+ * worse than this one — rewrite content the port promised to copy verbatim, or
+ * grant a blanket exemption that quietly retires the bar for everything.
+ *
+ * So the bar stays, scoped to what it describes. A ported skill is still checked
+ * for the things that make a skill *valid* (frontmatter shape, unknown fields, a
+ * description that exists and says something); what it is not checked for is
+ * house style. Its size is reported as a warning rather than ignored, because
+ * the cost is real and belongs in view even when it is not ours to fix.
+ */
+export function isPorted(artifact: Artifact): boolean {
+  const metadata = artifact.frontmatter.metadata;
+  return typeof metadata === "object" && metadata !== null && (metadata as Record<string, unknown>).origin === "ported";
+}
 export const SKILL_MAX_LINES = 300;
 export const SKILL_MAX_LINES_CEILING = 400;
 export const REFERENCE_MAX_LINES = 300;
@@ -102,38 +126,49 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
     }
   }
 
+  const ported = isPorted(artifact);
+
   const description = artifact.frontmatter.description;
   if (typeof description === "string") {
     const len = description.trim().length;
-    if (len < DESCRIPTION_MIN || len > DESCRIPTION_MAX) {
-      errors.push(
-        `${label}: description must be ${DESCRIPTION_MIN}-${DESCRIPTION_MAX} chars (got ${len})`,
-      );
+    // Too short is a defect in any skill: a description is how the model decides
+    // whether to load it, and one that says nothing makes the skill unreachable.
+    if (len < DESCRIPTION_MIN) {
+      errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
+    } else if (len > DESCRIPTION_MAX) {
+      const over = `${label}: description is ${len} chars, over the ${DESCRIPTION_MAX}-char house limit`;
+      (ported ? warnings : errors).push(over);
     }
     if (!TRIGGER_VERB.test(description)) {
-      errors.push(
-        `${label}: description needs a trigger verb (use/invoke/run/activate/trigger) saying when to fire`,
-      );
+      const noTrigger = `${label}: description needs a trigger verb (use/invoke/run/activate/trigger) saying when to fire`;
+      (ported ? warnings : errors).push(noTrigger);
     }
   }
 
   const maxLines = resolveMaxLines(artifact, errors);
   const skillLines = countLines(artifact.raw);
   if (skillLines > maxLines) {
-    errors.push(`${label}: SKILL.md is ${skillLines} lines, limit ${maxLines} (default ${SKILL_MAX_LINES})`);
+    const tooLong = `${label}: SKILL.md is ${skillLines} lines, limit ${maxLines} (default ${SKILL_MAX_LINES})`;
+    (ported ? warnings : errors).push(tooLong);
   }
 
   const skillHeadings = headings(artifact.body);
   const exactSections = levelTwoHeadings(artifact.body);
-  for (const section of REQUIRED_SECTIONS) {
-    if (!exactSections.has(section)) {
-      errors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
+  if (!ported) {
+    for (const section of REQUIRED_SECTIONS) {
+      if (!exactSections.has(section)) {
+        errors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
+      }
     }
   }
   for (const ref of references) {
     const refLines = countLines(ref.content);
     if (refLines > REFERENCE_MAX_LINES) {
-      errors.push(`${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`);
+      // Same reasoning as SKILL.md length: upstream ships 136 reference files
+      // past this budget (the longest is 2249 lines). Reporting the cost is
+      // useful; failing the build over content we chose to copy verbatim is not.
+      const tooLong = `${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`;
+      (ported ? warnings : errors).push(tooLong);
     }
     for (const [normalized, original] of headings(ref.content)) {
       if (skillHeadings.has(normalized)) {

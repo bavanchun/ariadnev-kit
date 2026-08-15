@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T14:33:44.456Z",
+  "generatedAt": "2026-08-15T08:14:28.005Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
-    "runtime": "node-v24.15.0",
+    "runtime": "bun-1.3.14",
     "providerVariance": {
       "applicable": false,
       "reason": "Retrieval and deterministic required-path tasks run locally without a model provider."
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:7754431f8416a0d7e12b2a1fee0a88945af7b03f2846199954ec292d3e2bc289",
+    "corpusDigest": "sha256:63ba836645d1fd68f70d9cc1ed749b0554fbd18acabd5ffb7ce70d42ede3bc70",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -37,7 +37,7 @@
       "name": "local lexical metadata index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.594569844281829,
+        "retrievalQuality": 0.6093730073198504,
         "taskSuccessRate": 0.6153846153846154,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -100,13 +100,13 @@
           },
           {
             "id": "direct.current-docs-research",
-            "retrievalQuality": 0.8075588805057204,
+            "retrievalQuality": 1,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
+              "kit/skills/research/SKILL.md",
               "evals/scenarios/golden/current-docs-research.json",
               "kit/skills/docs-seeker/SKILL.md",
-              "kit/skills/research/SKILL.md",
               "kit/skills/plan/SKILL.md",
               "docs/graph-execution-architecture.md",
               "kit/skills/ask/SKILL.md"
@@ -192,8 +192,8 @@
               "kit/skills/git/SKILL.md",
               "kit/skills/ship/SKILL.md",
               "kit/skills/code-review/SKILL.md",
-              "kit/skills/security-scan/SKILL.md",
-              "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
+              "evals/scenarios/golden/current-docs-research.json"
             ]
           },
           {
@@ -217,8 +217,8 @@
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/current-docs-research.json",
-              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/research/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/git/SKILL.md",
               "kit/skills/ask/SKILL.md",
               "kit/skills/brainstorm/SKILL.md"
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.092459,
-            "p95Ms": 2.15325,
-            "maxMs": 2.314625
+            "p50Ms": 2.987875,
+            "p95Ms": 3.596625,
+            "maxMs": 3.79675
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.168792,
-            "p95Ms": 0.220916,
-            "maxMs": 0.341416
+            "p50Ms": 0.232291,
+            "p95Ms": 0.285542,
+            "maxMs": 0.91
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.155,
-            "p95Ms": 0.195667,
-            "maxMs": 1.058084
+            "p50Ms": 0.215417,
+            "p95Ms": 0.251417,
+            "maxMs": 0.993458
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 112775
+        "indexBytes": 117068
       },
       "externalDependencies": []
     },
@@ -261,7 +261,7 @@
       "name": "deterministic artifact relationship graph plus lexical index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.8118754006221113,
+        "retrievalQuality": 0.8157517495994037,
         "taskSuccessRate": 0.9230769230769231,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -324,13 +324,13 @@
           },
           {
             "id": "direct.current-docs-research",
-            "retrievalQuality": 0.8075588805057204,
+            "retrievalQuality": 0.8579514172105233,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/current-docs-research.json",
-              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/research/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/plan/SKILL.md",
               "docs/graph-execution-architecture.md",
               "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
@@ -441,8 +441,8 @@
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/current-docs-research.json",
-              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/research/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md",
               "evals/scenarios/golden/release-to-pr.json",
               "kit/skills/git/SKILL.md",
               "kit/skills/ask/SKILL.md"
@@ -454,37 +454,37 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.713333,
-            "p95Ms": 2.831416,
-            "maxMs": 2.915708
+            "p50Ms": 4.166292,
+            "p95Ms": 4.785958,
+            "maxMs": 5.310167
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.793666,
-            "p95Ms": 0.954708,
-            "maxMs": 2.080041
+            "p50Ms": 1.188083,
+            "p95Ms": 1.364083,
+            "maxMs": 2.11725
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.762916,
-            "p95Ms": 0.855833,
-            "maxMs": 1.814875
+            "p50Ms": 1.149792,
+            "p95Ms": 1.295584,
+            "maxMs": 2.242833
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 115079,
+        "indexBytes": 119372,
         "edges": 24
       },
       "externalDependencies": []
     }
   },
   "comparison": {
-    "retrievalQualityGainPoints": 21.7306,
+    "retrievalQualityGainPoints": 20.6379,
     "taskSuccessGainPoints": 30.7692,
     "meanContextTokenDelta": 0,
     "candidateIndexByteDelta": 2304,

@@ -52,7 +52,10 @@ const RULES: Rule[] = [
   { id: "remote-code-execution", severity: "high", scope: "command", rx: /\b(ba|z|k)?sh\s+<\(\s*(curl|wget)\b/ },
   { id: "remote-package-install", severity: "medium", scope: "command", rx: /\bgo\s+install\s+\S/ },
   { id: "remote-package-install", severity: "medium", scope: "any", rx: /\bpip[23]?\s+install\b[^\n]*\b(git\+|https?:\/\/)/ },
-  { id: "remote-package-install", severity: "medium", scope: "any", rx: /\b(npm|pnpm|yarn)\s+(install|add|i)\b[^\n]*\s-g\b/ },
+  // `command`, not `any`: a script that *prints* "npm install -g …" as advice is
+  // telling the user what to do, not doing it. The quoted form showed up in the
+  // first ported wave and would have been a standing false positive.
+  { id: "remote-package-install", severity: "medium", scope: "command", rx: /\b(npm|pnpm|yarn)\s+(install|add|i)\b[^\n]*\s-g\b/ },
   { id: "remote-package-install", severity: "medium", scope: "command", rx: /\b(cargo|gem)\s+install\s+\S/ },
   // Anything landing in a system prefix or a shell startup file is reaching
   // well outside the skill's own directory.
@@ -62,6 +65,16 @@ const RULES: Rule[] = [
   // knowable where it is assigned.
   { id: "writes-outside-skill", severity: "medium", scope: "any", rx: /[=:]-?\/(usr|etc|opt)\// },
   { id: "writes-outside-skill", severity: "medium", scope: "any", rx: />>?\s*(~|\$HOME)\/\.(bash|zsh|profile|config)\S*/ },
+
+  // Interpreted scripts reach the same capabilities through their own runtime,
+  // and the kit ships far more Python than shell — scanning only shell would
+  // have left 22 of the first wave's 24 scripts unread while reporting a pass.
+  { id: "privilege-escalation", severity: "high", scope: "any", rx: /(?:subprocess\.(?:run|call|check_call|check_output|Popen)|os\.system|os\.exec\w*)\s*\(\s*(?:\[\s*)?['"]sudo['"]/ },
+  { id: "privilege-escalation", severity: "high", scope: "any", rx: /\b(?:exec|execSync|spawn|spawnSync)\s*\(\s*['"`]sudo\b/ },
+  // A shell string assembled at runtime is where an argument becomes a command.
+  { id: "remote-code-execution", severity: "medium", scope: "any", rx: /\bshell\s*=\s*True\b/ },
+  { id: "remote-code-execution", severity: "high", scope: "any", rx: /\b(?:exec|eval)\s*\(\s*(?:requests\.get|urlopen|urllib|fetch)\b/ },
+  { id: "remote-code-execution", severity: "high", scope: "any", rx: /\b(?:exec|execSync|spawnSync?)\s*\([^\n]*\b(?:curl|wget)\b[^\n]*\|\s*(?:ba|z)?sh\b/ },
 ];
 
 /**
@@ -69,7 +82,17 @@ const RULES: Rule[] = [
  * quoted spans blanked out. One quote-aware pass serves both: a `#` inside a
  * string does not start a comment, and quoted text is not command position.
  */
-function parseLine(line: string): { code: string; unquoted: string } {
+/**
+ * Comment marker by language. A `.cjs` hook's `// …` line is a comment, and
+ * treating it as code reported a sentence *describing* sudo as an act of
+ * privilege escalation — the sort of false positive that teaches people to
+ * skim past the whole report.
+ */
+function commentMarkers(path: string): string[] {
+  return /\.(js|mjs|cjs|ts)$/.test(path) ? ["//"] : ["#"];
+}
+
+function parseLine(line: string, markers: string[] = ["#"]): { code: string; unquoted: string } {
   let quote: string | null = null;
   let unquoted = "";
   for (let i = 0; i < line.length; i++) {
@@ -90,7 +113,8 @@ function parseLine(line: string): { code: string; unquoted: string } {
       unquoted += " ";
       continue;
     }
-    if (c === "#" && (i === 0 || /\s/.test(line[i - 1]))) {
+    const marker = markers.find((m) => line.startsWith(m, i));
+    if (marker && (i === 0 || /[\s;]/.test(line[i - 1]))) {
       return { code: line.slice(0, i), unquoted };
     }
     unquoted += c;
@@ -104,7 +128,7 @@ export function scanScript(path: string, content: string): ScriptReport {
   const lines = content.split("\n");
 
   lines.forEach((raw, index) => {
-    const { code, unquoted } = parseLine(raw);
+    const { code, unquoted } = parseLine(raw, commentMarkers(path));
     if (code.trim() === "") return;
     const seen = new Set<RiskId>();
     for (const rule of RULES) {

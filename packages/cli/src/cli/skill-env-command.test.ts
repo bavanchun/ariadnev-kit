@@ -75,14 +75,17 @@ describe("readSkillEnvSource", () => {
 
   it("flags a skill that ships Python and declares nothing", () => {
     addSkill("silent", { "scripts/tool.py": "import requests\n" });
-    expect(readSkillEnvSource(skillsRoot, "silent").undeclared).toBe(true);
+    expect(readSkillEnvSource(skillsRoot, "silent").undeclared).toBe("undeclared");
   });
 
   it("flags a skill that declares runtime deps but has no reviewed lock", () => {
     // A declaration is not a lock: the range it names cannot be installed
     // reproducibly, so this is not something to build from.
     addSkill("unlocked", { "scripts/t.py": "import numpy\n", "scripts/requirements.txt": "numpy>=1.24.0\n" });
-    expect(readSkillEnvSource(skillsRoot, "unlocked")).toMatchObject({ lock: null, undeclared: true });
+    // "declares nothing" and "declares packages but has no lock" both mean no
+    // claim can be made, and each needs its own sentence: telling someone to
+    // declare dependencies they already declared sends them in a circle.
+    expect(readSkillEnvSource(skillsRoot, "unlocked")).toMatchObject({ lock: null, undeclared: "unlocked" });
   });
 
   it("reads a reviewed lock when one is present", () => {
