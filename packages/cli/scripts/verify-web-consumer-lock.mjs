@@ -7,6 +7,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import {
   listTree, readRegularFile, readSourceFile, safeReal, sha256Bytes,
 } from "./web-consumer-lock-files.mjs";
+import { isStableReleaseTag } from "./release-tag-grammar.mjs";
 
 const ALLOWED_COMMANDS = new Set(["bun", "node", "pnpm"]);
 const EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
@@ -66,6 +67,12 @@ function validateSchema(schema, lock) {
   if (!validate(lock)) {
     const errors = (validate.errors ?? []).map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`);
     throw new Error(`web-consumer lock schema validation failed: ${errors.join("; ")}`);
+  }
+  // The schema constrains the predecessor tag's shape; which product names may
+  // appear is release-tag-grammar.mjs's answer, so the rename allowance is
+  // stated once instead of being copied into JSON where it drifted before.
+  if (!isStableReleaseTag(lock.previousSource.tag)) {
+    throw new Error("previousSource tag does not name a release this project has cut");
   }
   assertInvocation(lock.invocation);
 }

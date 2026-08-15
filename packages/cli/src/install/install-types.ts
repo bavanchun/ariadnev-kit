@@ -72,6 +72,10 @@ export const IGNORE_DIRS = new Set([
   ".git",
   ".venv",
   "__pycache__",
+  // Hooks write their runtime log beside themselves. It is one machine's
+  // session history: never copied into a provider tree, and never embedded
+  // into a binary that gets shipped somewhere else.
+  ".logs",
   "node_modules",
   ".pytest_cache",
   ".mypy_cache",

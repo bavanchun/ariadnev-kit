@@ -144,6 +144,17 @@ describe("embedded-kit", () => {
     }
   });
 
+  it("embeds nothing from a directory the installer refuses to copy", () => {
+    // `kit/hooks/.logs/hook-log.jsonl` was being embedded: one machine's hook
+    // session history, gitignored in the checkout but shipped inside every
+    // binary built from it. The drift guard above could not catch it — the
+    // embed matched the live kit exactly, which was the problem.
+    const shipped = Object.keys(EMBEDDED_ASSETS).filter((key) =>
+      key.split("/").some((segment) => IGNORE_DIRS.has(segment)),
+    );
+    expect(shipped).toEqual([]);
+  });
+
   it("embeds no token-shaped content", () => {
     // Filenames are only half the risk: a token pasted into a skill body would
     // be baked into every shipped binary. Same shapes the output sanitizer

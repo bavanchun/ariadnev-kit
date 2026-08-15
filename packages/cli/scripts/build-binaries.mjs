@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TARGETS } from "./binary-targets.mjs";
 import { validateReleaseOutputDirectory } from "./release-output-directory.mjs";
+import { isStableReleaseTag } from "./release-tag-grammar.mjs";
 
 const scriptDir = fileURLToPath(new URL(".", import.meta.url));
 const pkgDir = join(scriptDir, "..");
@@ -47,7 +48,7 @@ const previousSourceTree = resolve(previousSourceTreeValue);
 if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error("source SHA must be a full lowercase commit SHA");
 // The predecessor may predate the rename, so its tag carries the old grammar.
 // The release tag being produced below stays strict on the current one.
-if (!/^(?:ariadnev|vcskill)@(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(previousSourceTag)) throw new Error("previous source tag must be stable"); // brand-drift-allow: accepts pre-rename release tags
+if (!isStableReleaseTag(previousSourceTag)) throw new Error("previous source tag must be stable");
 if (!/^[a-f0-9]{40}$/.test(previousSourceSha)) throw new Error("previous source SHA must be a full lowercase commit SHA");
 if (!Number.isSafeInteger(Number(sourceDateEpoch)) || Number(sourceDateEpoch) < 0) throw new Error("source date epoch must be a non-negative safe integer");
 if (Number.isNaN(Date.parse(generatedAt))) throw new Error("generated-at must be an ISO date-time");
