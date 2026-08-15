@@ -1,7 +1,8 @@
 ---
 phase: 8
 title: "Bằng chứng provider + whitelist event"
-status: pending
+status: completed
+completed: 2026-08-15
 priority: P1
 effort: "7d"
 dependencies: [2, 7]
@@ -125,19 +126,68 @@ mỗi mục ngoài tài liệu kèm ghi chú lý do giữ.
 
 ## Success Criteria
 
-- [ ] Mọi ô `true` có `evidence` trỏ vào **quan sát thật**, ghi ngày + phiên bản provider
-- [ ] Không ô nào còn trích dẫn generator bên thứ ba làm bằng chứng
-- [ ] Provider không cài được ghi rõ lý do và hạ về `unverified`
-- [ ] Ô `scripts` được re-derive dưới ngữ nghĩa script thực thi, không kế thừa
-- [ ] `test-provider` không nằm trong yêu cầu bằng chứng
-- [ ] 6 hook hiện có validate sạch, gồm `SubagentStart` (test chiều chấp nhận)
-- [ ] Event ngoài whitelist → `av validate` lỗi rõ ràng (test chiều từ chối)
-- [ ] `antigravity` hạ về `unverified` có ghi lý do; `generic` đánh dấu "verified by convention"
-- [ ] Không tồn tại `matcher-translate.ts` hay `adapt-decision-log.ts`
-- [ ] ADR 0006 ghi, cho từng ô: phương pháp quan sát + phiên bản provider, hoặc lý do
-      không quan sát được
-- [ ] `src/adapt/` vẫn pure, coverage ≥ 90%
-- [ ] `pnpm test` xanh
+- [x] Mọi ô `observed` ghi **lệnh đã chạy + thấy gì**, kèm ngày và phiên bản provider
+- [x] Không ô nào còn trích dẫn generator bên thứ ba (có test chặn 3 chuỗi đó)
+- [x] Provider không quan sát được ghi rõ lý do; ô riêng của nó hạ về `unverified`
+- [x] Ô `scripts` re-derive: `convention` ở mọi provider, không kế thừa
+- [x] `test-provider` loại khỏi `EVIDENCE_REQUIRED_PROVIDERS`
+- [x] 6 hook hiện có validate sạch, gồm `SubagentStart` (test chiều chấp nhận, load kit thật)
+- [x] Event ngoài whitelist → lỗi nêu tên hook, tên event, tập hợp lệ và **hậu quả**
+- [x] `antigravity` ghi rõ không có CLI để quan sát; `generic` toàn bộ là `convention`
+- [x] Không tồn tại `matcher-translate.ts` hay `adapt-decision-log.ts`
+- [x] ADR 0006 ghi cách quan sát từng provider + phiên bản, hoặc lý do không quan sát được
+- [x] `src/adapt/` vẫn pure, coverage **99.28%**
+- [x] `pnpm test` xanh — 854 test
+
+## Kết quả thực thi (2026-08-15)
+
+### Quan sát được nhiều hơn dự đoán của plan
+
+Plan dự đoán `antigravity` không có trên máy và `cursor` quan sát được. Thực tế ngược lại một
+phần: `/Applications/Antigravity.app` **có** nhưng không ship CLI nào; còn `cursor-agent` có
+CLI nhưng **không có bề mặt liệt kê cục bộ** nào.
+
+Ba provider quan sát được thật, và bằng chứng mạnh hơn "file nằm đúng chỗ":
+
+| Provider | Phiên bản | Lệnh quan sát | Thấy gì |
+|---|---|---|---|
+| claude-code | 2.1.232 | phiên đang chạy | skill/agent/command liệt kê theo tên; hook chạy thật |
+| codex | codex-cli 0.147.0 | `codex debug prompt-input` | **prompt codex thật sự gửi**: 25 skill theo tên, thư mục cài là skill root, 13 agent, khối AGENTS.md |
+| opencode | 1.15.3 | `opencode debug skill` / `agent list` / `debug config` | 26 skill kèm **location** đúng thư mục installer ghi; 13 agent; command trong config đã resolve |
+
+`codex debug prompt-input` là bằng chứng tốt nhất tìm được: nó render prompt model nhìn thấy,
+nên không phải suy đoán codex *có thể* đọc gì mà là codex **đã gửi** gì. Agent được kiểm với
+codex cài **một mình** — nếu không, `.agents/skills/av-*` do cursor ghi có thể giải thích
+nhầm cho các tên đó.
+
+### Ba mức bằng chứng, vì gộp lại là tự ký nhận
+
+`observed` (đã chạy provider và thấy nó nạp) / `convention` (không quan sát riêng, nhưng dùng
+đúng layout trung tính **đã** quan sát chạy được ở provider khác) / `none` (không có gì → ô
+false, installer skip).
+
+### Ô mất bằng chứng — hạ cấp có chủ ý
+
+`codex.command`, `cursor.command`, `cursor.rules`, `opencode.rules`. Cụ thể:
+`.codex/commands/term-config.md` **được ghi** nhưng không bao giờ xuất hiện trong
+prompt-input; `opencode debug config` báo `instructions` rỗng. Người dùng các provider đó sẽ
+ngừng nhận file mà chưa ai từng quan sát thấy được đọc. Ma trận README đã cập nhật theo.
+
+### Verify lại làm lộ một lỗi thật
+
+`planRules` **chưa bao giờ** kiểm `supports.rules`; nó khẳng định non-null bằng `!`. Nhánh đó
+không thể chạm tới chừng nào mọi provider còn `rules: true`. Ngay khi một provider mất bằng
+chứng, `null` chạy thẳng tới path guard và **crash** thay vì skip.
+
+Đúng như Risk Assessment dự đoán — nhưng lỗi nằm ở chỗ khác dự đoán: không phải đường dẫn
+sai, mà là **cái gate chưa bao giờ được thực thi thì không phải là gate**.
+
+### Whitelist event
+
+Hợp của tập tài liệu hoá và event 6 hook đang ship. `SubagentStart` giữ lại kèm ghi chú lý do
+— test chiều chấp nhận **load kit thật** rồi đối chiếu, nên whitelist soạn từ tài liệu thuần
+sẽ đỏ ngay. Thông báo lỗi nêu cả hậu quả ("never fires"), vì đó mới là thứ khiến người đọc
+hiểu tại sao phải sửa.
 
 ## Risk Assessment
 

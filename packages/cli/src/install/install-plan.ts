@@ -55,6 +55,13 @@ function planOutputStyles(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): Inst
 
 function planRules(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   if (kit.rules.length === 0) return [];
+  // This gate was missing while every provider happened to have rules
+  // verified, so the `!` below asserted away a null that could not yet occur.
+  // The moment one provider's rules cell lost its evidence, that null reached
+  // the path guard as a crash instead of a skip.
+  if (!r.supports.rules) {
+    return kit.rules.map((rule) => skip("rules", rule.name, `unsupported/unverified (${r.id})`));
+  }
   if (r.rulesMode === "agents-md") {
     const dest = join(r.agentsMdRoot(ctx), "AGENTS.md");
     return [{ action: "agents-md", kind: "rules", name: "AGENTS.md", dest, block: buildRulesBlock(kit.rules) }];

@@ -16,11 +16,20 @@ describe("resolver target matrix", () => {
     expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.claude/commands/c.md");
   });
 
-  it("codex is home-rooted; command dir uses shared constant", () => {
+  it("codex is home-rooted for the kinds it was observed to load", () => {
     const r = getResolver("codex");
+    // Both paths were confirmed by running `codex debug prompt-input` and
+    // seeing the installed artifacts in the prompt codex builds.
     expect(r.targetFor(art("skill", "x"), ctx)).toBe("/home/u/.agents/skills/x");
     expect(r.targetFor(art("agent", "a"), ctx)).toBe("/home/u/.codex/agents/a.toml");
-    expect(r.targetFor(art("command", "c"), ctx)).toBe(`/home/u/.codex/${CODEX_COMMANDS_DIR}/c.md`);
+  });
+
+  it("codex commands resolve to null — written but never observed being read", () => {
+    // The file lands at `.codex/commands/<name>.md` and codex never surfaces
+    // it. Rather than keep an unevidenced claim, the cell is unverified, so
+    // the installer skips and logs instead of writing something inert.
+    expect(getResolver("codex").targetFor(art("command", "c"), ctx)).toBeNull();
+    expect(CODEX_COMMANDS_DIR).toBe("commands");
   });
 
   it("opencode uses plural dirs", () => {

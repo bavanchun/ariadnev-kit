@@ -105,7 +105,7 @@ port. Chi tiết ở `phase-01`.
 | 5 | Install bền: crash boundary + backup không đụng độ | P1 | 2 | 2d | **completed** |
 | 6 | `av audit` như reader trên receipt | P1 | 5 | 1d | **completed** |
 | 7 | Skill runtime env | P1 | 2 | 5d | **partial** |
-| 8 | Bằng chứng provider (tự verify) + whitelist event | P1 | 2 | 7d | pending |
+| 8 | Bằng chứng provider (tự verify) + whitelist event | P1 | 2 | 7d | **completed** |
 | 9 | Hook engine port (+ dịch `hooks.json`) | P2 | 8, 10 | 7d | pending |
 | 10 | User config schema (tách quyền project/user) | P2 | 2 | 3d | pending |
 | 11 | Port nội dung wave A — 27 skill độc lập | P2 | 3, 4, 5, 7 | 5d | pending |

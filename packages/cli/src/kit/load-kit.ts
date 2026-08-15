@@ -5,6 +5,7 @@ import type { Artifact, ArtifactType, HookManifest, Kit, KitHook } from "./kit-t
 import { lintSkill, type ReferenceFile } from "./skill-lint.js";
 import { lintAgent } from "./agent-lint.js";
 import { KitValidationError } from "./kit-validation-error.js";
+import { assertKnownHookEvents } from "./hook-events.js";
 // One ignore list for both walkers: if the loader accepted a tree the installer
 // never copies, `validate` would pass on files that can never reach a provider.
 import { IGNORE_DIRS } from "../install/install-types.js";
@@ -152,6 +153,9 @@ function loadHooks(kitRoot: string): KitHook[] {
     if (typeof manifest.description !== "string" || manifest.description.length === 0) {
       throw new KitValidationError(`hook "${entry}": manifest must declare a description`);
     }
+    // A well-formed but unrecognized event name is the failure this catches:
+    // the hook installs, binds, and then never fires, with nothing to report it.
+    assertKnownHookEvents(entry, manifest.event ? [manifest.event] : (manifest.events ?? []));
     out.push({ name: entry, manifest, file });
   }
   return out;

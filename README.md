@@ -175,8 +175,8 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 |---|---|---|---|---|---|---|
 | skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `.agents/skills/` | `.opencode/skills/` | `.agents/skills/` |
 | agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/*` | skip | `.opencode/agents/*.md` | skip |
-| command | `.claude/commands/*.md` | `~/.codex/commands/*.md` | `.cursor/commands/*.md` | skip | `.opencode/commands/*.md` | skip |
-| rules | `.claude/rules/*.md` | `AGENTS.md` | `.cursor/rules/*.mdc` | `AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
+| command | `.claude/commands/*.md` | skip | skip | skip | `.opencode/commands/*.md` | skip |
+| rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` |
 | scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` |
 | hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
