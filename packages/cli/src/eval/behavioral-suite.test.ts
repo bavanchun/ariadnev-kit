@@ -67,12 +67,26 @@ describe("runBehavioralSuite", () => {
   }, 15_000);
 
   it("bounds parallel workers while preserving deterministic result order", async () => {
+    // A gate rather than a sleep. The old version slept 5ms per launch and then
+    // asserted the peak was exactly 2 — which is only true if the second worker
+    // starts before the first finishes, and under a loaded machine it often does
+    // not. That made a real invariant into an intermittent red build.
+    //
+    // Here nobody proceeds until two workers are in flight at once, so "it
+    // reached the bound" is proven by the test completing at all, and "it never
+    // exceeded the bound" by the assertion below. A scheduler that ran one at a
+    // time would hang here and fail on the timeout, which is the correct answer.
     let active = 0;
     let maximum = 0;
+    let release = (): void => {};
+    const bothRunning = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const launch = async () => {
       active += 1;
       maximum = Math.max(maximum, active);
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      if (active >= 2) release();
+      await bothRunning;
       active -= 1;
       return { kind: "completed" as const, output: "answer" };
     };
@@ -88,7 +102,7 @@ describe("runBehavioralSuite", () => {
       variant: "ariadnev", availableCapabilities: [], timeoutMs: 500,
       skillRepeats: 1, deepRepeats: 1, concurrency: 2, launcher: { launch },
     });
-    expect(maximum).toBe(2);
+    expect(maximum).toBe(2); // never more than the configured bound
     expect(result.runs.slice(0, 2).map((run) => run.cellId)).toEqual([
       "skill.ask.routing:positive",
       "skill.ask.routing:negative",
