@@ -89,6 +89,27 @@ thì phase 5 sẽ ngồi dịch ngược giữa lúc đang release.
 8. `pnpm test`, `pnpm lint`, brand-drift.
 9. Commit: `fix(release): unblock the release trigger and the finalize dispatch`.
 
+## Đo được (2026-08-16, bản build 5 target đầu tiên)
+
+| Asset | Byte |
+|---|---:|
+| `ariadnev-darwin-arm64` | 86,711,522 |
+| `ariadnev-darwin-x64` | 92,258,384 |
+| `ariadnev-linux-arm64` | 116,762,768 |
+| `ariadnev-linux-x64` | 117,680,256 |
+| `ariadnev-windows-x64.exe` | 121,568,256 |
+| docs bundle + manifest + schema + checksums | 41,305 |
+| **Tổng** | **535,022,491** |
+
+Trần candidate là **536,870,912**. Dư **1,848,421 byte — 0.34%**.
+
+**Không nâng trần.** Chưa vượt, nên nâng bây giờ là nâng khống. Nhưng ghi rõ ở đây
+vì dư địa coi như đã hết: thêm vài file kit là bước publish đỏ. Trần mỗi binary
+(125,829,120) cũng chỉ còn dư 3.4% ở bản Windows — bản chạm trần trước.
+
+Khi nó gãy, phản ứng đúng là chuyển asset nặng sang sidecar tải lười, không phải
+nâng số. `build-binaries.mjs` đã ghi sẵn thông điệp đó ở chỗ kiểm trần binary.
+
 ## Success Criteria
 
 - [ ] Test chứng minh detect step trả `true` khi version chưa có tag, `false` khi đã có,

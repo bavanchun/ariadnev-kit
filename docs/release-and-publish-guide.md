@@ -23,10 +23,17 @@ proxies the (private) repo's releases. The edge lives in its own repo,
 2. Merge your PR to `main`. `.github/workflows/release.yml` sees the pending
    changeset and opens a **"Version Packages"** PR that bumps the version and
    updates `CHANGELOG.md`.
-3. Merge the "Version Packages" PR. On that push the workflow detects the version
-   change, runs `packages/cli/scripts/build-binaries.mjs` (regenerate embedded kit
-   → `bun --compile` all 5 targets → `checksums.txt`), and publishes them to the
-   `ariadnev@<version>` GitHub Release.
+3. Merge the "Version Packages" PR. On that push the workflow sees that the
+   current version has no `ariadnev@<version>` tag yet, runs
+   `packages/cli/scripts/build-binaries.mjs` (regenerate embedded kit →
+   `bun --compile` all 5 targets → `checksums.txt`), smoke-tests the host binary,
+   and leaves a **held draft** release with the assets attached.
+4. Publish the draft yourself — see *Finalizing a held draft* below. Nothing
+   reaches users until you do.
+
+The trigger is tag-absence, not "the version changed in this commit". A version
+that was bumped several commits ago and never released still releases; a version
+that already carries its tag never releases twice.
 
 The package is `private` — nothing is published to npm.
 
@@ -89,6 +96,57 @@ start a new run; `status` and emergency `cancel` remain available. A future
 migration must ship as an explicit versioned and reversible contract—never by
 moving a tag or silently reinterpreting events.
 
+## Finalizing a held draft (manual, required)
+
+`release.yml` stops after `candidate-publish`. It leaves a **draft** release with
+every asset attached and the candidate envelope bound into the annotated tag's
+message. Publishing it is a separate, deliberate step: `finalize-release.yml` is
+`workflow_dispatch` only, it must be dispatched **from the tag's ref**, and it
+takes eight inputs that all come out of that envelope.
+
+```bash
+REPO=bavanchun/ariadnev-kit
+TAG=ariadnev@1.0.0
+
+# The envelope lives in the annotated tag object. First line is a format marker;
+# the rest is the JSON.
+TAG_SHA=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)
+ENVELOPE=$(gh api "repos/$REPO/git/tags/$TAG_SHA" --jq .message | tail -n +2)
+
+# release_id is not in the envelope — it is the draft the publish job created.
+RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
+
+gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
+  -f release_id="$RELEASE_ID" \
+  -f tag="$TAG" \
+  -f source_sha="$(jq -r .headSha <<<"$ENVELOPE")" \
+  -f candidate_run_id="$(jq -r .runId <<<"$ENVELOPE")" \
+  -f candidate_run_attempt="$(jq -r .runAttempt <<<"$ENVELOPE")" \
+  -f candidate_artifact_id="$(jq -r .artifactId <<<"$ENVELOPE")" \
+  -f candidate_artifact_name="$(jq -r .artifactName <<<"$ENVELOPE")" \
+  -f candidate_artifact_digest="$(jq -r .artifactDigest <<<"$ENVELOPE")"
+```
+
+`--ref "$TAG"` is not cosmetic: the workflow asserts the dispatch ref is exactly
+`refs/tags/<tag>` and fails otherwise.
+
+Two prerequisites, both one-time per repository:
+
+- **Immutable releases must be enabled.** The finalizer hard-fails without it
+  (`GET /repos/{owner}/{repo}/immutable-releases` must report `enabled: true`).
+- The candidate artifact must not have expired — it is retained 90 days.
+
+**Retrying after a failed release.** Once the tag and draft exist, a retry at a
+different commit is refused with `remote state conflict`. Delete both first:
+
+```bash
+gh release delete "$TAG" --repo "$REPO" --yes
+gh api -X DELETE "repos/$REPO/git/refs/tags/$TAG"
+```
+
+That is only available while the release is still a draft. After finalization,
+immutability is the point — repair with a new patch release instead.
+
 ## Public provenance checklist
 
 Before downstream web work starts, verify one immutable release converges:
@@ -110,7 +168,9 @@ replace an already consumed version tag.
 |---|---|---|
 | Version bump + CHANGELOG | Automated | Changesets "Version Packages" PR |
 | Cross-compile 5 binaries + checksums | Automated | `build-binaries.mjs` in `release.yml` |
-| Publish GitHub Release | Automated | `gh release` (idempotent) with `GITHUB_TOKEN` |
+| Smoke the built binaries | Automated | `smoke-binary.mjs`, before provenance is written |
+| Hold a draft release + bind the envelope | Automated | `release-candidate-publish.yml` |
+| Publish the draft | **Manual** | `gh workflow run finalize-release.yml --ref <tag>` |
 
 ## Notes
 

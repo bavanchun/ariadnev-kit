@@ -21,7 +21,11 @@ concurrency:
 jobs:
   finalize:
     runs-on: ubuntu-latest
-    environment: core-release-production
+    # No `environment:`. Deployment environments are a paid feature on a private
+    # repository, so declaring one here made the job unschedulable. It protected
+    # nothing anyway: approval gates guard a maintainer from other maintainers,
+    # and there is one. The concurrency group above still serializes finalization
+    # per tag, which is the property that actually matters.
     permissions:
       contents: write
       actions: read

@@ -21,6 +21,17 @@ test("release orchestration preserves the required DAG and one upload boundary",
   assert.equal(uploads.length, 1);
 });
 
+test("the release trigger is decided by the extracted script, not by shell in YAML", () => {
+  // The invariant it enforces ("this version has no tag yet") is only testable
+  // because it lives in a script. Inline shell was how the previous shape —
+  // "the version changed since the parent commit" — went unexercised until it
+  // silently refused to fire.
+  const step = loadJobs(release)["version-pr"].steps.find((entry) => entry.name === "Detect exact release source");
+  assert.equal(step.run.trim(), "node packages/cli/scripts/detect-release-source.mjs");
+  assert.deepEqual(Object.keys(step.env).sort(), ["GITHUB_RUN_ATTEMPT", "GITHUB_RUN_ID", "SHA"]);
+  assert.doesNotMatch(step.run, /\$\{\{/);
+});
+
 test("workflow permissions and dispatch inputs are literal and minimal", () => {
   const releaseData = loadWorkflow(release);
   const releaseJobs = loadJobs(release);
@@ -34,8 +45,12 @@ test("workflow permissions and dispatch inputs are literal and minimal", () => {
   assert.deepEqual(buildJobs.build.permissions, { contents: "read" });
   assert.deepEqual(publishJobs.publish.permissions, { contents: "write", actions: "read" });
   assert.deepEqual(finalizeData.jobs.finalize.permissions, { contents: "write", actions: "read" });
-  assert.equal(finalizeData.jobs.finalize.environment, "core-release-production");
+  // No deployment environment: it is a paid feature on a private repository, so
+  // declaring one made finalize unschedulable. Serialization per tag is what
+  // carries the weight, and that lives in the concurrency group.
+  assert.equal(finalizeData.jobs.finalize.environment, undefined);
   assert.equal(finalizeData.concurrency.group, "core-release-production-${{ inputs.tag }}");
+  assert.equal(finalizeData.concurrency["cancel-in-progress"], false);
   const versionStep = loadJobs(release)["version-pr"].steps.find((step) => step.name === "Changesets version PR");
   assert.equal(versionStep.with.commitMode, "github-api");
   const dispatch = finalizeData.on.workflow_dispatch.inputs;

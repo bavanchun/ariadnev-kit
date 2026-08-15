@@ -56,17 +56,9 @@ jobs:
         id: meta
         env:
           SHA: ${{ github.sha }}
-        run: |
-          ver() { git show "$1:packages/cli/package.json" 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version)}catch{console.log('')}})"; }
-          CUR=$(ver "$SHA"); PREV=$(ver "$SHA~1")
-          {
-            [ -n "$CUR" ] && [ "$CUR" != "$PREV" ] && echo "release=true" || echo "release=false"
-            echo "version=$CUR"
-            echo "source_sha=$SHA"
-            echo "generated_at=$(git show -s --format=%cI "$SHA")"
-            echo "source_date_epoch=$(git show -s --format=%ct "$SHA")"
-            echo "candidate_artifact_name=ariadnev-candidate-${SHA}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
-          } >> "$GITHUB_OUTPUT"
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: node packages/cli/scripts/detect-release-source.mjs
 
   candidate-build:
     needs: [version-pr]
