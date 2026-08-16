@@ -419,15 +419,15 @@ rsvg-convert file.svg -o /tmp/test.png 2>&1 && echo "✓ Valid" && rm /tmp/test.
 
 ## Styles
 
-| # | Name | Background | Best For |
-|---|------|-----------|----------|
-| 1 | **Flat Icon** (default) | White | Blogs, docs, presentations |
-| 2 | **Dark Terminal** | `#0f0f1a` | GitHub, dev articles |
-| 3 | **Blueprint** | `#0a1628` | Architecture docs |
-| 4 | **Notion Clean** | White, minimal | Notionnce |
-| 5 | **Glassmorphism** | Dark gradient | Product sites, keynotes |
-| 6 | **Claude Official** | Warm cream `#f8f6f3` | Anthropic-style diagrams |
-| 7 | **OpenAI Official** | Pure white `#ffffff` | OpenAI-style diagrams |
+| # | Name | Background | Best For | Reference |
+|---|------|-----------|----------|-----------|
+| 1 | **Flat Icon** (default) | White | Blogs, docs, presentations | `references/style-1-flat-icon.md` |
+| 2 | **Dark Terminal** | `#0f0f1a` | GitHub, dev articles | `references/style-2-dark-terminal.md` |
+| 3 | **Blueprint** | `#0a1628` | Architecture docs | `references/style-3-blueprint.md` |
+| 4 | **Notion Clean** | White, minimal | Notionnce | `references/style-4-notion-clean.md` |
+| 5 | **Glassmorphism** | Dark gradient | Product sites, keynotes | `references/style-5-glassmorphism.md` |
+| 6 | **Claude Official** | Warm cream `#f8f6f3` | Anthropic-style diagrams | `references/style-6-claude-official.md` |
+| 7 | **OpenAI Official** | Pure white `#ffffff` | OpenAI-style diagrams | `references/style-7-openai.md` |
 
 Load the matching numbered style reference for exact color tokens and SVG patterns.
 

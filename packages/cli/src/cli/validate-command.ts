@@ -56,6 +56,12 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "av:scout"). Used by `av eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
+  /**
+   * Promote reference-integrity findings (orphan, dangling) to errors even for
+   * ported skills. Deliberately narrow: size and style stay warnings for ported
+   * content, so this gate does not block the next port of a long upstream skill.
+   */
+  strict?: boolean;
 }
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
@@ -152,11 +158,12 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       // model follows it and gets nothing. A file nobody points at is different
       // — in ported content it is upstream's editorial choice, and 22 of them
       // arrived in the first wave. Reporting the fact is useful; failing the
-      // build over content we chose to copy verbatim is not.
+      // build over content we chose to copy verbatim is not. Once the inherited
+      // backlog is cleared, --strict removes that grace so a new one cannot land.
       findings.push({
         skill: skill.name,
         kind: "orphan",
-        level: isPorted(skill) ? "warn" : "error",
+        level: isPorted(skill) && !opts.strict ? "warn" : "error",
         message: `${o} exists but is never linked from SKILL.md`,
       });
     }

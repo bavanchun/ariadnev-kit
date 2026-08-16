@@ -101,6 +101,8 @@ Compute from raw data. Show formula in report.
 | Active day ratio | `days_with_commits / days_in_period * 100` |
 | Plan completion rate | Count closed GitHub issues in period (use `gh issue list --state closed --json closedAt,title --jq "[.[] | select(.closedAt >= \"$SINCE\")]"`) divided by opened; mark `N/A` if gh unavailable |
 
+See `references/metrics-guide.md` for what each metric measures, why it matters, and interpretation thresholds to use when writing Recommendations in Step 5.
+
 ## Step 4 — Check Plans Directory
 
 Scan `plans/` for any plan files updated in the period. Count completed vs total tasks from checkbox lists (`- [x]` vs `- [ ]`). Add to plan completion section.

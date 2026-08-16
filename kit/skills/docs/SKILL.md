@@ -4,8 +4,8 @@ description: "Analyze a codebase and create, refresh, summarize, or audit projec
 user-invocable: true
 when_to_use: "Invoke to create, refresh, summarize, or audit project documentation, or to author or optimize the root CLAUDE.md/AGENTS.md agent context file."
 category: utilities
-keywords: [documentation, init, update, summarize, audit, agent-context, claude-md, agents-md]
-argument-hint: "init|update|summarize|agent-context"
+keywords: [documentation, init, update, summarize, audit, agent-context, claude-md, agents-md, llms-txt]
+argument-hint: "init|update|summarize|agent-context|llms"
 metadata:
   origin: ported
   author: upstream
@@ -54,6 +54,7 @@ Parse the first word of `$ARGUMENTS`:
 | `update` | `references/update-workflow.md` | Reconcile impacted docs with current evidence |
 | `summarize` | `references/summarize-workflow.md` | Summarize current evidence without forcing a new file |
 | `agent-context` | `references/agent-context-rules.md` | Author, audit, or optimize the root `CLAUDE.md`/`AGENTS.md` agent context file |
+| `llms` | `references/llms.md` | Generate a links-only `llms.txt` index (llmstxt.org format) from the `docs/` directory |
 | empty or unclear | ask the user | Choose the operation; never assume `init` |
 
 Other workflows deciding whether docs are affected should load

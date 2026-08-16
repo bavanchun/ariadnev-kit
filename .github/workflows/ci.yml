@@ -64,7 +64,10 @@ jobs:
         run: pnpm run build
 
       - name: Validate kit + provider-matrix drift
-        run: node packages/cli/dist/index.js validate --check
+        # --strict counts orphan and dangling reference warnings as failures.
+        # The inherited backlog was cleared, so a file nobody links is now a new
+        # one — the point at which it is cheapest to fix.
+        run: node packages/cli/dist/index.js validate --check --strict
 
       - name: Test + Coverage gate
         run: pnpm run coverage
