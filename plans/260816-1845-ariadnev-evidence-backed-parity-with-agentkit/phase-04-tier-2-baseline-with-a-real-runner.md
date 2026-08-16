@@ -69,6 +69,42 @@ already exists to diff a later run against a recorded one.
 - [ ] `compare-tier2-baseline.mjs` runs against the new baseline without error.
 - [ ] `evals/README.md` states the real cost of reproducing it.
 
+## Blocked: the runner cannot see the kit (found 2026-08-16)
+
+Step 1 was run and the phase stopped there. The obstacle is not cost.
+
+`createBehavioralLauncher` (`packages/cli/src/eval/behavioral-process.ts:80-94`)
+rewrites `HOME`/`USERPROFILE` to `ARIADNEV_BEHAVIORAL_HOME`, refuses a runner
+home equal to the ambient user home, and requires `.ariadnev/receipt.json` in it.
+That isolation is correct — it is what stops the eval from measuring whatever the
+developer happens to have installed. Its consequence is that the runner sees only
+the kit installed into that sandbox home.
+
+Two facts then close the door on this machine:
+
+1. **`claude` cannot authenticate under a rewritten `HOME`.** Verified: install
+   the kit to a sandbox home, run `env HOME=<sandbox> claude -p` → `Not logged
+   in · Please run /login`. `credentialEnvironment()`
+   (`behavioral-eval-command.ts:87`) allowlists `CODEX_HOME` for codex and
+   **nothing** for claude, so no credential reaches it. The plan named `claude`
+   the baseline runner "because it is the provider the kit installs into most
+   completely"; the harness's own allowlist and the existing `v0.10.0` Codex
+   baseline both say otherwise.
+2. **`codex` authenticates only from a `CODEX_HOME` that has `auth.json`.** The
+   real `~/.codex` has it — and has AgentKit installed, not ariadnev. A sandbox
+   `CODEX_HOME` has the kit but no credential.
+
+So a real tier-2 run needs one of: the kit installed into the user's live
+`~/.codex`; provider credentials copied into a sandbox home; or an API-key path
+added to `credentialEnvironment()` (no `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` is
+set here). The first mutates the user's environment, the second duplicates a
+secret; both are the user's call, not the agent's.
+
+**Nothing was spent.** The pilot was never launched, because launching it would
+have produced 100% routing failures attributable to the environment rather than
+to the kit — the precise outcome this phase's second risk says must not be left
+unclassified.
+
 ## Risk Assessment
 
 - **The full run is unaffordable.** Signal: pilot cost extrapolates past what the

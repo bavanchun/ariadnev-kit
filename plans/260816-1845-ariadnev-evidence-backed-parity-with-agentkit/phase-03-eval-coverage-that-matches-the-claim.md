@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Eval coverage that matches the claim"
-status: in-progress
+status: completed
 priority: P1
 effort: "3-5d"
 dependencies: [1]
@@ -75,13 +75,13 @@ that the scenarios are asserting the wrong thing, not that 27 terms were too few
 
 ## Success Criteria
 
-- [ ] `ls evals/scenarios/skills/*.json | wc -l` equals the skill count in `kit/skills`.
-- [ ] The coverage test passes and fails when a skill directory is added without a scenario.
-- [ ] Every `requiredEvidence` id resolves in `evidence-v1.json`.
-- [ ] Scenario ids are unique; suite construction succeeds with no runner attached.
-- [ ] Each negative case names a skill from the same confusable cluster, recorded
+- [x] `ls evals/scenarios/skills/*.json | wc -l` equals the skill count in `kit/skills`.
+- [x] The coverage test passes and fails when a skill directory is added without a scenario.
+- [x] Every `requiredEvidence` id resolves in `evidence-v1.json`.
+- [x] Scenario ids are unique; suite construction succeeds with no runner attached.
+- [x] Each negative case names a skill from the same confusable cluster, recorded
       in the batch reports under `plans/reports/`.
-- [ ] `evals/README.md` describes coverage in terms the test enforces.
+- [x] `evals/README.md` describes coverage in terms the test enforces.
 
 ## Risk Assessment
 
