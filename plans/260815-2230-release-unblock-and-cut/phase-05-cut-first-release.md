@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Cắt ariadnev@1.0.0"
-status: in-progress
+status: completed
 priority: P1
 effort: "2h"
 dependencies: [4]
@@ -138,13 +138,20 @@ dừng trước finalize.
 
 ## Success Criteria
 
-- [ ] Release `ariadnev@1.0.0` đã publish trên `bavanchun/ariadnev-kit`
-- [ ] Đủ 9 asset: 5 binary, `checksums.txt`, `docs-bundle.tar.gz`,
+- [x] Release `ariadnev@1.0.0` đã publish trên `bavanchun/ariadnev-kit` — id `371194315`,
+      `draft: false`, `immutable: true`, `latest`, tại `6bde116`
+- [x] Đủ 9 asset: 5 binary, `checksums.txt`, `docs-bundle.tar.gz`,
       `docs-bundle.manifest.json`, `docs-bundle-manifest-v1.schema.json`
-- [ ] Attestation trong candidate mang `schemaVersion: 2`, không có khối `consumer`
-- [ ] `release.yml` xanh tới hết `candidate-publish`; `finalize-release` dispatch tay và xanh
-- [ ] Binary **tải từ release** chạy được `--version` và `list` trên máy
-- [ ] Tag `ariadnev@1.0.0` và `archive/web-consumer-gate` đều có mặt trên remote
+- [x] Attestation trong candidate mang `schemaVersion: 2`, không có khối `consumer` —
+      xác minh trong dry-run trên draft thật
+- [x] `release.yml` xanh tới hết `candidate-publish`; `finalize-release` dispatch tay và xanh
+- [x] Binary **tải từ release** chạy được `--version` (`1.0.0`) và `list` (105 skill,
+      16 agent, 10 rule); sha256 khớp `checksums.txt`
+- [x] Tag `ariadnev@1.0.0` và `archive/web-consumer-gate` đều có mặt trên remote
+
+`immutable: true` là lần đầu tiên tính chất đó được quan sát trong repo này — bốn release cũ
+(`vcskill@0.2.0`–`0.5.0`) đều `false` vì có trước khi bật cài đặt. Nghĩa là cổng hậu-PATCH thay
+cho dòng 85 không chỉ đúng trên lý thuyết mà đã bắn thật và cho kết quả đúng.
 
 ## Risk Assessment
 
