@@ -65,9 +65,9 @@ command list short on purpose rather than duplicating a table that will drift.
    read-only counterpart first: `update --check`, `doctor`, `audit`,
    `backups list`, `plan show`. Preview conflicts instead of guessing.
 5. **Never invent a flag or subcommand.** If it is not in `av <cmd> --help`,
-   it is not shipped. Do not port flag names from AgentKit's `ak` — `av`'s
-   surface is a different command set (see Boundaries above); this skill
-   documents `av`, not `ak`.
+   it is not shipped. Do not carry a flag over from another agent-kit CLI:
+   `av`'s surface is its own command set (see Boundaries above), and a
+   name that looks familiar elsewhere is not evidence it exists here.
 6. **Report the exact command, scope, and result.** Name what changed on
    disk (or would change, under `--dry-run`) and any provider or artifact
    that was skipped.
