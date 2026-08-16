@@ -33,20 +33,25 @@ describe("evidence vocabulary", () => {
       const preflight = preflightScenarioCapabilities({ run, scenario, caseId, vocabulary, available: [] });
       return preflight.required.length ? [`${scenario.id}.${caseId}=${preflight.required.join(",")}`] : [];
     }));
-    expect(capabilityCells.sort()).toEqual([
-      "golden.current-docs-research.default=network.http",
-      "golden.documentation-refresh.default=network.http",
-      "golden.release-to-pr.default=external.github",
-      "skill.ask.routing.negative=network.http",
-      "skill.docs-seeker.routing.positive=network.http",
-      "skill.docs.routing.negative=network.http",
-      "skill.git.routing.negative=external.github",
-      "skill.research.routing.negative=network.http",
-      "skill.research.routing.positive=network.http",
-      "skill.review-pr.routing.positive=external.github",
-      "skill.scout.routing.negative=network.http",
-      "skill.ship.routing.positive=external.github",
-    ]);
+    // This was a literal list of the twelve cells that needed a capability.
+    // At 105 skill scenarios that list is churn, not a check — it would have to
+    // be rewritten every time a scenario is added, which is how the coverage
+    // claim in evals/README.md drifted in the first place. The property it was
+    // standing in for is the real invariant: a case requires exactly the union
+    // of the capabilities its required evidence declares, nothing more.
+    const expectedCells = scenarios.flatMap((scenario) =>
+      Object.entries(scenario.cases).flatMap(([caseId, testCase]) => {
+        const needed = new Set<string>();
+        for (const id of testCase.expected.outcome.requiredEvidence) {
+          const entry = vocabulary.evidence.find((candidate) => candidate.id === id);
+          for (const capability of Object.keys(entry?.capabilities ?? {})) needed.add(capability);
+        }
+        return needed.size ? [`${scenario.id}.${caseId}=${[...needed].sort().join(",")}`] : [];
+      }),
+    );
+    expect(capabilityCells.sort()).toEqual(expectedCells.sort());
+    // A capability-free suite would satisfy the equality above vacuously.
+    expect(capabilityCells.length).toBeGreaterThan(0);
   });
 
   it("rejects artifacts whose semantic criterion is absent from required evidence", () => {

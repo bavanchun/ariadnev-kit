@@ -16,10 +16,31 @@
       "capabilities": {}
     },
     {
+      "id": "browser.session",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The report demonstrates a browser automation session — a page snapshot, screenshot, or DOM read — that proves the requested page action or state was reached through the declared browser path (a tool-managed browser or a bound real Chrome profile).",
+      "capabilities": {}
+    },
+    {
       "id": "design.acceptance",
       "producer": "evaluator",
       "proof": "decision",
       "criterion": "The design records outcome, constraints, non-goals, acceptance criteria, and an explicit accepted option.",
+      "capabilities": {}
+    },
+    {
+      "id": "design.system-decision",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "The UI/UX decision covers color system, typography, layout, and interaction states, and recommends one option with an explicit rationale tied to accessibility and platform constraints.",
+      "capabilities": {}
+    },
+    {
+      "id": "design.visual-fidelity",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The rendered UI implementation is compared against the supplied reference design or screenshot and the evaluator confirms structural and stylistic match beyond generic component scaffolding.",
       "capabilities": {}
     },
     {
@@ -53,6 +74,15 @@
       "capabilities": {}
     },
     {
+      "id": "github.state",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "The requested GitHub-side object (issue, label, or existing pull request) reaches the stated state and the harness verifies that state against live GitHub, independent of running a full verification pipeline or authoring a new pull request.",
+      "capabilities": {
+        "network.http": "required"
+      }
+    },
+    {
       "id": "handoff.context",
       "producer": "evaluator",
       "proof": "artifact",
@@ -74,10 +104,38 @@
       "capabilities": {}
     },
     {
+      "id": "mcp.tool-invocation",
+      "producer": "harness",
+      "proof": "execution",
+      "criterion": "The transcript records a specific MCP tool name, its validated arguments, and the structured result the harness confirms the server returned.",
+      "capabilities": {}
+    },
+    {
+      "id": "media.analysis",
+      "producer": "evaluator",
+      "proof": "outcome",
+      "criterion": "The response extracts, transcribes, or describes content directly from the supplied media file through model-based analysis, distinct from a deterministic format or codec transform.",
+      "capabilities": {}
+    },
+    {
+      "id": "media.rendered",
+      "producer": "harness",
+      "proof": "artifact",
+      "criterion": "A generated image or video file exists at the declared output path and the harness verifies its container format and declared dimensions or duration match the request.",
+      "capabilities": {}
+    },
+    {
       "id": "note.linked",
       "producer": "evaluator",
       "proof": "artifact",
       "criterion": "The note artifact includes the requested concept, failure modes, and resolvable links to related notes.",
+      "capabilities": {}
+    },
+    {
+      "id": "path.resolution",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The response names the exact target path, filename, and naming mode (timestamped, evergreen, or variant) for the requested file, and the evaluator can verify the choice matches the project's declared directory-category and naming-pattern rules.",
       "capabilities": {}
     },
     {
@@ -111,6 +169,13 @@
       "capabilities": {}
     },
     {
+      "id": "preference.persisted",
+      "producer": "harness",
+      "proof": "external-state",
+      "criterion": "The requested user preference is written to its designated config file and the value read back afterward matches what was requested.",
+      "capabilities": {}
+    },
+    {
       "id": "project.bootstrap-plan",
       "producer": "evaluator",
       "proof": "artifact",
@@ -132,6 +197,13 @@
       "capabilities": {}
     },
     {
+      "id": "research.brief",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The produced brief is a single self-contained paragraph naming the research question, decision, sub-questions, and source hierarchy, without itself executing the research.",
+      "capabilities": {}
+    },
+    {
       "id": "research.sources",
       "producer": "evaluator",
       "proof": "source",
@@ -145,6 +217,13 @@
       "producer": "evaluator",
       "proof": "artifact",
       "criterion": "The local review artifact maps acceptance criteria and reports production findings with file-relative evidence.",
+      "capabilities": {}
+    },
+    {
+      "id": "routing.decision",
+      "producer": "evaluator",
+      "proof": "decision",
+      "criterion": "The router states the workflow classification and the selected skill or chain before any routed work begins, and the routed skill genuinely matches the task's declared domain.",
       "capabilities": {}
     },
     {
@@ -189,6 +268,20 @@
       "producer": "harness",
       "proof": "execution",
       "criterion": "The recorded focused and required broad test commands complete with their exact pass, fail, and skip counts.",
+      "capabilities": {}
+    },
+    {
+      "id": "viewer.rendered",
+      "producer": "harness",
+      "proof": "execution",
+      "criterion": "The requested markdown target renders through the local reading server without an error response, and the harness can fetch the served page at the returned URL.",
+      "capabilities": {}
+    },
+    {
+      "id": "visual.output",
+      "producer": "evaluator",
+      "proof": "artifact",
+      "criterion": "The response produces a rendered visual artifact — a diagram, slide deck, ASCII or Mermaid explanation, or self-contained HTML page — whose format, topic, and output mode match what was requested.",
       "capabilities": {}
     },
     {

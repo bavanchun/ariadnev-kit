@@ -101,32 +101,28 @@ describe("parseScenario", () => {
 });
 
 describe("checked-in behavioral scenarios", () => {
-  it("covers every authored skill with positive and nearest-negative routing cases", () => {
-    // The suite proves routing for the skills this project wrote. A ported skill
-    // arrives with upstream's own description and no scenario, and inventing one
-    // would measure this project's guess at what upstream meant rather than
-    // anything about the skill. They are listed as an uncovered count instead of
-    // being silently excluded, so the gap stays a visible number.
+  it("covers every shipped skill with positive and nearest-negative routing cases", () => {
+    // This check used to exempt ported skills, on the grounds that writing a
+    // scenario from upstream's description would measure our guess at what
+    // upstream meant rather than anything about the skill. That objection is
+    // right about *behavioral* scenarios and wrong about these: every file here
+    // is `skill.<name>.routing`, and routing is decided from the description the
+    // kit actually ships. If an inherited description is ambiguous against its
+    // neighbour, users hit that ambiguity — so it is this kit's defect to
+    // measure, whoever wrote the words. What these scenarios still do not prove
+    // is that a skill's body does its job well; that is what the golden tasks
+    // and a real tier-2 run are for.
+    //
+    // The exemption also hid the gap it described: 77 of 103 skills had no
+    // scenario while `evals/README.md` claimed full coverage.
     const scenarios = loadScenarioDirectory(join(process.cwd(), "evals", "scenarios", "skills"));
     const skillsRoot = join(process.cwd(), "kit", "skills");
-    const all = readdirSync(skillsRoot).sort();
-    const ported = all.filter((name) =>
-      /^\s*origin:\s*ported\s*$/m.test(readFileSync(join(skillsRoot, name, "SKILL.md"), "utf8")),
-    );
-    const authored = all.filter((name) => !ported.includes(name)).map((name) => `av:${name}`);
+    const shipped = readdirSync(skillsRoot).sort().map((name) => `av:${name}`);
     const coveredSkills = scenarios.flatMap((scenario) => scenario.subjects.skills).sort();
 
-    const uncovered = authored.filter((skill) => !coveredSkills.includes(skill));
-    expect(uncovered, "authored skills with no routing scenario").toEqual([]);
+    const uncovered = shipped.filter((skill) => !coveredSkills.includes(skill));
+    expect(uncovered, "shipped skills with no routing scenario").toEqual([]);
 
-    // Four scenarios outlived the skill they were written for: those skills were
-    // replaced by their upstream version, which carries a different description.
-    // The scenarios still name real skills, so they are kept rather than thrown
-    // away — but what they assert was calibrated against text that is gone, and
-    // they need re-reading the next time the behavioral suite is run for real.
-    const portedWithScenario = ported.map((name) => `av:${name}`).filter((skill) => coveredSkills.includes(skill));
-    expect(portedWithScenario.length, "scenarios written for skills since replaced by their upstream version").toBe(24);
-    expect(ported.length - portedWithScenario.length, "ported skills with no scenario at all").toBe(77);
     for (const scenario of scenarios) {
       expect(scenario.level).toBe("skill");
       expect(Object.keys(scenario.cases).sort()).toEqual(["negative", "positive"]);

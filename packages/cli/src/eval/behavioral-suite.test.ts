@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { loadEvidenceVocabulary } from "./evidence-vocabulary.js";
@@ -5,6 +6,17 @@ import { runBehavioralSuite } from "./behavioral-suite.js";
 
 const digest = `sha256:${"b".repeat(64)}`;
 const root = process.cwd();
+
+// Counted from disk rather than written down. These were literals calibrated to
+// 26 skill scenarios; every scenario added afterwards turned a structural
+// invariant into a stale number, which is the failure this suite exists to
+// catch elsewhere. The relationships are what matter: two cases per skill
+// scenario, and runs = skillCells x skillRepeats + deepTasks x deepRepeats.
+const SKILL_SCENARIOS = readdirSync(join(root, "evals/scenarios/skills")).filter((f) => f.endsWith(".json")).length;
+const DEEP_TASKS = readdirSync(join(root, "evals/scenarios/golden")).filter((f) => f.endsWith(".json")).length;
+const SKILL_CELLS = SKILL_SCENARIOS * 2;
+const runsFor = (skillRepeats: number, deepRepeats: number): number =>
+  SKILL_CELLS * skillRepeats + DEEP_TASKS * deepRepeats;
 
 describe("runBehavioralSuite", () => {
   it("covers every skill case and golden task without paid providers", async () => {
@@ -18,7 +30,7 @@ describe("runBehavioralSuite", () => {
       vocabulary: loadEvidenceVocabulary(join(root, "evals/vocabulary/evidence-v1.json")),
       identity: {
         kit: { version: "0.10.0", digest },
-        skills: Array.from({ length: 26 }, (_, index) => ({ id: `av:skill-${index}`, version: "1.0.0", digest })),
+        skills: Array.from({ length: SKILL_SCENARIOS }, (_, index) => ({ id: `av:skill-${index}`, version: "1.0.0", digest })),
         runtime: { provider: "probe", version: "1.0.0", model: "deterministic" },
         evaluator: { version: "1.0.0" },
       },
@@ -31,15 +43,16 @@ describe("runBehavioralSuite", () => {
       launcher: { launch },
     });
 
-    expect(result.population).toEqual({ skillScenarios: 26, skillCells: 52, deepTasks: 14, runs: 66 });
-    expect(result.report.cells).toHaveLength(66);
+    const runs = runsFor(1, 1);
+    expect(result.population).toEqual({ skillScenarios: SKILL_SCENARIOS, skillCells: SKILL_CELLS, deepTasks: DEEP_TASKS, runs });
+    expect(result.report.cells).toHaveLength(runs);
     expect(result.report.cells.every((cell) =>
       cell.comparison.status === "not-comparable"
       && cell.comparison.reason === "trusted-observation-source-unavailable")).toBe(true);
-    expect(result.runs).toHaveLength(66);
+    expect(result.runs).toHaveLength(runs);
     expect(result.runs.every((run) => !Object.hasOwn(run, "output"))).toBe(true);
     expect(launch.mock.calls.length).toBeGreaterThan(0);
-    expect(launch.mock.calls.length).toBeLessThan(66); // capability-preflight N/A cells never launch
+    expect(launch.mock.calls.length).toBeLessThan(runs); // capability-preflight N/A cells never launch
   }, 15_000);
 
   it("retains all declared repeats instead of selecting a best run", async () => {
@@ -61,7 +74,9 @@ describe("runBehavioralSuite", () => {
       concurrency: 8,
       launcher: { launch: async () => ({ kind: "completed", output: "answer" }) },
     });
-    expect(result.population).toMatchObject({ skillCells: 52, runs: 156 });
+    // Skills only — this run does not load the golden directory, so the deep
+    // tasks contribute nothing.
+    expect(result.population).toMatchObject({ skillCells: SKILL_CELLS, runs: SKILL_CELLS * 3 });
     expect(new Set(result.runs.filter((run) => run.cellId === "skill.ask.routing:positive").map((run) => run.repeat)))
       .toEqual(new Set([1, 2, 3]));
   }, 15_000);
@@ -103,9 +118,15 @@ describe("runBehavioralSuite", () => {
       skillRepeats: 1, deepRepeats: 1, concurrency: 2, launcher: { launch },
     });
     expect(maximum).toBe(2); // never more than the configured bound
+    // Order is deterministic: the first scenario the loader yields contributes
+    // its positive then its negative, ahead of everything else, however many
+    // workers ran. Naming that scenario as a literal only held while `ask` was
+    // first on disk, so it is read from the directory instead.
+    const firstScenario = readdirSync(join(root, "evals/scenarios/skills"))
+      .filter((f) => f.endsWith(".json")).sort()[0].replace(/\.json$/, "");
     expect(result.runs.slice(0, 2).map((run) => run.cellId)).toEqual([
-      "skill.ask.routing:positive",
-      "skill.ask.routing:negative",
+      `skill.${firstScenario}.routing:positive`,
+      `skill.${firstScenario}.routing:negative`,
     ]);
   }, 15_000);
 });

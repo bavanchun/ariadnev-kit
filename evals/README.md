@@ -70,10 +70,17 @@ Provider-enforced sandbox conformance becomes controller evidence in Phase 7.
   keys. A duplicate-aware JSON boundary rejects repeated decoded keys before
   `JSON.parse`, including escaped-equivalent keys; the JSON Schema and strict
   Zod parser then enforce the same relation-map shape.
-- `scenarios/skills/` covers every shipped skill with a positive trigger and a
-  nearest-negative route. `scenarios/golden/` contains deep workflow and kit
-  tasks. Expected evidence, policies, budgets, and capability requirements
-  remain controller-only.
+- `scenarios/skills/` holds one scenario per shipped skill, each with a positive
+  trigger and a nearest-negative route. This is enforced, not asserted: the
+  coverage tests read `kit/skills/` at runtime and fail when a skill has no
+  scenario, when a scenario names a skill that no longer ships, or when a
+  `requiredEvidence` id is absent from the vocabulary. The claim drifted once —
+  it said the same thing while 77 of 103 skills had no scenario at all — so the
+  number is now derived rather than written down. What these prove is *routing*:
+  that the shipped description sends a task to the right skill. Whether a skill's
+  body then does the job well is what `scenarios/golden/`'s deep workflow and kit
+  tasks, and a real tier-2 run, are for. Expected evidence, policies, budgets,
+  and capability requirements remain controller-only.
 - An executor receives only the selected prompt and a randomized disposable
   workspace path. It does not receive scenario, case, fixture, skill,
   vocabulary, expectation, or budget identifiers.
