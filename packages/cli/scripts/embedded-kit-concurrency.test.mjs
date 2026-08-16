@@ -101,12 +101,20 @@ test("an embedded non-text asset reaches the provider tree byte-identical", { sk
       stdio: "pipe",
     });
 
-    const { EMBEDDED_ASSETS } = await import(
-      join(dirname(cli), "..", "src", "kit", "kit-embedded.generated.ts")
+    // Read the generated map as text: the file is TypeScript, and the Node
+    // that CI runs cannot import `.ts` directly. Each asset is emitted on its
+    // own line as `"<key>": {...}` so a line-anchored match is enough.
+    const generated = readFileSync(
+      join(dirname(cli), "..", "src", "kit", "kit-embedded.generated.ts"),
+      "utf8",
     );
     const key = "kit/.env.example";
-    const embedded = EMBEDDED_ASSETS[key];
-    assert.ok(embedded, `${key} is not in the embedded map`);
+    const line = generated
+      .split("\n")
+      .map((l) => l.trimStart())
+      .find((l) => l.startsWith(`${JSON.stringify(key)}: `));
+    assert.ok(line, `${key} is not in the embedded map`);
+    const embedded = JSON.parse(line.slice(line.indexOf(": ") + 2).replace(/,$/, ""));
     const expected = embedded.b64 !== undefined
       ? Buffer.from(embedded.b64, "base64")
       : Buffer.from(embedded.text, "utf8");
