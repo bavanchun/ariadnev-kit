@@ -41,23 +41,23 @@ See: `references/backend-technologies.md` for detailed comparisons
 ## Reference Navigation
 
 **Core Technologies:**
-- `backend-technologies.md` - Languages, frameworks, databases, message queues, ORMs
-- `backend-api-design.md` - REST, GraphQL, gRPC patterns and best practices
+- `references/backend-technologies.md` — languages, frameworks, databases, message queues, ORMs.
+- `references/backend-api-design.md` — REST, GraphQL, gRPC patterns and best practices.
 
 **Security & Authentication:**
-- `backend-security.md` - OWASP Top 10 2025, security best practices, input validation
-- `backend-authentication.md` - OAuth 2.1, JWT, RBAC, MFA, session management
+- `references/backend-security.md` — OWASP Top 10 2025, security best practices, input validation.
+- `references/backend-authentication.md` — OAuth 2.1, JWT, RBAC, MFA, session management.
 
 **Performance & Architecture:**
-- `backend-performance.md` - Caching, query optimization, load balancing, scaling
-- `backend-architecture.md` - Microservices, event-driven, CQRS, saga patterns
+- `references/backend-performance.md` — caching, query optimization, load balancing, scaling.
+- `references/backend-architecture.md` — microservices, event-driven, CQRS, saga patterns.
 
 **Quality & Operations:**
-- `backend-testing.md` - Testing strategies, frameworks, tools, CI/CD testing
-- `backend-code-quality.md` - SOLID principles, design patterns, clean code
-- `backend-devops.md` - Docker, Kubernetes, deployment strategies, monitoring
-- `backend-debugging.md` - Debugging strategies, profiling, logging, production debugging
-- `backend-mindset.md` - Problem-solving, architectural thinking, collaboration
+- `references/backend-testing.md` — testing strategies, frameworks, tools, CI/CD testing.
+- `references/backend-code-quality.md` — SOLID principles, design patterns, clean code.
+- `references/backend-devops.md` — Docker, Kubernetes, deployment strategies, monitoring.
+- `references/backend-debugging.md` — debugging strategies, profiling, logging, production debugging.
+- `references/backend-mindset.md` — problem-solving, architectural thinking, collaboration.
 
 ## Key Best Practices (2025)
 

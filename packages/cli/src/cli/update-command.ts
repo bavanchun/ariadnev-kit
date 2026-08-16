@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync, chmodSync, renameSync } from "
 import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { receiptVersion, type Receipt } from "../install/install-receipt.js";
+import { isValidVersion, versionQuery } from "./update-version.js";
 
 // Everything goes through the public edge (a Cloudflare Worker on this domain)
 // that proxies the private GitHub repo's releases — the CLI never talks to
@@ -59,6 +60,9 @@ export interface UpdateHandlerOpts {
   isBinary: boolean;
   /** --check: only report, never self-update. */
   checkOnly: boolean;
+  /** --to <version>: install this exact release instead of latest. Pre-validated
+   *  shape is NOT assumed here — runUpdate rejects a malformed value itself. */
+  to: string | null;
   platform: NodeJS.Platform;
   arch: string;
 }
@@ -66,6 +70,9 @@ export interface UpdateHandlerOpts {
 export interface UpdateDeps {
   /** Resolves the latest published version, or null on any failure/timeout. */
   fetchLatestVersion(): Promise<string | null>;
+  /** Resolves an exact pinned version via the edge's `?version=` selector, or
+   *  null when it's unknown (404) or the request fails/times out. */
+  fetchPinnedVersion(version: string): Promise<string | null>;
   /** Download a release asset as bytes, or null on any failure. */
   downloadBinary(url: string): Promise<Uint8Array | null>;
   /** Download a text asset (checksums.txt), or null on any failure. */
@@ -75,7 +82,7 @@ export interface UpdateDeps {
 }
 
 export interface UpdateHandlerResult {
-  exitCode: 0;
+  exitCode: 0 | 1;
   summary: string;
 }
 
@@ -138,18 +145,20 @@ function atomicReplaceBinary(target: string, bytes: Uint8Array): void {
 export function realUpdateDeps(): UpdateDeps {
   return {
     fetchLatestVersion,
+    fetchPinnedVersion,
     downloadBinary: downloadBytes,
     downloadText: downloadTextAsset,
     replaceBinary: atomicReplaceBinary,
   };
 }
 
-/** Ask the edge for the latest version. Short timeout; never throws. */
-export async function fetchLatestVersion(): Promise<string | null> {
+/** Shared `/version` fetch — short timeout, never throws. `url` carries the
+ *  edge's `?version=` selector for the pinned path, or is bare for latest. */
+async function fetchVersionTag(url: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${DOMAIN}/version`, {
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: { "User-Agent": "ariadnev" },
     });
@@ -160,6 +169,16 @@ export async function fetchLatestVersion(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Ask the edge for the latest version. Short timeout; never throws. */
+export async function fetchLatestVersion(): Promise<string | null> {
+  return fetchVersionTag(`${DOMAIN}/version`);
+}
+
+/** Ask the edge to confirm an exact pinned version exists. Null on 404/failure/timeout. */
+export async function fetchPinnedVersion(version: string): Promise<string | null> {
+  return fetchVersionTag(`${DOMAIN}/version${versionQuery(version)}`);
 }
 
 /**
@@ -174,23 +193,39 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
   if (recordedVersion && recordedVersion !== opts.currentVersion) {
     lines.push(`  receipt was written by ${recordedVersion} — run \`ariadnev install\` to re-sync the kit`);
   }
-  const done = (): UpdateHandlerResult => ({ exitCode: 0, summary: lines.join("\n") });
+  const done = (exitCode: 0 | 1 = 0): UpdateHandlerResult => ({ exitCode, summary: lines.join("\n") });
 
-  const latest = await deps.fetchLatestVersion();
-  if (latest === null) {
-    lines.push("  could not check the latest version (offline or GitHub unreachable)");
-    return done();
+  // Strict version shape check happens before any network call — a bad value
+  // is rejected here rather than producing an opaque edge 400.
+  if (opts.to !== null && !isValidVersion(opts.to)) {
+    lines.push(`  invalid version "${opts.to}" — expected an exact x.y.z (e.g. 1.2.3)`);
+    return done(1);
   }
-  if (!isNewerVersion(latest, opts.currentVersion)) {
+
+  const target = opts.to !== null ? await deps.fetchPinnedVersion(opts.to) : await deps.fetchLatestVersion();
+  if (target === null) {
+    lines.push(
+      opts.to !== null
+        ? `  version ${opts.to} was not found — nothing changed`
+        : "  could not check the latest version (offline or GitHub unreachable)",
+    );
+    return done(opts.to !== null ? 1 : 0);
+  }
+
+  // The latest path skips a no-op update; a pinned target always proceeds —
+  // that's exactly how a downgrade is requested.
+  if (opts.to === null && !isNewerVersion(target, opts.currentVersion)) {
     lines.push("  up to date");
     return done();
   }
 
-  lines.push(`  update available: ${opts.currentVersion} -> ${latest}`);
+  lines.push(`  ${opts.to !== null ? "pinned target" : "update available"}: ${opts.currentVersion} -> ${target}`);
 
   // Report-only: --check, or not running as the compiled binary (can't replace node).
   if (opts.checkOnly || !opts.isBinary) {
-    lines.push(opts.isBinary ? "  run: ariadnev update  (to install it)" : CURL_HINT);
+    lines.push(
+      opts.isBinary ? `  run: ariadnev update${opts.to !== null ? ` --to ${target}` : ""}  (to install it)` : CURL_HINT,
+    );
     return done();
   }
 
@@ -200,9 +235,10 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
     return done();
   }
 
+  const q = versionQuery(opts.to);
   const [bytes, checksums] = await Promise.all([
-    deps.downloadBinary(`${DOMAIN}/download/${asset}`),
-    deps.downloadText(`${DOMAIN}/download/checksums.txt`),
+    deps.downloadBinary(`${DOMAIN}/download/${asset}${q}`),
+    deps.downloadText(`${DOMAIN}/download/checksums.txt${q}`),
   ]);
   if (!bytes || !checksums) {
     lines.push(`  could not download the update — ${CURL_HINT.trim()}`);
@@ -217,7 +253,7 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
 
   try {
     deps.replaceBinary(opts.execPath, bytes);
-    lines.push(`  updated ${opts.currentVersion} -> ${latest} (${opts.execPath})`);
+    lines.push(`  updated ${opts.currentVersion} -> ${target} (${opts.execPath})`);
   } catch (err) {
     lines.push(`  update failed to write: ${String(err instanceof Error ? err.message : err)}`);
     lines.push(CURL_HINT);

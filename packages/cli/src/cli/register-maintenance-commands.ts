@@ -71,13 +71,14 @@ export function registerMaintenanceCommands(
 
   program
     .command("update")
-    .description("Self-update to the latest ariadnev release (--check to only report)")
+    .description("Self-update to the latest ariadnev release (--check to only report, --to to pin an exact version)")
     .option("--global", "check ~/ scope", false)
     .option("--check", "only report whether an update exists; don't install", false)
-    .action(async (opts: { global?: boolean; check?: boolean }) => {
+    .option("--to <version>", "install this exact release instead of latest (e.g. downgrade)")
+    .action(async (opts: { global?: boolean; check?: boolean; to?: string }) => {
       const global = program.opts<GlobalOpts>();
       const isBinary = !/^(node|bun)/i.test(basename(process.execPath));
-      const { summary } = await runUpdate(
+      const { summary, exitCode } = await runUpdate(
         {
           home: global.home,
           cwd: global.cwd,
@@ -86,12 +87,14 @@ export function registerMaintenanceCommands(
           execPath: process.execPath,
           isBinary,
           checkOnly: !!opts.check,
+          to: opts.to ?? null,
           platform: process.platform,
           arch: process.arch,
         },
         realUpdateDeps(),
       );
       emit(summary);
-      if (!opts.check) context.record("update", {});
+      if (exitCode !== 0) process.exitCode = exitCode;
+      if (!opts.check && exitCode === 0) context.record("update", {});
     });
 }

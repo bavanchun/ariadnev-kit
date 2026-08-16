@@ -48,6 +48,8 @@ Parsed from user message. Missing required fields trigger a **batched** `ask_use
 | `Scope` | search_files capability pattern(s) for editable files | `"src/utils/**/*.ts"` |
 | `Verify` | Shell command that outputs **a single number** | `"npx jest --coverage --json \| jq '.coverageMap \| .. \| .s? \| to_entries \| map(.value) \| (map(select(.>0)) \| length) / length * 100' \| tail -1"` |
 
+See [`references/metric-library.md`](references/metric-library.md) for copy-paste `Verify` commands by domain (coverage, lint, type errors, latency, bundle size, vulnerability count, ML accuracy).
+
 ### Optional
 
 | Field | Default | Description |
@@ -57,6 +59,8 @@ Parsed from user message. Missing required fields trigger a **batched** `ask_use
 | `Noise` | medium | Tolerance for metric variance: `low` / `medium` / `high` |
 | `Min-Delta` | 0 | Minimum improvement to count as progress |
 | `Direction` | higher | Whether `higher` or `lower` metric value is better |
+
+See [`references/guard-and-noise.md`](references/guard-and-noise.md) for the guard recovery flow, guard-command selection heuristics, and noise-level strategies (multi-run median, min-delta thresholds, confirmation runs).
 
 ## Interactive Setup
 

@@ -95,8 +95,10 @@ See README.md for usage examples. Use when validation/persistence needed; otherw
 
 Load when deeper understanding needed:
 - `references/core-patterns.md` - Revision & branching patterns
+- `references/reasoning-patterns.md` - Dynamic adjustment, revision/branch/hypothesis patterns, uncertainty management, anti-patterns
 - `references/examples-api.md` - API design example
 - `references/examples-debug.md` - Debugging example
 - `references/examples-architecture.md` - Architecture decision example
+- `references/worked-examples.md` - Compact worked examples calibrating revision, hypothesis testing, and convergence
 - `references/advanced-techniques.md` - Spiral refinement, hypothesis testing, convergence
 - `references/advanced-strategies.md` - Uncertainty, revision cascades, meta-thinking

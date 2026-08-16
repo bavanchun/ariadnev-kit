@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.ai-artist.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Curated-prompt image generation",
+  "subjects": {
+    "skills": [
+      "av:ai-artist"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "Generate a tech-conference banner image in Ukiyo-e woodblock style, matching a curated prompt from the awesome-nano-banana-pro-prompts collection, at 16:9.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "media.rendered"
+          ]
+        },
+        "routing": {
+          "av:ai-artist": "required",
+          "av:design": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "Define this startup's full brand identity system — logo direction, color palette, typography, and voice — as an accepted brand package, before any single asset is generated.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "design.acceptance"
+          ]
+        },
+        "routing": {
+          "av:design": "required",
+          "av:ai-artist": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}

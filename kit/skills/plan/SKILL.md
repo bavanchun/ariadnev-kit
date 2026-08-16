@@ -586,8 +586,8 @@ Reports: Active plans → plan-specific path. Suggested → default path.
 | Subcommand | Reference | Purpose |
 |------------|-----------|---------|
 | `/av:plan archive` | `references/archive-workflow.md` | Archive plans + write journal entries |
-| `/av:plan red-team` | `references/red-team-workflow.md` | Adversarial plan review with hostile reviewers |
-| `/av:plan validate` | `references/validate-workflow.md` | Validate plan with critical questions interview |
+| `/av:plan red-team` | `references/red-team-workflow.md`, `references/red-team-personas.md` | Adversarial plan review with hostile reviewers; personas file defines the reviewer lenses, verification-role assignment, and finding/adjudication formats |
+| `/av:plan validate` | `references/validate-workflow.md`, `references/validate-question-framework.md` | Validate plan with critical questions interview; question-framework file defines question categories, format rules, and the validation-log format |
 
 ## Post-Plan Handoff (MANDATORY at session end)
 

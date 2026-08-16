@@ -113,7 +113,7 @@ Adding `--html` to any generation flag switches output from Markdown to a self-c
 **Output:** Single `.html` file with all CSS/JS inline. Opens directly in browser — no server needed.
 **Location:** `{plan_dir}/visuals/{slug}.html` (same plan-aware logic as markdown mode)
 **Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start` (Windows)
-**MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
+**MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `references/html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
 
 ### Reference Loading (HTML mode)
 
@@ -121,15 +121,15 @@ Before generating, agent MUST read these references:
 
 | Mode | Always read | Mode-specific |
 |------|-------------|---------------|
-| All HTML modes | `html-design-guidelines.md` | — |
-| `--explain` | `html-css-patterns.md`, `html-libraries.md` | Template: `architecture.html` |
-| `--diagram` | `html-css-patterns.md`, `html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
-| `--slides` | `html-slide-patterns.md`, `html-css-patterns.md`, `html-libraries.md` | Template: `slide-deck.html` |
-| `--diff` | `html-css-patterns.md`, `html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
-| `--plan-review` | `html-css-patterns.md`, `html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
-| `--recap` | `html-css-patterns.md`, `html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| All HTML modes | `references/html-design-guidelines.md` | — |
+| `--explain` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `architecture.html` |
+| `--diagram` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
+| `--slides` | `references/html-slide-patterns.md`, `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `slide-deck.html` |
+| `--diff` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
+| `--plan-review` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| `--recap` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
 
-Multi-section pages (`--explain`, `--diff`, `--plan-review`, `--recap`): also read `html-responsive-nav.md`.
+Multi-section pages (`--explain`, `--diff`, `--plan-review`, `--recap`): also read `references/html-responsive-nav.md`.
 
 Use `/av:mermaidjs-v11` skill for Mermaid syntax validation.
 
@@ -152,6 +152,6 @@ Data: project identity, git log, git status, decision context, architecture scan
 Output: project identity, architecture snapshot (Mermaid), recent activity, decision log, state KPI cards, mental model essentials, cognitive debt hotspots, next steps.
 
 ### Style Strategy
-- Default: static anti-slop rules from `html-design-guidelines.md` (6 curated presets)
+- Default: static anti-slop rules from `references/html-design-guidelines.md` (6 curated presets)
 - For `--slides`: consider invoking `/av:ui-ux-pro-max` for richer style selection
 - Agent must vary aesthetics between consecutive HTML outputs (different font pair, palette)

@@ -90,13 +90,12 @@ rmbg input.jpg -m u2netp -o output.png  # Fast
 
 ## References
 
-Detailed guides in `references/`:
-- `ffmpeg-encoding.md` - Codecs, quality, hardware acceleration
-- `ffmpeg-streaming.md` - HLS/DASH, live streaming
-- `ffmpeg-filters.md` - Filters, complex filtergraphs
-- `imagemagick-editing.md` - Effects, transformations
-- `imagemagick-batch.md` - Batch processing, parallel ops
-- `rmbg-background-removal.md` - AI models, CLI usage
-- `common-workflows.md` - Video optimization, responsive images, GIF creation
-- `troubleshooting.md` - Error fixes, performance tips
-- `format-compatibility.md` - Format support, codec recommendations
+- `references/ffmpeg-encoding.md` — Codecs, quality, hardware acceleration
+- `references/ffmpeg-streaming.md` — HLS/DASH, live streaming
+- `references/ffmpeg-filters.md` — Filters, complex filtergraphs
+- `references/imagemagick-editing.md` — Effects, transformations
+- `references/imagemagick-batch.md` — Batch processing, parallel ops
+- `references/rmbg-background-removal.md` — AI models, CLI usage
+- `references/common-workflows.md` — Video optimization, responsive images, GIF creation
+- `references/troubleshooting.md` — Error fixes, performance tips
+- `references/format-compatibility.md` — Format support, codec recommendations

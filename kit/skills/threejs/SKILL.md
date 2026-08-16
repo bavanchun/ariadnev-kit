@@ -117,6 +117,7 @@ animate();
 ### Level 1: Fundamentals
 - `references/00-fundamentals.md` - Core concepts, scene graph
 - `references/01-getting-started.md` - Setup, basic rendering
+- `references/07-math.md` - Vector3, Quaternion, Matrix4, and other math utilities
 
 ### Level 2: Common Tasks
 - `references/02-loaders.md` - GLTF, FBX, OBJ loaders
@@ -125,6 +126,7 @@ animate();
 - `references/05-lights.md` - Light types, shadows
 - `references/06-animations.md` - AnimationMixer, clips
 - `references/11-materials.md` - PBR, standard materials
+- `references/11-materials-advanced.md` - Custom shader materials, advanced PBR workflows
 - `references/18-geometry.md` - BufferGeometry, primitives
 
 ### Level 3: Interactive
@@ -139,6 +141,7 @@ animate();
 
 ### Level 5: Specialized
 - `references/14-physics-vr.md` - Physics, WebXR
+- `references/15-specialized-loaders.md` - SVG, font, and other domain-specific loaders
 - `references/16-webgpu.md` - WebGPU, compute shaders
 
 ## External Resources

@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.common.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Internal shared conventions, never a direct top-level route",
+  "subjects": {
+    "skills": [
+      "av:common"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "I'm authoring a new skill for this kit — what shared conventions and utilities do the existing skills already reuse, like the reports-path naming pattern?",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "answer.direct"
+          ]
+        },
+        "routing": {
+          "av:common": "required",
+          "av:skill-creator": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "What's the common, standard workflow this kit expects me to follow for any task — where do I even start?",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "answer.direct"
+          ]
+        },
+        "routing": {
+          "av:help": "required",
+          "av:common": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}

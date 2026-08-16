@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-15T08:49:12.470Z",
+  "generatedAt": "2026-08-16T12:52:37.677Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:30656d4e24a14d76438b0ad500ed31e6a5c09ecc500122814cc2b79c7ac17db6",
+    "corpusDigest": "sha256:18afee0281da40582d883563deb976b07cc5a617123d950d7ce6d3dc7f7926e4",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 5.034,
-            "p95Ms": 5.88725,
-            "maxMs": 5.896667
+            "p50Ms": 2.552041,
+            "p95Ms": 2.960291,
+            "maxMs": 3.046959
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.485458,
-            "p95Ms": 0.609416,
-            "maxMs": 1.092167
+            "p50Ms": 0.241083,
+            "p95Ms": 0.316333,
+            "maxMs": 0.817583
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.434333,
-            "p95Ms": 0.548625,
-            "maxMs": 1.584458
+            "p50Ms": 0.227875,
+            "p95Ms": 0.287875,
+            "maxMs": 0.670291
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 193830
+        "indexBytes": 194115
       },
       "externalDependencies": []
     },
@@ -261,7 +261,7 @@
       "name": "deterministic artifact relationship graph plus lexical index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.8497959081476625,
+        "retrievalQuality": 0.8482565988278681,
         "taskSuccessRate": 0.9230769230769231,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -324,16 +324,16 @@
           },
           {
             "id": "direct.current-docs-research",
-            "retrievalQuality": 1,
+            "retrievalQuality": 0.9799889788426707,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
               "kit/skills/research/SKILL.md",
               "evals/scenarios/golden/current-docs-research.json",
-              "kit/skills/docs-seeker/SKILL.md",
               "kit/skills/plan/SKILL.md",
-              "kit/skills/cook/SKILL.md",
-              "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
+              "kit/skills/docs-seeker/SKILL.md",
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
+              "kit/skills/cook/SKILL.md"
             ]
           },
           {
@@ -454,37 +454,37 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 6.535208,
-            "p95Ms": 7.052584,
-            "maxMs": 8.169792
+            "p50Ms": 3.232709,
+            "p95Ms": 3.51825,
+            "maxMs": 3.663541
           },
           "query": {
             "samples": 390,
-            "p50Ms": 2.061,
-            "p95Ms": 2.291792,
-            "maxMs": 3.686791
+            "p50Ms": 1.054208,
+            "p95Ms": 1.169958,
+            "maxMs": 2.076916
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 2.011,
-            "p95Ms": 2.240208,
-            "maxMs": 3.422208
+            "p50Ms": 1.030166,
+            "p95Ms": 1.143875,
+            "maxMs": 1.907042
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 196134,
+        "indexBytes": 196419,
         "edges": 24
       },
       "externalDependencies": []
     }
   },
   "comparison": {
-    "retrievalQualityGainPoints": 22.7006,
+    "retrievalQualityGainPoints": 22.5466,
     "taskSuccessGainPoints": 30.7692,
     "meanContextTokenDelta": 0,
     "candidateIndexByteDelta": 2304,

@@ -45,6 +45,8 @@ npx lighthouse https://example.com     # Performance
 - `./references/e2e-testing-playwright.md` - Fixtures, sharding, selectors
 - `./references/playwright-component-testing.md` - CT patterns (production-ready)
 - `./references/component-testing.md` - React/Vue/Angular patterns
+- `./references/interactive-testing-patterns.md` - Forms, keyboard nav, drag & drop, modals, scroll/wait
+- `./references/shadow-dom-testing.md` - Shadow DOM piercing selectors across Playwright/Cypress/Selenium
 
 ### Test Infrastructure
 - `./references/test-data-management.md` - Factories, fixtures, seeding
@@ -65,6 +67,7 @@ npx lighthouse https://example.com     # Performance
 - `./references/accessibility-testing.md` - WCAG, axe-core
 - `./references/security-testing-overview.md` - OWASP Top 10
 - `./references/security-checklists.md` - Auth, API, headers
+- `./references/vulnerability-payloads.md` - SQLi/XSS/NoSQLi/SSRF/path-traversal test payloads
 
 ### API & Load
 - `./references/api-testing.md` - Supertest, GraphQL

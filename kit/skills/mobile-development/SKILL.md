@@ -62,14 +62,14 @@ See: `references/mobile-mindset.md` for thinking patterns and decision framework
 ## Reference Navigation
 
 **Core Technologies:**
-- `mobile-frameworks.md` - React Native, Flutter, Swift, Kotlin, framework comparison matrices, when to use each
-- `mobile-ios.md` - Swift 6, SwiftUI, iOS architecture patterns, HIG, App Store requirements, platform capabilities
-- `mobile-android.md` - Kotlin, Jetpack Compose, Material Design 3, Play Store, Android-specific features
+- `references/mobile-frameworks.md` - React Native, Flutter, Swift, Kotlin, framework comparison matrices, when to use each
+- `references/mobile-ios.md` - Swift 6, SwiftUI, iOS architecture patterns, HIG, App Store requirements, platform capabilities
+- `references/mobile-android.md` - Kotlin, Jetpack Compose, Material Design 3, Play Store, Android-specific features
 
 **Best Practices & Development Mindset:**
-- `mobile-best-practices.md` - Mobile-first design, performance optimization, offline-first architecture, security, testing, accessibility, deployment, analytics
-- `mobile-debugging.md` - Debugging tools, performance profiling, crash analysis, network debugging, platform-specific debugging
-- `mobile-mindset.md` - Thinking patterns, decision frameworks, platform-specific thinking, common pitfalls, debugging strategies
+- `references/mobile-best-practices.md` - Mobile-first design, performance optimization, offline-first architecture, security, testing, accessibility, deployment, analytics
+- `references/mobile-debugging.md` - Debugging tools, performance profiling, crash analysis, network debugging, platform-specific debugging
+- `references/mobile-mindset.md` - Thinking patterns, decision frameworks, platform-specific thinking, common pitfalls, debugging strategies
 
 ## Key Best Practices (2024-2025)
 

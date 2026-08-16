@@ -39,6 +39,32 @@ function writeSkill(kitRoot: string, body: string, refs: Record<string, string> 
   }
 }
 
+// Same fixture, but carrying the `ported` origin every upstream-copied skill
+// declares. That flag is what downgrades an orphan to a warning, so it is the
+// only shape in which `--strict` has anything to promote.
+const PORTED_FRONTMATTER = `---
+name: av:foo
+description: Use this fixture skill to exercise the validate command reference check.
+metadata:
+  origin: ported
+  author: upstream
+---
+
+# Foo
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`;
+
 function writeInvalidWorkflow(kitRoot: string): void {
   const workflows = join(kitRoot, "workflows");
   const schemaDir = join(workflows, "schema");
@@ -148,6 +174,68 @@ describe("runValidate", () => {
     }));
   });
 
+});
+
+describe("runValidate --strict", () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "ariadnev-validate-strict-"));
+  });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("leaves a ported skill's orphan as a passing warning by default", () => {
+    writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(true);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "foo", kind: "orphan", level: "warn" }),
+    );
+  });
+
+  it("promotes that orphan to an error and fails", () => {
+    writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
+    const result = runValidate({ kitRoot: tmp, strict: true });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "foo", kind: "orphan", level: "error" }),
+    );
+  });
+
+  it("still passes a clean tree", () => {
+    writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
+    const result = runValidate({ kitRoot: tmp, strict: true });
+    expect(result.ok).toBe(true);
+  });
+
+  it("promotes reference findings only, leaving other warning kinds alone", () => {
+    // Deliberate scope: promoting every warning would be free today (all 89 are
+    // orphans) and would block the next port of a long upstream skill later.
+    writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
+    writeInvalidWorkflow(tmp);
+    const lenient = runValidate({ kitRoot: tmp });
+    const strict = runValidate({ kitRoot: tmp, strict: true });
+    const levelsOf = (r: ReturnType<typeof runValidate>) =>
+      r.findings.filter((f) => f.kind !== "orphan" && f.kind !== "dangling").map((f) => `${f.kind}:${f.level ?? "error"}`);
+    expect(levelsOf(strict)).toEqual(levelsOf(lenient));
+  });
+});
+
+describe("kit-wide reference integrity", () => {
+  // The belt to --strict's braces: this fails in `pnpm test`, before CI is
+  // reached. It reads kit/skills at runtime, so a skill added later is covered
+  // without touching this file.
+  it("ships no orphan or dangling reference in any skill", () => {
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
+    const referenceFindings = result.findings.filter(
+      (f) => f.kind === "orphan" || f.kind === "dangling",
+    );
+    expect(
+      referenceFindings.map((f) => `${f.skill}: ${f.message}`),
+      "link the file where the body needs it, index it under ## References with a purpose line, or delete it",
+    ).toEqual([]);
+  });
 });
 
 describe("pending-port allowances", () => {

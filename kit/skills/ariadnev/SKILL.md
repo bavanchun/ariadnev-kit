@@ -32,6 +32,8 @@ to risk, and refusing to orchestrate what a single skill does better.
 | Coordinate headless CLI jobs across runtimes, models, worktrees | the orchestrate skill (`av-orchestrate`, engineer installs) |
 | Run multi-session agent teams | the team skill (`av-team`, engineer installs) |
 | Discover or install skills you do not have yet | the find-skills skill (`av-find-skills`, engineer installs) |
+| Operate the `av` CLI itself (install, doctor, validate, migrate, update, ...) | `av:av` |
+| Add a bilingual Vietnamese/English switch to a plan's `plan.html` | `av:plan-i18n` |
 | Execute the domain work itself | the routed skill or agent owns execution |
 
 If the task is explicitly about running jobs headlessly, across CLIs, or in

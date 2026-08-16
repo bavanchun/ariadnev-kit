@@ -17,8 +17,9 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .command("validate")
     .description("Lint the kit source (frontmatter, sizes, references, cross-skill routing) without installing")
     .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
-    .action((opts: { check?: boolean }) => {
-      const { summary, ok } = runValidate({ check: !!opts.check });
+    .option("--strict", "count orphan and dangling reference warnings as failures", false)
+    .action((opts: { check?: boolean; strict?: boolean }) => {
+      const { summary, ok } = runValidate({ check: !!opts.check, strict: !!opts.strict });
       emit(summary);
       if (!ok) process.exitCode = 1;
     });

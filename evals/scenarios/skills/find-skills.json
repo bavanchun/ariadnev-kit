@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.find-skills.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Discover an installable skill for a capability",
+  "subjects": {
+    "skills": [
+      "av:find-skills"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "Is there a skill I can install that automates writing Playwright end-to-end tests for a React app? I don't think this kit ships one.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "answer.direct"
+          ]
+        },
+        "routing": {
+          "av:find-skills": "required",
+          "av:help": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "What's already installed in this kit, and which of those existing skills handles reviewing a pull request?",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "answer.direct"
+          ]
+        },
+        "routing": {
+          "av:help": "required",
+          "av:find-skills": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}
