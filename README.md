@@ -83,8 +83,8 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev skill <install\|verify\|repair\|upgrade\|remove\|run> [name] [args…]` | Manage the Python environment a skill's scripts need, and run those scripts under the right interpreter. Most skills import only the standard library and need no environment; those that do get one built from a pinned, hash-verified lock. `verify` reads installed metadata only — `--deep` additionally imports the packages in a timed-out child process |
 | `ariadnev backups list [--global]` | List timestamped backups with file counts |
 | `ariadnev backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
-| `ariadnev update [--check] [--global]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe) |
-| `ariadnev validate [--check]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift |
+| `ariadnev update [--check] [--global] [--to <x.y.z>]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe), `--to` installs one exact release so a regression can be rolled back |
+| `ariadnev validate [--check] [--strict]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift, `--strict` counts orphan and dangling reference warnings as failures |
 | `ariadnev contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 | `ariadnev eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `ARIADNEV_EVAL_CMD` is set |
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
