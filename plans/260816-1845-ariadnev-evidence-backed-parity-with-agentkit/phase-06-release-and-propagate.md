@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Release and propagate"
-status: pending
+status: completed
 priority: P2
 effort: "0.5-1d"
 dependencies: [1, 2, 3, 5]
@@ -63,13 +63,35 @@ credential added on 2026-08-16, which has no expiry.
 
 ## Success Criteria
 
-- [ ] GitHub release exists with 5 binaries + `checksums.txt` + docs bundle.
-- [ ] `curl https://ariadnev.com/version` returns the new version.
-- [ ] `docs.ariadnev.com` lists `av:av` and `av:plan-i18n`.
-- [ ] A sandbox install of 1.0.0 upgrades cleanly via `av update`, and the new
-      release downgrades back to 1.0.0 via `av update --to 1.0.0`.
-- [ ] `probe-public-edge.mjs` healthy; `edge-health` workflow green.
-- [ ] Cutover records committed under `deployment/records/`.
+- [x] GitHub release exists with 5 binaries + `checksums.txt` + docs bundle.
+      `ariadnev@1.1.0`, 9 assets, published from tag `762db82` and immutable.
+- [x] `curl https://ariadnev.com/version` returns the new version. Returns
+      `1.1.0`; `?version=1.0.0` still returns `1.0.0`, so the pinned selector
+      that Phase 5's downgrade depends on survived the cutover.
+- [x] `docs.ariadnev.com` lists `av:av` and `av:plan-i18n`. The generated skill
+      reference carries 105 entries and `/en/stable/` is 1.1.0.
+- [x] A sandbox install of 1.0.0 upgrades cleanly via `av update`, and the new
+      release downgrades back to 1.0.0 via `av update --to 1.0.0`. Both
+      directions run against the live edge, not a mock.
+- [x] `probe-public-edge.mjs` healthy; `edge-health` workflow green.
+- [x] Cutover records committed under `deployment/records/` as
+      `{staging,production}-ariadnev-1.1.0-deploy.json`, both `result: pass`.
+
+## Outcome (2026-08-16)
+
+Kit: PR #22 merged at `16d7416`, the Version Packages PR bumped to 1.1.0 at
+`64100bb`, `release.yml` cut tag `ariadnev@1.1.0` and held the draft, and
+`finalize-release.yml` was dispatched from the tag's ref to publish it.
+
+Web (`ariadnev-web`): `3f3dedc` pins the 1.1.0 bundle, `74ac40c` records the
+qualification evidence, `f9e2db7` composes both immutable inputs, and `45b6504`
+commits the cutover records. Staging and production both deployed through
+`deploy.yml`; nothing was deployed by hand.
+
+The production preflight reports `immutableReleases: false`, which is a read
+limitation rather than a finding — `GITHUB_TOKEN` cannot see that setting on the
+core repo. Confirmed `true` directly, and the published release object carries
+`immutable: true`.
 
 ## Risk Assessment
 

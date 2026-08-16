@@ -68,7 +68,7 @@ copied: it is a git clone inside a skill, and it traces real people's accounts).
 | 3 | [Eval coverage that matches the claim](./phase-03-eval-coverage-that-matches-the-claim.md) | 1 | Done |
 | 4 | [Tier-2 baseline with a real runner](./phase-04-tier-2-baseline-with-a-real-runner.md) | 3 | Skipped |
 | 5 | [Pinned downgrade for av update](./phase-05-pinned-downgrade-for-av-update.md) | — | Done |
-| 6 | [Release and propagate](./phase-06-release-and-propagate.md) | 1, 2, 3, 5 | Pending |
+| 6 | [Release and propagate](./phase-06-release-and-propagate.md) | 1, 2, 3, 5 | Done |
 
 Phases 1, 2, and 5 touch disjoint files (`kit/skills/{plan-i18n,av}` vs existing
 skills' `SKILL.md`/`references` vs `update-command.ts`) and may run in parallel.
@@ -78,21 +78,25 @@ the release phase had no real downgrade path to point at.
 
 ## Success Criteria
 
-- [ ] `av list` reports **105** skills; `av validate` exits with **0 errors**.
-- [ ] `rg "av doctor|av audit|av contract" kit/skills` returns matches.
-- [ ] `av validate` reports **0 orphan warnings**, and CI fails if a new one appears.
-- [ ] `evals/scenarios/skills/` holds one scenario per shipped skill, enforced by a
+- [x] `av list` reports **105** skills; `av validate` exits with **0 errors**.
+- [x] `rg "av doctor|av audit|av contract" kit/skills` returns matches.
+- [x] `av validate` reports **0 orphan warnings**, and CI fails if a new one appears.
+      `--strict` promotes orphan and dangling findings to errors past the ported
+      exemption, and `ci.yml` runs it.
+- [x] `evals/scenarios/skills/` holds one scenario per shipped skill, enforced by a
       test that reads `kit/skills/` rather than a hard-coded number.
-- [ ] `evals/README.md` states a coverage claim that the test above makes true.
+- [x] `evals/README.md` states a coverage claim that the test above makes true.
 - [ ] **NOT MET — deliberately.** A tier-2 run against a real runner recorded
       under `evals/baselines/`. Phase 4 is skipped: the harness isolates `HOME`,
       and no runner on the release machine can both authenticate and see this
       kit without either mutating the user's live Codex install or copying a
       credential into a sandbox. The criterion stays open rather than being
       reworded to something that was achieved. See phase 4 for the evidence.
-- [ ] `av update --to <version>` downgrades with checksum verification intact.
-- [ ] Kit CI green; `ariadnev.com/version` serves the released version and the docs
-      site lists the new skills.
+- [x] `av update --to <version>` downgrades with checksum verification intact.
+      Round-tripped 1.0.0 → 1.1.0 → 1.0.0 against the live edge on 2026-08-16.
+- [x] Kit CI green; `ariadnev.com/version` serves the released version and the docs
+      site lists the new skills. `1.1.0` at the apex, 105 skills in the docs
+      reference including `av:av` and `av:plan-i18n`.
 
 ## Cost and honesty notes
 

@@ -66,10 +66,10 @@ value is rejected here rather than producing an opaque edge 400.
 
 ## Success Criteria
 
-- [ ] `av update --to 1.0.0` downgrades a newer install and verifies the checksum.
-      **Covered by unit test against a mocked edge; not yet run against the live
-      edge, because there is no newer release to downgrade *from* until Phase 6
-      cuts one. Phase 6 step 6 owns the real check.**
+- [x] `av update --to 1.0.0` downgrades a newer install and verifies the checksum.
+      Verified against the live edge on 2026-08-16 once Phase 6 cut 1.1.0: a
+      sandbox 1.0.0 install upgraded to 1.1.0 with plain `av update`, then
+      `av update --to 1.0.0` took it back, each step confirmed by `av --version`.
 - [x] A malformed version exits non-zero with no network request issued.
 - [x] An unknown version fails closed without replacing the installed binary.
 - [x] `av update` with no flag behaves exactly as before.
