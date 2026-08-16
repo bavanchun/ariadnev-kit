@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Chốt việc đang treo + changeset + ADR"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []

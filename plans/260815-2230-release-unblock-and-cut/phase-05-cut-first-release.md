@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Cắt ariadnev@1.0.0"
-status: pending
+status: in-progress
 priority: P1
 effort: "2h"
 dependencies: [4]

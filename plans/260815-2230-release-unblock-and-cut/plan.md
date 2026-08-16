@@ -99,11 +99,11 @@ Nguồn counsel: `kongming`, phiên 2026-08-15 (mọi claim load-bearing đã ve
 
 | # | Phase | Ưu tiên | Phụ thuộc | Effort | Trạng thái |
 |---|---|---|---|---|---|
-| 1 | Chốt việc đang treo + changeset + ADR | P1 | — | 3h | pending |
-| 2 | Xoá cổng web-consumer (atomic) | P1 | 1 | 4h | pending |
-| 3 | Smoke test binary thay cho cổng | P1 | 2 | 2h | pending |
-| 4 | Preflight đường release | P1 | 3 | 3h | pending |
-| 5 | Cắt `ariadnev@1.0.0` | P1 | 4 | 2h | pending |
+| 1 | Chốt việc đang treo + changeset + ADR | P1 | — | 3h | **completed** |
+| 2 | Xoá cổng web-consumer (atomic) | P1 | 1 | 4h | **completed** |
+| 3 | Smoke test binary thay cho cổng | P1 | 2 | 2h | **completed** |
+| 4 | Preflight đường release | P1 | 3 | 3h | **completed** |
+| 5 | Cắt `ariadnev@1.0.0` | P1 | 4 | 2h | **in-progress** — draft đã giữ, chờ finalize |
 
 Chạy tuần tự 1→5. Không phase nào song song được: phase 2 xoá thứ phase 3 thay thế, phase 4
 sửa mọi thứ chặn đường trước khi push, phase 5 là phép thử cuối cùng cho cả bốn phase trước.
