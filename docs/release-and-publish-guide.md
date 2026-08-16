@@ -114,7 +114,8 @@ TAG_SHA=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)
 ENVELOPE=$(gh api "repos/$REPO/git/tags/$TAG_SHA" --jq .message | tail -n +2)
 
 # release_id is not in the envelope — it is the draft the publish job created.
-RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
+# Look it up by listing, not by tag: /releases/tags/<tag> returns 404 for a draft.
+RELEASE_ID=$(gh api "repos/$REPO/releases" --jq '.[] | select(.tag_name=="'"$TAG"'") | .id')
 
 gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
   -f release_id="$RELEASE_ID" \
