@@ -59,6 +59,7 @@ After the first install, just run:
 ```bash
 ariadnev update            # self-updates the binary to the latest release (sha256-verified)
 ariadnev update --check    # only report whether a newer version exists
+ariadnev update --to 1.0.0 # install one exact release — how you roll back off a bad one
 ```
 
 No need to re-run the curl installer.
