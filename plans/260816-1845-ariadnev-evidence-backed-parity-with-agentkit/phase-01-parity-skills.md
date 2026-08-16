@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Parity skills"
-status: pending
+status: completed
 priority: P1
 effort: "1-2d"
 dependencies: []
@@ -86,14 +86,14 @@ not by translating `ak:ak`.
 
 ## Success Criteria
 
-- [ ] `av list` shows 105 skills including `plan-i18n` and `av`.
-- [ ] `av validate` → 0 errors, and no new orphan warnings versus the 89 baseline.
-- [ ] `rg "av doctor|av audit|av contract" kit/skills` returns matches.
-- [ ] Every CLI invocation written in either skill exists in `av --help` output.
-- [ ] Both skills pass the non-ported bar: ≤300 lines, required sections present,
+- [x] `av list` shows 105 skills including `plan-i18n` and `av`.
+- [x] `av validate` → 0 errors, and no new orphan warnings versus the 89 baseline.
+- [x] `rg "av doctor|av audit|av contract" kit/skills` returns matches.
+- [x] Every CLI invocation written in either skill exists in `av --help` output.
+- [x] Both skills pass the non-ported bar: ≤300 lines, required sections present,
       trigger verb in `description` — no `metadata.origin: ported` anywhere in them.
-- [ ] Sandbox install + `av doctor` healthy for claude-code and one non-Claude provider.
-- [ ] `pnpm test` and kit CI green.
+- [x] Sandbox install + `av doctor` healthy for claude-code and one non-Claude provider.
+- [x] `pnpm test` and kit CI green.
 
 ## Risk Assessment
 

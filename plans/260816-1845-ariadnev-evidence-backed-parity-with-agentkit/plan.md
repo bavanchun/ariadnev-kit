@@ -63,11 +63,11 @@ copied: it is a git clone inside a skill, and it traces real people's accounts).
 
 | # | Phase | Depends on | Status |
 |---|-------|------------|--------|
-| 1 | [Parity skills](./phase-01-parity-skills.md) | — | Pending |
-| 2 | [Reference debt and enforcement](./phase-02-reference-debt-and-enforcement.md) | — | Pending |
-| 3 | [Eval coverage that matches the claim](./phase-03-eval-coverage-that-matches-the-claim.md) | 1 | Pending |
+| 1 | [Parity skills](./phase-01-parity-skills.md) | — | Done |
+| 2 | [Reference debt and enforcement](./phase-02-reference-debt-and-enforcement.md) | — | Done |
+| 3 | [Eval coverage that matches the claim](./phase-03-eval-coverage-that-matches-the-claim.md) | 1 | In progress |
 | 4 | [Tier-2 baseline with a real runner](./phase-04-tier-2-baseline-with-a-real-runner.md) | 3 | Pending |
-| 5 | [Pinned downgrade for av update](./phase-05-pinned-downgrade-for-av-update.md) | — | Pending |
+| 5 | [Pinned downgrade for av update](./phase-05-pinned-downgrade-for-av-update.md) | — | Done |
 | 6 | [Release and propagate](./phase-06-release-and-propagate.md) | 1, 2, 3, 5 | Pending |
 
 Phases 1, 2, and 5 touch disjoint files (`kit/skills/{plan-i18n,av}` vs existing

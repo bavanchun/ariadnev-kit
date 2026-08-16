@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Pinned downgrade for av update"
-status: pending
+status: completed
 priority: P2
 effort: "0.5d"
 dependencies: []
@@ -67,10 +67,13 @@ value is rejected here rather than producing an opaque edge 400.
 ## Success Criteria
 
 - [ ] `av update --to 1.0.0` downgrades a newer install and verifies the checksum.
-- [ ] A malformed version exits non-zero with no network request issued.
-- [ ] An unknown version fails closed without replacing the installed binary.
-- [ ] `av update` with no flag behaves exactly as before.
-- [ ] Tests cover all four cases; kit CI green.
+      **Covered by unit test against a mocked edge; not yet run against the live
+      edge, because there is no newer release to downgrade *from* until Phase 6
+      cuts one. Phase 6 step 6 owns the real check.**
+- [x] A malformed version exits non-zero with no network request issued.
+- [x] An unknown version fails closed without replacing the installed binary.
+- [x] `av update` with no flag behaves exactly as before.
+- [x] Tests cover all four cases; kit CI green.
 
 ## Risk Assessment
 

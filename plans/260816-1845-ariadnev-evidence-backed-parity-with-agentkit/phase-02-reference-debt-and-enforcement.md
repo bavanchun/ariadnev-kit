@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Reference debt and enforcement"
-status: pending
+status: completed
 priority: P2
 effort: "2-3d"
 dependencies: []
@@ -71,12 +71,12 @@ the belt to that braces: it fails in `pnpm test` before CI is reached.
 
 ## Success Criteria
 
-- [ ] `av validate` → 0 errors and **0 warnings total** (all 89 today are `orphan`,
+- [x] `av validate` → 0 errors and **0 warnings total** (all 89 today are `orphan`,
       so clearing them clears the whole warning set).
-- [ ] `av validate --strict` exits non-zero on an injected orphan and zero on a clean tree.
-- [ ] `pnpm test` includes a kit-wide orphan test that reads `kit/skills` at runtime.
-- [ ] No `## References` entry exists without a purpose line.
-- [ ] Kit CI green.
+- [x] `av validate --strict` exits non-zero on an injected orphan and zero on a clean tree.
+- [x] `pnpm test` includes a kit-wide orphan test that reads `kit/skills` at runtime.
+- [x] No `## References` entry exists without a purpose line.
+- [x] Kit CI green.
 
 ## Risk Assessment
 

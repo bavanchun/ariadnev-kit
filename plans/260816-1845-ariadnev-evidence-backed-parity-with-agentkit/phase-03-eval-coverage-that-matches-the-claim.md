@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Eval coverage that matches the claim"
-status: pending
+status: in-progress
 priority: P1
 effort: "3-5d"
 dependencies: [1]
