@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCandidate, baseState, heldState, SHA } from "./release-privileged-fixtures.mjs";
+import { createCandidate, baseState, heldState, SHA, TAG } from "./release-privileged-fixtures.mjs";
 import { assertNoLeak, execute, mutationKinds, publishRun } from "./release-privileged-harness.mjs";
 import { withScratch } from "./release-test-helpers.mjs";
 
@@ -42,8 +42,8 @@ test("publisher EXACT-NOOP validates all remote assets and makes zero mutations"
 
 for (const [name, mutate] of [
   ["tag-only conflict", (state) => { state.tagRef = { object: { type: "tag", sha: "c".repeat(40) } }; }],
-  ["release-only conflict", (state) => { state.release = { id: 11, draft: true, assets: [] }; }],
-  ["lightweight tag conflict", (state) => { state.tagRef = { object: { type: "commit", sha: SHA } }; state.release = { id: 11, draft: true, assets: [] }; }],
+  ["release-only conflict", (state) => { state.release = { id: 11, draft: true, tag_name: TAG, assets: [] }; }],
+  ["lightweight tag conflict", (state) => { state.tagRef = { object: { type: "commit", sha: SHA } }; state.release = { id: 11, draft: true, tag_name: TAG, assets: [] }; }],
   ["published release conflict", (state, candidate) => { Object.assign(state, heldState(candidate)); state.release.draft = false; }],
   ["asset count conflict", (state, candidate) => { Object.assign(state, heldState(candidate)); state.release.assets.pop(); }],
   ["asset digest conflict", (state, candidate) => { Object.assign(state, heldState(candidate)); state.assetBytes["1"] = Buffer.from("wrong").toString("base64"); }],

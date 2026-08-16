@@ -82,7 +82,12 @@ jobs:
           ok(/^[0-9]+$/.test(releaseId) && /^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ID) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ATTEMPT), "invalid numeric identity");
           ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "exact ref identity required");
           ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest) && artifactName === `ariadnev-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate identity drift");
-          ok(api(`repos/${repo}/immutable-releases`).enabled === true, "immutable releases must be enabled");
+          // The repository setting itself is unreadable here: GET
+          // /repos/{owner}/{repo}/immutable-releases answers 403 "Resource not
+          // accessible by integration" to GITHUB_TOKEN under every grantable
+          // permission, because it needs an administration scope the workflow
+          // token cannot hold. Immutability is asserted on the published release
+          // instead, which is the outcome the setting only predicts.
           const candidateRun = api(`repos/${repo}/actions/runs/${runId}`);
           ok(candidateRun.path === ".github/workflows/release.yml" && candidateRun.event === "push" && candidateRun.head_sha === sha && String(candidateRun.run_attempt) === attempt && candidateRun.status === "completed" && candidateRun.conclusion === "success", "candidate run drift");
           const artifact = api(`repos/${repo}/actions/artifacts/${artifactId}`);
@@ -124,13 +129,18 @@ jobs:
           for (const match of checksumLines) ok(assets.find((asset) => asset.name === match[2])?.digest === `sha256:${match[1]}`, `checksum drift: ${match[2]}`);
           const downloadAsset = (id) => api(`repos/${repo}/releases/assets/${id}`, { binary: true, accept: "application/octet-stream" });
           const verifyAssets = (release) => { ok((release.assets || []).length === assets.length, "remote asset count drift"); for (const asset of assets) { const remote = release.assets.find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); } };
-          const release = api(`repos/${repo}/releases/${releaseId}`), byTag = api(`repos/${repo}/releases/tags/${tag}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
-          ok(String(byTag.id) === releaseId && release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha, "held draft drift");
+          // Not resolved by tag here: a draft is invisible to
+          // /releases/tags/{tag}, which answers 404 until it is published. The
+          // tag binding is asserted after the PATCH, where it is both readable
+          // and meaningful.
+          const release = api(`repos/${repo}/releases/${releaseId}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
+          ok(String(release.id) === releaseId && release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha, "held draft drift");
           ok(!latestBefore || String(latestBefore.id) !== releaseId, "held draft is already latest");
           verifyAssets(release);
           api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, make_latest: "true" } });
           const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = api(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
-          ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
+          const byTagAfter = api(`repos/${repo}/releases/tags/${tag}`);
+          ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && String(byTagAfter.id) === releaseId && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
           ok(!Number.isNaN(Date.parse(after.updated_at)), "published release timestamp drift");
           verifyAssets(after);
           const finalization = { schemaVersion: 1, schema: "https://ariadnev.com/schemas/finalization-attestation.schema.json", runId: env.FINALIZATION_RUN_ID, runAttempt: env.FINALIZATION_RUN_ATTEMPT, repository: repo, releaseId, tag, sourceSha: sha, candidateEnvelopeDigest: digest(Buffer.from(JSON.stringify(envelope))), finalizerWorkflowDigest, releaseAssetSetDigest: digest(Buffer.from(JSON.stringify(assets))), verifiedReleaseUpdatedAt: after.updated_at };

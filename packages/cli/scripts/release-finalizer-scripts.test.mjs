@@ -19,7 +19,10 @@ test("finalizer completes every preflight before one typed PATCH and validates p
   const patchIndex = run.state.requests.findIndex((entry) => entry.method === "PATCH");
   assert.ok(patchIndex > 0); assert.deepEqual(run.state.requests[patchIndex].body, { draft: false, make_latest: "true" });
   const beforePatch = run.state.requests.slice(0, patchIndex);
-  assert.ok(beforePatch.some((entry) => entry.path?.endsWith("/immutable-releases")));
+  // The settings endpoint answers 403 to GITHUB_TOKEN, and a draft is invisible
+  // by tag, so neither may be requested before the release is published.
+  assert.ok(!run.state.requests.some((entry) => entry.path?.endsWith("/immutable-releases")));
+  assert.ok(!beforePatch.some((entry) => entry.path?.includes("/releases/tags/")));
   assert.ok(beforePatch.some((entry) => entry.path?.includes("/actions/artifacts/7/zip")));
   assert.ok(beforePatch.some((entry) => entry.path?.includes("/contents/.github/workflows/finalize-release.yml")));
   assert.equal(beforePatch.filter((entry) => entry.path?.includes("/releases/assets/")).length, 9);
@@ -36,7 +39,6 @@ test("finalizer completes every preflight before one typed PATCH and validates p
 });
 
 for (const [name, mutate, overrides] of [
-  ["immutable releases disabled", (state) => { state.immutable.enabled = false; }],
   ["candidate run incomplete", (state) => { state.run.status = "in_progress"; state.run.conclusion = null; }],
   ["artifact digest drift", (state) => { state.artifact.digest = `sha256:${"0".repeat(64)}`; }],
   ["lightweight tag", (state) => { state.tagRef.object.type = "commit"; }],
@@ -54,6 +56,19 @@ for (const [name, mutate, overrides] of [
 ]) test(`finalizer ${name} fails with zero PATCH`, () => {
   const run = runFinalizer(mutate, overrides);
   assert.notEqual(run.result.status, 0); assert.deepEqual(mutationKinds(run), []); assertNoLeak(assert, run);
+});
+
+// This one cannot join the loop above: the guard it exercises reads the
+// published release, so the PATCH has necessarily already happened. Publishing
+// is the only way to learn whether the repository makes releases immutable, and
+// a release that came back mutable is still deletable — which is what makes
+// failing here a recoverable outcome rather than a broken one.
+test("finalizer fails after its single PATCH when the published release is not immutable", () => {
+  const run = runFinalizer((state) => { state.immutable.enabled = false; });
+  assert.notEqual(run.result.status, 0);
+  assert.deepEqual(mutationKinds(run), ["patch-release"]);
+  assert.match(run.result.stderr, /published release drift/);
+  assertNoLeak(assert, run);
 });
 
 test("finalizer sends binary reads with explicit read-only Accept headers", () => {

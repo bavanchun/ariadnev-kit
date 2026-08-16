@@ -117,6 +117,12 @@ ENVELOPE=$(gh api "repos/$REPO/git/tags/$TAG_SHA" --jq .message | tail -n +2)
 # Look it up by listing, not by tag: /releases/tags/<tag> returns 404 for a draft.
 RELEASE_ID=$(gh api "repos/$REPO/releases" --jq '.[] | select(.tag_name=="'"$TAG"'") | .id')
 
+# Check the setting here, not in the workflow. GITHUB_TOKEN gets 403 on this
+# endpoint under every permission it can be granted, so the dispatcher is the
+# last place immutability can be confirmed *before* the release is published.
+[ "$(gh api "repos/$REPO/immutable-releases" --jq .enabled)" = true ] || \
+  { echo "immutable releases are disabled — enable them before finalizing"; exit 1; }
+
 gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
   -f release_id="$RELEASE_ID" \
   -f tag="$TAG" \
@@ -133,8 +139,14 @@ gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
 
 Two prerequisites, both one-time per repository:
 
-- **Immutable releases must be enabled.** The finalizer hard-fails without it
-  (`GET /repos/{owner}/{repo}/immutable-releases` must report `enabled: true`).
+- **Immutable releases must be enabled.** The finalizer cannot check this itself
+  — `GET /repos/{owner}/{repo}/immutable-releases` needs an administration scope
+  that `GITHUB_TOKEN` cannot hold, and answers 403 to it under every grantable
+  permission. The guard is split in two: the preflight above, run with your own
+  credentials before dispatching, and an assertion on the published release
+  (`immutable === true`) inside the workflow. If the second one fires, the
+  release published as *mutable* — which means it is still deletable, so the
+  recovery is to delete it, enable the setting, and finalize again.
 - The candidate artifact must not have expired — it is retained 90 days.
 
 **Retrying after a failed release.** Once the tag and draft exist, a retry at a

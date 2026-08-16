@@ -123,7 +123,14 @@ jobs:
             ok(release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha && (release.assets || []).length === assets.length, "held draft drift");
             for (const asset of assets) { const remote = release.assets.find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); }
           };
-          const tagRef = maybe(`repos/${repo}/git/ref/tags/${tag}`), release = maybe(`repos/${repo}/releases/tags/${tag}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
+          // Listed, not resolved by tag. The release this looks for is a draft,
+          // and /releases/tags/{tag} answers 404 for drafts — so asking by tag
+          // made the held draft invisible to its own publisher: a rerun could
+          // never reach EXACT-NOOP, and a leftover draft could be overwritten by
+          // a fresh tag instead of stopping the run.
+          const releaseList = api(`repos/${repo}/releases?per_page=100`);
+          ok(Array.isArray(releaseList) && releaseList.length < 100, "release listing drift");
+          const tagRef = maybe(`repos/${repo}/git/ref/tags/${tag}`), release = releaseList.find((entry) => entry.tag_name === tag) || null, latestBefore = maybe(`repos/${repo}/releases/latest`);
           const marker = "ariadnev-candidate-envelope-v1\n";
           if (tagRef || release) {
             ok(tagRef && release && tagRef.object?.type === "tag", "remote state conflict");

@@ -89,6 +89,53 @@ Hai điều đã xác minh trước, để phase này không chết vì thứ ng
    lưu trữ chỉ tồn tại trên máy này.
 10. Cập nhật trạng thái plan; ghi journal.
 
+## Lần finalize đầu tiên: ba lỗi có sẵn (2026-08-16)
+
+Dispatch đầu tiên đỏ sau 5 giây, **trước** mọi thao tác ghi. Đúng nhánh "đỏ ở nơi khác" của
+bước 5: cả ba đều là lỗi tồn tại từ trước, chưa bao giờ lộ vì `finalize-release.yml` chưa từng
+chạy lần nào. Không cái nào liên quan cổng web-consumer.
+
+**1. `GET /immutable-releases` trả 403 cho `GITHUB_TOKEN`** (`finalize-release.yml:85`).
+
+Đo bằng nhánh thăm dò: job với `contents:write` + `actions:read` → 403
+`Resource not accessible by integration`; job với **mọi** quyền read cấp được cho
+`GITHUB_TOKEN` → 403 y hệt. Endpoint cần scope administration mà workflow token không thể có.
+Máy vận hành đọc được chỉ vì token OAuth mang scope `repo`.
+
+Xoá dòng 85. Bảo đảm không mất: dòng 133 **đã** assert `after.immutable === true` trên object
+release (endpoint 200). Đó là kiểm *kết quả* thay vì kiểm *cài đặt* — chặt hơn. Phép kiểm cài
+đặt chuyển sang phía dispatch trong runbook, nơi token vận hành đọc được, nên vẫn còn tính chất
+"fail trước khi ghi".
+
+**2. `GET /releases/tags/{tag}` trả 404 cho draft** (`finalize-release.yml:127`).
+
+Bản chất endpoint, không phải quyền: release ở trạng thái draft thì không giải được theo tag.
+Finalize gọi nó qua `api()` (hard-fail) *trước* PATCH, nên kể cả sau khi sửa lỗi 1 thì lần
+dispatch sau vẫn đỏ. Chuyển phép giải-theo-tag sang **sau** PATCH, chỗ nó vừa gọi được vừa có
+nghĩa. Bù lại phần mất ở preflight bằng `String(release.id) === releaseId`.
+
+**3. Publisher giải held draft theo tag** (`release-candidate-publish.yml:126`).
+
+Cùng gốc với lỗi 2, hậu quả khác: nhánh `EXACT-NOOP` **không bao giờ đạt được trên production**
+— chạy lại cùng SHA không nhận ra draft của chính nó, mà báo "remote state conflict"; và một
+draft sót *không có tag* lọt qua cổng xung đột rồi bị đè bằng tag mới. Repo đang có 6 draft sót
+(`vcskill@0.6.0`–`0.11.0`), nên không phải giả định. Giải theo listing thay vì theo tag.
+
+### Vì sao test không bắt được
+
+`release-stateful-gh-mock.mjs` trả release cho `/releases/tags/` **bất kể `draft`**, và có
+handler cho `/immutable-releases`. Mock dễ dãi hơn thực tế đúng ở hai chỗ production đỏ. Sửa
+mock trước, xem test đỏ đúng chỗ, rồi mới sửa workflow — sau đó thêm test cho cổng immutability
+hậu-PATCH, ca duy nhất không nằm được trong vòng "fail với zero PATCH" vì nó bắt sau khi PATCH
+đã xảy ra.
+
+### Hệ quả: phải cắt lại
+
+`finalize-release.yml` assert `github.workflow_sha === source_sha`, tức file workflow bị ghim
+vào commit của tag. Không sửa được nó mà không xoá tag + draft và cắt lại từ commit mới. Đây là
+đường retry đã ghi trong runbook, và chỉ dùng được khi release còn là draft — đúng lý do phase 5
+dừng trước finalize.
+
 ## Success Criteria
 
 - [ ] Release `ariadnev@1.0.0` đã publish trên `bavanchun/ariadnev-kit`

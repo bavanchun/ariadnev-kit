@@ -33,10 +33,13 @@ if (method === "POST" && path.endsWith("/releases")) {
   mutate("create-release"); state.release = { id: 11, draft: body.draft, immutable: false, tag_name: body.tag_name, target_commitish: body.target_commitish, assets: [], updated_at: "2026-08-08T01:00:00Z" }; save(); json(state.release); process.exit(0);
 }
 if (method === "PATCH" && path.includes("/releases/")) {
-  mutate("patch-release"); state.release = { ...state.release, draft: body.draft, immutable: true, updated_at: "2026-08-09T01:00:00Z" }; state.latest = state.release; save(); json(state.release); process.exit(0);
+  // Publishing is what makes a release immutable, so that is where the flag is
+  // observed. \`immutable.enabled: false\` models a repository that does not, and
+  // is the only way to exercise the post-publish guard: the settings endpoint
+  // answers 403 to GITHUB_TOKEN, so no workflow can read the setting directly.
+  mutate("patch-release"); state.release = { ...state.release, draft: body.draft, immutable: state.immutable.enabled !== false, updated_at: "2026-08-09T01:00:00Z" }; state.latest = state.release; save(); json(state.release); process.exit(0);
 }
-if (path.endsWith("/immutable-releases")) json(state.immutable);
-else if (path.includes("/actions/runs/")) json(state.run);
+if (path.includes("/actions/runs/")) json(state.run);
 else if (path.includes("/actions/artifacts?")) json({ artifacts: state.artifactHistory });
 else if (path.includes("/actions/artifacts/") && path.endsWith("/zip")) binary(state.artifactZip);
 else if (path.includes("/actions/artifacts/")) json(state.artifact);
@@ -46,8 +49,11 @@ else if (path.includes("/releases/assets/")) {
   if (accept !== "Accept: application/octet-stream") { save(); process.stderr.write("missing asset Accept header"); process.exit(2); }
   const id = path.split("/").pop(); state.assetBytes[id] ? binary(state.assetBytes[id]) : notFound();
 }
+else if (path.includes("/releases?")) json(state.release ? [state.release] : []);
 else if (path.endsWith("/releases/latest")) state.latest ? json(state.latest) : notFound();
-else if (path.includes("/releases/tags/")) state.release ? json(state.release) : notFound();
+// A draft is invisible by tag: GitHub answers 404 until it is published. Every
+// caller must therefore either tolerate the 404 or ask after publishing.
+else if (path.includes("/releases/tags/")) state.release && !state.release.draft ? json(state.release) : notFound();
 else if (path.includes("/releases/")) state.release ? json(state.release) : notFound();
 else if (path.includes("/contents/")) binary(state.sources[sourceKey(path)]);
 else json({});
