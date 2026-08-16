@@ -314,6 +314,7 @@ describe("full-kit install smoke (v2 roster)", () => {
   const ROSTER = [
     "advise", "agent-browser", "agentize", "ai-artist",
     "ai-multimodal", "ariadnev", "ask", "autoresearch",
+    "av",
     "backend-development", "better-auth", "bootstrap", "brainstorm",
     "chrome-profile", "code-review", "codex-goal", "coding-level",
     "common", "context-engineering", "cook", "copywriting",
@@ -327,7 +328,8 @@ describe("full-kit install smoke (v2 roster)", () => {
     "interview-docs", "issue-to-plan", "journal", "llms",
     "loop", "markdown-novel-viewer", "mcp-builder", "media-processing",
     "mermaidjs-v11", "mintlify", "mobile-development", "obsidian-second-brain-note",
-    "orchestrate", "payment-integration", "plan", "plans-kanban",
+    "orchestrate", "payment-integration", "plan", "plan-i18n",
+    "plans-kanban",
     "pm", "predict", "preview", "problem-solving",
     "project-management", "project-organization", "react-best-practices", "remotion",
     "repomix", "research", "research-prompt", "retro",
@@ -365,7 +367,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "usage-quota-cache-refresh",
   ];
 
-  it("kit ships exactly the 103-skill + 16-agent roster + 14 hooks", () => {
+  it("kit ships exactly the 105-skill + 16-agent roster + 14 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
