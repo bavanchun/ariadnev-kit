@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Tier-2 baseline with a real runner"
-status: pending
+status: skipped
 priority: P2
 effort: "1-2d wall time, metered agent cost"
 dependencies: [3]

@@ -66,7 +66,7 @@ copied: it is a git clone inside a skill, and it traces real people's accounts).
 | 1 | [Parity skills](./phase-01-parity-skills.md) | — | Done |
 | 2 | [Reference debt and enforcement](./phase-02-reference-debt-and-enforcement.md) | — | Done |
 | 3 | [Eval coverage that matches the claim](./phase-03-eval-coverage-that-matches-the-claim.md) | 1 | Done |
-| 4 | [Tier-2 baseline with a real runner](./phase-04-tier-2-baseline-with-a-real-runner.md) | 3 | Pending |
+| 4 | [Tier-2 baseline with a real runner](./phase-04-tier-2-baseline-with-a-real-runner.md) | 3 | Skipped |
 | 5 | [Pinned downgrade for av update](./phase-05-pinned-downgrade-for-av-update.md) | — | Done |
 | 6 | [Release and propagate](./phase-06-release-and-propagate.md) | 1, 2, 3, 5 | Pending |
 
@@ -84,8 +84,12 @@ the release phase had no real downgrade path to point at.
 - [ ] `evals/scenarios/skills/` holds one scenario per shipped skill, enforced by a
       test that reads `kit/skills/` rather than a hard-coded number.
 - [ ] `evals/README.md` states a coverage claim that the test above makes true.
-- [ ] A tier-2 run against a real runner is recorded under `evals/baselines/`,
-      with its repeat counts and every limitation named in the environment manifest.
+- [ ] **NOT MET — deliberately.** A tier-2 run against a real runner recorded
+      under `evals/baselines/`. Phase 4 is skipped: the harness isolates `HOME`,
+      and no runner on the release machine can both authenticate and see this
+      kit without either mutating the user's live Codex install or copying a
+      credential into a sandbox. The criterion stays open rather than being
+      reworded to something that was achieved. See phase 4 for the evidence.
 - [ ] `av update --to <version>` downgrades with checksum verification intact.
 - [ ] Kit CI green; `ariadnev.com/version` serves the released version and the docs
       site lists the new skills.
