@@ -56,11 +56,11 @@ Follow the process in `references/skill-creation-workflow.md`:
 2. **Research** — Activate `/av:docs-seeker`, `the engineer research skill` for best practices
 3. **Plan** — Identify reusable scripts, references, assets
 4. **Initialize** — `scripts/init_skill.py <name> --path <dir>`
-5. **Write** — Implement resources, write SKILL.md, optimize for benchmarks
-6. **Test & Evaluate** — Run eval suite, grade outputs, compare with/without skill
+5. **Write** — Implement resources, write SKILL.md frontmatter (`references/yaml-frontmatter-reference.md`), optimize for benchmarks
+6. **Test & Evaluate** — Run eval suite, grade outputs, compare with/without skill (`references/testing-and-iteration.md`)
 7. **Optimize Description** — AI-powered trigger accuracy optimization
 8. **Package** — `scripts/package_skill.py <path>`
-9. **Iterate** — Generalize from feedback, keep prompts lean
+9. **Iterate** — Generalize from feedback, keep prompts lean; diagnose stuck skills with `references/troubleshooting-guide.md`
 
 ## Description Optimization
 
@@ -105,6 +105,8 @@ Optimization patterns: `references/benchmark-optimization-guide.md`
 - **No duplication:** Info lives in SKILL.md OR references, never both
 - **Concise:** Sacrifice grammar for brevity
 
+Full guide, including structure template and error-handling patterns: `references/writing-effective-instructions.md`
+
 ## Scripts
 
 | Script | Purpose |
@@ -124,6 +126,15 @@ Optimization patterns: `references/benchmark-optimization-guide.md`
 - **Design patterns**: `references/skill-design-patterns.md`
 - **Portability and third-party review**: `references/skill-ecosystem-portability-and-safety.md`
 - **Plugin Marketplaces**: `references/plugin-marketplace-overview.md`
+
+## References
+
+- `references/distribution-guide.md` — Distributing skills to individuals, orgs, and via the API; packaging and positioning
+- `references/mcp-skills-integration.md` — How MCP connectivity and skills combine, and how to write MCP-enhanced skill instructions
+- `references/plugin-marketplace-schema.md` — Full JSON schema for `.claude-plugin/marketplace.json`
+- `references/plugin-marketplace-sources.md` — Plugin source types (relative path, GitHub, git) for marketplace entries
+- `references/plugin-marketplace-hosting.md` — Hosting a marketplace on GitHub/GitLab, private-repo auth, team install config
+- `references/plugin-marketplace-troubleshooting.md` — Fixes for marketplace load, validation, and plugin install failures
 
 ## External References
 

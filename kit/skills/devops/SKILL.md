@@ -57,27 +57,27 @@ gcloud run deploy my-service --image gcr.io/project/image --region us-central1
 kubectl apply -f manifests/ && kubectl get pods
 ```
 
-## Reference Navigation
+## References
 
 ### Cloudflare Platform
-- `cloudflare-platform.md` - Edge computing overview
-- `cloudflare-workers-basics.md` - Handler types, patterns
-- `cloudflare-workers-advanced.md` - Performance, optimization
-- `cloudflare-workers-apis.md` - Runtime APIs, bindings
-- `cloudflare-r2-storage.md` - Object storage, S3 compatibility
-- `cloudflare-d1-kv.md` - D1 SQLite, KV store
-- `browser-rendering.md` - Puppeteer automation
+- `references/cloudflare-platform.md` — Edge computing model, architecture patterns, wrangler CLI essentials
+- `references/cloudflare-workers-basics.md` — Handler types (fetch/scheduled/queue/email), routing, bindings, deployment
+- `references/cloudflare-workers-advanced.md` — Session reuse, multi-tier caching, WebSockets, code splitting, performance tuning
+- `references/cloudflare-workers-apis.md` — Runtime APIs (fetch, HTMLRewriter, WebSockets, Web Crypto, bindings reference)
+- `references/cloudflare-r2-storage.md` — Object storage: S3 API integration, multipart uploads, lifecycle rules, migration
+- `references/cloudflare-d1-kv.md` — D1 SQLite and KV store setup, usage patterns, and decision matrix
+- `references/browser-rendering.md` — Puppeteer/Playwright automation: screenshots, PDFs, session reuse, crawling
 
 ### Docker
-- `docker-basics.md` - Dockerfile, images, containers
-- `docker-compose.md` - Multi-container apps
+- `references/docker-basics.md` — Dockerfile patterns, image building, container/volume/network management
+- `references/docker-compose.md` — Multi-container orchestration, environment-specific configs, health checks
 
 ### Google Cloud
-- `gcloud-platform.md` - gcloud CLI, authentication
-- `gcloud-services.md` - Compute Engine, GKE, Cloud Run
+- `references/gcloud-platform.md` — gcloud CLI install, authentication, configuration management, CI/CD integration
+- `references/gcloud-services.md` — Compute Engine, GKE, Cloud Run, App Engine, Cloud SQL, BigQuery commands
 
 ### Kubernetes
-- Use upstream Kubernetes and Helm documentation for cluster-specific details.
+Use upstream Kubernetes and Helm documentation for cluster-specific details.
 
 ### Scripts
 - `scripts/cloudflare_deploy.py` - Automate Worker deployments

@@ -230,6 +230,21 @@ Quick start: `./references/ai-multimodal-overview.md`
 
 **Assets**: Generate images with `av:ai-multimodal`, process with `av:media-processing`
 
+## References
+
+Deeper material behind the overview references above — read on demand, not by default.
+
+- `references/analysis-best-practices.md` — quality guidelines and common pitfalls when prompting for visual analysis.
+- `references/analysis-prompts.md` — prompt templates for comprehensive, comparison, color-extraction, integration, and A/B analysis.
+- `references/analysis-techniques.md` — advanced batch, contextual, and iterative-refinement analysis techniques with CLI examples.
+- `references/extraction-best-practices.md` — capture-quality guidelines and pitfalls for reverse-engineering design systems from references.
+- `references/extraction-output-templates.md` — markdown templates for documenting an extracted design system or competitive analysis.
+- `references/extraction-prompts.md` — prompt templates for extracting design guidelines from screenshots, video, and competitor sets.
+- `references/technical-accessibility.md` — WCAG contrast, alt-text, and text-overlay accessibility techniques for generated assets.
+- `references/technical-best-practices.md` — asset-generation and extraction workflow checklists and quality gates.
+- `references/technical-optimization.md` — model-selection cost/speed strategy and budget guidelines for asset generation.
+- `references/technical-workflows.md` — end-to-end pipeline examples for generating, analyzing, and optimizing assets.
+
 ## Self-Review Gate (mandatory before delivering)
 
 Run this against your output. Each item is pass/fail — fix EVERY failure before presenting. Do not rationalize a failure as a stylistic choice.
