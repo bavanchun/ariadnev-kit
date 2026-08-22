@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { stripCwdEnvAriadnevVars, dotenvKeys, DOTENV_FILES } from "./env-scope.js";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { stripCwdEnvAriadnevVars, dotenvKeys, DOTENV_FILES, cwdDotenvDeclares } from "./env-scope.js";
 
 describe("dotenvKeys", () => {
   it("extracts assigned keys, ignoring comments and blanks", () => {
@@ -71,5 +74,69 @@ describe("stripCwdEnvAriadnevVars", () => {
     expect(DOTENV_FILES).toContain(".env.local");
     expect(DOTENV_FILES).toContain(".env.production");
     expect(DOTENV_FILES).toContain(".env.test.local");
+  });
+});
+
+/**
+ * `scopeProcessEnv()` is a security control: a repository's own dotenv must not
+ * be able to set ariadnev's configuration for a run inside that repository. It
+ * only protects reads that happen after it, and nothing structural puts them
+ * there — a new `process.env.ARIADNEV_*` read in a module that loads at import
+ * time would silently sit on the wrong side of it.
+ */
+describe("no ARIADNEV_* value is trusted before scoping", () => {
+  const srcDir = join(fileURLToPath(new URL(".", import.meta.url)));
+
+  function sourceFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...sourceFiles(full));
+      else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".generated.ts")) {
+        out.push(full);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Reads reachable before scoping. Every entry needs a reason, and the reason
+   * has to be why scoping *cannot* run first — not why the read is convenient.
+   */
+  const ALLOWED_PRE_SCOPE = new Map([
+    [
+      "index.ts:ARIADNEV_RUN",
+      "decides whether scoping runs at all; guarded by cwdDotenvDeclares instead, " +
+        "which answers the same question without mutating a library importer's env",
+    ],
+  ]);
+
+  it("reads ARIADNEV_* only from inside a command action, or from the allowlist", () => {
+    const offenders: string[] = [];
+    for (const file of sourceFiles(srcDir)) {
+      const text = readFileSync(file, "utf8");
+      for (const match of text.matchAll(/process\.env\.(ARIADNEV_[A-Z0-9_]+)/g)) {
+        const key = `${relative(srcDir, file)}:${match[1]}`;
+        // A read inside a `.action(...)` callback or a function the CLI calls
+        // during `parseAsync` is after scoping by construction. The only module
+        // that runs before it is the entry file's own top level.
+        const isEntryModule = relative(srcDir, file) === "index.ts";
+        if (isEntryModule && !ALLOWED_PRE_SCOPE.has(key)) offenders.push(key);
+      }
+    }
+    expect(
+      offenders,
+      "a new ARIADNEV_* read in index.ts runs before scopeProcessEnv() — move it into a command action, or add it to ALLOWED_PRE_SCOPE with a reason",
+    ).toEqual([]);
+  });
+
+  it("does not trust ARIADNEV_RUN when the cwd dotenv names it", () => {
+    const declares = (content: string | null) =>
+      cwdDotenvDeclares("ARIADNEV_RUN", { cwd: "/proj", readEnvFile: (p) => (p === "/proj/.env" ? content : null) });
+    expect(declares("ARIADNEV_RUN=1\n")).toBe(true);
+    expect(declares("export ARIADNEV_RUN=1\n")).toBe(true);
+    expect(declares("# ARIADNEV_RUN=1\n")).toBe(false);
+    expect(declares("OTHER=1\n")).toBe(false);
+    expect(declares(null)).toBe(false);
   });
 });
