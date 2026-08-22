@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Security hardening and signed channel"
-status: todo
+status: in-progress
 priority: P1
 effort: "2-3d"
 dependencies: []
@@ -186,14 +186,41 @@ validate `opts.timestamp` against a strict pattern.
    currently enforced).
 7. **Cut a release.** Phase 4 cannot cut its release until this one is out.
 
+## What implementation found
+
+**The Worker needs no change.** The corrected design added a tenth release
+asset, and whether `ariadnev.com` would serve it was an open assumption — the
+edge lives in a separate repo. Probed against production: `/download/checksums.txt`
+answers 200, `/download/checksums.txt.sig` and an invented name both answer 404
+rather than an allowlist rejection. The proxy is generic, so the signature will
+serve as soon as it exists in a release. No cross-repo deploy step.
+
+**`assertWithinRoots(originalPath, [scopeRoot])` was wrong** and would have
+refused legitimate restores. A project-scope install writes home-scoped provider
+directories, recorded under `abs/`; the scope root excludes them. The guard uses
+`[home, cwd]` — what `install-execute.ts` already allows itself to write. Restore
+may put back only what install could have put there. Proven both directions.
+
+**Ed25519 needed a surface before more runners meant anything.** Running the
+binary on macOS and Windows proves nothing about signature verification unless
+the binary reports the capability, because a runtime without Ed25519 and an
+unset release key both refuse every update. `doctor` now states it with or
+without a receipt, and the smoke gate reads it as a positive signal.
+
+**Two negative tests passed for the wrong reason.** The wrong-key and
+signed-the-tag cases nested the override one level too deep, so the env var held
+a stringified function that the base64 shape check rejected before verification
+ran. Deleting the verification left the suite green — which is how it was found.
+Both have teeth now: removing the check fails exactly those two.
+
 ## Success Criteria
 
-- [ ] `ARIADNEV_BASE_URL=http://evil` against `av update` fails closed in a test —
+- [x] `ARIADNEV_BASE_URL=http://evil` against `av update` fails closed in a test —
       signature verification rejects it. (The installer half is phase 0's criterion.)
-- [ ] `av update` refuses a valid-hash binary whose signature does not verify.
-- [ ] `av update --to <v>` refuses a correctly-signed payload whose embedded
+- [x] `av update` refuses a valid-hash binary whose signature does not verify — including a forged pair that agrees with itself.
+- [x] `av update --to <v>` refuses a correctly-signed payload whose embedded
       version tag does not match the requested version.
-- [ ] `smoke-binary.mjs` proves Ed25519 verification on every target CI can
+- [x] `smoke-binary.mjs` proves Ed25519 verification on every target CI can
       execute. **Open decision, to settle when step 5 is reached:**
       `release-candidate-build.yml` is a single `ubuntu-latest` job and
       `smoke-binary.mjs` runs the host binary only, so "all 5 targets" is not
@@ -202,14 +229,14 @@ validate `opts.timestamp` against a strict pattern.
       or state plainly that the rest ride on a uniform Bun runtime with the
       pure-JS fallback pre-approved. Narrowing it silently is the one option
       that is not available.
-- [ ] `av update --to <pre-signing version>` fails with the "re-run the
+- [x] `av update --to <pre-signing version>` fails with the "re-run the
       installer" message — the signing horizon is tested, not discovered.
-- [ ] `backups restore` refuses an absolute `originalPath` outside the scope
+- [x] `backups restore` refuses an absolute `originalPath` outside the allowed
       root and a `relPath` containing `..`; a malformed manifest is rejected by
       schema, not cast.
-- [ ] No `process.env.ARIADNEV_*` read is reachable before `scopeProcessEnv()`.
+- [x] No `process.env.ARIADNEV_*` read is *trusted* before `scopeProcessEnv()`; the one that decides whether scoping runs at all asks `cwdDotenvDeclares` instead, and a test fails on any new pre-scope read.
 - [ ] The release carrying all of the above is published **before** phase 4's.
-- [ ] `pnpm test` green.
+- [x] `pnpm test` green — 1206.
 
 ## Risk Assessment
 
