@@ -11,6 +11,14 @@ on:
       candidate_artifact_id: { description: Candidate artifact ID, required: true, type: string }
       candidate_artifact_name: { description: Candidate artifact name, required: true, type: string }
       candidate_artifact_digest: { description: Candidate artifact digest, required: true, type: string }
+      # Made locally, with the offline release key, over `<version>\n<checksums.txt bytes>`:
+      #   gh run download <candidate_run_id> -n <candidate_artifact_name> -D c
+      #   { printf '%s\n' "<version>"; cat c/checksums.txt; } \
+      #     | openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key | base64 | tr -d '\n'
+      # This workflow only ever verifies. The key never becomes an Actions secret,
+      # because that would move the trust root from the maintainer to the GitHub
+      # account — the same substitution the signature exists to prevent.
+      checksums_signature: { description: Base64 Ed25519 signature over "<version>\n<checksums.txt>", required: true, type: string }
 
 permissions: {}
 
@@ -52,10 +60,11 @@ jobs:
           CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
           CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
           CANDIDATE_ARTIFACT_DIGEST: ${{ inputs.candidate_artifact_digest }}
+          CHECKSUMS_SIGNATURE: ${{ inputs.checksums_signature }}
         run: |
           node <<'NODE'
           const { spawnSync, execFileSync } = require("node:child_process");
-          const { createHash } = require("node:crypto");
+          const { createHash, createPublicKey, verify: verifySignature } = require("node:crypto");
           const { appendFileSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
           const env = process.env, repo = env.GITHUB_REPOSITORY, releaseId = env.RELEASE_ID;
           const tag = env.RELEASE_TAG, sha = env.SOURCE_SHA, runId = env.CANDIDATE_RUN_ID, attempt = env.CANDIDATE_RUN_ATTEMPT;
@@ -127,8 +136,35 @@ jobs:
           const checksumLines = readFileSync("candidate/checksums.txt", "utf8").trim().split("\n").map((line) => /^([a-f0-9]{64})  ([A-Za-z0-9][A-Za-z0-9._@+-]*)$/.exec(line));
           ok(checksumLines.every(Boolean) && JSON.stringify(checksumLines.map((match) => match[2]).sort()) === JSON.stringify(required.filter((name) => name !== "checksums.txt")), "checksums inventory drift");
           for (const match of checksumLines) ok(assets.find((asset) => asset.name === match[2])?.digest === `sha256:${match[1]}`, `checksum drift: ${match[2]}`);
+          // The release signature. Read the public key out of the source this
+          // release is built from, so the key that verifies here is by
+          // construction the key the shipped binary carries — not a copy that
+          // can drift. `release-workflow.test.mjs` asserts this extraction still
+          // matches the constant, so a refactor breaks CI rather than a release.
+          const signingSource = rawSource("packages/cli/src/cli/update-signature.ts").toString("utf8");
+          const keyMatches = [...signingSource.matchAll(/^export const UPDATE_SIGNING_PUBLIC_KEY = "([A-Za-z0-9+/=]*)";$/gm)];
+          ok(keyMatches.length === 1, "release signing key not found in source (extraction shape changed)");
+          const publicKeyDer = Buffer.from(keyMatches[0][1], "base64");
+          ok(publicKeyDer.length === 44, "release signing key is not a 44-byte Ed25519 SPKI");
+          const publicKey = createPublicKey({ key: publicKeyDer, format: "der", type: "spki" });
+          ok(publicKey.asymmetricKeyType === "ed25519", "release signing key is not Ed25519");
+          // The bare version, not the tag: `parseLatestTag` strips the
+          // `ariadnev@` prefix before the binary verifies, so signing the tag
+          // here would make every update fail verification.
+          const signedBytes = Buffer.concat([Buffer.from(`${attestation.product.version}\n`, "utf8"), readFileSync("candidate/checksums.txt")]);
+          const signatureB64 = String(env.CHECKSUMS_SIGNATURE || "").trim();
+          ok(/^[A-Za-z0-9+/]{86}==$/.test(signatureB64), "checksums signature is not a base64 Ed25519 signature");
+          ok(verifySignature(null, signedBytes, publicKey, Buffer.from(signatureB64, "base64")), "checksums signature did not verify against the release key");
+          writeFileSync("candidate/checksums.txt.sig", `${signatureB64}\n`);
           const downloadAsset = (id) => api(`repos/${repo}/releases/assets/${id}`, { binary: true, accept: "application/octet-stream" });
-          const verifyAssets = (release) => { ok((release.assets || []).length === assets.length, "remote asset count drift"); for (const asset of assets) { const remote = release.assets.find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); } };
+          // `expected` is the candidate inventory plus whatever finalization
+          // itself added. The signature is not in the candidate and never can be
+          // — it is made after the candidate is built, over its checksums — so
+          // it cannot be folded into `required`, which is the candidate's own
+          // closed inventory and is asserted against the attestation and the zip.
+          const signatureAsset = { name: "checksums.txt.sig", size: Buffer.byteLength(`${signatureB64}\n`), digest: digest(Buffer.from(`${signatureB64}\n`)) };
+          const verifyAssetBytes = (release, expected) => { for (const asset of expected) { const remote = (release.assets || []).find((entry) => entry.name === asset.name); ok(remote && remote.size === asset.size && digest(downloadAsset(remote.id)) === asset.digest, `remote asset drift: ${asset.name}`); } };
+          const verifyAssets = (release, expected) => { ok((release.assets || []).length === expected.length, "remote asset count drift"); verifyAssetBytes(release, expected); };
           // Not resolved by tag here: a draft is invisible to
           // /releases/tags/{tag}, which answers 404 until it is published. The
           // tag binding is asserted after the PATCH, where it is both readable
@@ -136,14 +172,28 @@ jobs:
           const release = api(`repos/${repo}/releases/${releaseId}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
           ok(String(release.id) === releaseId && release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha, "held draft drift");
           ok(!latestBefore || String(latestBefore.id) !== releaseId, "held draft is already latest");
-          verifyAssets(release);
+          verifyAssets(release, assets);
+          // Uploaded to the draft, which is still mutable. After publish it is
+          // not: `after.immutable` is asserted below, and that is also why no
+          // past release can ever be given a signature retroactively.
+          ok(!(release.assets || []).some((entry) => entry.name === signatureAsset.name), "draft already carries a signature asset");
+          const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
+          ok(uploadUrl.startsWith("https://uploads.github.com/"), "unexpected release upload host");
+          const upload = runGh([...baseArgs, "--method", "POST", "-H", "Content-Type: application/octet-stream", `${uploadUrl}?name=${signatureAsset.name}`, "--input", "candidate/checksums.txt.sig"]);
+          ok(upload.status === 0, "release signature upload failed");
+          // Only the new asset is re-read. The other nine were just verified byte
+          // for byte and the draft has had no other writer — re-downloading a
+          // ~192MB set to learn that would cost more than it proves.
+          const withSignature = api(`repos/${repo}/releases/${releaseId}`);
+          ok((withSignature.assets || []).length === assets.length + 1, "remote asset count drift after signature upload");
+          verifyAssetBytes(withSignature, [signatureAsset]);
           api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, make_latest: "true" } });
           const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = api(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
           const byTagAfter = api(`repos/${repo}/releases/tags/${tag}`);
           ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && String(byTagAfter.id) === releaseId && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
           ok(!Number.isNaN(Date.parse(after.updated_at)), "published release timestamp drift");
-          verifyAssets(after);
-          const finalization = { schemaVersion: 1, schema: "https://ariadnev.com/schemas/finalization-attestation.schema.json", runId: env.FINALIZATION_RUN_ID, runAttempt: env.FINALIZATION_RUN_ATTEMPT, repository: repo, releaseId, tag, sourceSha: sha, candidateEnvelopeDigest: digest(Buffer.from(JSON.stringify(envelope))), finalizerWorkflowDigest, releaseAssetSetDigest: digest(Buffer.from(JSON.stringify(assets))), verifiedReleaseUpdatedAt: after.updated_at };
+          verifyAssets(after, [...assets, signatureAsset]);
+          const finalization = { schemaVersion: 1, schema: "https://ariadnev.com/schemas/finalization-attestation.schema.json", runId: env.FINALIZATION_RUN_ID, runAttempt: env.FINALIZATION_RUN_ATTEMPT, repository: repo, releaseId, tag, sourceSha: sha, candidateEnvelopeDigest: digest(Buffer.from(JSON.stringify(envelope))), finalizerWorkflowDigest, releaseAssetSetDigest: digest(Buffer.from(JSON.stringify([...assets, signatureAsset]))), verifiedReleaseUpdatedAt: after.updated_at };
           const finalizationJson = JSON.stringify(finalization);
           appendFileSync(env["GITHUB_OUTPUT"], `finalization_attestation=${finalizationJson}\n`);
           if (env["GITHUB_STEP_SUMMARY"]) appendFileSync(env["GITHUB_STEP_SUMMARY"], `Finalized immutable release ${tag} from candidate artifact ${artifactId}.\n\nFinalization attestation: \`${finalizationJson}\`\n`);

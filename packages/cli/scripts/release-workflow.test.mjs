@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createPublicKey } from "node:crypto";
 import { extractRun, listRunBlocks, listUses, loadJobs, loadWorkflow, readWorkflow } from "./release-test-helpers.mjs";
 
 const release = "release.yml";
@@ -63,6 +65,7 @@ test("workflow permissions and dispatch inputs are literal and minimal", () => {
     "candidate_artifact_id",
     "candidate_artifact_name",
     "candidate_artifact_digest",
+    "checksums_signature",
   ]);
 });
 
@@ -155,4 +158,44 @@ test("privileged steps authenticate only through env and bind durable handoff ev
   assert.match(finalizerStep.run, /finalization_attestation=/);
   for (const file of [publish, finalize]) assert.match(extractRun(file, file === publish ? "Publish held draft from exact candidate" : "Finalize held draft release"), /sizes\.length === listing\.length/);
   assert.equal(loadWorkflow(publish).on.workflow_call.outputs.candidate_envelope.value, "${{ jobs.publish.outputs.candidate_envelope }}");
+});
+
+
+/**
+ * Finalization reads the release-signing public key out of the source the
+ * release is built from, so the key that gates publishing is by construction the
+ * key the shipped binary carries. That coupling is a regex against a source
+ * file, which a harmless-looking refactor can silently break — and it would
+ * break at release time, in a privileged workflow, with a candidate already
+ * built. Asserting the extraction here moves that failure into CI.
+ */
+test("finalize can still extract the signing key from the source it verifies against", () => {
+  const workflow = readWorkflow(finalize);
+  // The character class holds a `/`, so the terminator is what bounds this.
+  const extractor = /matchAll\(\/(.+?)\/gm\)\]/.exec(workflow);
+  assert.ok(extractor, "finalize no longer extracts the signing key by regex");
+  assert.match(extractor[1], /UPDATE_SIGNING_PUBLIC_KEY/);
+
+  const source = readFileSync(new URL("../src/cli/update-signature.ts", import.meta.url), "utf8");
+  // Rebuild the workflow's own pattern and run it against the real source.
+  const matches = [...source.matchAll(new RegExp(extractor[1], "gm"))];
+  assert.equal(matches.length, 1, "the signing-key constant no longer matches finalize's extractor");
+
+  const der = Buffer.from(matches[0][1], "base64");
+  assert.equal(der.length, 44, "signing key is not a 44-byte Ed25519 SPKI");
+  assert.equal(createPublicKey({ key: der, format: "der", type: "spki" }).asymmetricKeyType, "ed25519");
+});
+
+// The signature is made after the candidate is built, so it cannot be part of
+// the candidate's closed inventory — but it must still be an asset the
+// published release is asserted to carry.
+test("finalize verifies the signature and publishes it as an asset", () => {
+  const workflow = readWorkflow(finalize);
+  assert.match(workflow, /checksums signature did not verify against the release key/);
+  assert.match(workflow, /release signature upload failed/);
+  assert.match(workflow, /verifyAssets\(after, \[\.\.\.assets, signatureAsset\]\)/);
+  // Signed over the bare version. parseLatestTag strips the `ariadnev@` prefix
+  // before the binary verifies, so signing the tag would fail every update.
+  assert.match(workflow, /attestation\.product\.version.*checksums\.txt/s);
+  assert.doesNotMatch(workflow, /ARIADNEV_RELEASE_KEY|secrets\.[A-Z_]*SIGN/);
 });

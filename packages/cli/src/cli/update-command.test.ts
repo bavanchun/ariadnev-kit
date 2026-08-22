@@ -9,9 +9,11 @@ import {
   parseLatestTag,
   assetNameFor,
   expectedSha,
+  updateBaseUrl,
   type UpdateDeps,
   type UpdateHandlerOpts,
 } from "./update-command.js";
+import { verifyChecksums } from "./update-signature.js";
 import { isValidVersion } from "./update-version.js";
 
 describe("isValidVersion", () => {
@@ -381,5 +383,75 @@ describe("runUpdate: release signature", () => {
     const res = await runUpdate(opts(), d);
     expect(res.summary).toContain("updated 0.5.0 -> 0.6.0");
     expect(d.replaced).toHaveLength(1);
+  });
+});
+
+/**
+ * The override the plan's red team killed in its first design, now safe.
+ *
+ * It was RCE: binary, checksums and /version all came from one origin, so
+ * redirecting that origin made the fail-closed checksum compare an attacker's
+ * binary against the attacker's own checksums. What changed is that the
+ * signature is verified against a key compiled into the binary — an origin that
+ * cannot produce the maintainer's signature installs nothing, whatever it
+ * serves. That is the property these assert.
+ */
+describe("updateBaseUrl", () => {
+  it("defaults to the real domain", () => {
+    expect(updateBaseUrl({})).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "   " })).toBe("https://ariadnev.com");
+  });
+
+  it("accepts an https override and drops trailing slashes", () => {
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example///" })).toBe("https://mirror.example");
+  });
+
+  // The signature makes tampering detectable, not private. There is no reason
+  // to hand an observer the list of what a machine is installing.
+  for (const hostile of ["http://evil", "file:///etc", "ftp://x", "not a url", "javascript:alert(1)"]) {
+    it(`ignores ${JSON.stringify(hostile)} and stays on the real domain`, () => {
+      expect(updateBaseUrl({ ARIADNEV_BASE_URL: hostile })).toBe("https://ariadnev.com");
+    });
+  }
+});
+
+describe("runUpdate: a redirected origin still cannot install", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "ariadnev-update-base-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  it("refuses a hostile mirror that serves a self-consistent binary and checksums", async () => {
+    const trojan = new Uint8Array([6, 6, 6]);
+    const replaced: unknown[] = [];
+    const res = await runUpdate(
+      {
+        home: sandbox, cwd: root, scope: "project", currentVersion: "0.5.0",
+        execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+        to: null, platform: "darwin", arch: "arm64",
+      },
+      {
+        fetchLatestVersion: async () => "9.9.9",
+        fetchPinnedVersion: async () => null,
+        downloadBinary: async () => trojan,
+        downloadText: async (url: string) =>
+          url.includes("checksums.txt.sig")
+            ? "a-signature-the-attacker-made"
+            : `${createHash("sha256").update(trojan).digest("hex")}  ariadnev-darwin-arm64\n`,
+        replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+        // The real verifier with the real compiled-in key: nothing an attacker
+        // serves can satisfy it.
+        verifyRelease: (tag, checksums, signature) => verifyChecksums({ tag, checksums, signature }),
+      },
+    );
+    expect(res.summary).toContain("signature did not verify");
+    expect(replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
   });
 });
