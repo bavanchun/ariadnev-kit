@@ -92,7 +92,18 @@ export function backupPath(target: string, backupRoot: string, label: string, sc
   if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
   cpSync(target, dest, { recursive: true });
 
-  const manifest = readBackupManifest(backupRoot).filter((e) => e.relPath !== relPath);
+  // A writer, so it reads defensively. `readBackupManifest` throws on a corrupt
+  // manifest, which is right for restore — but this runs during install,
+  // uninstall and `doctor --fix`, and aborting one of those because a previous
+  // manifest was truncated would turn a cosmetic problem into a failed install.
+  // The bad file is replaced by the write below either way.
+  let existing: BackupManifestEntry[] = [];
+  try {
+    existing = readBackupManifest(backupRoot);
+  } catch {
+    existing = [];
+  }
+  const manifest = existing.filter((e) => e.relPath !== relPath);
   manifest.push({ originalPath: resolve(target), relPath, label });
   writeFileSync(manifestPath(backupRoot), `${JSON.stringify(manifest, null, 2)}\n`);
 }
