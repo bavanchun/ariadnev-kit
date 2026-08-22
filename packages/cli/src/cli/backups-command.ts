@@ -2,6 +2,7 @@ import { existsSync, cpSync } from "node:fs";
 import { join, basename } from "node:path";
 import { readBackupManifest, backupPath, backupDirNames, BACKUP_DIR_NAME } from "../install/backup.js";
 import { assertWithinRoots } from "../install/path-guard.js";
+import { assertInstallSurfacePath } from "../install/install-surface.js";
 
 export interface BackupsListOpts {
   home: string;
@@ -79,18 +80,26 @@ export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResul
     ? manifest.filter((e) => basename(e.originalPath) === basename(opts.file!) || e.originalPath.endsWith(opts.file!))
     : manifest;
 
-  // The roots install itself was allowed to write, and for the same reason:
-  // restore may only put back what install could have put there. NOT the scope
-  // root alone — a project-scope install legitimately writes home-scoped
-  // provider directories, which `backupRelPath` records under `abs/`, and
-  // guarding on the scope root would refuse to restore them.
+  // Both roots, not the scope root alone — a project-scope install legitimately
+  // writes home-scoped provider directories, which `backupRelPath` records under
+  // `abs/`, and guarding on the scope root would refuse to restore them.
   const allowedRoots = [opts.home, opts.cwd];
+
+  // Validated as a set, before anything is written. Throwing from inside the
+  // copy loop would leave some entries restored, some not, and no summary saying
+  // which — a half-applied restore is worse than a refused one.
+  //
+  // `assertWithinRoots` alone is not enough here, and that distinction is the
+  // whole point: it answers "may install write here", and the answer for
+  // `~/.ssh/authorized_keys` is yes. The manifest is untrusted, so the question
+  // has to be "does ariadnev install *this path*".
+  for (const entry of targets) {
+    assertWithinRoots(entry.originalPath, allowedRoots);
+    assertInstallSurfacePath(entry.originalPath, allowedRoots);
+  }
 
   const restored: string[] = [];
   for (const entry of targets) {
-    // Before the dry-run check: a dry run that reports a restore the real run
-    // would refuse is worse than no dry run.
-    assertWithinRoots(entry.originalPath, allowedRoots);
     restored.push(entry.originalPath);
     if (opts.dryRun) continue;
     // Protect current state before overwriting it, same discipline as install/uninstall.

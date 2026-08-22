@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { backupPath } from "../install/backup.js";
@@ -58,8 +58,13 @@ describe("runBackupsRestore", () => {
 
   it("restores only the file matching --file when given", () => {
     const backupRoot = join(root, ".ariadnev", "backups", "20260601-000000");
-    const a = join(root, "a.json");
-    const b = join(root, "b.json");
+    // Real install destinations. The fixture used to back up `a.json` and
+    // `b.json` at the project root — paths install never writes — which meant
+    // it kept passing after restore started refusing exactly that.
+    const a = join(root, ".claude", "settings.json");
+    const b = join(root, ".codex", "config.toml");
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    mkdirSync(join(root, ".codex"), { recursive: true });
     writeFileSync(a, "orig-a");
     writeFileSync(b, "orig-b");
     backupPath(a, backupRoot, "settings", root);
@@ -67,7 +72,7 @@ describe("runBackupsRestore", () => {
     writeFileSync(a, "changed-a");
     writeFileSync(b, "changed-b");
 
-    runBackupsRestore({ home: sandbox, cwd: root, scope: "project", timestamp: "20260601-000000", dryRun: false, file: "a.json", preRestoreTimestamp: "20260603-000000" });
+    runBackupsRestore({ home: sandbox, cwd: root, scope: "project", timestamp: "20260601-000000", dryRun: false, file: "settings.json", preRestoreTimestamp: "20260603-000000" });
 
     expect(readFileSync(a, "utf8")).toBe("orig-a");
     expect(readFileSync(b, "utf8")).toBe("changed-b"); // untouched
@@ -123,6 +128,45 @@ describe("runBackupsRestore: the manifest is untrusted input", () => {
       dryRun,
       preRestoreTimestamp: "20260603-000000",
     });
+
+  /**
+   * The cases that matter most, and the ones the first version of this fix
+   * missed entirely: every path here is *inside* `[home, cwd]`. Guarding on the
+   * roots alone accepted all of them, because install is allowed to write in
+   * those roots — it just never writes these paths. Two are arbitrary code
+   * execution from cloning a repository and running one command.
+   */
+  for (const [label, segments] of [
+    ["a git hook in the clone", [".git", "hooks", "pre-commit"]],
+    ["a shell profile", [".zshrc"]],
+    ["ssh authorized_keys", [".ssh", "authorized_keys"]],
+    ["the project's own source", ["src", "index.ts"]],
+  ] as const) {
+    it(`refuses ${label}, which is inside the allowed roots`, () => {
+      const target = join(segments[0] === ".git" || segments[0] === "src" ? root : sandbox, ...segments);
+      plantManifest("20260801-000000", [{ originalPath: target, relPath: "scope/a.json", label: "settings" }]);
+      expect(() => restore("20260801-000000")).toThrow(/does not install/i);
+      expect(existsSync(target)).toBe(false);
+    });
+  }
+
+  it("refuses the dangerous entry before restoring the harmless one beside it", () => {
+    const safe = join(root, ".claude", "settings.json");
+    const evil = join(sandbox, ".zshrc");
+    const dir = join(root, ".ariadnev", "backups", "20260802-000000");
+    mkdirSync(join(dir, "scope"), { recursive: true });
+    writeFileSync(join(dir, "scope", "a"), "restored\n");
+    writeFileSync(join(dir, "scope", "b"), "evil\n");
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify([
+      { originalPath: safe, relPath: "scope/a", label: "settings" },
+      { originalPath: evil, relPath: "scope/b", label: "settings" },
+    ]));
+    expect(() => restore("20260802-000000")).toThrow(/does not install/i);
+    // Validated as a set before the first write: a half-applied restore leaves
+    // the user with no summary saying which half.
+    expect(existsSync(safe)).toBe(false);
+    expect(existsSync(evil)).toBe(false);
+  });
 
   it("refuses an originalPath outside the roots install could write", () => {
     const outside = join(sandbox, "..", "escaped.txt");
