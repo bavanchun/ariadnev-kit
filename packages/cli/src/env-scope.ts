@@ -58,17 +58,39 @@ export function stripCwdEnvAriadnevVars(deps: EnvScopeDeps): string[] {
   return [...stripped];
 }
 
+/**
+ * True when any cwd dotenv file names `key` — i.e. its value in `process.env`
+ * is one `scopeProcessEnv()` would strip.
+ *
+ * For the one read that has to happen *before* scoping. `isEntry()` consults
+ * `ARIADNEV_RUN` to decide whether this module takes over the process, and that
+ * decision is made at import time, so it cannot call `scopeProcessEnv()` first:
+ * doing so would mutate the environment of every test and tool that imports
+ * `buildProgram` as a library. Asking the question without mutating anything
+ * gets the same protection with none of the side effect.
+ */
+export function cwdDotenvDeclares(key: string, deps?: Pick<EnvScopeDeps, "cwd" | "readEnvFile">): boolean {
+  const cwd = deps?.cwd ?? process.cwd();
+  const read = deps?.readEnvFile ?? readEnvFileOrNull;
+  return DOTENV_FILES.some((file) => {
+    const content = read(join(cwd, file));
+    return content !== null && dotenvKeys(content).includes(key);
+  });
+}
+
+function readEnvFileOrNull(path: string): string | null {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 /** Real invocation: strip against process.cwd()'s dotenv files and process.env. */
 export function scopeProcessEnv(): string[] {
   return stripCwdEnvAriadnevVars({
     cwd: process.cwd(),
     env: process.env,
-    readEnvFile: (p) => {
-      try {
-        return readFileSync(p, "utf8");
-      } catch {
-        return null;
-      }
-    },
+    readEnvFile: readEnvFileOrNull,
   });
 }
