@@ -59,8 +59,29 @@ function readReferenceFiles(skillDir: string): ReferenceFile[] {
     }));
 }
 
+/**
+ * Skills still held to the old lint severity, from `kit/skills-lint-exempt.json`.
+ *
+ * Read here rather than in `skill-lint.ts` because this module has the kit root
+ * and that one is pure by contract. A missing or malformed file exempts nobody:
+ * the strict reading is the safe one, and a silently-empty allowlist surfaces
+ * immediately as lint errors rather than as a quiet loss of coverage.
+ */
+export function exemptSkillNames(kitRoot: string): Set<string> {
+  try {
+    const parsed = JSON.parse(readFileSync(join(kitRoot, "skills-lint-exempt.json"), "utf8")) as {
+      exempt?: unknown;
+    };
+    if (!Array.isArray(parsed.exempt)) return new Set();
+    return new Set(parsed.exempt.filter((name): name is string => typeof name === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
 function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
   const skillsDir = join(kitRoot, "skills");
+  const exemptNames = exemptSkillNames(kitRoot);
   if (!existsSync(skillsDir)) return [];
   const out: Artifact[] = [];
   const seen = new Set<string>();
@@ -71,7 +92,7 @@ function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
     if (!statSync(dir).isDirectory() || !existsSync(skillMd)) continue;
     const artifact = readArtifact("skill", entry, skillMd);
     validateSkill(artifact);
-    const lint = lintSkill(artifact, readReferenceFiles(dir));
+    const lint = lintSkill(artifact, readReferenceFiles(dir), exemptNames);
     if (lint.errors.length > 0) {
       throw new KitValidationError(lint.errors.join("\n"));
     }

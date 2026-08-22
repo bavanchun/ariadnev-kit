@@ -157,7 +157,7 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("rejects a reference file over 300 lines", () => {
+  it("rejects a reference file over the 800-line budget", () => {
     const root = tmpKit();
     writeSkillFile(
       root,
@@ -167,9 +167,28 @@ describe("loadKit skill lint gates (negative fixtures)", () => {
     mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
     writeFileSync(
       join(root, "skills", "foo", "references", "big.md"),
-      Array.from({ length: 301 }, () => "x").join("\n"),
+      Array.from({ length: 801 }, () => "x").join("\n"),
     );
     expect(() => loadKit(root)).toThrow(/big\.md/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("accepts a reference file that only the old 300-line budget rejected", () => {
+    // The budget moved 300 → 800 on measured evidence: 83 of 463 linted
+    // reference files exceed 300 and only 6 exceed 800. Pins the new floor so
+    // the raise cannot be quietly undone.
+    const root = tmpKit();
+    writeSkillFile(
+      root,
+      "foo",
+      `---\nname: av:foo\ndescription: ${okDescription}\n---\n# foo\n${REQUIRED_SKILL_SECTIONS}`,
+    );
+    mkdirSync(join(root, "skills", "foo", "references"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "foo", "references", "big.md"),
+      `# Big\n\nSee references/big.md.\n${Array.from({ length: 400 }, () => "x").join("\n")}`,
+    );
+    expect(() => loadKit(root)).not.toThrow();
     rmSync(root, { recursive: true, force: true });
   });
 

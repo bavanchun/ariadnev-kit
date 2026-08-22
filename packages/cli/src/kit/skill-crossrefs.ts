@@ -8,7 +8,9 @@ export interface UnresolvedSkillReference {
   reference: string;
 }
 
-const SKILL_REFERENCE = /(?<![A-Za-z0-9_-])av:([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![A-Za-z0-9_-])/g;
+/** Exported so the lint rules can ask "does this prose name another skill?"
+ *  without a second, drifting copy of the pattern. */
+export const SKILL_REFERENCE = /(?<![A-Za-z0-9_-])av:([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![A-Za-z0-9_-])/g;
 
 /** Resolve av-prefixed references after the caller has loaded the full kit. */
 export function findUnresolvedSkillReferences(
