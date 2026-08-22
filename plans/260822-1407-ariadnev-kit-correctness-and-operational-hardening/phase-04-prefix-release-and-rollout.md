@@ -1,0 +1,136 @@
+---
+phase: 4
+title: "Prefix release and rollout"
+status: todo
+priority: P1
+effort: "1-2d"
+dependencies: [3]
+---
+
+# Phase 4: Prefix release and rollout
+
+## Overview
+
+Cut the release carrying the prefix change and heal the live installs. Separate
+from phase 3 on purpose: **this is the point of no return.** Before live heal,
+reverting is a clean code revert.
+
+## Entry condition
+
+**Phase 5's release must already be published.** Not merged — *published*. Phase
+4's rollback recipe is `av update --to <prev>`, and once signature verification
+ships, the binary demands a `.sig` on the previous release's `checksums.txt`. If
+phase 5 lands between phase 4's release and its rollback, `--to <prev>` finds no
+signature and aborts — discovering that mid-rollout of the declared point of no
+return. Sequencing avoids it; retro-signing prior releases is the fallback.
+
+## Requirements
+
+**Functional**
+- One released binary that both writes prefixed dirs and heals unprefixed ones.
+- `av doctor` reports leftover unprefixed skill dirs — keyed on the receipt.
+- Every install on the maintainer's machines healed and verified.
+- A rollback recipe that has been **executed**, not merely written.
+
+**Non-functional**
+- The binary that writes the new layout and the one that heals the old must be
+  the same binary. They cannot ship in different releases.
+
+## Architecture
+
+### The doctor check cannot be built where the draft put it
+
+`diagnose()` is pure over an injected 3-method dep interface — `fileExists`,
+`readSettingsJson`, `hookExecutable` (`diagnose.ts:22-28`). It has no
+directory-listing capability, no resolver access, and returns `[]` outright when
+there is no receipt (`:57`). The check needs a fourth dep and provider/scope
+resolution, so `doctor-command.ts` (where deps are constructed, `:50-52`) and
+`diagnose.test.ts` join the file list.
+
+**Key it on the prior receipt, not on `SKILL.md` presence.** The draft's filter
+was "(c) matches a canonical kit skill name" plus a `SKILL.md` — both fail:
+`excalidraw`, `graphify` and `obsidian-second-brain-note` are simultaneously kit
+skill names and third-party directories, so the name filter reports someone
+else's skill as ariadnev's orphan; and `SKILL.md` is precisely the file heal
+deletes, so a husk is invisible to it.
+
+### The README matrix does **not** change
+
+The draft claimed "provider matrix rows now show prefixed skill paths". False,
+and it contradicts phase 3's Success Criterion 1: the matrix renders
+`dir(mk("skill",""))`, the bare root, which the empty-name guard preserves.
+Editing it would put `checkMatrixDrift` at odds with `targetTemplate` and turn
+`av validate --check` red on `main`. Delete the claim.
+
+### Rollback is not "reinstall with the old binary"
+
+Traced: the old binary's resolver writes unprefixed paths, `buildReceipt`
+replaces each provider record wholesale, and the old binary has no heal — so the
+`av-*` tree becomes unowned. That is phase 3's failure mode run backwards, and
+the original content is gone because heal already replaced it.
+
+The real recipe: `av update --to <prev>`, then **restore from the heal backup**
+that phase 3 requirement 1 creates, then reinstall. That backup is what makes
+rollback possible at all, which is why it is a phase 3 merge blocker.
+
+## Related Code Files
+
+- Modify: `packages/cli/src/doctor/diagnose.ts` (+ a `listDir` dep)
+- Modify: `packages/cli/src/cli/doctor-command.ts` (construct the new dep)
+- Modify: `packages/cli/src/doctor/diagnose.test.ts` (dep shape)
+- Create: `.changeset/*.md` (minor — install layout is user-visible)
+- Modify: `README.md` (heal behavior + rollback recipe; **not** the matrix rows)
+- Modify: `docs/migration-from-the-old-name.md` or a new release note
+
+## Implementation Steps
+
+1. Add the doctor legacy-dir check, keyed on prior-receipt paths, with tests.
+   It must ship in the release that can create the condition.
+2. Update `README.md` with heal behavior and the rollback recipe. Run
+   `av validate --check` — it gates matrix drift, so a wrong edit fails CI.
+3. Write the changeset naming **both** the resolver change and the heal.
+4. Cut the release. Verify 5 binaries + `checksums.txt`; `smoke-binary.mjs` green.
+5. Inventory the roots that exist before touching anything. Note: `~/.ariadnev/`
+   currently holds only `history.jsonl` and there are zero `av-*` dirs, so there
+   may be **no global install at all** — confirm before assuming one needs heal.
+   **Decide the ak-coexistence question here.** After this phase the shared roots
+   hold 101 `ak-*` skills *and* ~105 `av-*` skills — two forks of substantially
+   the same corpus, with near-duplicate descriptions, both visible to every
+   provider reading that root. `description-collision.ts` only scores ariadnev's
+   own kit, so the cross-product collisions are invisible to it while being
+   exactly the routing degradation it exists to prevent, at double scale. Either
+   retire the `ak-*` install from the shared roots, or record acceptance of the
+   doubled catalogue. Do not leave it undecided.
+6. Heal each root by running `av install`. Then `av doctor`. Zero legacy findings
+   is the gate.
+7. Invoke one skill per provider post-heal. A file listing is not proof.
+8. **Execute the rollback recipe** on a sandbox install and confirm it returns a
+   working state. Writing it down is not enough.
+
+## Success Criteria
+
+- [ ] `av doctor` reports unprefixed dirs recorded in a prior receipt, and does
+      **not** report third-party skills sharing the root — proven against a
+      fixture containing `excalidraw` as a third-party dir.
+- [ ] The README provider matrix is unchanged and `av validate --check` is green.
+- [ ] Release published with 5 binaries + checksums; smoke test passed.
+- [ ] Root inventory recorded before heal; every one healed; `av doctor` clean.
+- [ ] One skill invoked successfully per provider post-heal.
+- [ ] The rollback recipe executed end-to-end on a sandbox, returning a working
+      install.
+- [ ] `ariadnev.com/version` serves the new version.
+
+## Risk Assessment
+
+**A root nobody remembered.** *Signal:* a stale project loads duplicate skills.
+*Pre-decided response:* heal repairs it the next time `av install` runs there,
+and the doctor check reports it if the user looks. This is why heal is a phase 3
+merge blocker rather than a phase 4 nice-to-have.
+
+**Shipping the resolver and the heal in different releases.** Catastrophic, and
+easy if phase 3 splits across PRs. *Signal:* a changeset mentioning one and not
+the other. *Response:* step 3 names both.
+
+**Rollback that does not roll back.** The draft's recipe manufactured a
+mirror-image orphan set with no recoverable content. *Response:* step 8 executes
+it. An unexecuted rollback recipe is a guess.
