@@ -163,9 +163,9 @@ proof/risk quality remain authoring contracts reviewers check by reading.
    "recommendation names its trade-off"). This is what makes output trustworthy
    without a human re-checking it.
 5. **Proof / risk wiring when relevant.** A skill that changes code or asserts
-   correctness states which proof layer (`unit`/`integration`/`e2e`/`platform`,
-   see `cook/references/risk-lanes.md`) its output belongs to, and classifies
-   work by risk lane where that gates behavior. Analysis-only skills write
+   correctness states which proof layer its output belongs to —
+   `unit`/`integration`/`e2e`/`platform` — and says how far up that ladder the
+   change's risk requires it to go. Analysis-only skills write
    `Proof/risk: N/A — <reason>` so the omission is deliberate, not forgotten.
 6. **Tight body, references for depth.** SKILL.md carries the common-case
    workflow; a section covering an independent sub-topic (a technique catalogue,

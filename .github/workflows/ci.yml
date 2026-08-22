@@ -78,12 +78,16 @@ jobs:
         # deploy/references/platforms — ship to users and run at runtime while
         # being invisible to every check above. They hold no cross-skill links
         # today; grep is what keeps it that way.
+        # -o so each PATH is filtered, not each line. Filtering whole lines lets
+        # a good link on the same line hide a bad one:
+        #   see [a](../av-cook/references/x.md) and [b](../plan/references/y.md)
+        # would pass a line-level `grep -v`.
         run: |
-          if grep -rn 'kits/core/skills/' kit/; then
-            echo "::error::stale pre-rename skills root — write ../av-<slug>/… instead"
+          if grep -rnI 'kits/core/' kit/; then
+            echo "::error::stale pre-rename root — the tree is kit/, with hooks under kit/hooks/_lib/"
             exit 1
           fi
-          if grep -rnE '(\.\./)+[a-z][a-z0-9-]*/references/' kit/ | grep -v '\.\./av-'; then
+          if grep -rIoE '(\.\./)+[a-z][a-z0-9-]*/references/' kit/ | grep -vE ':(\.\./)+av-'; then
             echo "::error::cross-skill link missing the av- prefix"
             exit 1
           fi

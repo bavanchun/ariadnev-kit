@@ -4,7 +4,7 @@ import { buildSkillIndex, checkCrossSkillReferences } from "./cross-skill-refere
 /** Two skills, each with a SKILL.md and one reference file. */
 const index = buildSkillIndex([
   { name: "cook", files: ["SKILL.md", "references/workflow-routing.md"] },
-  { name: "plan", files: ["SKILL.md", "references/phases.md", "scripts/render.mjs"] },
+  { name: "plan", files: ["SKILL.md", "references/phases.md", "scripts/render.mjs", "scripts/lib/parse.cjs"] },
 ]);
 
 const at = (source: string, content: string) => [{ source, content }];
@@ -141,6 +141,41 @@ describe("checkCrossSkillReferences", () => {
     );
     expect(found).toHaveLength(1);
     expect(found[0]!.reason).toBe("bad-shape");
+  });
+
+  it("does not swallow the full stop that ends a sentence", () => {
+    // references/x.md is anchored by its extension; a script target is not, so
+    // an unanchored pattern reports a file ending in a dot and fails CI on
+    // ordinary prose.
+    const found = checkCrossSkillReferences(
+      at("cook/SKILL.md", "run `../av-plan/scripts/render.mjs`."),
+      index,
+      [],
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("resolves a script nested below scripts/", () => {
+    // plans-kanban/scripts/lib, design/scripts/logo and others are real. The
+    // pattern allows them, so the index has to as well.
+    const found = checkCrossSkillReferences(
+      at("cook/SKILL.md", "see `../av-plan/scripts/lib/parse.cjs`"),
+      index,
+      [],
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("treats an unprefixed link to a nonexistent skill as missing, not merely misshapen", () => {
+    // Shape and existence are independent rules; a typo must not hide behind
+    // the warn-level shape finding.
+    const found = checkCrossSkillReferences(
+      at("cook/SKILL.md", "see `../nosuchskill/references/x.md`"),
+      index,
+      [],
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0]!.reason).toBe("unknown-skill");
   });
 
   it("reports each distinct path once per source", () => {

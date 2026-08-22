@@ -34,16 +34,22 @@ export function pendingPortNames(kitRoot: string): string[] {
 
 /** The files a sibling skill may legitimately be pointed at: its SKILL.md, its
  *  references, and its scripts. Names only — the cross-skill checker compares
- *  paths, and reading 105 skills' file contents for that would be waste. */
+ *  paths, and reading 105 skills' file contents for that would be waste.
+ *
+ *  Recursive, because real skills nest their scripts — `plans-kanban/scripts/lib`,
+ *  `design/scripts/logo`, `watzup/scripts/lib`. A flat listing here would make
+ *  the checker report a link to a file that is sitting right there. */
 function skillFileNames(skillDir: string): string[] {
   const names = ["SKILL.md"];
-  for (const sub of ["references", "scripts"]) {
-    const dir = join(skillDir, sub);
-    if (!existsSync(dir)) continue;
+  const walk = (dir: string, prefix: string): void => {
+    if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isFile()) names.push(`${sub}/${entry.name}`);
+      const rel = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) walk(join(dir, entry.name), rel);
+      else names.push(rel);
     }
-  }
+  };
+  for (const sub of ["references", "scripts"]) walk(join(skillDir, sub), sub);
   return names;
 }
 
@@ -163,8 +169,8 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // would make `validate` red for the whole port — which trains everyone to
   // ignore it. A name on neither list is still an error, so a genuine typo or a
   // reference to something that exists nowhere is caught exactly as before.
-  const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingPortNames(kit.root)];
   const pendingNames = pendingPortNames(kit.root);
+  const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingNames];
 
   // Built from every skill, in its own pass, deliberately. `skillsToCheck` is
   // filtered by --skill (and `av eval --skill <name>` passes that filter), so an

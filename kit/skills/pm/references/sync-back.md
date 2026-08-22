@@ -17,8 +17,8 @@ For each phase, derive status from its Success Criteria checkboxes:
   path, commit hash). Add the evidence inline when it is not obvious:
   `- [x] installer skips unverified providers (install.test.ts)`.
 - Prefer labeling evidence by proof layer when it clarifies coverage —
-  `unit`/`integration`/`e2e`/`platform`. A criterion missing every proof layer
-  for its risk level is `in-progress`, not `completed`, even if the code is
+  `unit`/`integration`/`e2e`/`platform`. A criterion whose risk warrants a proof
+  layer and carries none is `in-progress`, not `completed`, even if the code is
   written.
 - Un-tick criteria that no longer hold (regressions, reverts) and note why.
 

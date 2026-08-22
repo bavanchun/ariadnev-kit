@@ -9,6 +9,31 @@ dependencies: [1]
 
 # Phase 3: Installer av- prefix and heal
 
+## Debt phase 1 handed you
+
+Phase 1 rewrote the corpus to `(../)+av-<slug>/…` and gated new content on that
+shape. Nothing produces that layout yet: `resolver.ts:239` returns
+`join(base, cfg.skillDir, artifact.name)` with a bare slug, and `adaptText` does
+not rewrite these paths. Measured against a real `install --provider claude-code`:
+**0 of 105 installed skill dirs carry the prefix, and 0 of 28 prefixed links
+resolve.**
+
+Two of those links resolved before phase 1 — `find-skills/references/domain-routing.md`
+and `preview/references/visual-explanation-routing.md` were unprefixed and
+correct against today's layout. Converting them was required, because phase 3
+would otherwise break them, but it means phase 1 nets **−2 working links** and
+the balance is not paid until this phase lands.
+
+The release cut in phase 5 happens **before** this one in the execution order. It
+will ship a kit whose cross-skill links are uniformly unresolvable — 30 broken
+rather than the 28 that were broken before phase 1. Marginal, and deliberate, but
+do not describe that release as having fixed link integrity.
+
+`av validate` says `all checks passed` throughout, by design: the shape rule
+warns on the form that works today and passes the form that does not. That is the
+staging the severity table chose, and it is only honest while this phase is
+actually scheduled.
+
 ## Overview
 
 Make the installer write `av-`-prefixed skill directories, so the 15 prefixed
