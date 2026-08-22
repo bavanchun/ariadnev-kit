@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
+import { createPublicKey, generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { verifyChecksums, signedMessage, UPDATE_SIGNING_PUBLIC_KEY } from "./update-signature.js";
 
 /** A throwaway release key. The real one never appears in the repo. */
@@ -93,12 +93,26 @@ describe("verifyChecksums", () => {
     expect(verifyChecksums({ tag: "1.4.0", checksums: CHECKSUMS, signature, publicKey })).toBe(false);
   });
 
-  // The state this ships in. Until the release key exists, every download is
-  // unverifiable, and unverifiable must read as "no" rather than "sure".
-  it("fails closed while the compiled-in key is unset", () => {
+  // The compiled-in key is the trust root for every installed binary. These
+  // assert what it is, not merely that it works: a well-formed key of the wrong
+  // algorithm, or a silently emptied constant, would both leave verification
+  // "passing" its other tests while protecting nothing.
+  it("ships a real Ed25519 key compiled in", () => {
+    expect(UPDATE_SIGNING_PUBLIC_KEY).not.toBe("");
+    const key = createPublicKey({
+      key: Buffer.from(UPDATE_SIGNING_PUBLIC_KEY, "base64"),
+      format: "der",
+      type: "spki",
+    });
+    expect(key.asymmetricKeyType).toBe("ed25519");
+    // Exact bytes, so a re-keying is a deliberate edit to a stated value rather
+    // than a diff someone skims past.
+    expect(key.export({ type: "spki", format: "der" }).toString("base64")).toBe(UPDATE_SIGNING_PUBLIC_KEY);
+  });
+
+  it("rejects a signature by any key that is not the release key", () => {
     const { signer } = keyPair();
     const signature = signFor(signer, "1.4.0", CHECKSUMS);
-    expect(UPDATE_SIGNING_PUBLIC_KEY).toBe("");
     expect(verifyChecksums({ tag: "1.4.0", checksums: CHECKSUMS, signature })).toBe(false);
   });
 });

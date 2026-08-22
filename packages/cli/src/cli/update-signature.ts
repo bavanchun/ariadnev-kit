@@ -16,13 +16,22 @@
 import { createPublicKey, generateKeyPairSync, sign, verify } from "node:crypto";
 
 /**
- * The release-signing public key, base64 SPKI DER.
+ * The release-signing public key, base64 SPKI DER (Ed25519).
  *
- * Empty until the key pair is generated. Every verification fails while it is
- * empty, which is the safe direction — an unsigned channel that reports itself
- * as unverifiable beats one that quietly trusts whatever it is handed.
+ * The private half was generated outside this repository and never passed
+ * through it. It lives in the maintainer's password manager plus one offline
+ * copy, and signing happens locally — `finalize-release.yml` only ever
+ * verifies, so CI never holds the key. That is deliberate: putting it in Actions
+ * secrets would move the trust root from the maintainer to the GitHub account.
+ *
+ * Recovery is the installer, not this key. If it is lost, releases stop being
+ * verifiable and users reinstall from `ariadnev.com`; the installers do not
+ * check this signature precisely so that losing the key cannot brick anyone.
+ *
+ * Changing this constant re-roots trust for every installed binary. It is not
+ * overridable at runtime — an override would restore the hole it closes.
  */
-export const UPDATE_SIGNING_PUBLIC_KEY = "";
+export const UPDATE_SIGNING_PUBLIC_KEY = "MCowBQYDK2VwAyEAXzDBIiBKNDB/DeEvyhE4G1xxCpGPCNI0Z3bEwr7J98I=";
 
 /**
  * The bytes the signature covers: the release tag, a newline, then
