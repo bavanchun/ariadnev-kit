@@ -87,8 +87,8 @@ export function exemptSkillNames(kitRoot: string): Set<string> {
 
 function loadSkills(kitRoot: string, warnings: string[], held: string[]): Artifact[] {
   const skillsDir = join(kitRoot, "skills");
-  const exemptNames = exemptSkillNames(kitRoot);
   if (!existsSync(skillsDir)) return [];
+  const exemptNames = exemptSkillNames(kitRoot);
   const out: Artifact[] = [];
   const seen = new Set<string>();
   for (const entry of readdirSync(skillsDir)) {

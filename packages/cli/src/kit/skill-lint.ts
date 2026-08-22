@@ -254,10 +254,18 @@ export function lintSkill(
   // `av add-skill` would scaffold a skill that fails the moment it is created.
   //
   const position = sectionBody(artifact.body, "Workflow position");
-  if (position !== null && position.match(skillReferencePattern()) === null && !DECLARES_NONE.test(position)) {
-    houseErrors.push(
-      `${label}: Workflow position names no av:<slug> — name what it hands off to or follows, or say "none"`,
-    );
+  if (position !== null) {
+    // A skill naming only itself has answered nothing — the question is what it
+    // hands off to or follows. No skill in the kit does this; excluding it keeps
+    // the cheapest way to satisfy the rule from also being a way to dodge it.
+    const named = [...position.matchAll(skillReferencePattern())]
+      .map((match) => match[1])
+      .filter((slug) => slug !== artifact.name);
+    if (named.length === 0 && !DECLARES_NONE.test(position)) {
+      houseErrors.push(
+        `${label}: Workflow position names no other av:<slug> — name what it hands off to or follows, or say "none"`,
+      );
+    }
   }
   for (const ref of references) {
     const refLines = countLines(ref.content);

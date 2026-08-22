@@ -236,6 +236,16 @@ describe("lintSkill: Workflow position names something", () => {
     });
   }
 
+  it("does not accept a skill naming only itself", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Related: av:demo.") }), []);
+    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+  });
+
+  it("accepts a skill naming itself alongside another", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("av:demo runs after av:plan.") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
   // The label shapes the corpus and the scaffold actually write.
   for (const declaration of ["Related: none.", "**Typically precedes:** none", "None.", "- Related: none"]) {
     it(`accepts ${JSON.stringify(declaration)}`, () => {
@@ -266,6 +276,27 @@ describe("lintSkill: Workflow position names something", () => {
     const unlisted = lintSkill(makeSkill({ body }), [], new Set(["other"]));
     expect(unlisted.errors.some((e) => e.includes("Workflow position"))).toBe(true);
     expect(unlisted.held).toEqual([]);
+  });
+});
+
+// ADR 0013 moved severity off `metadata.origin` and says the two must not be
+// re-coupled. Nothing structural prevents it, so this asserts the behaviour
+// directly: provenance is recorded, and it decides nothing.
+describe("lintSkill: provenance does not decide severity", () => {
+  it("errors on a ported skill that is not on the exemption list", () => {
+    const ported = makeSkill({
+      body: "# Demo\n\nNothing else.\n",
+      frontmatter: { metadata: { origin: "ported", author: "upstream" } },
+    });
+    const res = lintSkill(ported, [], new Set());
+    expect(res.errors.filter((e) => e.includes("missing required section"))).toHaveLength(3);
+    expect(res.held).toEqual([]);
+  });
+
+  it("holds for a listed skill that carries no provenance at all", () => {
+    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), [], new Set(["demo"]));
+    expect(res.errors).toEqual([]);
+    expect(res.held.filter((h) => h.includes("missing required section"))).toHaveLength(3);
   });
 });
 
