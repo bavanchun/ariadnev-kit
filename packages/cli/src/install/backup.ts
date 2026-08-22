@@ -1,27 +1,67 @@
 import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve, relative, isAbsolute } from "node:path";
+import { z } from "zod";
 
-export interface BackupManifestEntry {
-  /** Absolute path the file was copied from, at backup time. */
-  originalPath: string;
-  /** Path of the copy, relative to the backup root. */
-  relPath: string;
-  label: string;
-}
+/**
+ * A backup directory name: `nowStamp()`'s `YYYYMMDD-HHMMSS`, optionally the
+ * `pre-restore-` safety copy taken before a restore overwrites anything.
+ *
+ * Enforced rather than assumed. The backups parent is inside the user's project
+ * for project scope, so anyone who can write a directory there can name it —
+ * and the old lexicographic sort meant a `9999-…` directory outranked every
+ * real backup while never being old enough to prune.
+ */
+export const BACKUP_DIR_NAME = /^(?:pre-restore-)?\d{8}-\d{6}$/;
+
+/**
+ * `relPath` is a location inside the backup root, so it must stay inside it:
+ * never absolute, never climbing out with `..`. `backupRelPath` only ever emits
+ * `scope/…` or `abs/…`, so this rejects a hand-edited manifest, not our own
+ * output.
+ */
+const RelPath = z
+  .string()
+  .min(1)
+  .refine((value) => !isAbsolute(value), { message: "relPath must not be absolute" })
+  .refine((value) => !value.split(/[/\\]/).includes(".."), { message: "relPath must not contain \"..\"" });
+
+const ManifestEntry = z.object({
+  originalPath: z.string().min(1),
+  relPath: RelPath,
+  label: z.string(),
+});
+
+export const BackupManifestSchema = z.array(ManifestEntry);
+
+export type BackupManifestEntry = z.infer<typeof ManifestEntry>;
 
 function manifestPath(backupRoot: string): string {
   return join(backupRoot, "manifest.json");
 }
 
-/** Entries recorded for this backup root; [] for pre-manifest backups (old layout) or missing dirs. */
+/**
+ * Entries recorded for this backup root; `[]` when there is no manifest at all
+ * — a backup written before manifests existed, or a missing directory.
+ *
+ * A manifest that exists but does not parse **throws**. Those are different
+ * situations and used to be reported as the same one: the caller printed
+ * "created before backup manifests were added" for a truncated or tampered
+ * file, which reads as reassurance about the very case that deserves alarm.
+ */
 export function readBackupManifest(backupRoot: string): BackupManifestEntry[] {
   const p = manifestPath(backupRoot);
   if (!existsSync(p)) return [];
+  let parsed: unknown;
   try {
-    return JSON.parse(readFileSync(p, "utf8")) as BackupManifestEntry[];
-  } catch {
-    return [];
+    parsed = JSON.parse(readFileSync(p, "utf8"));
+  } catch (err) {
+    throw new Error(`invalid backup manifest at ${p}: ${err instanceof Error ? err.message : String(err)}`);
   }
+  const result = BackupManifestSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`invalid backup manifest at ${p}: ${result.error.issues.map((i) => i.message).join("; ")}`);
+  }
+  return result.data;
 }
 
 /**
@@ -57,16 +97,26 @@ export function backupPath(target: string, backupRoot: string, label: string, sc
   writeFileSync(manifestPath(backupRoot), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
+/** Directory names under `backupsParent` that this tool wrote, oldest first. */
+export function backupDirNames(backupsParent: string): string[] {
+  if (!existsSync(backupsParent)) return [];
+  return readdirSync(backupsParent)
+    .filter((name) => BACKUP_DIR_NAME.test(name))
+    .filter((name) => statSync(join(backupsParent, name)).isDirectory())
+    .sort();
+}
+
 /**
  * Keep only the most recent `keep` timestamped backup dirs under `backupsParent`,
- * pruning older ones. Dir names are sortable timestamps (lexicographic order).
+ * pruning older ones. Names are fixed-width timestamps, so lexicographic order
+ * is chronological order.
+ *
+ * Only well-formed names take part. A directory we did not write is neither
+ * counted toward `keep` nor deleted — it cannot push a real backup out of the
+ * window, and we do not remove other people's files to make room.
  */
 export function rotateBackups(backupsParent: string, keep = 3): void {
-  if (!existsSync(backupsParent)) return;
-  const dirs = readdirSync(backupsParent)
-    .map((n) => join(backupsParent, n))
-    .filter((p) => statSync(p).isDirectory())
-    .sort();
-  const stale = dirs.slice(0, Math.max(0, dirs.length - keep));
-  for (const dir of stale) rmSync(dir, { recursive: true, force: true });
+  const names = backupDirNames(backupsParent);
+  const stale = names.slice(0, Math.max(0, names.length - keep));
+  for (const name of stale) rmSync(join(backupsParent, name), { recursive: true, force: true });
 }
