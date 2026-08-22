@@ -55,7 +55,13 @@ if (method === "PATCH" && path.includes("/releases/")) {
   // observed. \`immutable.enabled: false\` models a repository that does not, and
   // is the only way to exercise the post-publish guard: the settings endpoint
   // answers 403 to GITHUB_TOKEN, so no workflow can read the setting directly.
-  mutate("patch-release"); state.release = { ...state.release, draft: body.draft, immutable: state.immutable.enabled !== false, updated_at: "2026-08-09T01:00:00Z" }; state.latest = state.release; save(); json(state.release); process.exit(0);
+  mutate("patch-release");
+  state.release = { ...state.release, draft: body.draft, immutable: state.immutable.enabled !== false, prerelease: body.prerelease === true, updated_at: "2026-08-09T01:00:00Z" };
+  // GitHub only promotes to latest when asked, and never promotes a prerelease.
+  // Modelling that is the point: a beta silently becoming latest is served to
+  // every bare installer, and a mock that promotes unconditionally cannot catch it.
+  if (body.make_latest === "true" && !state.release.prerelease) state.latest = state.release;
+  save(); json(state.release); process.exit(0);
 }
 if (path.includes("/actions/runs/")) json(state.run);
 else if (path.includes("/actions/artifacts?")) json({ artifacts: state.artifactHistory });

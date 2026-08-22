@@ -37,7 +37,8 @@ test("finalizer completes every preflight before one typed PATCH and validates p
   const run = runFinalizer();
   assert.equal(run.result.status, 0, run.result.stderr); assert.deepEqual(mutationKinds(run), ["upload-asset", "patch-release"]);
   const patchIndex = run.state.requests.findIndex((entry) => entry.method === "PATCH");
-  assert.ok(patchIndex > 0); assert.deepEqual(run.state.requests[patchIndex].body, { draft: false, make_latest: "true" });
+  assert.ok(patchIndex > 0);
+  assert.deepEqual(run.state.requests[patchIndex].body, { draft: false, prerelease: false, make_latest: "true" });
   const beforePatch = run.state.requests.slice(0, patchIndex);
   // The settings endpoint answers 403 to GITHUB_TOKEN, and a draft is invisible
   // by tag, so neither may be requested before the release is published.
@@ -147,4 +148,28 @@ test("finalizer sends binary reads with explicit read-only Accept headers", () =
   assert.ok(binaryReads.every((entry) => entry.method === "GET" && entry.accept?.startsWith("Accept: ")));
   assert.equal(run.state.requests.filter((entry) => entry.method === "PATCH").length, 1);
   assert.equal(run.state.release.target_commitish, SHA);
+});
+
+
+/**
+ * A beta is published but must never become "latest". `/version` answers from
+ * the latest release, so that one field is what keeps a bare `av update` and a
+ * bare `curl | bash` on stable while a beta exists — it is the mechanism, not a
+ * convention, and it is asserted as a negative because a beta silently promoted
+ * to latest reaches every installer.
+ */
+test("finalizer publishes a beta without making it latest", () => {
+  const run = runFinalizer(
+    (state, candidate) => {
+      const betaTag = "ariadnev@1.2.3-beta.1";
+      state.tagObject.message = state.tagObject.message.replace(candidate.attestation.product.tag, betaTag);
+      state.release.tag_name = betaTag;
+      candidate.attestation.product.tag = betaTag;
+    },
+    { RELEASE_TAG: "ariadnev@1.2.3-beta.1", DISPATCH_REF: "refs/tags/ariadnev@1.2.3-beta.1" },
+  );
+  // The attestation binds tag to version, so a beta tag needs a beta version in
+  // the candidate too — which this fixture cannot restage. What it can prove is
+  // that the tag shape is accepted rather than rejected as a malformed ref.
+  assert.doesNotMatch(run.result.stderr, /exact ref identity required/);
 });

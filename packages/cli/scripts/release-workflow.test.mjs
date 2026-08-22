@@ -199,3 +199,19 @@ test("finalize verifies the signature and publishes it as an asset", () => {
   assert.match(workflow, /attestation\.product\.version.*checksums\.txt/s);
   assert.doesNotMatch(workflow, /ARIADNEV_RELEASE_KEY|secrets\.[A-Z_]*SIGN/);
 });
+
+test("a beta tag is accepted by the ref-identity check, a malformed one is not", () => {
+  // Extracted from the workflow rather than restated, so this cannot drift into
+  // testing a copy of the pattern while the real one says something else.
+  const workflow = readWorkflow(finalize);
+  const start = workflow.indexOf("/^ariadnev@");
+  const end = workflow.indexOf("/.test(tag)", start);
+  assert.ok(start > 0 && end > start, "the ref-identity tag pattern moved");
+  const re = new RegExp(workflow.slice(start + 1, end));
+  for (const good of ["ariadnev@1.2.3", "ariadnev@1.2.3-beta.1", "ariadnev@10.0.0-beta.12"]) {
+    assert.equal(re.test(good), true, good);
+  }
+  for (const bad of ["ariadnev@1.2.3-beta", "ariadnev@1.2.3-beta.0", "ariadnev@1.2.3-alpha.1", "ariadnev@1.2.3-beta.1-x", "v1.2.3"]) {
+    assert.equal(re.test(bad), false, bad);
+  }
+});

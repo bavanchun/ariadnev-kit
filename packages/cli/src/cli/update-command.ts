@@ -49,15 +49,22 @@ export function updateBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 
 /** Numeric major.minor.patch compare — "0.10.0" > "0.9.0", unlike string compare. */
 export function isNewerVersion(candidate: string, base: string): boolean {
-  const parse = (v: string): [number, number, number] => {
-    const [a, b, c] = v.split(".").map((n) => parseInt(n, 10) || 0);
-    return [a ?? 0, b ?? 0, c ?? 0];
+  /** `[major, minor, patch, betaNumber]`; `Infinity` for a stable release. */
+  const parse = (v: string): [number, number, number, number] => {
+    const beta = /-beta\.(\d+)$/.exec(v);
+    const [a, b, c] = v.replace(/-beta\.\d+$/, "").split(".").map((n) => parseInt(n, 10) || 0);
+    // A stable release outranks every prerelease of the same version, so it sorts
+    // above all of them. Without this a 2.0.0-beta.1 user was never offered
+    // 2.0.0: the old parser read "0-beta" as 0, made the two versions equal, and
+    // reported "up to date" forever.
+    return [a ?? 0, b ?? 0, c ?? 0, beta ? Number(beta[1]) : Number.POSITIVE_INFINITY];
   };
-  const [ca, cb, cc] = parse(candidate);
-  const [ba, bb, bc] = parse(base);
-  if (ca !== ba) return ca > ba;
-  if (cb !== bb) return cb > bb;
-  return cc > bc;
+  const left = parse(candidate);
+  const right = parse(base);
+  for (let i = 0; i < 4; i++) {
+    if (left[i] !== right[i]) return left[i] > right[i];
+  }
+  return false;
 }
 
 /** A release tag ("ariadnev@0.5.0") → its version ("0.5.0"). Tolerates a bare "v". */

@@ -45,6 +45,16 @@ jobs:
           bun-version: "1.3.14"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # Changesets pre mode persists until it is explicitly exited, and the file
+      # that records it is easy to forget. A solo maintainer returning after
+      # weeks would cut what they believe is a stable release and get
+      # `-beta.N` — a worse failure than not having the channel at all. This
+      # refuses to guess: it stops, and says which state it is in and how to
+      # leave it.
+      - name: Refuse a stable release cut while pre mode is active
+        env:
+          ARIADNEV_RELEASE_CHANNEL: ${{ vars.ARIADNEV_RELEASE_CHANNEL }}
+        run: node packages/cli/scripts/check-changeset-pre-mode.mjs
       - name: Changesets version PR
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d
         with:
