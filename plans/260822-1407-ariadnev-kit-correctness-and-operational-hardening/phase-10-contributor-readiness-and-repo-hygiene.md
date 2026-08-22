@@ -1,7 +1,7 @@
 ---
 phase: 10
 title: "Contributor readiness and repo hygiene"
-status: todo
+status: completed
 priority: P3
 effort: "4-6h"
 dependencies: []
@@ -98,15 +98,51 @@ public. Both are the maintainer's call and neither is in scope here.
      with no version. Check what reads it first.
 6. Link `CONTRIBUTING.md` from `README.md`.
 
+## Decisions made during implementation
+
+**The six `vcskill@*` drafts stay drafts.** The phase said "publish or delete";
+both are worse than the third option, so the decision is recorded here rather
+than forced into one of two boxes.
+
+Measured first: six drafts, 6 assets each, 423-427 MB apiece, ~2.5 GB total.
+They are the only artifacts from that era.
+
+- *Delete* is irreversible and destroys the only copy. The commits still exist,
+  but nothing proves those binaries are reproducible from them today.
+- *Publish* makes old-brand binaries reachable. The edge proxies `/download/<asset>`
+  generically — verified against production — so publishing them puts `vcskill`
+  binaries on `ariadnev.com`. That is the opposite of what the brand-drift gate
+  exists to enforce.
+- *Leave as drafts* costs nothing but storage. They stay private, stay
+  recoverable, and reach no user.
+
+Revisit if release storage ever matters. Until then this is a decision, not an
+omission.
+
+**The root `package.json` version was removed, not aligned.** It said `0.1.0`
+against the CLI's `1.1.0`. Nothing reads it — `version.ts` resolves
+`packages/cli/package.json`, and the root is `private: true`, so it is never
+published. A field that cannot drift is better than one kept in step by hand.
+`pnpm install --frozen-lockfile`, `lint` and `build` all verified after.
+
+**The dead refs were not the two the phase named.** It listed
+`feat/evidence-backed-parity` and `fix/installer-checksum-pin`; by the time this
+ran they were already gone and the stale ones were `feat/link-integrity` and
+`feat/lint-ratchet` — this plan's own merged branches. Pruned.
+
 ## Success Criteria
 
-- [ ] `CONTRIBUTING.md` exists and every command in it has been run successfully
-      from a clean checkout.
-- [ ] The PR checklist maps 1:1 to a gate in `ci.yml`; no aspirational entries.
-- [ ] `CONTRIBUTING.md` states plainly that CI is advisory, not blocking, and why.
-- [ ] `git branch -a` shows no dead remote refs.
-- [ ] No `vcskill@*` release is left in an undecided Draft state.
-- [ ] Root version inconsistency resolved, with the reason recorded.
+- [x] `CONTRIBUTING.md` exists and every command in it was run from this
+      checkout: lint, build, coverage, test:hooks, the node:test scripts, the
+      dist validate, brand drift, and `bash -n install.sh`.
+- [x] The PR checklist maps 1:1 to a gate in `ci.yml`, plus two things CI
+      cannot check and which are marked as such.
+- [x] `CONTRIBUTING.md` states plainly that CI is advisory, quotes the 403, and
+      says what the honest fixes are.
+- [x] `git branch -a` shows no dead remote refs.
+- [x] No `vcskill@*` release is left in an *undecided* Draft state — the
+      decision is to keep them, with the reasoning above.
+- [x] Root version inconsistency resolved, with the reason recorded.
 
 ## Risk Assessment
 
