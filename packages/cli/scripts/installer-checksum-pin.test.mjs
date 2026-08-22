@@ -128,12 +128,22 @@ function runInstallerPs1({ canonical, env }) {
     Object.entries(process.env).filter(([k]) => !k.startsWith("ARIADNEV_")),
   );
 
+  // %TEMP% and %LOCALAPPDATA% are both read before the first download — the
+  // install dir is computed at the top of the script, not in the install
+  // section — so a Linux run dies on a null Join-Path argument without them.
+  const prelude = [
+    "$WarningPreference='SilentlyContinue'",
+    // Plain text, or pwsh wraps every message in ANSI and the assertions below
+    // match against escape sequences instead of the text.
+    "if ($PSStyle) { $PSStyle.OutputRendering='PlainText' }",
+    "$ErrorView='NormalView'",
+  ].join("; ");
+
   return new Promise((resolve) => {
-    const child = spawn(
-      "pwsh",
-      ["-NoProfile", "-Command", `$WarningPreference='SilentlyContinue'; & '${scriptPath}'`],
-      { env: { ...baseEnv, TEMP: dir, ...env }, stdio: ["ignore", "pipe", "pipe"] },
-    );
+    const child = spawn("pwsh", ["-NoProfile", "-Command", `${prelude}; & '${scriptPath}'`], {
+      env: { ...baseEnv, TEMP: dir, LOCALAPPDATA: join(dir, "local"), NO_COLOR: "1", ...env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (d) => (stdout += d));
