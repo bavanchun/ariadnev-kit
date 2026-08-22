@@ -172,21 +172,31 @@ jobs:
           const release = api(`repos/${repo}/releases/${releaseId}`), latestBefore = maybe(`repos/${repo}/releases/latest`);
           ok(String(release.id) === releaseId && release.draft === true && release.immutable === false && release.tag_name === tag && release.target_commitish === sha, "held draft drift");
           ok(!latestBefore || String(latestBefore.id) !== releaseId, "held draft is already latest");
-          verifyAssets(release, assets);
+          // A re-run has to be possible. If the upload succeeded and the publish
+          // PATCH then failed, the draft already carries the signature — and
+          // asserting the candidate inventory exactly would fail on the count
+          // with a message about asset drift, leaving the release wedged as an
+          // unpublishable draft until someone deleted the asset by hand.
+          const existingSignature = (release.assets || []).find((entry) => entry.name === signatureAsset.name);
+          verifyAssets(release, existingSignature ? [...assets, signatureAsset] : assets);
           // Uploaded to the draft, which is still mutable. After publish it is
           // not: `after.immutable` is asserted below, and that is also why no
           // past release can ever be given a signature retroactively.
-          ok(!(release.assets || []).some((entry) => entry.name === signatureAsset.name), "draft already carries a signature asset");
-          const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
-          ok(uploadUrl.startsWith("https://uploads.github.com/"), "unexpected release upload host");
-          const upload = runGh([...baseArgs, "--method", "POST", "-H", "Content-Type: application/octet-stream", `${uploadUrl}?name=${signatureAsset.name}`, "--input", "candidate/checksums.txt.sig"]);
-          ok(upload.status === 0, "release signature upload failed");
-          // Only the new asset is re-read. The other nine were just verified byte
-          // for byte and the draft has had no other writer — re-downloading a
-          // ~192MB set to learn that would cost more than it proves.
-          const withSignature = api(`repos/${repo}/releases/${releaseId}`);
+          if (!existingSignature) {
+            const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
+            ok(uploadUrl.startsWith("https://uploads.github.com/"), "unexpected release upload host");
+            const upload = runGh([...baseArgs, "--method", "POST", "-H", "Content-Type: application/octet-stream", `${uploadUrl}?name=${signatureAsset.name}`, "--input", "candidate/checksums.txt.sig"]);
+            ok(upload.status === 0, "release signature upload failed");
+          }
+          // Only the new asset is re-read. The others were just verified byte for
+          // byte and the draft has had no other writer — re-downloading a ~192MB
+          // set to learn that would cost more than it proves. A signature that
+          // was already there has been verified above, in the `verifyAssets`
+          // call, against the bytes this run just recomputed: a re-run with a
+          // different signature fails there rather than silently keeping the old.
+          const withSignature = existingSignature ? release : api(`repos/${repo}/releases/${releaseId}`);
           ok((withSignature.assets || []).length === assets.length + 1, "remote asset count drift after signature upload");
-          verifyAssetBytes(withSignature, [signatureAsset]);
+          if (!existingSignature) verifyAssetBytes(withSignature, [signatureAsset]);
           api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, make_latest: "true" } });
           const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = api(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
           const byTagAfter = api(`repos/${repo}/releases/tags/${tag}`);

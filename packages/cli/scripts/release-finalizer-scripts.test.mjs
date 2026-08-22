@@ -94,6 +94,40 @@ for (const [name, mutate, overrides] of [
   assert.notEqual(run.result.status, 0); assert.deepEqual(mutationKinds(run), []); assertNoLeak(assert, run);
 });
 
+/**
+ * The recovery case. An upload that succeeds followed by a PATCH that fails
+ * leaves the signature on the draft; a re-run then has to finish the job rather
+ * than refuse it. Before this, the re-run died at the candidate inventory check
+ * with "remote asset count drift" — a message about asset drift for a release
+ * that was exactly correct — and the draft could only be unwedged by deleting
+ * the asset through the API by hand.
+ */
+test("finalizer re-run publishes a draft that already carries the signature", () => {
+  const run = runFinalizer((state, candidate) => {
+    const bytes = Buffer.from(`${candidate.checksumsSignature}\n`);
+    state.release.assets.push({ id: 900, name: "checksums.txt.sig", size: bytes.length });
+    state.assetBytes["900"] = bytes.toString("base64");
+  });
+  assert.equal(run.result.status, 0, run.result.stderr);
+  // No second upload: the asset is already there and byte-identical.
+  assert.deepEqual(mutationKinds(run), ["patch-release"]);
+  assertNoLeak(assert, run);
+});
+
+// But only if it is the *right* signature. A leftover from a different attempt
+// must not be published just because something with the right name is present.
+test("finalizer refuses a draft carrying a different signature", () => {
+  const run = runFinalizer((state) => {
+    const bytes = Buffer.from("a-signature-from-some-other-attempt\n");
+    state.release.assets.push({ id: 901, name: "checksums.txt.sig", size: bytes.length });
+    state.assetBytes["901"] = bytes.toString("base64");
+  });
+  assert.notEqual(run.result.status, 0);
+  assert.deepEqual(mutationKinds(run), []);
+  assert.match(run.result.stderr, /remote asset drift: checksums\.txt\.sig/);
+  assertNoLeak(assert, run);
+});
+
 // This one cannot join the loop above: the guard it exercises reads the
 // published release, so the PATCH has necessarily already happened. Publishing
 // is the only way to learn whether the repository makes releases immutable, and
