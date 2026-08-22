@@ -193,13 +193,19 @@ test("installer checksum pin (install.ps1)", { skip: pwsh ? false : "pwsh not in
   });
 
   await t.test("the opt-out warning survives a silenced session", async () => {
-    // Runs past the checksum and then fails on Windows-only APIs, so only the
-    // warning is asserted — that is the whole point of the case.
+    // Only the warning is asserted, and across both streams: which one pwsh
+    // gives the warning stream is a host detail, and off Windows this case runs
+    // to the end of the script and picks up unrelated noise from `& *.exe`.
+    // Being visible at all is the property under test.
     const r = await runInstallerPs1({
       canonical: canonical.url,
       env: { ARIADNEV_BASE_URL: hostile.url, ARIADNEV_ALLOW_UNVERIFIED_BASE: "1" },
     });
-    assert.match(r.stderr, /cannot authenticate/, "warning must not be suppressible by the caller");
+    assert.match(
+      r.stdout + r.stderr,
+      /cannot authenticate/,
+      "warning must not be suppressible by the caller",
+    );
   });
 });
 
