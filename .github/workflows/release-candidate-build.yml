@@ -134,3 +134,54 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           overwrite: false
+
+  # The build job cross-compiles five targets on one Linux runner and can only
+  # execute the one it is standing on. Whether `node:crypto` carries Ed25519 into
+  # the other four is an assumption, and `av update`'s whole fail-closed design
+  # rests on it — a target where verification cannot run refuses every update and
+  # looks identical to one where the release key is simply unset.
+  #
+  # So the candidate is run again on the platforms CI can actually provide.
+  # linux-arm64 is still not among them: this repository is private, so a native
+  # arm runner is paid, and QEMU emulation would prove something about QEMU. That
+  # one target rides on a uniform Bun runtime, with the pure-JS fallback
+  # pre-approved if it ever turns out not to.
+  smoke-cross-platform:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "20"
+      - name: Download the candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ inputs.candidate_artifact_name }}
+          path: candidate
+      # The staged inventory is flat, and smoke-binary.mjs takes a path, so the
+      # host asset is named rather than discovered — a wrong name has to fail
+      # loudly here instead of silently smoking nothing.
+      - name: Smoke the candidate on this platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.os }}" in
+            macos-*)   asset="ariadnev-darwin-arm64" ;;
+            windows-*) asset="ariadnev-windows-x64.exe" ;;
+            *) echo "no asset mapped for ${{ matrix.os }}" >&2; exit 1 ;;
+          esac
+          test -f "candidate/${asset}"
+          chmod +x "candidate/${asset}" || true
+          node packages/cli/scripts/smoke-binary.mjs "candidate/${asset}"

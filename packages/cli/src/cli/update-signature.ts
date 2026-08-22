@@ -13,7 +13,7 @@
 //
 // Pure: no fs, no network. Callers supply bytes.
 
-import { createPublicKey, verify } from "node:crypto";
+import { createPublicKey, generateKeyPairSync, sign, verify } from "node:crypto";
 
 /**
  * The release-signing public key, base64 SPKI DER.
@@ -75,6 +75,26 @@ export function verifyChecksums(input: VerifyChecksumsInput): boolean {
     });
     if (key.asymmetricKeyType !== "ed25519") return false;
     return verify(null, signedMessage(input.tag, input.checksums), key, Buffer.from(input.signature, "base64"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Round-trip an Ed25519 signature entirely in-process, with a throwaway key.
+ *
+ * `av update`'s fail-closed verification is indistinguishable, from the
+ * outside, from a runtime where Ed25519 does not work at all: both refuse every
+ * update. This separates them. The binary ships cross-compiled to five targets
+ * from one Bun build, and whether `node:crypto` carries Ed25519 into all five is
+ * an assumption nobody has tested — so `av doctor` states it, and the release
+ * smoke gate reads it on every platform CI can run.
+ */
+export function ed25519SelfTest(): boolean {
+  try {
+    const pair = generateKeyPairSync("ed25519");
+    const message = Buffer.from("ariadnev ed25519 self-test", "utf8");
+    return verify(null, message, pair.publicKey, sign(null, message, pair.privateKey));
   } catch {
     return false;
   }
