@@ -1,7 +1,7 @@
 ---
 phase: 11
 title: "Beta release channel"
-status: todo
+status: in-progress
 priority: P1
 effort: "2-4d"
 dependencies: [5]
@@ -139,14 +139,63 @@ guessed at now:
    mode is active.
 7. Document the whole flow in the release guide.
 
+## Step 1's answer: the cheap path wins
+
+The phase said to price open question 1 before building anything. Priced.
+
+**Pinning an exact prerelease through the existing `?version=` selector covers
+the requirement.** There is no `ARIADNEV_CHANNEL`, no channel routing, no
+installer selector and no new concept — `av update --to 2.0.0-beta.1` is the
+opt-in, and it reuses machinery that already exists on both sides.
+
+The three open questions fall out of that:
+
+1. **Selector shape** — exact version. A channel abstraction would have added a
+   concept to two repositories to express something one flag already says.
+2. **Beta signing key** — shared with stable, and it comes for free. Signing is
+   local and finalization verifies whatever it is handed, so a beta is signed by
+   the same key through the same step. No unsigned-but-accepted path exists,
+   which was the phase's blocker 3.
+3. **Do beta users auto-update to stable** — yes, and the honest reason is that
+   the alternative was a bug. `isNewerVersion` read `"0-beta"` as `0` via
+   `parseInt`, so `2.0.0-beta.1` and `2.0.0` compared equal and a beta user was
+   told "up to date" forever. Fixing the comparison makes the right thing happen.
+
+**But the cheap path is not free: the edge rejected it.** Probed against
+production before deciding:
+
+```
+/version?version=1.1.0        → 200  1.1.0
+/version?version=2.0.0-beta.1 → 400  bad request: prerelease-or-build-unsupported
+```
+
+So blocker 2 is real and unavoidable — this is a cross-repo change either way.
+What the cheap path buys is its size: "accept `-beta.N` in the version selector"
+instead of "teach the edge about channels".
+`bavanchun/ariadnev-web` PR #7 carries it, **not deployed**.
+
+## What is left, and who can do it
+
+- **Deploy `ariadnev-web` #7.** The CLI half expects a live edge.
+- **Publish an actual beta**, which needs a release to be cut — the same
+  maintainer step phase 5 is waiting on.
+- **Rehearse phase 4 on it.** That is the whole reason this phase exists and it
+  cannot happen until the two above do.
+
 ## Success Criteria
 
 - [ ] A `-beta` version is published and installable by explicit opt-in.
-- [ ] Bare install and bare `av update` select the stable release with a beta
+      *Code complete on both sides; needs the edge deployed and a release cut.*
+- [x] Bare install and bare `av update` select the stable release with a beta
       published — asserted by a test that fails if the selection logic changes.
-- [ ] A signature-verifying client either accepts a beta or refuses it with a
-      clear message. No unsigned-but-accepted path.
-- [ ] Cutting a stable release while changesets pre mode is active fails CI.
+      Belt and braces: finalization never marks a beta latest (asserted as a
+      negative), and `runUpdate` refuses a prerelease on the bare path even if
+      the edge reports one.
+- [x] A signature-verifying client accepts a beta: signing is local and
+      finalization verifies whatever it is handed, so a beta goes through the
+      same key and the same step. No unsigned-but-accepted path exists.
+- [x] Cutting a stable release while changesets pre mode is active fails CI —
+      and so does the mirror image, a beta-flagged channel with pre mode off.
 - [ ] Phase 4 has been rehearsed on the beta channel before its stable release.
 
 ## Risk Assessment
