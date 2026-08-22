@@ -251,8 +251,8 @@ If missing: output "Install GitHub CLI (gh) to auto-create PRs" and stop after p
 
 **Resolve writing language** before rendering the body:
 ```bash
-WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json
 ```
 Load `references/pr-template.md` and the shared contracts:
@@ -276,8 +276,8 @@ EOF
 
 Validate before finishing:
 ```bash
-PR_BIN=.claude/hooks/lib/pr-body-contract.cjs
-test -f "$PR_BIN" || PR_BIN=kits/core/hooks/lib/pr-body-contract.cjs
+PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
 gh pr view --json body -q .body | node "$PR_BIN"
 ```
 
@@ -363,7 +363,7 @@ Step 8 opt-out, since `--social` is itself an explicit user choice that
    source-repo fallback (same shape as step 4):
    ```bash
    POST_BIN="$HOME/.claude/skills/av-journal/scripts/post-social.cjs"
-   test -f "$POST_BIN" || POST_BIN=../../av-journal/scripts/post-social.cjs
+   test -f "$POST_BIN" || POST_BIN=kit/skills/journal/scripts/post-social.cjs
    node "$POST_BIN" \
      --journal-file "$JOURNAL_PATH" \
      --channels build_in_public \

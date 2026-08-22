@@ -3,8 +3,8 @@
 Use this template when creating or updating PRs via `gh pr create` / `gh pr edit`.
 
 Resolve writing language first (`references/writing-language.md` in `av:review-pr`,
-or `WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+or `WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json`). Render **headings and
 prose** in that language. Keep the PR **title** as English conventional commits.
 
@@ -82,6 +82,6 @@ Titles stay English for conventional-commit interoperability.
 - Preserve `Closes #N` keywords exactly
 - UI/UX PRs need real screenshots or an explicit unavailable reason
 - If PR already exists, use `gh pr edit` with the same contract
-- Validate: `PR_BIN=.claude/hooks/lib/pr-body-contract.cjs
-test -f "$PR_BIN" || PR_BIN=kits/core/hooks/lib/pr-body-contract.cjs
+- Validate: `PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
 gh pr view --json body -q .body | node "$PR_BIN"`

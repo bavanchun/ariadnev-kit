@@ -4,8 +4,8 @@
 to the effective writing language; English forms shown). Validate with:
 
 ```bash
-gh pr view "$PR" --json body -q .body | PR_BIN=.claude/hooks/lib/pr-body-contract.cjs
-test -f "$PR_BIN" || PR_BIN=kits/core/hooks/lib/pr-body-contract.cjs
+gh pr view "$PR" --json body -q .body | PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
 node "$PR_BIN"
 ```
 

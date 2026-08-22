@@ -72,8 +72,8 @@ Flags compose (`--interactive --advice` is valid). Strip flags from
    GitHub prose (issue/PR bodies, comments):
 
    ```bash
-   WL_BIN=.claude/hooks/lib/writing-language.cjs
-   test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+   WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+   test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
    node "$WL_BIN" --json 2>/dev/null || echo '{"language":"en","fallbackReason":"resolver unavailable"}'
    ```
 

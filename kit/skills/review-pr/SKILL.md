@@ -156,8 +156,8 @@ Perform a thorough code review of this PR. Follow these steps:
 
 ### 0. Resolve writing language
 ```bash
-WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json
 ```
 Load `references/writing-language.md`. Author Summary, Risk level, Findings,
@@ -168,8 +168,8 @@ fallback in the review body.
 
 Also load `references/pr-body-contract.md` and validate the PR description:
 ```bash
-PR_BIN=.claude/hooks/lib/pr-body-contract.cjs
-test -f "$PR_BIN" || PR_BIN=kits/core/hooks/lib/pr-body-contract.cjs
+PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
 gh pr view "$PR_REF" --json body -q .body | node "$PR_BIN"
 ```
 Missing required evidence sections or unsupported claims → **Important**

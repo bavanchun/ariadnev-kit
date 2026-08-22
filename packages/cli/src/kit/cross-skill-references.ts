@@ -51,9 +51,19 @@ export function buildSkillIndex(skills: { name: string; files: string[] }[]): Sk
  * at. That restriction is also what keeps a path like
  * `../../../../docs/operations/x.md` out of here — it escapes the skills root
  * entirely and is not a cross-skill link at all.
+ *
+ * Every path segment must end in an alphanumeric. `references/x.md` is anchored
+ * by its extension, but a script target is not, so a plain `[A-Za-z0-9._-]+`
+ * swallows the full stop in "run `../av-journal/scripts/post-social.cjs`." and
+ * reports a file nobody has that ends in a dot.
  */
-const CROSS_SKILL_PATH =
-  /((?:\.\.\/)+|kits\/core\/skills\/)([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\/(references\/[A-Za-z0-9._-]+\.md|SKILL\.md|scripts\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*)/g;
+const SEGMENT = "[A-Za-z0-9._-]*[A-Za-z0-9_-]";
+const CROSS_SKILL_PATH = new RegExp(
+  "((?:\\.\\./)+|kits/core/skills/)" +
+    "([a-z][a-z0-9]*(?:-[a-z0-9]+)*)/" +
+    `(references/[A-Za-z0-9._-]+\\.md|SKILL\\.md|scripts/${SEGMENT}(?:/${SEGMENT})*)`,
+  "g",
+);
 
 /**
  * How many `../` a link from `source` needs to reach a sibling skill.
@@ -102,18 +112,25 @@ export function checkCrossSkillReferences(
         continue;
       }
 
+      const targetSkill = prefixed.slice(3);
+
       if (!slug.startsWith("av-")) {
+        // Shape and existence are independent, so an unprefixed link still has
+        // to name something real. Reporting only the shape would leave a typo'd
+        // slug at warn level, and the severity table puts existence at error.
+        if (!pending.has(targetSkill) && !index.has(targetSkill)) {
+          findings.push({ ...base, targetSkill, reason: "unknown-skill", detail: "no such skill in the kit" });
+          continue;
+        }
         findings.push({
           ...base,
-          targetSkill: slug,
+          targetSkill,
           reason: "bad-shape",
           shape: "unprefixed",
-          detail: `missing av- prefix; write ${"../".repeat(depth)}av-${slug}/${targetFile}`,
+          detail: `missing av- prefix; write ${"../".repeat(depth)}${prefixed}/${targetFile}`,
         });
         continue;
       }
-
-      const targetSkill = slug.slice(3);
 
       if (prefix.length / 3 !== depth) {
         findings.push({

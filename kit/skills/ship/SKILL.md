@@ -92,8 +92,8 @@ Step 13: Social publish   → if --social: build-in-public draft → av journal 
 ## Writing language + PR body (#1195)
 
 Before Step 12, resolve language with
-`WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+`WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json` and author the PR body in
 that language. Titles stay English conventional commits. The body must include
 the seven evidence sections (plus Linked Issues / Ship Mode). Prefer honest
