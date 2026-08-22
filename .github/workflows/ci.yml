@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
+  # dev is where work actually lands; without it here a PR into dev gets no
+  # checks at all and the review gate is decorative.
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 permissions: {}
 
