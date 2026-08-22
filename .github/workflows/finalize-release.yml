@@ -89,7 +89,7 @@ jobs:
           };
           const maybe = (path) => { const result = runGh([...baseArgs, path]); if (result.status === 0) return JSON.parse(result.stdout || "{}"); if (/\bHTTP 404\b/.test(String(result.stderr))) return null; fail("GitHub API preflight failed"); };
           ok(/^[0-9]+$/.test(releaseId) && /^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ID) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ATTEMPT), "invalid numeric identity");
-          ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "exact ref identity required");
+          ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-beta\.[1-9]\d*)?$/.test(tag), "exact ref identity required");
           ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest) && artifactName === `ariadnev-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate identity drift");
           // The repository setting itself is unreadable here: GET
           // /repos/{owner}/{repo}/immutable-releases answers 403 "Resource not
@@ -197,10 +197,25 @@ jobs:
           const withSignature = existingSignature ? release : api(`repos/${repo}/releases/${releaseId}`);
           ok((withSignature.assets || []).length === assets.length + 1, "remote asset count drift after signature upload");
           if (!existingSignature) verifyAssetBytes(withSignature, [signatureAsset]);
-          api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, make_latest: "true" } });
-          const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = api(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
+          // A prerelease is published but never becomes "latest", and is flagged
+          // as a prerelease on GitHub. `/version` answers from the latest
+          // release, so this single field is what keeps a bare `av update` and a
+          // bare `curl | bash` on stable while a beta exists. It is not a
+          // convention — it is the mechanism.
+          const isBeta = /-beta\.\d+$/.test(tag);
+          api(`repos/${repo}/releases/${releaseId}`, { method: "PATCH", body: { draft: false, prerelease: isBeta, make_latest: isBeta ? "false" : "true" } });
+          // `maybe` for latest: with only prereleases published, there is no
+          // latest release and the endpoint answers 404.
+          const after = api(`repos/${repo}/releases/${releaseId}`), latestAfter = maybe(`repos/${repo}/releases/latest`), tagAfter = api(`repos/${repo}/git/ref/tags/${tag}`);
           const byTagAfter = api(`repos/${repo}/releases/tags/${tag}`);
-          ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && String(byTagAfter.id) === releaseId && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
+          // A beta must not have become latest. Asserting the negative matters
+          // more than asserting the positive: a beta silently promoted to latest
+          // is served to every bare installer, which is the whole failure this
+          // channel is designed to avoid.
+          const latestBinding = isBeta
+            ? (!latestAfter || String(latestAfter.id) !== releaseId) && after.prerelease === true
+            : String(latestAfter.id) === releaseId && latestAfter.tag_name === tag && after.prerelease === false;
+          ok(after.draft === false && after.immutable === true && after.tag_name === tag && after.target_commitish === sha && latestBinding && String(byTagAfter.id) === releaseId && tagAfter.object?.sha === tagRef.object.sha, "published release drift");
           ok(!Number.isNaN(Date.parse(after.updated_at)), "published release timestamp drift");
           verifyAssets(after, [...assets, signatureAsset]);
           const finalization = { schemaVersion: 1, schema: "https://ariadnev.com/schemas/finalization-attestation.schema.json", runId: env.FINALIZATION_RUN_ID, runAttempt: env.FINALIZATION_RUN_ATTEMPT, repository: repo, releaseId, tag, sourceSha: sha, candidateEnvelopeDigest: digest(Buffer.from(JSON.stringify(envelope))), finalizerWorkflowDigest, releaseAssetSetDigest: digest(Buffer.from(JSON.stringify([...assets, signatureAsset]))), verifiedReleaseUpdatedAt: after.updated_at };
