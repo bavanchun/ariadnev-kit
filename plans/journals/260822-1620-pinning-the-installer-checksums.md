@@ -66,12 +66,43 @@ hijack a piped-to-bash installer outright regardless. What the pin buys is that
 while `ARIADNEV_ALLOW_UNVERIFIED_BASE=1` reads as self-evidently wrong. An argv
 flag would be strictly better; noted for phase 5.
 
-## Not done
+## CI found what reading could not, twice
 
-Nothing is merged, so the exposure is still live. The edge Worker serves
-`install.sh` by reading it from the repo, so the merge itself is the deploy —
-`curl -fsSL https://ariadnev.com/install | head -20` afterward is the only
-remaining check.
+The ps1 suite had never executed anywhere, and it took three CI runs to go green.
+Both failures were mine, and both were assumptions I had written into the plan as
+fact:
+
+1. *"The abort paths terminate before `%LOCALAPPDATA%`."* They do not.
+   `$installDir` is computed at the top of `install.ps1` beside `$asset`, so every
+   case died on a null `Join-Path` before downloading anything. I had set `TEMP`
+   and not `LOCALAPPDATA` because I believed my own claim about where the script
+   stops.
+2. *"The user-`PATH` write has no meaning off Windows."* .NET tolerates the `User`
+   target on Linux, so the opt-in case ran to the last line and handed
+   `& …ariadnev.exe` to `xdg-open`. The warning was in stdout, not stderr — a host
+   detail I had no way to know and should not have asserted on.
+
+Neither was catchable by reading. Both were cheap in CI and would have been
+expensive as a wrong claim sitting in a plan document. The phase file now records
+what actually happens instead of what I assumed.
+
+## Closed
+
+Merged as PR #23 (rebase, five commits, linear history preserved).
+`curl -fsSL https://ariadnev.com/install` served the patched script immediately —
+the "deploys on merge, no release" assumption held against the real edge.
+
+Then the live installer, piped from production, was pointed at a hostile origin
+serving a trojan and a checksums.txt matching that trojan:
+
+```
+ariadnev install: binary from http://127.0.0.1:8731; checksums.txt from https://ariadnev.com.
+ariadnev install: checksum mismatch — refusing to install
+exit=1, nothing installed
+```
+
+The attacker's own matching hash bought nothing. That is the whole point, proven
+against the thing users actually run rather than a rewritten copy of it.
 
 `av update` has the identical flaw and was deliberately left alone; phase 5 fixes
 it behind a signature rather than a pin.

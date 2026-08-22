@@ -67,10 +67,10 @@ checksums fetch to the hardcoded domain — and because the edge Worker serves
 `install.sh` by reading it from the GitHub repo, **it deploys on merge with no
 binary release**. That is **phase 0**, and it should ship before anything else here starts.
 
-**Status: implemented, not merged.** Both installers are patched and covered by
-`packages/cli/scripts/installer-checksum-pin.test.mjs`; review turned up four more
-defects in the same code, all fixed and recorded in the phase file. Nothing is
-deployed until this merges, so the live exposure stands until then.
+**Status: closed 2026-08-22, live.** Merged as PR #23 and confirmed against
+production — the live installer now refuses a trojan served with its own matching
+checksums.txt. Review turned up four more defects in the same code, all fixed and
+recorded in the phase file.
 
 ## Corrections adopted from the red team
 
@@ -119,7 +119,7 @@ path-shape are now two separate rules.
 
 | # | Phase | Depends on | Status |
 |---|-------|------------|--------|
-| 0 | [Installer checksum pin](./phase-00-installer-checksum-pin.md) | — | **Completed** (merge pending) |
+| 0 | [Installer checksum pin](./phase-00-installer-checksum-pin.md) | — | **Completed** (merged, live) |
 | 1 | [Link integrity](./phase-01-link-integrity.md) | — | Pending |
 | 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | Pending |
 | 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | Pending |

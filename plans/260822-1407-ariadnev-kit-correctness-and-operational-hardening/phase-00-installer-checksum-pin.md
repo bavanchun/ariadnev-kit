@@ -127,17 +127,24 @@ in phase 5, behind a signature. This phase does not touch it.
       still a manual check. See "What the ps1 suite does not cover".
 - [x] `pnpm test` green: 1110 vitest + 95 node:test, 0 failures.
 
-## Post-merge verification (open)
+## Post-merge verification — done, 2026-08-22
 
-Deliberately not a success criterion: it cannot be met before the merge, and the
-implementation is not waiting on it. **The live exposure stands until this passes.**
+Merged as PR #23 (rebase, 5 commits). `curl -fsSL https://ariadnev.com/install`
+serves the patched script immediately, confirming the "deploys on merge, no
+release" assumption against the real edge.
+
+Then the live installer was run end to end against a hostile origin serving a
+trojan **and** a checksums.txt matching that trojan:
 
 ```
-curl -fsSL https://ariadnev.com/install | head -20   # must show DEFAULT_BASE
+ariadnev install: binary from http://127.0.0.1:8731; checksums.txt from https://ariadnev.com.
+ariadnev install: checksum mismatch — refusing to install (expected 4c51375f…, got 3e0fdf25…)
+exit=1, 0 files installed
 ```
 
-If the edge still serves the old script, the "deploys on merge" assumption in
-"Why this deploys without a release" is wrong and the fix needs a release path.
+The attacker's own matching hash bought nothing. Before this change the same
+command installed the trojan and reported it verified. The vulnerability is
+closed in production, not just in the repo.
 
 Test: `packages/cli/scripts/installer-checksum-pin.test.mjs`. It stands up local
 HTTP origins and drives the real scripts, rewriting only the hardcoded canonical
