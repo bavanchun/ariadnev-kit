@@ -26,7 +26,7 @@ What it produced, measured on 2026-08-22:
   frontmatter line, and nothing reports that the exempt set got larger.
 
 ADR 0011 also removed the strongest objection to editing ported content:
-upstream is a one-time fork, not tracked, so diffability against AgentKit is
+upstream is a one-time fork, not tracked, so diffability against it is
 explicitly not a constraint.
 
 ## Decision
