@@ -77,8 +77,13 @@ public. Both are the maintainer's call and neither is in scope here.
    checklist is derived from that list, not from habit.
 2. Write `CONTRIBUTING.md`. The commit convention is observable from
    `git log` — single-line conventional subjects, no trailers, no AI references.
-   Branch style is observable too: short-lived `fix/*` and `feat/*`, rebase-merged
-   into a linear `main`.
+
+   Document the branch model **as it now stands**, not as it was: the maintainer
+   adopted `main ← dev ← feature/*` on 2026-08-22. Work branches off `dev`, lands
+   on `dev` by PR, and `dev` is promoted to `main` deliberately. An earlier
+   brainstorm the same day listed a long-lived integration branch as a non-goal;
+   that was superseded by an explicit decision and this file records the decision,
+   not the recommendation it overrode.
 3. PR template: a checklist mirroring step 1, plus a line for the scope rule that
    unrelated changes ride in their own commit.
 4. Issue templates, minimal.

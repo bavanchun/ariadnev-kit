@@ -26,7 +26,7 @@ file to choose the mode.
 - UI/UX style selection for slides or high-polish HTML: use
   `/av:ui-ux-pro-max`.
 - Documentation update after a durable visual: use `/av:docs update` and
-  `../../docs/references/documentation-management.md`.
+  `../../av-docs/references/documentation-management.md`.
 
 ## Output Rules
 

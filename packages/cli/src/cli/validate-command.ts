@@ -8,6 +8,7 @@ import { isPorted } from "../kit/skill-lint.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
+import { buildSkillIndex, checkCrossSkillReferences } from "../kit/cross-skill-references.js";
 import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
@@ -31,9 +32,34 @@ export function pendingPortNames(kitRoot: string): string[] {
   }
 }
 
+/** The files a sibling skill may legitimately be pointed at: its SKILL.md, its
+ *  references, and its scripts. Names only — the cross-skill checker compares
+ *  paths, and reading 105 skills' file contents for that would be waste. */
+function skillFileNames(skillDir: string): string[] {
+  const names = ["SKILL.md"];
+  for (const sub of ["references", "scripts"]) {
+    const dir = join(skillDir, sub);
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isFile()) names.push(`${sub}/${entry.name}`);
+    }
+  }
+  return names;
+}
+
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "graph";
+  kind:
+    | "lint"
+    | "dangling"
+    | "orphan"
+    | "skillref"
+    | "cross-dangling"
+    | "cross-shape"
+    | "missing-skill"
+    | "matrix"
+    | "collision"
+    | "graph";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -138,6 +164,17 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // ignore it. A name on neither list is still an error, so a genuine typo or a
   // reference to something that exists nowhere is caught exactly as before.
   const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingPortNames(kit.root)];
+  const pendingNames = pendingPortNames(kit.root);
+
+  // Built from every skill, in its own pass, deliberately. `skillsToCheck` is
+  // filtered by --skill (and `av eval --skill <name>` passes that filter), so an
+  // index built inside the loop below would hold one entry and report every
+  // cross-skill link as unknown-skill. The index is kit-wide; the findings are
+  // filtered.
+  const skillIndex = buildSkillIndex(
+    kit.skills.map((skill) => ({ name: skill.name, files: skillFileNames(dirname(skill.sourcePath)) })),
+  );
+
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
     const referenceFiles = existsSync(refsDir)
@@ -182,6 +219,25 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
         skill: skill.name,
         kind: "skillref",
         message: `${ref.source} references unknown skill ${ref.reference}`,
+      });
+    }
+
+    for (const cross of checkCrossSkillReferences(
+      [
+        { source: `${skill.name}/SKILL.md`, content: skill.body },
+        ...referenceFiles.map((file) => ({ source: `${skill.name}/${file.name}`, content: file.content })),
+      ],
+      skillIndex,
+      pendingNames,
+    )) {
+      findings.push({
+        skill: skill.name,
+        kind: cross.reason === "bad-shape" ? "cross-shape" : "cross-dangling",
+        // An unprefixed link resolves today and only breaks once installed dirs
+        // carry the prefix, so it warns until that lands. A stale root or a
+        // wrong depth is broken right now.
+        level: cross.shape === "unprefixed" ? "warn" : "error",
+        message: `${cross.source} links ${cross.raw} — ${cross.detail}`,
       });
     }
   }

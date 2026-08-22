@@ -102,7 +102,7 @@ Before declaring done:
   the ship commit. A match miss means the plan is already closed or there is no
   plan — skip silently; on ambiguity, skip and report. Optionally append (never
   edit) a completion comment to a linked issue per the "Delivery finalization"
-  section of `kits/core/skills/av-cook/references/plan-state-files-first.md`.
+  section of `../../av-cook/references/plan-state-files-first.md`.
   Never delete or hand-edit plan files.
 - Report: PR URL, merge commit SHA, merge method, CI runs watched and their conclusions, follow-up fixes shipped (if any).
 

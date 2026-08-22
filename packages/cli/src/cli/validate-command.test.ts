@@ -26,6 +26,55 @@ Output.
 Related: none.
 `;
 
+/** Descriptions that share no vocabulary. Two fixtures whose descriptions differ
+ *  only by the skill name score 75% on the routing-collision check and fail the
+ *  run for a reason that has nothing to do with links. */
+const FIXTURE_DESCRIPTIONS: Record<string, string> = {
+  bar: "Use when emitting an outbound cross-skill path from a body under test.",
+  baz: "Invoke as the destination holding one document that others are pointed at.",
+};
+
+/** A second fixture skill, so cross-skill links have somewhere to point. */
+function writeSkillNamed(
+  kitRoot: string,
+  name: string,
+  body: string,
+  refs: Record<string, string> = {},
+): void {
+  const dir = join(kitRoot, "skills", name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "SKILL.md"),
+    `---
+name: av:${name}
+description: ${FIXTURE_DESCRIPTIONS[name] ?? `Use this ${name} fixture skill in validate tests.`}
+---
+
+# ${name}
+
+${body}
+
+## Output format
+
+Output.
+
+## Quality gates
+
+- Check.
+
+## Workflow position
+
+Related: none.
+`,
+  );
+  if (Object.keys(refs).length > 0) {
+    mkdirSync(join(dir, "references"), { recursive: true });
+    for (const [refName, content] of Object.entries(refs)) {
+      writeFileSync(join(dir, "references", refName), content);
+    }
+  }
+}
+
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
   const dir = join(kitRoot, "skills", "foo");
   mkdirSync(dir, { recursive: true });
@@ -151,6 +200,60 @@ describe("runValidate", () => {
     const result = runValidate({ kitRoot: tmp });
     expect(result.findings).toContainEqual(
       expect.objectContaining({ kind: "skillref", message: expect.stringContaining("references/used.md") }),
+    );
+  });
+
+  // The map-scope trap. `skillsToCheck` is filtered by --skill, and
+  // `av eval --skill <name>` passes that filter, so a skill index built inside
+  // the loop would hold exactly one entry and report every cross-skill link as
+  // unknown-skill. Both cases below must behave identically.
+  it("resolves a cross-skill link under a --skill filter", () => {
+    writeSkillNamed(tmp, "bar", "See `../av-baz/references/thing.md`.\n");
+    writeSkillNamed(tmp, "baz", "See references/thing.md.\n", { "thing.md": "# Thing\n" });
+
+    const unfiltered = runValidate({ kitRoot: tmp });
+    const filtered = runValidate({ kitRoot: tmp, skillFilter: ["bar"] });
+
+    for (const result of [unfiltered, filtered]) {
+      expect(result.findings.filter((f) => f.kind === "cross-dangling")).toEqual([]);
+    }
+    expect(filtered.findings.some((f) => f.skill === "bar" && f.kind === "cross-shape")).toBe(false);
+  });
+
+  it("flags an unprefixed cross-skill link as a warning even though the target exists", () => {
+    // Existence alone calls this fine. It breaks the moment installed
+    // directories carry the av- prefix, which is the whole reason shape is a
+    // separate rule.
+    writeSkillNamed(tmp, "bar", "See `../baz/references/thing.md`.\n");
+    writeSkillNamed(tmp, "baz", "See references/thing.md.\n", { "thing.md": "# Thing\n" });
+
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "bar", kind: "cross-shape", level: "warn" }),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("fails on a cross-skill link to a file that does not exist", () => {
+    writeSkillNamed(tmp, "bar", "See `../av-baz/references/ghost.md`.\n");
+    writeSkillNamed(tmp, "baz", "See references/thing.md.\n", { "thing.md": "# Thing\n" });
+
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "bar", kind: "cross-dangling" }),
+    );
+  });
+
+  it("catches a cross-skill link written only inside a reference file", () => {
+    writeSkillNamed(tmp, "bar", "See references/local.md.\n", {
+      "local.md": "See `../../av-baz/references/ghost.md`.\n",
+    });
+    writeSkillNamed(tmp, "baz", "See references/thing.md.\n", { "thing.md": "# Thing\n" });
+
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({ skill: "bar", kind: "cross-dangling" }),
     );
   });
 
