@@ -198,3 +198,42 @@ describe("frontmatter vocabulary matches the real skill corpus", () => {
     expect(res.errors.join("\n")).toMatch(/keywrods/);
   });
 });
+
+describe("lintSkill: Workflow position names something", () => {
+  /** REQUIRED_BODY with a different Workflow position section. */
+  const withPosition = (text: string): string =>
+    REQUIRED_BODY.replace("Related: none.\n", `${text}\n`);
+
+  it("rejects a Workflow position that names neither a skill nor none", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Fits into the wider workflow.") }), []);
+    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+  });
+
+  it("accepts a Workflow position naming an av slug", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Follows av:plan, hands off to av:ship.") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
+  it("accepts the explicit none escape", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("**Typically precedes:** none") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
+  // The escape has to be the answer, not a word in a sentence. Without this the
+  // rule accepts any prose containing "none" and stops meaning anything.
+  it("does not accept none buried in prose", () => {
+    const res = lintSkill(
+      makeSkill({ body: withPosition("Runs standalone; none of the other skills depend on it.") }),
+      [],
+    );
+    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+  });
+
+  // The rule is a house check, so a name on the exemption list escapes it —
+  // that, and not `metadata.origin`, is what decides severity since ADR 0013.
+  it("skips the check for a skill on the exemption list", () => {
+    const body = withPosition("Fits into the wider workflow.");
+    expect(lintSkill(makeSkill({ body }), [], new Set(["demo"])).errors).toEqual([]);
+    expect(lintSkill(makeSkill({ body }), [], new Set(["other"])).errors.length).toBeGreaterThan(0);
+  });
+});
