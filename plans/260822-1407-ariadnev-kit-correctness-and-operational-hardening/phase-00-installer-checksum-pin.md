@@ -152,10 +152,23 @@ case. Neither passes for free.
 
 The ps1 cases run under `pwsh` when it is present (CI's `ubuntu-latest`) and skip
 otherwise — `pwsh` is not installed on the maintainer's macOS box, so **the ps1
-suite gets its first real execution in CI**, not locally. Only abort paths are
-exercised: they terminate before `%LOCALAPPDATA%` and the user-`PATH` write, which
-have no meaning off Windows. The happy path remains unverified by automation on
-either machine.
+suite got its first real execution in CI**, not locally.
+
+Two things this file originally claimed about that, both wrong, both corrected by
+CI rather than by reading:
+
+- *"The abort paths terminate before `%LOCALAPPDATA%`."* They do not. `$installDir`
+  is computed at the top of `install.ps1` beside `$asset`, not in the install
+  section, so every case died on a null `Join-Path` argument until the test
+  supplied the variable.
+- *"The user-`PATH` write has no meaning off Windows."* .NET tolerates the `User`
+  target on Linux; the opt-in case runs to the last line, where `& …ariadnev.exe`
+  gets handed to `xdg-open`. Harmless, contained in a temp dir, but the script does
+  not stop where this file said it would.
+
+What the suite does cover is the three abort paths plus warning visibility. A
+*completed* Windows install — correct `%LOCALAPPDATA%` layout, a real PATH entry,
+a runnable `.exe` — is still verified by nothing.
 
 ## Defects found in review, beyond the planned change
 
