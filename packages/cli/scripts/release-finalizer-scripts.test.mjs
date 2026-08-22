@@ -4,18 +4,38 @@ import { join } from "node:path";
 import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { generateKeyPairSync, sign } from "node:crypto";
 import { createCandidate, heldState, SHA } from "./release-privileged-fixtures.mjs";
 import { assertNoLeak, execute, finalizeRun, mutationKinds } from "./release-privileged-harness.mjs";
 import { repoRoot, withScratch } from "./release-test-helpers.mjs";
 
+// `overrides` may be a function so a case can build an env value out of the
+// candidate — a signature has to be made over that candidate's own checksums.
 const runFinalizer = (mutate = () => {}, overrides = {}) => withScratch("av-finalize-", (dir) => {
   const candidate = createCandidate(dir), state = heldState(candidate); mutate(state, candidate);
-  return execute(dir, finalizeRun, state, candidate, overrides);
+  return execute(dir, finalizeRun, state, candidate, typeof overrides === "function" ? overrides(candidate) : overrides);
+});
+
+const signWith = (key, message) => sign(null, Buffer.from(message), key).toString("base64");
+/** A perfectly valid signature — by a key that is not the release key. */
+const wrongKeySignature = (candidate) => ({
+  CHECKSUMS_SIGNATURE: signWith(
+    generateKeyPairSync("ed25519").privateKey,
+    `${candidate.attestation.product.version}\n${candidate.files["checksums.txt"]}`,
+  ),
+});
+/** The release key, over the tag rather than the bare version `parseLatestTag`
+ *  produces. Signing the wrong string would make every update fail. */
+const taggedSignature = (candidate) => ({
+  CHECKSUMS_SIGNATURE: signWith(
+    candidate.releaseKey.privateKey,
+    `ariadnev@${candidate.attestation.product.version}\n${candidate.files["checksums.txt"]}`,
+  ),
 });
 
 test("finalizer completes every preflight before one typed PATCH and validates post-state", () => {
   const run = runFinalizer();
-  assert.equal(run.result.status, 0, run.result.stderr); assert.deepEqual(mutationKinds(run), ["patch-release"]);
+  assert.equal(run.result.status, 0, run.result.stderr); assert.deepEqual(mutationKinds(run), ["upload-asset", "patch-release"]);
   const patchIndex = run.state.requests.findIndex((entry) => entry.method === "PATCH");
   assert.ok(patchIndex > 0); assert.deepEqual(run.state.requests[patchIndex].body, { draft: false, make_latest: "true" });
   const beforePatch = run.state.requests.slice(0, patchIndex);
@@ -25,11 +45,15 @@ test("finalizer completes every preflight before one typed PATCH and validates p
   assert.ok(!beforePatch.some((entry) => entry.path?.includes("/releases/tags/")));
   assert.ok(beforePatch.some((entry) => entry.path?.includes("/actions/artifacts/7/zip")));
   assert.ok(beforePatch.some((entry) => entry.path?.includes("/contents/.github/workflows/finalize-release.yml")));
-  assert.equal(beforePatch.filter((entry) => entry.path?.includes("/releases/assets/")).length, 9);
+  // Nine candidate assets, then the freshly uploaded signature — and only the
+  // signature. Re-reading the other nine after the upload would double the
+  // bytes for nothing: they were just verified and nothing else writes here.
+  assert.equal(beforePatch.filter((entry) => entry.path?.includes("/releases/assets/")).length, 10);
   const afterPatch = run.state.requests.slice(patchIndex + 1);
   assert.ok(afterPatch.some((entry) => entry.path?.endsWith("/releases/latest")));
   assert.ok(afterPatch.some((entry) => entry.path?.includes("/git/ref/tags/")));
-  assert.equal(afterPatch.filter((entry) => entry.path?.includes("/releases/assets/")).length, 9);
+  // The published release is re-read in full, signature included.
+  assert.equal(afterPatch.filter((entry) => entry.path?.includes("/releases/assets/")).length, 10);
   const value = JSON.parse(run.output.match(/^finalization_attestation=(.+)$/m)[1]);
   const schema = JSON.parse(readFileSync(join(repoRoot, ".github/release/finalization-attestation.schema.json")));
   const ajv = new Ajv2020({ strict: false }); addFormats(ajv);
@@ -51,6 +75,18 @@ for (const [name, mutate, overrides] of [
   ["already latest", (state) => { state.latest = { id: 11, tag_name: "ariadnev@1.2.3" }; }],
   ["remote asset count drift", (state) => { state.release.assets.pop(); }],
   ["remote asset drift", (state) => { state.assetBytes["1"] = Buffer.from("wrong").toString("base64"); }],
+  // The signature is what makes the checksums mean anything. Publishing without
+  // a good one would ship a release the binary then refuses to install — and
+  // immutability means it could never be corrected.
+  ["signature by the wrong key", () => {}, wrongKeySignature],
+  ["signature over the tag instead of the version", () => {}, taggedSignature],
+  ["signature missing", () => {}, { CHECKSUMS_SIGNATURE: "" }],
+  ["signature not base64", () => {}, { CHECKSUMS_SIGNATURE: "%".repeat(88) }],
+  ["signing key absent from source", (state) => { state.sources.signingKey = Buffer.from("export const SOMETHING_ELSE = 1;\n").toString("base64"); }],
+  ["signing key not ed25519", (state) => {
+    const rsa = generateKeyPairSync("rsa", { modulusLength: 2048 }).publicKey.export({ type: "spki", format: "der" }).toString("base64");
+    state.sources.signingKey = Buffer.from(`export const UPDATE_SIGNING_PUBLIC_KEY = "${rsa}";\n`).toString("base64");
+  }],
   ["wrong workflow ref", () => {}, { EXACT_WORKFLOW_SHA: "e".repeat(40) }],
   ["wrong dispatch ref", () => {}, { DISPATCH_REF: "refs/heads/main", DISPATCH_REF_TYPE: "branch" }],
 ]) test(`finalizer ${name} fails with zero PATCH`, () => {
@@ -66,7 +102,7 @@ for (const [name, mutate, overrides] of [
 test("finalizer fails after its single PATCH when the published release is not immutable", () => {
   const run = runFinalizer((state) => { state.immutable.enabled = false; });
   assert.notEqual(run.result.status, 0);
-  assert.deepEqual(mutationKinds(run), ["patch-release"]);
+  assert.deepEqual(mutationKinds(run), ["upload-asset", "patch-release"]);
   assert.match(run.result.stderr, /published release drift/);
   assertNoLeak(assert, run);
 });

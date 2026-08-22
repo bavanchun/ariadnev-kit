@@ -10,6 +10,37 @@ import { verifyChecksums } from "./update-signature.js";
 // GitHub directly, so the repo can stay fully private.
 const DOMAIN = "https://ariadnev.com";
 
+/**
+ * Where `av update` fetches from. `ARIADNEV_BASE_URL` may redirect it.
+ *
+ * This override was the plan's original RCE: with the binary, `checksums.txt`
+ * and `/version` all coming from one origin, pointing that origin somewhere else
+ * made the "fail-closed" checksum compare an attacker's binary against the
+ * attacker's own checksums. It is safe now, and only now, because the signature
+ * is verified against a key compiled into this binary — an origin that cannot
+ * produce the maintainer's signature cannot install anything, whatever it
+ * serves. The key itself is deliberately not overridable.
+ *
+ * `scopeProcessEnv()` has already run by the time any command action reads this,
+ * so a repository's own dotenv cannot set it for a run inside that repository.
+ *
+ * Non-https is refused. The signature makes tampering detectable, not private,
+ * and there is no reason to hand a network observer the list of what a machine
+ * is installing.
+ */
+export function updateBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const override = env.ARIADNEV_BASE_URL?.trim();
+  if (!override) return DOMAIN;
+  let parsed: URL;
+  try {
+    parsed = new URL(override);
+  } catch {
+    return DOMAIN;
+  }
+  if (parsed.protocol !== "https:") return DOMAIN;
+  return override.replace(/\/+$/, "");
+}
+
 /** Numeric major.minor.patch compare — "0.10.0" > "0.9.0", unlike string compare. */
 export function isNewerVersion(candidate: string, base: string): boolean {
   const parse = (v: string): [number, number, number] => {
@@ -187,12 +218,12 @@ async function fetchVersionTag(url: string): Promise<string | null> {
 
 /** Ask the edge for the latest version. Short timeout; never throws. */
 export async function fetchLatestVersion(): Promise<string | null> {
-  return fetchVersionTag(`${DOMAIN}/version`);
+  return fetchVersionTag(`${updateBaseUrl()}/version`);
 }
 
 /** Ask the edge to confirm an exact pinned version exists. Null on 404/failure/timeout. */
 export async function fetchPinnedVersion(version: string): Promise<string | null> {
-  return fetchVersionTag(`${DOMAIN}/version${versionQuery(version)}`);
+  return fetchVersionTag(`${updateBaseUrl()}/version${versionQuery(version)}`);
 }
 
 /**
@@ -250,10 +281,11 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
   }
 
   const q = versionQuery(opts.to);
+  const base = updateBaseUrl();
   const [bytes, checksums, signature] = await Promise.all([
-    deps.downloadBinary(`${DOMAIN}/download/${asset}${q}`),
-    deps.downloadText(`${DOMAIN}/download/checksums.txt${q}`),
-    deps.downloadText(`${DOMAIN}/download/checksums.txt.sig${q}`),
+    deps.downloadBinary(`${base}/download/${asset}${q}`),
+    deps.downloadText(`${base}/download/checksums.txt${q}`),
+    deps.downloadText(`${base}/download/checksums.txt.sig${q}`),
   ]);
   if (!bytes || !checksums) {
     lines.push(`  could not download the update — ${CURL_HINT.trim()}`);
