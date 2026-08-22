@@ -1,7 +1,13 @@
 # 0008 — Ported content is marked, and judged by different rules
 
-- Status: accepted
+- Status: accepted; the severity split is **superseded by
+  [0013](./0013-lint-exemption-is-a-shrinking-list.md)** (2026-08-22)
 - Date: 2026-08-15
+
+> The marking decision stands: `metadata.origin: ported` is still how provenance
+> is recorded. What changed is that the flag no longer decides lint severity — a
+> property that exempts a class it cannot count was measured at 101 of 105 skills
+> and 246 warnings nobody read. Exemption is now a named, shrinking list.
 
 ## Context
 

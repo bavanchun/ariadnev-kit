@@ -3,36 +3,40 @@
 // unit-testable without a filesystem. Spec: docs/av-skill-authoring-spec.md.
 
 import type { Artifact } from "./kit-types.js";
+import { SKILL_REFERENCE } from "./skill-crossrefs.js";
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
 
 /**
- * A skill copied from upstream, marked `metadata.origin: ported` by the port
- * script.
+ * A skill still held to the old severity, named in `kit/skills-lint-exempt.json`.
  *
- * The house rules below — the three required sections, the description length,
- * the trigger verb, the line budget — describe how *we* write a skill. They were
- * written for a corpus of 26 hand-authored skills and every one of them met the
- * bar. The ported corpus does not: all 103 lack `## Output format` and
- * `## Quality gates`, 44 carry a longer description, 17 run past the line
- * budget. Enforcing the rules on copied content leaves two options, and both are
- * worse than this one — rewrite content the port promised to copy verbatim, or
- * grant a blanket exemption that quietly retires the bar for everything.
+ * This replaces a blanket downgrade keyed on `metadata.origin: ported`. The
+ * difference is measurability: a property of the artifact exempts a class that
+ * can silently grow, while a checked-in list of names is countable, shrinks by
+ * deletion, and has a test that fails when an entry no longer needs to be there.
+ * 101 of 105 skills were unmeasurable under the old rule — not lenient,
+ * *unmeasurable*, because nothing distinguished "passes" from "never asked".
  *
- * So the bar stays, scoped to what it describes. A ported skill is still checked
- * for the things that make a skill *valid* (frontmatter shape, unknown fields, a
- * description that exists and says something); what it is not checked for is
- * house style. Its size is reported as a warning rather than ignored, because
- * the cost is real and belongs in view even when it is not ours to fix.
+ * The list is read in `load-kit.ts`, which has a kit root; this module takes the
+ * result. Reading it here would break the purity contract at the top of the file
+ * and make the fixture tests depend on the real repo's JSON. Same shape as
+ * `pendingPortNames()`.
+ *
+ * ADR 0013.
  */
-export function isPorted(artifact: Artifact): boolean {
-  const metadata = artifact.frontmatter.metadata;
-  return typeof metadata === "object" && metadata !== null && (metadata as Record<string, unknown>).origin === "ported";
-}
+export type ExemptNames = ReadonlySet<string>;
+
 export const SKILL_MAX_LINES = 300;
 export const SKILL_MAX_LINES_CEILING = 400;
-export const REFERENCE_MAX_LINES = 300;
+/**
+ * 800, raised from 300. Measured over the 463 reference files the loader
+ * actually sees: 83 exceed 300 and 6 exceed 800. A limit two thirds of the
+ * corpus-by-weight violates is not a limit, it is a warning generator — and it
+ * was suppressed for exactly the files that tripped it. 800 leaves 6 genuine
+ * outliers (821-1717 lines) to answer for themselves.
+ */
+export const REFERENCE_MAX_LINES = 800;
 export const REQUIRED_SECTIONS = [
   "## Output format",
   "## Quality gates",
@@ -95,6 +99,29 @@ function levelTwoHeadings(markdown: string): Set<string> {
   return out;
 }
 
+/** An explicit "this skill stands alone" — the deliberate-omission escape. */
+const DECLARES_NONE = /\bnone\b/i;
+
+/**
+ * Body of one level-2 section: everything between its heading and the next
+ * level-2 heading, or end of file. `null` when the section is absent — the
+ * required-section check above already reports that, and reporting it twice
+ * makes one defect look like two.
+ */
+function sectionBody(markdown: string, name: string): string | null {
+  const lines = markdown.split("\n");
+  const start = lines.findIndex((line) => line.trim() === `## ${name}`);
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start + 1, end).join("\n");
+}
+
 function resolveMaxLines(artifact: Artifact, errors: string[]): number {
   const metadata = artifact.frontmatter.metadata;
   const override =
@@ -115,7 +142,11 @@ function resolveMaxLines(artifact: Artifact, errors: string[]): number {
  * Lint one skill against the av authoring spec. Errors fail the kit load;
  * warnings (duplicate-heading heuristic) surface on `Kit.warnings` only.
  */
-export function lintSkill(artifact: Artifact, references: ReferenceFile[]): SkillLintResult {
+export function lintSkill(
+  artifact: Artifact,
+  references: ReferenceFile[],
+  exemptNames: ExemptNames = new Set(),
+): SkillLintResult {
   const errors: string[] = [];
   const warnings: string[] = [];
   const label = `skill "${artifact.name}"`;
@@ -126,7 +157,7 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
     }
   }
 
-  const ported = isPorted(artifact);
+  const exempt = exemptNames.has(artifact.name);
 
   const description = artifact.frontmatter.description;
   if (typeof description === "string") {
@@ -137,11 +168,11 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
       errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
     } else if (len > DESCRIPTION_MAX) {
       const over = `${label}: description is ${len} chars, over the ${DESCRIPTION_MAX}-char house limit`;
-      (ported ? warnings : errors).push(over);
+      (exempt ? warnings : errors).push(over);
     }
     if (!TRIGGER_VERB.test(description)) {
       const noTrigger = `${label}: description needs a trigger verb (use/invoke/run/activate/trigger) saying when to fire`;
-      (ported ? warnings : errors).push(noTrigger);
+      (exempt ? warnings : errors).push(noTrigger);
     }
   }
 
@@ -149,16 +180,34 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
   const skillLines = countLines(artifact.raw);
   if (skillLines > maxLines) {
     const tooLong = `${label}: SKILL.md is ${skillLines} lines, limit ${maxLines} (default ${SKILL_MAX_LINES})`;
-    (ported ? warnings : errors).push(tooLong);
+    (exempt ? warnings : errors).push(tooLong);
   }
 
   const skillHeadings = headings(artifact.body);
   const exactSections = levelTwoHeadings(artifact.body);
-  if (!ported) {
+  if (!exempt) {
     for (const section of REQUIRED_SECTIONS) {
       if (!exactSections.has(section)) {
         errors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
       }
+    }
+    // A present heading proves nothing — the fixture corpus already ships a
+    // skill whose required sections are headings with nothing under them. This
+    // asks Workflow position to answer its own question: name a skill, or say
+    // there is none.
+    //
+    // "None" is a real answer for a standalone skill, and the authoring spec
+    // already uses that shape for `Proof/risk: N/A — <reason>`. Without the
+    // escape the check forces authors to invent a relationship, and
+    // `av add-skill` would scaffold a skill that fails the moment it is created.
+    //
+    // .match, not .test: SKILL_REFERENCE is global, so .test carries lastIndex
+    // between calls and would answer differently on every other skill.
+    const position = sectionBody(artifact.body, "Workflow position");
+    if (position !== null && position.match(SKILL_REFERENCE) === null && !DECLARES_NONE.test(position)) {
+      errors.push(
+        `${label}: Workflow position names no av:<slug> — name what it hands off to or follows, or say "none"`,
+      );
     }
   }
   for (const ref of references) {
@@ -168,7 +217,7 @@ export function lintSkill(artifact: Artifact, references: ReferenceFile[]): Skil
       // past this budget (the longest is 2249 lines). Reporting the cost is
       // useful; failing the build over content we chose to copy verbatim is not.
       const tooLong = `${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`;
-      (ported ? warnings : errors).push(tooLong);
+      (exempt ? warnings : errors).push(tooLong);
     }
     for (const [normalized, original] of headings(ref.content)) {
       if (skillHeadings.has(normalized)) {

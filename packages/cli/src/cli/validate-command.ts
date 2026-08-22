@@ -1,10 +1,9 @@
 import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadKit } from "../kit/load-kit.js";
+import { loadKit, exemptSkillNames } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
-import { isPorted } from "../kit/skill-lint.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
@@ -75,6 +74,14 @@ export interface ValidateResult {
   ok: boolean;
   findings: ValidateFinding[];
   counts: { skills: number; agents: number; hooks: number };
+  /**
+   * Lint findings the exemption held back from erroring. Until now these went
+   * onto `Kit.warnings` and no command read them, so "downgraded to a warning"
+   * meant "discarded" — and the exemption's whole defence is that the cost stays
+   * in view. Carried in full here for programmatic consumers; the summary prints
+   * only the count, because 246 lines would bury the errors that matter.
+   */
+  heldWarnings: string[];
   summary: string;
 }
 
@@ -127,9 +134,19 @@ export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry
   }
 }
 
-function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
+function renderSummary(
+  findings: ValidateFinding[],
+  counts: ValidateResult["counts"],
+  heldWarnings: string[] = [],
+): string {
   const header = `ariadnev validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
-  if (findings.length === 0) return `${header}\n  all checks passed`;
+  // One line, not 246. The count is what makes the exemption backlog a number
+  // someone can watch shrink; the text of each warning is on the result object.
+  const held =
+    heldWarnings.length > 0
+      ? `\n  ${heldWarnings.length} warning(s) held by kit/skills-lint-exempt.json`
+      : "";
+  if (findings.length === 0) return `${header}\n  all checks passed${held}`;
   const lines = [header];
   for (const f of findings) {
     const tag = (f.level ?? "error") === "warn" ? "warn:" : "";
@@ -138,6 +155,7 @@ function renderSummary(findings: ValidateFinding[], counts: ValidateResult["coun
   const errors = findings.filter((f) => (f.level ?? "error") === "error").length;
   const warns = findings.length - errors;
   lines.push(`  ${errors} error(s), ${warns} warning(s)`);
+  if (held) lines.push(held.trimStart());
   return lines.join("\n");
 }
 
@@ -152,7 +170,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     const message = err instanceof Error ? err.message : String(err);
     const findings: ValidateFinding[] = [{ skill: "(kit)", kind: "lint", message }];
     const counts = { skills: 0, agents: 0, hooks: 0 };
-    return { ok: false, findings, counts, summary: renderSummary(findings, counts) };
+    return { ok: false, findings, counts, heldWarnings: [], summary: renderSummary(findings, counts) };
   }
 
   const findings: ValidateFinding[] = [];
@@ -170,6 +188,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // ignore it. A name on neither list is still an error, so a genuine typo or a
   // reference to something that exists nowhere is caught exactly as before.
   const pendingNames = pendingPortNames(kit.root);
+  const exemptNames = exemptSkillNames(kit.root);
   const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingNames];
 
   // Built from every skill, in its own pass, deliberately. `skillsToCheck` is
@@ -206,7 +225,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({
         skill: skill.name,
         kind: "orphan",
-        level: isPorted(skill) && !opts.strict ? "warn" : "error",
+        level: exemptNames.has(skill.name) && !opts.strict ? "warn" : "error",
         message: `${o} exists but is never linked from SKILL.md`,
       });
     }
@@ -290,5 +309,6 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const counts = { skills: kit.skills.length, agents: kit.agents.length, hooks: kit.hooks.length };
   // Warnings surface but don't fail; only error-level findings break the gate.
   const ok = !findings.some((f) => (f.level ?? "error") === "error");
-  return { ok, findings, counts, summary: renderSummary(findings, counts) };
+  const heldWarnings = kit.warnings;
+  return { ok, findings, counts, heldWarnings, summary: renderSummary(findings, counts, heldWarnings) };
 }

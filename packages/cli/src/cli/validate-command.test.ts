@@ -1,10 +1,36 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import matter from "gray-matter";
 import { pendingPortNames, runValidate } from "./validate-command.js";
-import { resolveKitRoot } from "../kit/load-kit.js";
+import { resolveKitRoot, exemptSkillNames } from "../kit/load-kit.js";
+import { lintSkill, type ReferenceFile } from "../kit/skill-lint.js";
+import type { Artifact } from "../kit/kit-types.js";
+
+/** Read one skill the way loadKit does, so the ratchet lints the real thing. */
+function readSkillArtifact(dir: string, name: string): Artifact {
+  const sourcePath = join(dir, "SKILL.md");
+  const raw = readFileSync(sourcePath, "utf8");
+  const parsed = matter(raw);
+  return {
+    type: "skill",
+    name,
+    frontmatter: parsed.data ?? {},
+    body: parsed.content.replace(/^\n+/, ""),
+    raw,
+    sourcePath,
+  };
+}
+
+function referenceFilesOf(dir: string): ReferenceFile[] {
+  const refs = join(dir, "references");
+  if (!existsSync(refs)) return [];
+  return readdirSync(refs)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => ({ name: `references/${f}`, content: readFileSync(join(refs, f), "utf8") }));
+}
 
 const GOOD_FRONTMATTER = `---
 name: av:foo
@@ -73,6 +99,14 @@ Related: none.
       writeFileSync(join(dir, "references", refName), content);
     }
   }
+}
+
+/** Mark a fixture skill exempt the way the kit does — by name, in
+ *  `skills-lint-exempt.json` at the kit root. `metadata.origin: ported` no
+ *  longer decides severity; ADR 0013 moved that to this checked-in list so the
+ *  exempt set is countable and shrinks by deletion. */
+function writeExemptList(kitRoot: string, names: string[]): void {
+  writeFileSync(join(kitRoot, "skills-lint-exempt.json"), JSON.stringify({ exempt: names }, null, 2));
 }
 
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
@@ -290,6 +324,7 @@ describe("runValidate --strict", () => {
 
   it("leaves a ported skill's orphan as a passing warning by default", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
+    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp });
     expect(result.ok).toBe(true);
     expect(result.findings).toContainEqual(
@@ -299,6 +334,7 @@ describe("runValidate --strict", () => {
 
   it("promotes that orphan to an error and fails", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
+    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp, strict: true });
     expect(result.ok).toBe(false);
     expect(result.findings).toContainEqual(
@@ -308,6 +344,7 @@ describe("runValidate --strict", () => {
 
   it("still passes a clean tree", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
+    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp, strict: true });
     expect(result.ok).toBe(true);
   });
@@ -316,6 +353,7 @@ describe("runValidate --strict", () => {
     // Deliberate scope: promoting every warning would be free today (all 89 are
     // orphans) and would block the next port of a long upstream skill later.
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
+    writeExemptList(tmp, ["foo"]);
     writeInvalidWorkflow(tmp);
     const lenient = runValidate({ kitRoot: tmp });
     const strict = runValidate({ kitRoot: tmp, strict: true });
@@ -338,6 +376,36 @@ describe("kit-wide reference integrity", () => {
       referenceFindings.map((f) => `${f.skill}: ${f.message}`),
       "link the file where the body needs it, index it under ## References with a purpose line, or delete it",
     ).toEqual([]);
+  });
+});
+
+describe("lint exemption ratchet", () => {
+  const kitRoot = resolveKitRoot(process.cwd());
+  const exempt = exemptSkillNames(kitRoot);
+
+  it("lists only skills that exist", () => {
+    const present = new Set(
+      readdirSync(join(kitRoot, "skills"), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name),
+    );
+    expect([...exempt].filter((name) => !present.has(name))).toEqual([]);
+  });
+
+  // The whole point of a ratchet. A name that no longer needs to be here is the
+  // difference between "shrinking backlog" and "the old blanket exemption with
+  // extra steps", and only a failing test makes anyone delete it.
+  it("holds no skill that already passes every check", () => {
+    const stillEarning: string[] = [];
+    for (const name of exempt) {
+      const dir = join(kitRoot, "skills", name);
+      const artifact = readSkillArtifact(dir, name);
+      const refs = referenceFilesOf(dir);
+      // Lint it as if it were NOT exempt. Any error is what the entry is for.
+      if (lintSkill(artifact, refs, new Set()).errors.length > 0) stillEarning.push(name);
+    }
+    const redundant = [...exempt].filter((name) => !stillEarning.includes(name));
+    expect(redundant, `these skills pass unaided — delete them from kit/skills-lint-exempt.json`).toEqual([]);
   });
 });
 
