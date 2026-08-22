@@ -199,6 +199,19 @@ the ratchet asserts the list is non-empty, since every other assertion in it
 iterates the list and an empty one passes them all; and the benchmark-report
 re-freeze was unrelated churn, reverted.
 
+**Advisory review then found the split was only half a ratchet.** Membership
+shrinks by deletion, but nothing stopped the *finding count* growing: a listed
+skill could gain a longer SKILL.md, an over-cap reference, or lose a section,
+and CI stayed green while the backlog climbed. Phase 8 edits 101 listed skills,
+which is precisely when that channel gets exercised. A checked-in high-water
+mark now caps it — proven by growing a listed skill until the test reported
+`expected 389 to be less than or equal to 388`.
+
+The same pass narrowed one of the leftovers: CI runs `validate --check --strict`
+(`ci.yml:108`), which promotes orphans to errors for listed skills too. The
+un-ratcheted second exemption site is open to a local non-strict run, not to the
+build.
+
 **Left open, recorded in ADR 0013:** the ratchet measures `lintSkill` only, not
 the reference-orphan severity in `validate-command.ts`. Zero orphans exist today
 so nothing diverges, but the coupling is real. And `readReferenceFiles` does not

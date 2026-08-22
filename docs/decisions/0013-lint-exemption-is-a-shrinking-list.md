@@ -125,12 +125,17 @@ are a floor. The actual control is second-reader review, budgeted in phase 8.
 
 - The exempt set is a number that can be watched. It starts at **101** skills
   and **388** held findings.
+- The backlog is ratcheted in both directions: membership shrinks by deletion,
+  and a checked-in high-water mark stops the finding count growing. Without the
+  second half a listed skill could gain findings freely — a longer SKILL.md, a
+  new over-cap reference, a deleted section — with CI green, which is exactly
+  the channel phase 8 exercises while editing 101 listed skills.
 - The ratchet measures `lintSkill` only. The second exemption site — the
-  reference-orphan severity in `validate-command.ts` — is not covered. The
-  corpus has zero orphans today, so nothing diverges yet, but a skill whose lint
-  errors are fixed will be ordered off the list while an orphan it acquired
-  meanwhile becomes a hard error. Fold orphans into the ratchet if that ever
-  bites.
+  reference-orphan severity in `validate-command.ts` — is not covered by it. In
+  practice CI runs `validate --check --strict`, which promotes orphans to errors
+  for listed skills too, so the gap is narrower than it looks: it is open to a
+  local non-strict run, not to the build. Fold orphans into the ratchet if that
+  ever bites.
 - Deleting the last entry deletes the file, `exemptSkillNames`, and the
   `exemptNames` parameter. The mechanism is designed to be removed.
 - A non-empty list when phase 8 closes means the plan does not close — it
