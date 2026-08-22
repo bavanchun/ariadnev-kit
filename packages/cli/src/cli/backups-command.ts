@@ -1,6 +1,7 @@
-import { existsSync, readdirSync, statSync, cpSync } from "node:fs";
+import { existsSync, cpSync } from "node:fs";
 import { join, basename } from "node:path";
-import { readBackupManifest, backupPath } from "../install/backup.js";
+import { readBackupManifest, backupPath, backupDirNames, BACKUP_DIR_NAME } from "../install/backup.js";
+import { assertWithinRoots } from "../install/path-guard.js";
 
 export interface BackupsListOpts {
   home: string;
@@ -16,16 +17,19 @@ function backupsParentDir(opts: { home: string; cwd: string; scope: "project" | 
 /** List timestamped backup dirs with a file count (manifest-based when available). */
 export function runBackupsList(opts: BackupsListOpts): string {
   const parent = backupsParentDir(opts);
-  if (!existsSync(parent)) return "ariadnev backups — no backups found";
-  const dirs = readdirSync(parent)
-    .filter((n) => statSync(join(parent, n)).isDirectory())
-    .sort()
-    .reverse();
+  const dirs = backupDirNames(parent).reverse();
   if (dirs.length === 0) return "ariadnev backups — no backups found";
   const lines = ["ariadnev backups"];
   for (const dir of dirs) {
-    const manifest = readBackupManifest(join(parent, dir));
-    const count = manifest.length > 0 ? `${manifest.length} file(s)` : "no manifest — list only";
+    // A broken manifest is a status, not a crash: listing is how someone finds
+    // out which backup is damaged, so it has to survive reading a damaged one.
+    let count: string;
+    try {
+      const manifest = readBackupManifest(join(parent, dir));
+      count = manifest.length > 0 ? `${manifest.length} file(s)` : "no manifest — list only";
+    } catch {
+      count = "invalid manifest — cannot restore";
+    }
     lines.push(`  ${dir}  ${count}`);
   }
   return lines.join("\n");
@@ -50,6 +54,14 @@ export interface BackupsRestoreResult {
 
 /** Restore one or all files from a timestamped backup, backing up current state first. */
 export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResult {
+  // `timestamp` reaches here straight from argv and is joined into a path. A
+  // shape check keeps it from naming anything but a backup directory.
+  if (!BACKUP_DIR_NAME.test(opts.timestamp)) {
+    return {
+      restored: [],
+      summary: `ariadnev backups restore — "${opts.timestamp}" is not a backup timestamp (expected YYYYMMDD-HHMMSS)`,
+    };
+  }
   const backupRoot = join(backupsParentDir(opts), opts.timestamp);
   if (!existsSync(backupRoot)) {
     return { restored: [], summary: `ariadnev backups restore — backup "${opts.timestamp}" not found` };
@@ -67,8 +79,18 @@ export function runBackupsRestore(opts: BackupsRestoreOpts): BackupsRestoreResul
     ? manifest.filter((e) => basename(e.originalPath) === basename(opts.file!) || e.originalPath.endsWith(opts.file!))
     : manifest;
 
+  // The roots install itself was allowed to write, and for the same reason:
+  // restore may only put back what install could have put there. NOT the scope
+  // root alone — a project-scope install legitimately writes home-scoped
+  // provider directories, which `backupRelPath` records under `abs/`, and
+  // guarding on the scope root would refuse to restore them.
+  const allowedRoots = [opts.home, opts.cwd];
+
   const restored: string[] = [];
   for (const entry of targets) {
+    // Before the dry-run check: a dry run that reports a restore the real run
+    // would refuse is worse than no dry run.
+    assertWithinRoots(entry.originalPath, allowedRoots);
     restored.push(entry.originalPath);
     if (opts.dryRun) continue;
     // Protect current state before overwriting it, same discipline as install/uninstall.
