@@ -1,7 +1,7 @@
 ---
 title: "ariadnev evidence-backed parity with AgentKit"
 description: "Close the two real capability gaps against AgentKit, clear the inherited reference debt, and make the eval coverage claim true and self-enforcing instead of aspirational."
-status: pending
+status: completed
 priority: P1
 effort: "8-12d"
 tags: [kit, skills, evals, quality, release]
