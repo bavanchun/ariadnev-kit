@@ -1,36 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import matter from "gray-matter";
 import { pendingPortNames, runValidate } from "./validate-command.js";
-import { resolveKitRoot, exemptSkillNames } from "../kit/load-kit.js";
-import { lintSkill, type ReferenceFile } from "../kit/skill-lint.js";
-import type { Artifact } from "../kit/kit-types.js";
-
-/** Read one skill the way loadKit does, so the ratchet lints the real thing. */
-function readSkillArtifact(dir: string, name: string): Artifact {
-  const sourcePath = join(dir, "SKILL.md");
-  const raw = readFileSync(sourcePath, "utf8");
-  const parsed = matter(raw);
-  return {
-    type: "skill",
-    name,
-    frontmatter: parsed.data ?? {},
-    body: parsed.content.replace(/^\n+/, ""),
-    raw,
-    sourcePath,
-  };
-}
-
-function referenceFilesOf(dir: string): ReferenceFile[] {
-  const refs = join(dir, "references");
-  if (!existsSync(refs)) return [];
-  return readdirSync(refs)
-    .filter((f) => f.endsWith(".md"))
-    .map((f) => ({ name: `references/${f}`, content: readFileSync(join(refs, f), "utf8") }));
-}
+import { resolveKitRoot, exemptSkillNames, readArtifact, readReferenceFiles } from "../kit/load-kit.js";
+import { lintSkill } from "../kit/skill-lint.js";
 
 const GOOD_FRONTMATTER = `---
 name: av:foo
@@ -399,10 +374,11 @@ describe("lint exemption ratchet", () => {
     const stillEarning: string[] = [];
     for (const name of exempt) {
       const dir = join(kitRoot, "skills", name);
-      const artifact = readSkillArtifact(dir, name);
-      const refs = referenceFilesOf(dir);
+      // The loader's own readers, so the ratchet lints exactly what production
+      // lints — a local copy would drift the moment `readArtifact` changes.
+      const artifact = readArtifact("skill", name, join(dir, "SKILL.md"));
       // Lint it as if it were NOT exempt. Any error is what the entry is for.
-      if (lintSkill(artifact, refs, new Set()).errors.length > 0) stillEarning.push(name);
+      if (lintSkill(artifact, readReferenceFiles(dir), new Set()).errors.length > 0) stillEarning.push(name);
     }
     const redundant = [...exempt].filter((name) => !stillEarning.includes(name));
     expect(redundant, `these skills pass unaided — delete them from kit/skills-lint-exempt.json`).toEqual([]);

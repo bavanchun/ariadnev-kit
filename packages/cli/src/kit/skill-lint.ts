@@ -99,8 +99,16 @@ function levelTwoHeadings(markdown: string): Set<string> {
   return out;
 }
 
-/** An explicit "this skill stands alone" — the deliberate-omission escape. */
-const DECLARES_NONE = /\bnone\b/i;
+/**
+ * An explicit "this skill stands alone" — the deliberate-omission escape.
+ *
+ * "none" has to be the answer, not a word in a sentence: after a label's colon,
+ * or alone at the start of a line. A bare `\bnone\b` would also accept "none of
+ * the downstream skills depend on it", which is prose, not a declaration. No
+ * skill in the kit takes this escape today, so tightening it costs nothing —
+ * only `av add-skill`'s "Related: none." scaffold and the fixtures rely on it.
+ */
+const DECLARES_NONE = /(?::\s*|^\s*|\n\s*)(?:\*\*)?\s*none\b/i;
 
 /**
  * Body of one level-2 section: everything between its heading and the next
