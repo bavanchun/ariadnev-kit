@@ -38,7 +38,13 @@ export function updateBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
     return DOMAIN;
   }
   if (parsed.protocol !== "https:") return DOMAIN;
-  return override.replace(/\/+$/, "");
+  // Rebuilt from the parsed URL, not returned as given. The raw string carried
+  // whatever was in it into every asset URL: `https://user:pw@host` put
+  // credentials on each request, a trailing `?x=` swallowed the path into a
+  // query, and a `#` made it a fragment that was never sent at all. None of
+  // those are a base URL, so none of them are accepted as one.
+  if (parsed.username || parsed.password || parsed.search || parsed.hash) return DOMAIN;
+  return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
 }
 
 /** Numeric major.minor.patch compare — "0.10.0" > "0.9.0", unlike string compare. */
@@ -142,13 +148,44 @@ function readReceiptVersion(root: string): string | null {
   }
 }
 
-async function downloadBytes(url: string): Promise<Uint8Array | null> {
+/**
+ * `fetch`, refusing to leave https at any hop.
+ *
+ * Checking the scheme of the URL we construct is not enough: `fetch` follows
+ * redirects across protocols, so an origin can 302 to plain http and the request
+ * completes over the wire in clear. That is available to a hostile
+ * `ARIADNEV_BASE_URL` and, more to the point, to a compromised or misconfigured
+ * `ariadnev.com` — which would downgrade every client, not just an opted-in one.
+ *
+ * The signature makes tampering detectable either way. Confidentiality is the
+ * thing at stake: what a machine is installing, and when, is not a network
+ * observer's business.
+ */
+async function httpsOnlyFetch(url: string, timeoutMs: number): Promise<Response | null> {
+  if (!url.startsWith("https://")) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60000);
-    const res = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "ariadnev" } });
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "ariadnev" },
+      redirect: "follow",
+    });
+    // `res.url` is the URL the response actually came from, after every
+    // redirect. An empty string means no redirect was followed.
+    if (res.url && !res.url.startsWith("https://")) return null;
+    return res.ok ? res : null;
+  } catch {
+    return null;
+  } finally {
     clearTimeout(timer);
-    if (!res.ok) return null;
+  }
+}
+
+async function downloadBytes(url: string): Promise<Uint8Array | null> {
+  const res = await httpsOnlyFetch(url, 60000);
+  if (!res) return null;
+  try {
     return new Uint8Array(await res.arrayBuffer());
   } catch {
     return null;
@@ -156,12 +193,9 @@ async function downloadBytes(url: string): Promise<Uint8Array | null> {
 }
 
 async function downloadTextAsset(url: string): Promise<string | null> {
+  const res = await httpsOnlyFetch(url, 15000);
+  if (!res) return null;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "ariadnev" } });
-    clearTimeout(timer);
-    if (!res.ok) return null;
     return await res.text();
   } catch {
     return null;
@@ -200,15 +234,9 @@ export function realUpdateDeps(): UpdateDeps {
 /** Shared `/version` fetch — short timeout, never throws. `url` carries the
  *  edge's `?version=` selector for the pinned path, or is bare for latest. */
 async function fetchVersionTag(url: string): Promise<string | null> {
+  const res = await httpsOnlyFetch(url, 3000);
+  if (!res) return null;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "ariadnev" },
-    });
-    clearTimeout(timer);
-    if (!res.ok) return null;
     const text = (await res.text()).trim();
     return text ? parseLatestTag(text) : null;
   } catch {
@@ -257,11 +285,37 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
     return done(opts.to !== null ? 1 : 0);
   }
 
+  // `opts.to` is shape-checked above; `target` came off the unsigned `/version`
+  // endpoint and was not. Two things depend on it being an exact `x.y.z`.
+  //
+  // It goes into the signed message as `${target}\n${checksums}`, which is not
+  // prefix-free: a target containing a newline moves the boundary, so one
+  // signature authenticates several different (version, checksums) readings.
+  // Only truncation is reachable that way — no sha can be forged — but a
+  // per-platform denial of updates is still an outcome an origin should not get
+  // to choose.
+  //
+  // And it is printed. `sanitize()` redacts credentials, not control characters,
+  // so a target carrying `\u001b[2K\r` can erase the line reporting it and
+  // write a reassuring one in its place.
+  if (!isValidVersion(target)) {
+    lines.push("  the update server returned a version that is not an exact x.y.z — nothing changed");
+    return done(1);
+  }
+
   // The latest path skips a no-op update; a pinned target always proceeds —
   // that's exactly how a downgrade is requested.
   if (opts.to === null && !isNewerVersion(target, opts.currentVersion)) {
     lines.push("  up to date");
     return done();
+  }
+
+  // A pinned request that resolves to something else is the origin choosing the
+  // release, not the caller. Both are genuinely signed, so verification cannot
+  // catch it — only this can.
+  if (opts.to !== null && target !== opts.to) {
+    lines.push(`  the update server resolved ${opts.to} to ${target} — nothing changed`);
+    return done(1);
   }
 
   lines.push(`  ${opts.to !== null ? "pinned target" : "update available"}: ${opts.currentVersion} -> ${target}`);

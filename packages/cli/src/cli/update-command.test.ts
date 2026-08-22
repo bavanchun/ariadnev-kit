@@ -410,6 +410,19 @@ describe("updateBaseUrl", () => {
 
   // The signature makes tampering detectable, not private. There is no reason
   // to hand an observer the list of what a machine is installing.
+  // Each of these parses as https and used to be returned verbatim, so it
+  // reached every asset URL exactly as written.
+  it("strips nothing and accepts nothing odd — it rebuilds from the parse", () => {
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "HTTPS://Mirror.Example" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://user:pw@evil.example" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://evil.example/?x=" })).toBe("https://ariadnev.com");
+    // An empty fragment is no fragment. Rebuilding is what makes this safe:
+    // returned verbatim it would have swallowed every path into the fragment.
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example#" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example#frag" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example/base/" })).toBe("https://mirror.example/base");
+  });
+
   for (const hostile of ["http://evil", "file:///etc", "ftp://x", "not a url", "javascript:alert(1)"]) {
     it(`ignores ${JSON.stringify(hostile)} and stays on the real domain`, () => {
       expect(updateBaseUrl({ ARIADNEV_BASE_URL: hostile })).toBe("https://ariadnev.com");
@@ -453,5 +466,78 @@ describe("runUpdate: a redirected origin still cannot install", () => {
     expect(res.summary).toContain("signature did not verify");
     expect(replaced).toEqual([]);
     expect(res.exitCode).toBe(1);
+  });
+});
+
+
+/**
+ * `target` comes off `/version`, which is unsigned by design — the signature
+ * covers the checksums, not the advertisement. Everything downstream treats it
+ * as a version string: it goes into the signed message, and it gets printed.
+ */
+describe("runUpdate: the advertised version is not trusted", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "av-update-target-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const opts = (over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts => ({
+    home: sandbox, cwd: root, scope: "project", currentVersion: "1.1.0",
+    execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+    to: null, platform: "darwin", arch: "arm64", ...over,
+  });
+
+  const deps = (latest: string, over: Partial<UpdateDeps> = {}): UpdateDeps & { replaced: unknown[] } => {
+    const replaced: unknown[] = [];
+    return {
+      fetchLatestVersion: async () => latest,
+      fetchPinnedVersion: async () => latest,
+      downloadBinary: async () => new Uint8Array([1]),
+      downloadText: async (url: string) => (url.includes(".sig") ? "sig" : "hash  ariadnev-darwin-arm64\n"),
+      replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: () => true,
+      replaced,
+      ...over,
+    };
+  };
+
+  // `${tag}\n${checksums}` is not prefix-free. A newline in the tag moves the
+  // boundary, so one signature authenticates several readings of the same bytes.
+  it("refuses a version containing a newline", async () => {
+    const d = deps("1.2.0\nhash  ariadnev-darwin-arm64");
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("not an exact x.y.z");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  // `sanitize()` redacts credentials, not control characters. `\u001b[2K\r`
+  // erases the line reporting the update and writes over it.
+  it("refuses a version carrying terminal escapes, before printing it", async () => {
+    const d = deps("1.2.0\u001b[2K\rariadnev is up to date. Nothing to do.");
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("not an exact x.y.z");
+    expect(res.summary).not.toContain("up to date. Nothing to do");
+    expect(res.summary).not.toContain("\u001b");
+  });
+
+  // Both releases are genuinely signed, so verification cannot tell them apart.
+  // Only the caller knows which one it asked for.
+  it("refuses when a pinned --to resolves to a different version", async () => {
+    const d = deps("1.3.0");
+    const res = await runUpdate(opts({ to: "1.2.0" }), d);
+    expect(res.summary).toContain("resolved 1.2.0 to 1.3.0");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  it("still installs when the pinned version is the one served", async () => {
+    const d = deps("1.2.0");
+    const res = await runUpdate(opts({ to: "1.2.0" }), d);
+    expect(res.summary).toContain("pinned target: 1.1.0 -> 1.2.0");
   });
 });
