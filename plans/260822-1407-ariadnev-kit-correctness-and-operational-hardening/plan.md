@@ -72,6 +72,28 @@ production — the live installer now refuses a trojan served with its own match
 checksums.txt. Review turned up four more defects in the same code, all fixed and
 recorded in the phase file.
 
+## An assumption this plan was built on turned out to be false
+
+Confirmed by the maintainer on 2026-08-22: **other people have installed ariadnev
+through the curl installer.** This plan was written as if the only install were
+the maintainer's own.
+
+It changes one thing sharply. Phase 4 renames skill directories on live installs
+and describes itself as "the point of no return". Against a single machine that is
+a controlled experiment. Against unknown installs it is an unrehearsed migration
+with no way back for the people it breaks, and the plan's own decision to drop the
+enumerating migration rested partly on measuring `~/.agents/skills` **on this
+machine** — a measurement that says nothing about anyone else's.
+
+Hence phase 11, and hence its position ahead of phase 3 in the execution order.
+Phase 11's value is not the channel; it is that phase 4 gets a rehearsal with real
+installs before the irreversible step.
+
+Two related facts worth carrying forward: the RCE closed in phase 0 was live for
+those users too, and phase 3's heal-on-install is now the *only* mechanism
+correcting anyone's install, so its five hard requirements are load-bearing rather
+than defensive.
+
 ## Corrections adopted from the red team
 
 Four reviewers (security, failure-mode, assumption, scope) produced 19
@@ -129,11 +151,19 @@ path-shape are now two separate rules.
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | Pending |
 | 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | Pending |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
+| 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | Pending |
+| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | Pending |
 
-**Execution order: 0 first and alone → 1, 2, 5 in parallel → release(5) → 3 → 4 → 6 → 7 → 8 → 9.**
+**Execution order: 0 ✓ → 1, 2, 5 in parallel → release(5) → 11 → 3 → 4 → 6 → 7 → 8 → 9.**
+**Phase 10 has no dependencies and blocks nothing — fit it into any gap.**
 
 Phase 0 closes a live vulnerability, depends on nothing, and deploys on merge
-without a release. It should ship before anything else in this plan starts.
+without a release. Shipped 2026-08-22.
+
+Phases 10 and 11 were added on 2026-08-22 after a brainstorm on release process.
+Phase 11 carries the consequential change: **phase 4 must be rehearsed on a beta
+channel before its stable release.** See "An assumption this plan was built on
+turned out to be false" below.
 
 Phase 5 was split out of the original phase 5 and its security half must be
 **released, not merely merged**, before phase 4's release. Two reasons. Phase 4's
