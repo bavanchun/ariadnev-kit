@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Link integrity"
-status: todo
+status: completed
 priority: P1
 effort: "2-3d"
 dependencies: []
@@ -117,9 +117,9 @@ separate pass before the loop.** The map is kit-wide; the findings are filtered.
 
 ## Success Criteria
 
-- [ ] `grep -rn 'kits/core/skills/' kit/` returns **nothing**. One-line gate
+- [x] `grep -rn 'kits/core/skills/' kit/` returns **nothing**. One-line gate
       covering the class the checker's charter might miss.
-- [ ] A recursive grep for unprefixed `(\.\./)+[a-z][a-z0-9-]*/references/` across
+- [x] A recursive grep for unprefixed `(\.\./)+[a-z][a-z0-9-]*/references/` across
       all of `kit/` returns nothing. This covers the **installed-but-unlinted**
       class: `install-plan.ts:79-92` walks recursively, so nested subtrees
       (`document-skills/{pdf,pptx,docx,xlsx}/`, and nested reference dirs under
@@ -128,14 +128,53 @@ separate pass before the loop.** The map is kit-wide; the findings are filtered.
       being invisible to `loadKit` (`load-kit.ts:67-71`, non-recursive) and
       therefore to this checker. They contain zero cross-skill links today; the
       grep keeps it that way.
-- [ ] A fixture with `../cook/references/x.md` (unprefixed, target exists) is
+- [x] A fixture with `../cook/references/x.md` (unprefixed, target exists) is
       **flagged** — proving the shape rule works where a name lookup cannot.
-- [ ] A filtered run (`av eval --skill plan`) does not report false
+- [x] A filtered run (`av eval --skill plan`) does not report false
       `unknown-skill` findings.
-- [ ] A link written only inside a `references/*.md` file is caught.
-- [ ] Bare `av:<slug>` prose is not flagged.
-- [ ] `pm/references/sync-back.md` cites nothing nonexistent.
-- [ ] `pnpm test` green.
+- [x] A link written only inside a `references/*.md` file is caught.
+- [x] Bare `av:<slug>` prose is not flagged.
+- [x] `pm/references/sync-back.md` cites nothing nonexistent.
+- [x] `pnpm test` green.
+
+## What review changed — merged as PR #24
+
+The first pass passed all criteria and was still wrong in four ways. Recorded
+because three of them are classes, not incidents.
+
+1. **Two false positives that fail CI on correct content.** A script target had
+   no anchor, so the full stop ending "run `../av-x/scripts/y.cjs`." became part
+   of the filename — `references/*.md` was safe only because `\.md` anchors it.
+   And the pattern allowed nested script paths while the index was built flat, so
+   a link to `plans-kanban/scripts/lib/*.cjs`, a file that exists, reported
+   missing. Segments now end in an alphanumeric; the index walks recursively.
+
+2. **A bulk rewrite treated a fenced bash path as a markdown link.**
+   `ship-workflow.md` had `POST_BIN=kits/core/skills/av-journal/scripts/post-social.cjs`
+   as a shell fallback. The perl pass turned it into `../../`, which bash resolves
+   against the user's project directory and lands outside it. Its paired line
+   claimed "same shape as step 4" and had drifted differently.
+
+   That pair exposed a wider class: **every** `kits/core/` path was stale — the
+   tree is `kit/`, hooks live under `kit/hooks/_lib/` — and the installed-first
+   halves were wrong too, since hooks install to `.claude/hooks/av/_lib/`, not
+   `.claude/hooks/lib/`. 14 source-repo paths plus 3 installed paths, both halves
+   of every pair now checked against files that exist.
+
+3. **The dangling citation had a source.** `docs/av-skill-authoring-spec.md`
+   instructed every skill author to cite `cook/references/risk-lanes.md`, which
+   does not exist. Removing it from `pm` alone satisfies the literal criterion
+   while leaving the instruction that regenerates it.
+
+4. **The CI grep filtered whole lines.** A good link could mask a bad one on the
+   same line. It filters paths now, with a probe demonstrating the difference.
+
+Also: an unprefixed link short-circuited before the existence check, leaving a
+typo'd slug at warn level when the severity table puts existence at error.
+
+**Unpaid debt, recorded at the top of [phase 3](./phase-03-installer-av-prefix-and-heal.md):**
+nothing produces the `av-` layout yet, so 0 of 28 prefixed links resolve against
+a real install, and this phase nets −2 working links until phase 3 lands.
 
 ## Risk Assessment
 
