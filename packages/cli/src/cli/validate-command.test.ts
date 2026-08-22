@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { pendingPortNames, runValidate } from "./validate-command.js";
 import { resolveKitRoot, exemptSkillNames, readArtifact, readReferenceFiles } from "../kit/load-kit.js";
 import { lintSkill } from "../kit/skill-lint.js";
@@ -408,6 +407,9 @@ describe("lint exemption ratchet", () => {
     const stillEarning: string[] = [];
     for (const name of exempt) {
       const dir = join(kitRoot, "skills", name);
+      // A stale name is the previous test's finding; reading it here would bury
+      // that clear message under an ENOENT from `readArtifact`.
+      if (!existsSync(join(dir, "SKILL.md"))) continue;
       // The loader's own readers, so the ratchet lints exactly what production
       // lints — a local copy would drift the moment `readArtifact` changes.
       const artifact = readArtifact("skill", name, join(dir, "SKILL.md"));
@@ -420,7 +422,7 @@ describe("lint exemption ratchet", () => {
 });
 
 describe("pending-port allowances", () => {
-  const kitRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..", "kit");
+  const kitRoot = resolveKitRoot(process.cwd());
 
   it("never lists a skill that has already been ported", () => {
     // The list exists to cover a port in progress. A name that stayed on it
