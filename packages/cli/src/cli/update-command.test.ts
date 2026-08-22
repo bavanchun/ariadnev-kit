@@ -541,3 +541,69 @@ describe("runUpdate: the advertised version is not trusted", () => {
     expect(res.summary).toContain("pinned target: 1.1.0 -> 1.2.0");
   });
 });
+
+/**
+ * The property the beta channel rests on. There is no channel abstraction —
+ * a beta is reachable only by naming its exact version — so "bare update never
+ * picks a beta" is not enforced by routing code that could be inspected. It
+ * falls out of two things: the edge answers `/version` from the *latest*
+ * release, and finalization never marks a beta latest.
+ *
+ * That makes this test the only thing standing between a published beta and
+ * every machine running `av update`. It is written against the selection logic
+ * rather than the edge, so it fails if either half of the reasoning changes.
+ */
+describe("runUpdate: a beta is never selected without being asked for", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "av-update-beta-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const opts = (over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts => ({
+    home: sandbox, cwd: root, scope: "project", currentVersion: "1.1.0",
+    execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: true,
+    to: null, platform: "darwin", arch: "arm64", ...over,
+  });
+
+  const deps = (latest: string, pinned: string | null = null): UpdateDeps => ({
+    fetchLatestVersion: async () => latest,
+    fetchPinnedVersion: async () => pinned,
+    downloadBinary: async () => null,
+    downloadText: async () => null,
+    replaceBinary: () => {},
+    verifyRelease: () => true,
+  });
+
+  // The edge answers /version from the latest release, and a beta is never
+  // latest — so the version that reaches here is the stable one.
+  it("takes the stable version the edge reports, with a beta published", async () => {
+    const res = await runUpdate(opts(), deps("1.2.0"));
+    expect(res.summary).toContain("update available: 1.1.0 -> 1.2.0");
+    expect(res.summary).not.toContain("beta");
+  });
+
+  // And if the edge ever did report one, a bare update still must not take it
+  // silently. This is the second half of the reasoning, tested rather than
+  // assumed: `--to` is the only way to ask for a prerelease.
+  it("refuses a beta offered on the bare path, rather than installing it", async () => {
+    const res = await runUpdate(opts(), deps("2.0.0-beta.1"));
+    expect(res.summary).toContain("not offered without --to");
+    expect(res.exitCode).toBe(0);
+  });
+
+  it("installs a beta only when it is named exactly", async () => {
+    const res = await runUpdate(opts({ to: "2.0.0-beta.1" }), deps("1.2.0", "2.0.0-beta.1"));
+    expect(res.summary).toContain("pinned target: 1.1.0 -> 2.0.0-beta.1");
+  });
+
+  // A beta user is not stranded: the stable release of the same version
+  // outranks it, so the ordinary update path moves them off the prerelease.
+  it("offers the stable release to someone running its beta", async () => {
+    const res = await runUpdate(opts({ currentVersion: "2.0.0-beta.1" }), deps("2.0.0"));
+    expect(res.summary).toContain("update available: 2.0.0-beta.1 -> 2.0.0");
+  });
+});
