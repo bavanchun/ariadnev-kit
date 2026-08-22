@@ -4,10 +4,29 @@
 #
 #   curl -fsSL https://ariadnev.com/install | bash
 #
-# Overrides (env): ARIADNEV_INSTALL_DIR (default ~/.local/bin).
+# Overrides (env):
+#   ARIADNEV_INSTALL_DIR             default ~/.local/bin
+#   ARIADNEV_ALIAS=off               skip the short `av` alias
+#   ARIADNEV_BASE_URL                fetch the binary from another host (mirror,
+#                                    staging, local). checksums.txt still comes
+#                                    from the canonical domain.
+#   ARIADNEV_ALLOW_UNVERIFIED_BASE=1 also take checksums.txt from that host.
+#                                    Deliberate staging/offline testing only.
 set -euo pipefail
 
-BASE="${ARIADNEV_BASE_URL:-https://ariadnev.com}"
+DEFAULT_BASE="https://ariadnev.com"
+BASE="${ARIADNEV_BASE_URL:-$DEFAULT_BASE}"
+
+# checksums.txt is the only thing that authenticates the binary, so it must not
+# come from a host the caller can redirect. Otherwise whoever sets one env var
+# serves both the payload and the hash that "verifies" it, and the check below
+# proves nothing. Opting out is possible but has to be said out loud.
+if [ "${ARIADNEV_ALLOW_UNVERIFIED_BASE:-}" = "1" ]; then
+  CHECKSUM_BASE="$BASE"
+else
+  CHECKSUM_BASE="$DEFAULT_BASE"
+fi
+
 INSTALL_DIR="${ARIADNEV_INSTALL_DIR:-$HOME/.local/bin}"
 
 err() { echo "ariadnev install: $*" >&2; exit 1; }
@@ -32,13 +51,26 @@ asset="ariadnev-${os}-${arch}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+if [ "$BASE" != "$DEFAULT_BASE" ]; then
+  if [ "$CHECKSUM_BASE" = "$BASE" ]; then
+    echo "ariadnev install: WARNING — binary and checksums.txt both come from ${BASE}." >&2
+    echo "ariadnev install: WARNING — the checksum cannot authenticate this binary. Unset ARIADNEV_ALLOW_UNVERIFIED_BASE unless you meant this." >&2
+  else
+    echo "ariadnev install: binary from ${BASE}; checksums.txt from ${DEFAULT_BASE}." >&2
+  fi
+fi
+
 echo "ariadnev install: downloading ${asset} …"
 curl -fsSL "${BASE}/download/${asset}" -o "${tmp}/${asset}" || err "download failed: ${BASE}/download/${asset}"
-curl -fsSL "${BASE}/download/checksums.txt" -o "${tmp}/checksums.txt" || err "could not fetch checksums.txt"
+curl -fsSL "${CHECKSUM_BASE}/download/checksums.txt" -o "${tmp}/checksums.txt" || err "could not fetch checksums.txt from ${CHECKSUM_BASE}"
 
 # --- verify sha256 (fail closed) ---------------------------------------------
-expected="$(grep " ${asset}\$" "${tmp}/checksums.txt" | awk '{print $1}')"
-[ -n "$expected" ] || err "no checksum for ${asset} in checksums.txt"
+# `|| true` so a missing line reaches the message below. Without it `set -e`
+# kills the script on grep's exit 1 and the user sees nothing at all — and this
+# is now reachable, because the binary and checksums.txt can come from different
+# origins and disagree about which assets exist.
+expected="$(grep " ${asset}\$" "${tmp}/checksums.txt" | awk '{print $1}' || true)"
+[ -n "$expected" ] || err "no checksum for ${asset} in checksums.txt from ${CHECKSUM_BASE}"
 
 if command -v sha256sum >/dev/null 2>&1; then
   actual="$(sha256sum "${tmp}/${asset}" | awk '{print $1}')"
