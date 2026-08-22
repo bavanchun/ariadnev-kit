@@ -121,6 +121,21 @@ checksum authenticate nothing — RCE via one env var, on a tool driven by agent
 that run shell commands. A detached signature over `checksums.txt`, verified
 against a compiled-in public key, is now a prerequisite for the override.
 
+**4. Phase 5 signs locally; finalize verifies.** Added 2026-08-22, after phase 2.
+The original "sign at `finalize-release.yml`" was specified against
+`update-command.ts` without reading the pipeline it ships through. Verified in
+`finalize-release.yml`: the release asset inventory is a closed literal list
+asserted before and after publish (`:124-125`, `:132`), published releases are
+asserted `immutable` (`:143`), and `checksums.txt` has a line format asserted
+against `required` (`:127`). So a signature minted at finalize trips the
+inventory assertion, a version tag inside `checksums.txt` trips the format
+assertion, no past release can ever be retro-signed, and the private key would
+have to live in Actions secrets — contradicting the phase's own offline-key
+policy. Corrected in the phase file: sign locally, pass the signature as a
+`workflow_dispatch` input, have finalize verify and upload it, and bind the
+version by signing a composed `${tag}\n${checksums}` message rather than editing
+the file.
+
 **3. The link checker needs a shape rule, not just a name lookup.** Resolving
 cross-skill links by name with `av-` stripped makes `../cook/…` and
 `../av-cook/…` indistinguishable. A reviewer ran the draft's own regexes: all 21

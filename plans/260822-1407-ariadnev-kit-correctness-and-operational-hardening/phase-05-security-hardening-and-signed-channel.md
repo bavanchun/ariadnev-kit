@@ -47,16 +47,62 @@ returns zero. Without a signature, `ARIADNEV_BASE_URL` on `av update` would be
 RCE — the same trick as phase 0's, in the binary.
 
 - Ed25519 via `node:crypto`. One compiled-in public key. Verify **before** any
-  hash is trusted. Not overridable. ~40 lines.
-- **Sign at `finalize-release.yml`** (already `workflow_dispatch`-gated), not in
-  `release-candidate-build.yml` — RC signing would expose the key on every push
-  build for no benefit.
-- **Bind the version into the signed payload.** `/version`
-  (`update-command.ts:176`) stays unsigned, so an attacker with a base-URL
-  override could advertise `1.4.0` while serving an older, *legitimately signed*
-  pair — signature verifies, an old binary installs. Put the version tag inside
-  the signed `checksums.txt` and cross-check it. One line, not TUF.
+  hash is trusted. Not overridable. ~40 lines *in the binary* — see the
+  correction below for what the pipeline side really costs.
+- **Sign locally; `finalize-release.yml` verifies.** Corrected — the original
+  "sign at finalize" was written against `update-command.ts` without reading the
+  release pipeline it has to ship through.
+- **Bind the version into the signed payload**, but *not* by editing
+  `checksums.txt`. `/version` (`update-command.ts:176`) stays unsigned, so an
+  attacker with a base-URL override could advertise `1.4.0` while serving an
+  older, *legitimately signed* pair — signature verifies, an old binary
+  installs. Sign a composed message instead; see below.
 - Only after all of the above may `ARIADNEV_BASE_URL` redirect `av update`.
+
+#### Correction: sign local, verify in finalize
+
+Three invariants of `finalize-release.yml`, each verified against the file:
+
+1. **The asset inventory is closed.** `:124-125` builds a literal `required`
+   list and asserts the candidate zip listing, the attestation's
+   `releaseAssets`, and the remote draft's assets all match it exactly, before
+   *and* after publish (`verifyAssets`, `:132`). A `checksums.txt.sig` produced
+   at finalize trips `release asset inventory drift` and `remote asset count
+   drift` unless the inventory logic is reworked — and it cannot come from the
+   candidate, which is built before signing and must stay unsigned.
+2. **Published releases are immutable.** `:143` asserts `after.immutable ===
+   true`. No past release can ever gain a `.sig`.
+3. **`checksums.txt` has an enforced line format.** `:127` parses it against
+   `^([a-f0-9]{64})  ([A-Za-z0-9][A-Za-z0-9._@+-]*)$` and asserts the file lists
+   exactly `required` minus itself. A version tag inside that file fails the
+   `checksums inventory drift` assertion.
+
+And signing *at* finalize puts the private key in GitHub Actions secrets, which
+contradicts this phase's own "generate offline, password manager plus one offline
+copy" and silently moves the trust root from the maintainer's key to the GitHub
+account.
+
+**Corrected design.** The maintainer signs locally with the offline key. The
+signature travels as a `workflow_dispatch` input — finalize is already manual, so
+this adds no ceremony. Finalize *verifies* it against the committed public key
+over the candidate's own `checksums.txt` bytes, uploads `checksums.txt.sig` to
+the still-mutable draft, extends `required` by exactly that one asset, then
+publishes. The key never touches CI, RC builds are unsigned by construction, and
+finalize stays a verifier rather than becoming a signer.
+
+**Version bind without format churn.** Sign `${tag}\n${checksums body}`; the
+binary reconstructs that message from the version it asked for. Same downgrade
+protection, `checksums.txt` untouched. Plain `av update` already refuses a
+non-newer version (`update-command.ts:217`), so this plus that check closes the
+advertise-old attack; `--to` stays the deliberate-downgrade path.
+
+**The signing horizon is a behaviour, not a surprise.** Because releases are
+immutable, the first signed release permanently ends `av update --to <any
+pre-signing version>` — verification would demand a `.sig` that can never exist.
+That must fail with the "re-run the installer" message, tested. It also means
+this phase's own rollback is the installer, not `--to`, while phase 4 is required
+to have an executed `--to` rollback. Phase 5 does not get to exempt itself
+silently.
 
 **Installers do NOT verify the signature.** Deliberate reversal of the earlier
 draft, for two reasons. (a) Dependency pain: .NET has no built-in Ed25519 and
@@ -106,8 +152,12 @@ validate `opts.timestamp` against a strict pattern.
 
 - Modify: `packages/cli/src/cli/update-command.ts` (verify, version bind, baseUrl)
 - Create: `packages/cli/src/cli/update-signature.ts` + test
-- Modify: `.github/workflows/finalize-release.yml` (sign at finalize)
-- Modify: `packages/cli/scripts/smoke-binary.mjs` (Ed25519 verify on all 5 targets)
+- Modify: `.github/workflows/finalize-release.yml` (verify a supplied signature,
+  extend the `required` asset inventory, upload the `.sig` to the draft)
+- Read/Modify: `.github/workflows/release-candidate-build.yml` — the candidate
+  attestation's `releaseAssets` is half of finalize's inventory assertion
+- Modify: `packages/cli/scripts/smoke-binary.mjs` (Ed25519 verify; see the
+  target-coverage decision under Success Criteria)
 - Modify: `packages/cli/src/install/backup.ts` (zod schema)
 - Modify: `packages/cli/src/cli/backups-command.ts` (traversal guards)
 - Modify: `packages/cli/src/env-scope.test.ts`
@@ -121,8 +171,11 @@ validate `opts.timestamp` against a strict pattern.
 2. Harden the backup restore path. No phase 6 verb may land before this.
 3. Generate the key pair offline; store it; document the reinstall-is-rotation
    policy in the release guide.
-4. Implement Ed25519 verification with the version cross-check; wire signing into
-   `finalize-release.yml`.
+4. Implement Ed25519 verification with the composed-message version bind. Wire
+   *verification* into `finalize-release.yml` and extend its `required` asset
+   inventory; signing itself stays local, off CI. Before writing any of it,
+   re-read `release-candidate-build.yml`'s attestation contract — it is the other
+   half of the assertion this step has to satisfy.
 5. Add an Ed25519-verify case to `smoke-binary.mjs`. Bun's `node:crypto` Ed25519
    support on all 5 targets is **assumed, not proven** — this converts it to a
    release gate. Fallback if it fails: a small pure-JS ed25519 dependency.
@@ -140,7 +193,17 @@ validate `opts.timestamp` against a strict pattern.
 - [ ] `av update` refuses a valid-hash binary whose signature does not verify.
 - [ ] `av update --to <v>` refuses a correctly-signed payload whose embedded
       version tag does not match the requested version.
-- [ ] `smoke-binary.mjs` proves Ed25519 verification on all 5 targets.
+- [ ] `smoke-binary.mjs` proves Ed25519 verification on every target CI can
+      execute. **Open decision, to settle when step 5 is reached:**
+      `release-candidate-build.yml` is a single `ubuntu-latest` job and
+      `smoke-binary.mjs` runs the host binary only, so "all 5 targets" is not
+      implementable as written. Either add macOS and Windows runners (covers 4
+      of 5; linux-arm64 needs QEMU or a paid arm runner on this private repo),
+      or state plainly that the rest ride on a uniform Bun runtime with the
+      pure-JS fallback pre-approved. Narrowing it silently is the one option
+      that is not available.
+- [ ] `av update --to <pre-signing version>` fails with the "re-run the
+      installer" message — the signing horizon is tested, not discovered.
 - [ ] `backups restore` refuses an absolute `originalPath` outside the scope
       root and a `relPath` containing `..`; a malformed manifest is rejected by
       schema, not cast.
@@ -163,7 +226,12 @@ verification was cut.
 five. *Response:* swap to a pure-JS ed25519 dependency. Do not ship signing that
 works on four targets.
 
-**Assumption:** the fleet is the maintainer's own machines. *If ariadnev gains
-real third-party users,* dual-key rotation and installer-side verification become
-defensible and the downgrade protection becomes mandatory rather than cheap
-insurance. Revisit then.
+**Assumption falsified 2026-08-22: the fleet is *not* only the maintainer's
+machines.** Other people have installed ariadnev through the curl installer (see
+plan.md). Downgrade protection is therefore mandatory, not cheap insurance, and
+key compromise via CI is the worst realistic outcome of this phase — which is the
+second reason the corrected design keeps the private key off GitHub. Dual-key
+rotation and installer-side verification stay out of scope for the reasons in
+section 3 (the installer is the recovery root, and demanding a signature there
+manufactures the one genuine brick scenario), but that is now a judgement about
+recovery, not a judgement that nobody else is affected.
