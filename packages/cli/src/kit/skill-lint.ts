@@ -221,9 +221,11 @@ export function lintSkill(
   for (const ref of references) {
     const refLines = countLines(ref.content);
     if (refLines > REFERENCE_MAX_LINES) {
-      // Same reasoning as SKILL.md length: upstream ships 136 reference files
-      // past this budget (the longest is 2249 lines). Reporting the cost is
-      // useful; failing the build over content we chose to copy verbatim is not.
+      // Measured over the 463 reference files the loader sees: 83 exceed 300,
+      // 6 exceed 800 (822-1718 lines). The old 300 was a limit most of the
+      // corpus-by-weight broke, suppressed for exactly the files that broke it,
+      // so it never bound anything. At 800 the six outliers answer for
+      // themselves — as errors, unless the skill is on the exemption list.
       const tooLong = `${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`;
       (exempt ? warnings : errors).push(tooLong);
     }

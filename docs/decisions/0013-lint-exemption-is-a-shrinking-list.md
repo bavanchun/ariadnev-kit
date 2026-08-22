@@ -57,7 +57,7 @@ Measured over the 463 reference files the loader actually sees: **83 exceed 300,
 6 exceed 800.** A limit that most of the corpus-by-weight violates is not a
 limit, it is a warning generator — and it was suppressed for precisely the files
 that tripped it, so it never bound anything. 800 leaves six real outliers
-(821–1717 lines) to answer for themselves.
+(822–1718 lines) to answer for themselves.
 
 ### Anti-filler checks: one gate, two advisories
 
