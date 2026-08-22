@@ -102,7 +102,8 @@ moving a tag or silently reinterpreting events.
 every asset attached and the candidate envelope bound into the annotated tag's
 message. Publishing it is a separate, deliberate step: `finalize-release.yml` is
 `workflow_dispatch` only, it must be dispatched **from the tag's ref**, and it
-takes eight inputs that all come out of that envelope.
+takes nine inputs — eight out of that envelope, plus the release signature you
+make locally.
 
 ```bash
 REPO=bavanchun/ariadnev-kit
@@ -123,7 +124,21 @@ RELEASE_ID=$(gh api "repos/$REPO/releases" --jq '.[] | select(.tag_name=="'"$TAG
 [ "$(gh api "repos/$REPO/immutable-releases" --jq .enabled)" = true ] || \
   { echo "immutable releases are disabled — enable them before finalizing"; exit 1; }
 
+# Sign the candidate's checksums with the offline release key. This is the one
+# step that cannot be automated: putting the key in Actions secrets would move
+# the trust root from you to the GitHub account, which is the exact substitution
+# the signature exists to prevent. finalize only ever *verifies*.
+#
+# Sign the bare version, not the tag. `parseLatestTag` strips `ariadnev@` before
+# the binary verifies, so a signature over the tag fails every update.
+VERSION="${TAG#ariadnev@}"
+gh run download "$(jq -r .runId <<<"$ENVELOPE")" --repo "$REPO" \
+  -n "$(jq -r .artifactName <<<"$ENVELOPE")" -D candidate
+SIGNATURE=$({ printf '%s\n' "$VERSION"; cat candidate/checksums.txt; } \
+  | openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key | base64 | tr -d '\n')
+
 gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
+  -f checksums_signature="$SIGNATURE" \
   -f release_id="$RELEASE_ID" \
   -f tag="$TAG" \
   -f source_sha="$(jq -r .headSha <<<"$ENVELOPE")" \
@@ -136,6 +151,19 @@ gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
 
 `--ref "$TAG"` is not cosmetic: the workflow asserts the dispatch ref is exactly
 `refs/tags/<tag>` and fails otherwise.
+
+Finalization reads the public key out of `packages/cli/src/cli/update-signature.ts`
+at the release SHA, so the key that gates publishing is the key that release's
+binary carries. A signature by any other key, or over the tag instead of the
+version, fails before the single PATCH — the draft stays a draft and is still
+deletable. The verified signature is uploaded as `checksums.txt.sig` while the
+release is still mutable; after publish it is immutable, which is why **no past
+release can ever be given a signature retroactively.**
+
+That is a one-way door worth stating plainly: from the first signed release,
+`ariadnev update --to <any earlier version>` fails with the reinstall hint,
+because the `.sig` it requires can never exist. Rolling back past the signing
+boundary means re-running the installer.
 
 Two prerequisites, both one-time per repository:
 
@@ -166,7 +194,7 @@ Before downstream web work starts, verify one immutable release converges:
 
 1. `packages/cli/package.json`, `av --version`, and tag `ariadnev@<version>` agree.
 2. The GitHub Release points at the version commit and publishes exactly five
-   platform binaries plus `checksums.txt`.
+   platform binaries, `checksums.txt`, and `checksums.txt.sig`.
 3. Every listed SHA-256 matches its downloaded binary; the host binary passes
    `smoke-binary.mjs`, including embedded workflow validation and lifecycle help.
 4. `https://ariadnev.com/version` reports that same version only after the
@@ -183,6 +211,7 @@ replace an already consumed version tag.
 | Cross-compile 5 binaries + checksums | Automated | `build-binaries.mjs` in `release.yml` |
 | Smoke the built binaries | Automated | `smoke-binary.mjs`, before provenance is written |
 | Hold a draft release + bind the envelope | Automated | `release-candidate-publish.yml` |
+| Sign `checksums.txt` | **Manual, offline key** | `openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key` |
 | Publish the draft | **Manual** | `gh workflow run finalize-release.yml --ref <tag>` |
 
 ## Notes
