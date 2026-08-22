@@ -275,6 +275,11 @@ see [`SECURITY.md`](SECURITY.md) (please report privately).
 
 ## Contributing
 
+**[`CONTRIBUTING.md`](CONTRIBUTING.md)** has the full setup, the test tiers, the
+branch model, and the list of gates CI runs — including the one thing that
+catches people out: branch protection is unavailable on this plan, so CI is
+advisory and nothing stops a red merge but you.
+
 - `pnpm install` → `pnpm test` (vitest, TDD).
 - Adapt engine is pure functions under `packages/cli/src/adapt/` (≥95% coverage).
 - Path constants are single-sourced in `src/adapt/paths.ts` — change once.
