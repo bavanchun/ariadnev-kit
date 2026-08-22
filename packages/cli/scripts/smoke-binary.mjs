@@ -44,7 +44,7 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
   // when the release key is unset and when the runtime has no Ed25519 at all —
   // so the release gate has to see the capability asserted, not infer it from
   // silence. `doctor` prints this with or without a receipt.
-  if (doctorOut !== undefined && !/ed25519: available/.test(doctorOut)) {
+  if (!/ed25519: available/.test(doctorOut ?? "")) {
     failures.push("doctor did not report ed25519 as available — release signatures cannot be verified here");
   }
 

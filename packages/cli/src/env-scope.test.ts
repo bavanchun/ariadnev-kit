@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripCwdEnvAriadnevVars, dotenvKeys, DOTENV_FILES, cwdDotenvDeclares } from "./env-scope.js";
 
@@ -87,16 +87,25 @@ describe("stripCwdEnvAriadnevVars", () => {
 describe("no ARIADNEV_* value is trusted before scoping", () => {
   const srcDir = join(fileURLToPath(new URL(".", import.meta.url)));
 
-  function sourceFiles(dir: string): string[] {
-    const out: string[] = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) out.push(...sourceFiles(full));
-      else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".generated.ts")) {
-        out.push(full);
-      }
+  /**
+   * Files whose top level runs before `scopeProcessEnv()`: the entry module, and
+   * everything it pulls in transitively, since an import's module scope executes
+   * during the import itself.
+   *
+   * An earlier version of this walked all 191 source files and then discarded
+   * every one that was not `index.ts` — so it asserted a property about the
+   * import graph while only ever looking at one file. Following the imports is
+   * the difference between the check and the appearance of one.
+   */
+  function importGraph(entry: string, seen = new Set<string>()): string[] {
+    if (seen.has(entry) || !existsSync(entry)) return [];
+    seen.add(entry);
+    const text = readFileSync(entry, "utf8");
+    for (const match of text.matchAll(/^\s*import\s[^"']*["'](\.[^"']+)["']/gm)) {
+      const target = join(dirname(entry), match[1].replace(/\.js$/, ".ts"));
+      importGraph(target, seen);
     }
-    return out;
+    return [...seen];
   }
 
   /**
@@ -111,22 +120,34 @@ describe("no ARIADNEV_* value is trusted before scoping", () => {
     ],
   ]);
 
-  it("reads ARIADNEV_* only from inside a command action, or from the allowlist", () => {
+  /** A read at module scope — not nested inside any function body. */
+  function moduleScopeReads(text: string): string[] {
+    const found: string[] = [];
+    let depth = 0;
+    for (const line of text.split("\n")) {
+      const match = /process\.env\.(ARIADNEV_[A-Z0-9_]+)/.exec(line);
+      if (match && depth === 0) found.push(match[1]);
+      depth += (line.match(/\{/g)?.length ?? 0) - (line.match(/\}/g)?.length ?? 0);
+    }
+    return found;
+  }
+
+  it("reads ARIADNEV_* only from inside a function, or from the allowlist", () => {
+    const graph = importGraph(join(srcDir, "index.ts"));
+    // The walk has to actually reach the tree, or this passes by finding nothing.
+    expect(graph.length).toBeGreaterThan(20);
+
     const offenders: string[] = [];
-    for (const file of sourceFiles(srcDir)) {
+    for (const file of graph) {
       const text = readFileSync(file, "utf8");
-      for (const match of text.matchAll(/process\.env\.(ARIADNEV_[A-Z0-9_]+)/g)) {
-        const key = `${relative(srcDir, file)}:${match[1]}`;
-        // A read inside a `.action(...)` callback or a function the CLI calls
-        // during `parseAsync` is after scoping by construction. The only module
-        // that runs before it is the entry file's own top level.
-        const isEntryModule = relative(srcDir, file) === "index.ts";
-        if (isEntryModule && !ALLOWED_PRE_SCOPE.has(key)) offenders.push(key);
+      for (const key of moduleScopeReads(text)) {
+        const id = `${relative(srcDir, file)}:${key}`;
+        if (!ALLOWED_PRE_SCOPE.has(id)) offenders.push(id);
       }
     }
     expect(
       offenders,
-      "a new ARIADNEV_* read in index.ts runs before scopeProcessEnv() — move it into a command action, or add it to ALLOWED_PRE_SCOPE with a reason",
+      "an ARIADNEV_* read at module scope runs before scopeProcessEnv() — move it inside a function the CLI calls during parseAsync, or add it to ALLOWED_PRE_SCOPE with a reason",
     ).toEqual([]);
   });
 

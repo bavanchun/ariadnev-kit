@@ -157,8 +157,9 @@ test("fails when doctor said nothing about ed25519 at all", () => {
   assert.equal(res.ok, false);
 });
 
-// Callers predating the check pass no doctorOut. They should not start failing.
-test("skips the ed25519 assertion when no doctor output was captured", () => {
-  const res = smoke({ doctorOut: undefined });
-  assert.equal(res.ok, true);
+// A release gate with an opt-out is not a gate. The runner always captures
+// doctor output, so an absent value means something went wrong upstream — which
+// is a failure, not a reason to wave the check through.
+test("fails when no doctor output was captured at all", () => {
+  assert.equal(smoke({ doctorOut: undefined }).ok, false);
 });
