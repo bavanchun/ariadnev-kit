@@ -12,6 +12,7 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
 import { scoreAudit } from "../doctor/audit-score.js";
 import { coral, teal, amber, faint, bar, symbols, type StyleOpts } from "../ui/style.js";
+import { ed25519SelfTest } from "./update-signature.js";
 
 export interface DoctorHandlerOpts {
   home: string;
@@ -85,6 +86,19 @@ function glyphFor(level: ProviderFinding["level"], opts: StyleOpts): string {
   }
 }
 
+/**
+ * Whether this binary can verify a release signature at all.
+ *
+ * Stated on every run because fail-closed verification and a runtime with no
+ * Ed25519 look identical from outside — both refuse every update — and the two
+ * need completely different responses.
+ */
+function cryptoLine(opts: StyleOpts): string {
+  return ed25519SelfTest()
+    ? `  ${teal(symbols.ok, opts)} ed25519: available (release signatures can be verified)`
+    : `  ${coral(symbols.fail, opts)} ed25519: UNAVAILABLE — \`ariadnev update\` cannot verify a release on this platform`;
+}
+
 export function renderDoctorSummary(
   status: DoctorStatus,
   findings: ProviderFinding[],
@@ -92,10 +106,12 @@ export function renderDoctorSummary(
 ): string {
   const head = `${coral("ariadnev", opts)} doctor — ${status}`;
   if (status === "not-installed") {
-    return `${head}\n  no receipt found — run \`ariadnev install\` first`;
+    // The crypto line belongs here too: it is a property of the binary, not of
+    // the install, and someone diagnosing a platform problem has no receipt yet.
+    return `${head}\n  no receipt found — run \`ariadnev install\` first\n${cryptoLine(opts)}`;
   }
   const { score } = scoreAudit(findings);
-  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`];
+  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`, cryptoLine(opts)];
   if (findings.length === 0) {
     lines.push(`  ${teal(symbols.ok, opts)} all checks passed`);
     return lines.join("\n");

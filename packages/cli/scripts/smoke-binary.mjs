@@ -17,7 +17,7 @@ import { hostAssetName, TARGETS, expectedHeader } from "./binary-targets.mjs";
  * Pure assertion over what the binary printed. Returns { ok, failures[] } so it
  * is unit-testable without spawning anything.
  */
-export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion, buildRoot }) {
+export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion, buildRoot }) {
   const failures = [];
 
   if (versionOut.trim() !== expectedVersion.trim()) {
@@ -37,6 +37,15 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
   // gate deliberately lets through.
   if (!/all checks passed|0 error\(s\)/.test(validateOut)) {
     failures.push("validate reported errors (expected a clean pass)");
+  }
+
+  // Positive signal, not the absence of a complaint. The binary is cross-compiled
+  // to five targets from one Bun build, and `av update` refuses everything both
+  // when the release key is unset and when the runtime has no Ed25519 at all —
+  // so the release gate has to see the capability asserted, not infer it from
+  // silence. `doctor` prints this with or without a receipt.
+  if (doctorOut !== undefined && !/ed25519: available/.test(doctorOut)) {
+    failures.push("doctor did not report ed25519 as available — release signatures cannot be verified here");
   }
 
   for (const token of ["resume", "status", "cancel", "--runtime <provider>", "--validate", "--json"]) {
@@ -61,7 +70,7 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
   // binary instead of resolving at runtime. `/Users/` catches a macOS author's
   // machine; `buildRoot` catches the runner this actually runs on in CI, where
   // the path is `/home/runner/work/…` and the hardcoded pattern never fires.
-  const outputs = [versionOut, validateOut, runHelpOut, graphValidateOut];
+  const outputs = [versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut ?? ""];
   if (outputs.some((output) => /\/Users\//.test(output))) {
     failures.push("output leaked an absolute dev path (/Users/…)");
   }
@@ -102,6 +111,15 @@ function run(bin, args) {
   return execFileSync(bin, args, { cwd: scratch, encoding: "utf8", timeout: RUN_TIMEOUT_MS });
 }
 
+/** Same, but a non-zero exit is an answer rather than a failure. */
+function runAllowingFailure(bin, args) {
+  try {
+    return run(bin, args);
+  } catch (err) {
+    return `${err.stdout ?? ""}${err.stderr ?? ""}`;
+  }
+}
+
 /** First bytes of a file, without reading the whole 100MB binary. */
 function headBytes(path, length) {
   const fd = openSync(path, "r");
@@ -130,18 +148,22 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   let validateOut = "";
   let runHelpOut = "";
   let graphValidateOut = "";
+  let doctorOut = "";
   try {
     versionOut = run(bin, ["--version"]);
     validateOut = run(bin, ["validate"]);
     runHelpOut = run(bin, ["run", "--help"]);
     graphValidateOut = run(bin, ["run", "read-only-delivery", "--validate", "--json"]);
+    // Exits 2 with no receipt, which is the normal state on a CI runner, so the
+    // output is what matters rather than the code.
+    doctorOut = runAllowingFailure(bin, ["doctor"]);
   } catch (err) {
     console.error(`smoke: binary failed to execute: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
   }
 
   const { ok, failures } = checkSmokeOutput({
-    versionOut, validateOut, runHelpOut, graphValidateOut, expectedVersion,
+    versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion,
     buildRoot: process.env.GITHUB_WORKSPACE ?? resolve(pkgDir, "..", ".."),
   });
   if (!ok) {
