@@ -194,7 +194,7 @@ Update project documentation for official releases. Run as **background task**.
 Run **synchronously before Step 10** so the finalized plan files are staged by
 the ship commit. Full protocol: the "Delivery finalization (close on ship)"
 section of the shared files-first plan-state reference
-(`kits/core/skills/av-cook/references/plan-state-files-first.md`).
+(`../../av-cook/references/plan-state-files-first.md`).
 
 1. `av plan resolve` for the current repo + branch. **No active plan → skip this
    step silently** (most ships carry no plan).
@@ -256,8 +256,8 @@ test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
 node "$WL_BIN" --json
 ```
 Load `references/pr-template.md` and the shared contracts:
-- `kits/core/skills/av-review-pr/references/writing-language.md`
-- `kits/core/skills/av-review-pr/references/pr-body-contract.md`
+- `../../av-review-pr/references/writing-language.md`
+- `../../av-review-pr/references/pr-body-contract.md`
 
 Render the **seven required sections** plus Linked Issues / Ship Mode in the
 effective language. Keep the PR **title** English conventional-commit form.
@@ -363,7 +363,7 @@ Step 8 opt-out, since `--social` is itself an explicit user choice that
    source-repo fallback (same shape as step 4):
    ```bash
    POST_BIN="$HOME/.claude/skills/av-journal/scripts/post-social.cjs"
-   test -f "$POST_BIN" || POST_BIN=kits/core/skills/av-journal/scripts/post-social.cjs
+   test -f "$POST_BIN" || POST_BIN=../../av-journal/scripts/post-social.cjs
    node "$POST_BIN" \
      --journal-file "$JOURNAL_PATH" \
      --channels build_in_public \

@@ -82,7 +82,7 @@ Not accepted in v1:
   `qwen-code`, `grok`, `kimi`, `agy`
 - **Not dispatchable:** `gemini-cli` — reject with actionable guidance
   ("The retired Gemini CLI path is not supported by av:orchestrate"; the
-  wording mirrors the precedent in `kits/core/skills/av-use-mcp/SKILL.md`).
+  wording mirrors the precedent in `../av-use-mcp/SKILL.md`).
 
 Availability, authentication, flags, models, and capability tiers are
 **never** asserted by this skill or its catalog. They come from

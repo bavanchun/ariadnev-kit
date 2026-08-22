@@ -33,10 +33,8 @@ Generate production-quality SVG technical diagrams exported as PNG via `rsvg-con
 
 ## Vendoring Notes
 
-For source updates, follow the repository
-[source freshness policy](../../../../docs/operations/maintainer-sync-workflow.md#source-freshness-policy)
-and discover the active source manifest rather than hard-coding a maintainer
-home. Verify `rsvg-convert` through the current install/runtime contract before
+For source updates, follow the repository's source freshness policy and discover
+the active source manifest rather than hard-coding a maintainer home. Verify `rsvg-convert` through the current install/runtime contract before
 claiming the dependency is available.
 
 ## Helper Scripts (Recommended)

@@ -86,8 +86,8 @@ Step 13: Social publish   → if --social: build-in-public draft → av journal 
 **Detailed steps:** Load `references/ship-workflow.md`
 **Auto-detection:** Load `references/auto-detect.md`
 **PR template:** Load `references/pr-template.md`
-**Writing language:** Load `kits/core/skills/av-review-pr/references/writing-language.md`
-**PR body contract:** Load `kits/core/skills/av-review-pr/references/pr-body-contract.md`
+**Writing language:** Load `../av-review-pr/references/writing-language.md`
+**PR body contract:** Load `../av-review-pr/references/pr-body-contract.md`
 
 ## Writing language + PR body (#1195)
 

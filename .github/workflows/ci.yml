@@ -68,6 +68,24 @@ jobs:
             if ($errors.Count) { $errors | ForEach-Object { Write-Host $_ }; exit 1 }
             Write-Host "install.ps1 parses clean"'
 
+      - name: Cross-skill link shape gate
+        # The validator only sees skills loadKit enumerates, and that walk is
+        # non-recursive (load-kit.ts) while install-plan.ts copies subtrees
+        # recursively. So nested dirs — document-skills/{pdf,pptx,docx,xlsx},
+        # payment-integration, code-review/references/checklists,
+        # deploy/references/platforms — ship to users and run at runtime while
+        # being invisible to every check above. They hold no cross-skill links
+        # today; grep is what keeps it that way.
+        run: |
+          if grep -rn 'kits/core/skills/' kit/; then
+            echo "::error::stale pre-rename skills root — write ../av-<slug>/… instead"
+            exit 1
+          fi
+          if grep -rnE '(\.\./)+[a-z][a-z0-9-]*/references/' kit/ | grep -v '\.\./av-'; then
+            echo "::error::cross-skill link missing the av- prefix"
+            exit 1
+          fi
+
       - name: Brand drift gate
         run: node packages/cli/scripts/check-brand-drift.mjs
 

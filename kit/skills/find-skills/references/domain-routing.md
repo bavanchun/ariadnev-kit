@@ -10,7 +10,7 @@ Skills CLI flow.
 - Pick one primary skill per distinct intent. Mention secondary skills only as
   follow-up helpers.
 - If the task needs a multi-step sequence, read
-  `../../cook/references/workflow-routing.md` after choosing the primary skill.
+  `../../av-cook/references/workflow-routing.md` after choosing the primary skill.
 - If two skills overlap, prefer the more specific domain skill over a generic
   workflow skill.
 

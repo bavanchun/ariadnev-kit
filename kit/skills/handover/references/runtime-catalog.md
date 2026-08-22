@@ -56,7 +56,7 @@ better than a silent substitution or a confusing preflight failure.
 | `gemini-cli` | "The retired Gemini CLI path is not supported by av:orchestrate. Choose a first-class runtime (`claude-code`, `codex`, `av-run`, `internal`) or a preflight-gated external runtime." |
 
 Wording mirrors the precedent in
-`kits/core/skills/av-use-mcp/SKILL.md`.
+`../../av-use-mcp/SKILL.md`.
 
 ## User-supplied IDs
 
