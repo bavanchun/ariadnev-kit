@@ -3,6 +3,7 @@ import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { receiptVersion, type Receipt } from "../install/install-receipt.js";
 import { isValidVersion, versionQuery } from "./update-version.js";
+import { verifyChecksums } from "./update-signature.js";
 
 // Everything goes through the public edge (a Cloudflare Worker on this domain)
 // that proxies the private GitHub repo's releases — the CLI never talks to
@@ -79,6 +80,18 @@ export interface UpdateDeps {
   downloadText(url: string): Promise<string | null>;
   /** Atomically replace the binary at `targetPath` with `bytes` (+ make executable). */
   replaceBinary(targetPath: string, bytes: Uint8Array): void;
+  /**
+   * True when `signature` is the release key's signature over this exact tag and
+   * these exact checksum bytes.
+   *
+   * Injected for the same reason the downloads are: a test cannot produce a
+   * signature by the real release key, and the alternative — letting the caller
+   * supply a public key — would make the trust root overridable at runtime,
+   * which is the hole this whole mechanism closes. `realUpdateDeps` binds it to
+   * the compiled-in key, and `update-signature.test.ts` tests that against the
+   * real constant.
+   */
+  verifyRelease(tag: string, checksums: string, signature: string): boolean;
 }
 
 export interface UpdateHandlerResult {
@@ -149,6 +162,7 @@ export function realUpdateDeps(): UpdateDeps {
     downloadBinary: downloadBytes,
     downloadText: downloadTextAsset,
     replaceBinary: atomicReplaceBinary,
+    verifyRelease: (tag, checksums, signature) => verifyChecksums({ tag, checksums, signature }),
   };
 }
 
@@ -236,19 +250,39 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
   }
 
   const q = versionQuery(opts.to);
-  const [bytes, checksums] = await Promise.all([
+  const [bytes, checksums, signature] = await Promise.all([
     deps.downloadBinary(`${DOMAIN}/download/${asset}${q}`),
     deps.downloadText(`${DOMAIN}/download/checksums.txt${q}`),
+    deps.downloadText(`${DOMAIN}/download/checksums.txt.sig${q}`),
   ]);
   if (!bytes || !checksums) {
     lines.push(`  could not download the update — ${CURL_HINT.trim()}`);
     return done();
   }
 
+  // Releases published before signing existed have no `.sig` and never can:
+  // GitHub releases are immutable once published, so one cannot be added after
+  // the fact. That makes this a permanent horizon rather than a transient gap,
+  // and the only way back past it is a reinstall — which is exactly why the
+  // installers deliberately do not check this signature.
+  if (signature === null) {
+    lines.push(`  ${target} predates release signing and cannot be verified — the binary was NOT replaced`);
+    lines.push(CURL_HINT);
+    return done(1);
+  }
+
+  // Before the hash, not after. The checksum and the binary come from the same
+  // origin, so the hash only means something once the signature has established
+  // that these are the checksums the maintainer published.
+  if (!deps.verifyRelease(target, checksums, signature.trim())) {
+    lines.push("  aborted: the release signature did not verify — the binary was NOT replaced");
+    return done(1);
+  }
+
   const want = expectedSha(checksums, asset);
   if (!want || sha256hex(bytes) !== want) {
     lines.push("  aborted: checksum mismatch — the binary was NOT replaced");
-    return done();
+    return done(1);
   }
 
   try {

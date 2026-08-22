@@ -110,8 +110,13 @@ describe("runUpdate", () => {
       fetchLatestVersion: async () => "0.6.0",
       fetchPinnedVersion: async () => null,
       downloadBinary: async () => bin,
-      downloadText: async () => `${binSha}  ariadnev-darwin-arm64\n`,
+      // Keyed on the URL: the signature is a second text asset, and a fake that
+      // answers every text download identically would hand the verifier the
+      // checksums as their own signature.
+      downloadText: async (url: string) =>
+        url.includes("checksums.txt.sig") ? "signature-bytes" : `${binSha}  ariadnev-darwin-arm64\n`,
       replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: () => true,
       replaced,
       ...over,
     };
@@ -271,5 +276,110 @@ describe("isNewerVersion", () => {
     expect(isNewerVersion("0.10.0", "0.9.0")).toBe(true);
     expect(isNewerVersion("0.5.0", "0.5.0")).toBe(false);
     expect(isNewerVersion("0.4.0", "0.5.0")).toBe(false);
+  });
+});
+
+/**
+ * The channel's whole security argument. `checksums.txt` and the binary come
+ * from the same origin, so the hash proves only that the two halves agree with
+ * each other — anyone who can answer for that origin supplies both. The
+ * signature is what makes the hash mean something, so it has to be checked
+ * first and it has to be able to stop the install on its own.
+ */
+describe("runUpdate: release signature", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "ariadnev-update-sig-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const bin = new Uint8Array([1, 2, 3, 4]);
+  const binSha = createHash("sha256").update(bin).digest("hex");
+  const checksums = `${binSha}  ariadnev-darwin-arm64\n`;
+
+  function opts(over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts {
+    return {
+      home: sandbox, cwd: root, scope: "project", currentVersion: "0.5.0",
+      execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+      to: null, platform: "darwin", arch: "arm64", ...over,
+    };
+  }
+
+  function deps(over: Partial<UpdateDeps> = {}): UpdateDeps & { replaced: unknown[]; verified: string[][] } {
+    const replaced: unknown[] = [];
+    const verified: string[][] = [];
+    return {
+      fetchLatestVersion: async () => "0.6.0",
+      fetchPinnedVersion: async (v: string) => v,
+      downloadBinary: async () => bin,
+      downloadText: async (url: string) => (url.includes("checksums.txt.sig") ? "sig" : checksums),
+      replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: (tag, sums, signature) => {
+        verified.push([tag, sums, signature]);
+        return true;
+      },
+      replaced,
+      verified,
+      ...over,
+    };
+  }
+
+  it("does not replace the binary when the signature does not verify", async () => {
+    const d = deps({ verifyRelease: () => false });
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("signature did not verify");
+    expect(res.summary).toContain("NOT replaced");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  // Order matters: a correct hash must not rescue a bad signature. Both halves
+  // come from the same place, so a forged pair agrees with itself.
+  it("refuses a forged pair whose hash matches its own checksums", async () => {
+    const forged = new Uint8Array([9, 9, 9]);
+    const d = deps({
+      verifyRelease: () => false,
+      downloadBinary: async () => forged,
+      downloadText: async (url: string) =>
+        url.includes("checksums.txt.sig") ? "sig" : `${createHash("sha256").update(forged).digest("hex")}  ariadnev-darwin-arm64\n`,
+    });
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("signature did not verify");
+    expect(d.replaced).toEqual([]);
+  });
+
+  /**
+   * Releases published before signing existed have no `.sig`, and cannot gain
+   * one: GitHub releases are immutable once published. So this is a permanent
+   * horizon, not a gap that closes — and it has to say so, because the only way
+   * back past it is a reinstall.
+   */
+  it("refuses a release that predates signing, and names the way out", async () => {
+    const d = deps({
+      to: undefined,
+      downloadText: async (url: string) => (url.includes("checksums.txt.sig") ? null : checksums),
+    } as Partial<UpdateDeps>);
+    const res = await runUpdate(opts({ to: "0.4.0" }), d);
+    expect(res.summary).toContain("predates release signing");
+    expect(res.summary).toContain("NOT replaced");
+    expect(res.summary).toContain("curl -fsSL https://ariadnev.com/install");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  it("verifies against the resolved target tag and the untouched checksum bytes", async () => {
+    const d = deps();
+    await runUpdate(opts(), d);
+    expect(d.verified).toEqual([["0.6.0", checksums, "sig"]]);
+  });
+
+  it("installs when the signature verifies and the hash matches", async () => {
+    const d = deps();
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("updated 0.5.0 -> 0.6.0");
+    expect(d.replaced).toHaveLength(1);
   });
 });
