@@ -34,6 +34,13 @@ The installer downloads the right binary for your platform from the ariadnev edg
 `~/.local/bin` (macOS/Linux) or `%LOCALAPPDATA%\Programs\ariadnev` (Windows).
 Change the target dir with `ARIADNEV_INSTALL_DIR`.
 
+`ARIADNEV_BASE_URL` points the **binary** download at another host — a mirror, a
+staging edge, a local server. `checksums.txt` still comes from `ariadnev.com`, so
+an overridden host cannot vouch for its own binary; a mismatch aborts the install.
+To take the checksums from that host too — deliberate staging or offline testing —
+also set `ARIADNEV_ALLOW_UNVERIFIED_BASE=1`, which prints a warning saying the
+checksum no longer authenticates anything.
+
 > **macOS Gatekeeper**: the binary is not yet notarized, so the first run may be
 > blocked. Allow it with `xattr -d com.apple.quarantine "$(command -v ariadnev)"`.
 

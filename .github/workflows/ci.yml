@@ -54,6 +54,20 @@ jobs:
         # snapshot; this is what re-checks it after the install path changes.
         run: pnpm exec vitest run packages/cli/src/install/e2e-install.test.ts
 
+      - name: Installer syntax gate
+        # install.sh and install.ps1 are served straight from this repo by the
+        # edge Worker, so a syntax error there breaks onboarding for everyone
+        # the moment it merges — with no release to roll back. pwsh is present
+        # on ubuntu-latest; bash -n is free.
+        run: |
+          bash -n install.sh
+          pwsh -NoProfile -Command '
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path ./install.ps1), [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | ForEach-Object { Write-Host $_ }; exit 1 }
+            Write-Host "install.ps1 parses clean"'
+
       - name: Brand drift gate
         run: node packages/cli/scripts/check-brand-drift.mjs
 
