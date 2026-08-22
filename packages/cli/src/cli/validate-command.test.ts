@@ -169,6 +169,31 @@ describe("runValidate", () => {
     expect(result.counts.skills).toBeGreaterThan(0);
   });
 
+  // The exemption's whole defence is that its cost stays visible, so the two
+  // numbers are part of the contract, not decoration. They must also be
+  // distinct: one is a backlog meant to reach zero, the other holds for every
+  // skill and will not move when the list empties.
+  it("reports the held backlog and the unconditional warnings as separate numbers", () => {
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()) });
+    expect(result.heldFindings.length).toBeGreaterThan(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.summary).toContain(
+      `${result.heldFindings.length} finding(s) held by kit/skills-lint-exempt.json`,
+    );
+    expect(result.summary).toContain(`${result.warnings.length} warning(s)`);
+    // No overlap: a duplicate-heading warning is not a held finding, and a
+    // suppressed house error is not a warning.
+    expect(result.heldFindings.filter((h) => result.warnings.includes(h))).toEqual([]);
+  });
+
+  it("holds nothing when no skill is on the list", () => {
+    writeSkill(tmp, `${GOOD_FRONTMATTER}\nNo links here.\n`);
+    writeExemptList(tmp, []);
+    const result = runValidate({ kitRoot: tmp });
+    expect(result.heldFindings).toEqual([]);
+    expect(result.summary).not.toContain("held by kit/skills-lint-exempt.json");
+  });
+
   it("flags an orphan reference (exists but unlinked)", () => {
     writeSkill(tmp, `${GOOD_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
     const result = runValidate({ kitRoot: tmp });
@@ -357,6 +382,15 @@ describe("kit-wide reference integrity", () => {
 describe("lint exemption ratchet", () => {
   const kitRoot = resolveKitRoot(process.cwd());
   const exempt = exemptSkillNames(kitRoot);
+
+  // Every assertion below iterates the list, so an empty one passes them all.
+  // `exemptSkillNames` returns an empty set on any read or parse failure — safe
+  // for shipping (the kit then fails to load loudly) but it would turn this
+  // whole describe into a no-op without saying so. Delete this when the last
+  // entry goes; the file and the mechanism go with it.
+  it("has a list to ratchet", () => {
+    expect(exempt.size).toBeGreaterThan(0);
+  });
 
   it("lists only skills that exist", () => {
     const present = new Set(

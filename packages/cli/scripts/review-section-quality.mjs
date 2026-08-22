@@ -31,14 +31,23 @@ function exemptNames() {
   }
 }
 
+/** The section name on a level-2 heading line, or null. Must stay in sync with
+ *  `levelTwoHeadingName` in skill-lint.ts — an earlier copy here compared the
+ *  trimmed line to a literal `## <name>`, so a heading with two spaces after the
+ *  hashes made the section invisible and the report silently clean. */
+function levelTwoHeadingName(line) {
+  const match = /^##\s+(.+?)\s*$/.exec(line);
+  return match === null ? null : match[1].trim();
+}
+
 /** Body of one level-2 section, or null. Mirrors `sectionBody` in skill-lint.ts. */
 function sectionBody(markdown, name) {
   const lines = markdown.split("\n");
-  const start = lines.findIndex((line) => line.trim() === `## ${name}`);
+  const start = lines.findIndex((line) => levelTwoHeadingName(line) === name);
   if (start === -1) return null;
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i])) {
+    if (levelTwoHeadingName(lines[i]) !== null) {
       end = i;
       break;
     }
@@ -74,11 +83,15 @@ function sectionsNameSomething(body) {
 
 const exempt = exemptNames();
 const rows = [];
+// Counted as we go: with --exempt-only the denominator is the filtered set, not
+// every skill on disk, or the run reports "101 of 105" about 101 skills.
+let considered = 0;
 for (const entry of readdirSync(SKILLS, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const skillMd = join(SKILLS, entry.name, "SKILL.md");
   if (!existsSync(skillMd)) continue;
   if (args.has("--exempt-only") && !exempt.has(entry.name)) continue;
+  considered++;
   const body = readFileSync(skillMd, "utf8");
   const outputFormat = outputFormatIsConcrete(body);
   const named = sectionsNameSomething(body);
@@ -99,6 +112,6 @@ if (args.has("--json")) {
     if (row.outputFormat) process.stdout.write(`    Output format: ${row.outputFormat}\n`);
     if (row.sectionsNameSomething) process.stdout.write(`    ${row.sectionsNameSomething}\n`);
   }
-  process.stdout.write(`\n${rows.length} of ${readdirSync(SKILLS).length} skills have something to answer for.\n`);
+  process.stdout.write(`\n${rows.length} of ${considered} skills have something to answer for.\n`);
   process.stdout.write("Advisory. Nothing here fails a build.\n");
 }

@@ -3,7 +3,7 @@
 // unit-testable without a filesystem. Spec: docs/av-skill-authoring-spec.md.
 
 import type { Artifact } from "./kit-types.js";
-import { SKILL_REFERENCE } from "./skill-crossrefs.js";
+import { skillReferencePattern } from "./skill-crossrefs.js";
 
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
@@ -34,7 +34,12 @@ export const SKILL_MAX_LINES_CEILING = 400;
  * actually sees: 83 exceed 300 and 6 exceed 800. A limit two thirds of the
  * corpus-by-weight violates is not a limit, it is a warning generator — and it
  * was suppressed for exactly the files that tripped it. 800 leaves 6 genuine
- * outliers (821-1717 lines) to answer for themselves.
+ * outliers (822-1718 lines) to answer for themselves.
+ *
+ * "The loader actually sees" is load-bearing: `readReferenceFiles` does not
+ * recurse, so `references/<subdir>/*.md` is never linted. Counted recursively
+ * the corpus is 500 files, 89 over 300 and 8 over 800 — two outliers this rule
+ * cannot reach. They install anyway; the copy in `install-plan.ts` is recursive.
  */
 export const REFERENCE_MAX_LINES = 800;
 export const REQUIRED_SECTIONS = [
@@ -74,7 +79,19 @@ export interface ReferenceFile {
 
 export interface SkillLintResult {
   errors: string[];
+  /**
+   * Findings that hold for every skill, exempt or not — today only the
+   * duplicate-heading heuristic. These are not a backlog and never reach zero
+   * by working through the exemption list.
+   */
   warnings: string[];
+  /**
+   * Findings the exemption list suppressed: what this skill *would* have been
+   * told, had it not been listed. Separate from `warnings` because they are the
+   * backlog ADR 0013 promises to keep countable, and mixing the two produced a
+   * number that overstated it 2.8x and could never reach zero.
+   */
+  held: string[];
 }
 
 function countLines(text: string): number {
@@ -91,10 +108,27 @@ function headings(markdown: string): Map<string, string> {
   return out;
 }
 
+/**
+ * The section name on one level-2 heading line, or `null` if the line is not
+ * one. The single definition of "this line is `## <name>`", used both to decide
+ * a required section is present and to find its body.
+ *
+ * Two callers with their own idea of the shape is how a gate goes quiet: an
+ * earlier version tested `line.trim() === "## Workflow position"` here and
+ * `/^##\s+(.+?)\s*$/` there, so `##<space><space>Workflow position` satisfied
+ * the required-section check and made the content check skip the section
+ * entirely. One keystroke, no error, rule disabled.
+ */
+function levelTwoHeadingName(line: string): string | null {
+  const match = /^##\s+(.+?)\s*$/.exec(line);
+  return match === null ? null : match[1].trim();
+}
+
 function levelTwoHeadings(markdown: string): Set<string> {
   const out = new Set<string>();
-  for (const match of markdown.matchAll(/^##\s+(.+?)\s*$/gm)) {
-    out.add(`## ${match[1].trim()}`);
+  for (const line of markdown.split("\n")) {
+    const name = levelTwoHeadingName(line);
+    if (name !== null) out.add(`## ${name}`);
   }
   return out;
 }
@@ -102,13 +136,18 @@ function levelTwoHeadings(markdown: string): Set<string> {
 /**
  * An explicit "this skill stands alone" — the deliberate-omission escape.
  *
- * "none" has to be the answer, not a word in a sentence: after a label's colon,
- * or alone at the start of a line. A bare `\bnone\b` would also accept "none of
- * the downstream skills depend on it", which is prose, not a declaration. No
- * skill in the kit takes this escape today, so tightening it costs nothing —
+ * "none" has to be the whole answer: a line that is nothing but an optional
+ * label (`Related:`, `**Typically precedes:**`) and the word. Anchoring to the
+ * line is what makes it a declaration — `\bnone\b` anywhere in the section also
+ * accepts "none of the downstream skills depend on it", and even a line-initial
+ * or post-colon match accepts "None of the other skills…" and "Caveat: none of
+ * this applies". Those are prose, and prose is what this rule exists to reject.
+ *
+ * No skill in the kit takes the escape today, so the strictness costs nothing —
  * only `av add-skill`'s "Related: none." scaffold and the fixtures rely on it.
  */
-const DECLARES_NONE = /(?::\s*|^\s*|\n\s*)(?:\*\*)?\s*none\b/i;
+const DECLARES_NONE =
+  /^[ \t]*(?:[-*+][ \t]+)?(?:\*{0,2}[^:\n*]{0,60}:\*{0,2}[ \t]*)?\*{0,2}none\*{0,2}[ \t]*[.!]?[ \t]*$/im;
 
 /**
  * Body of one level-2 section: everything between its heading and the next
@@ -118,11 +157,11 @@ const DECLARES_NONE = /(?::\s*|^\s*|\n\s*)(?:\*\*)?\s*none\b/i;
  */
 function sectionBody(markdown: string, name: string): string | null {
   const lines = markdown.split("\n");
-  const start = lines.findIndex((line) => line.trim() === `## ${name}`);
+  const start = lines.findIndex((line) => levelTwoHeadingName(line) === name);
   if (start === -1) return null;
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i])) {
+    if (levelTwoHeadingName(lines[i]) !== null) {
       end = i;
       break;
     }
@@ -148,7 +187,7 @@ function resolveMaxLines(artifact: Artifact, errors: string[]): number {
 
 /**
  * Lint one skill against the av authoring spec. Errors fail the kit load;
- * warnings (duplicate-heading heuristic) surface on `Kit.warnings` only.
+ * `held` is what the exemption list suppressed; `warnings` hold regardless.
  */
 export function lintSkill(
   artifact: Artifact,
@@ -157,6 +196,7 @@ export function lintSkill(
 ): SkillLintResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const held: string[] = [];
   const label = `skill "${artifact.name}"`;
 
   for (const field of Object.keys(artifact.frontmatter)) {
@@ -176,11 +216,11 @@ export function lintSkill(
       errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
     } else if (len > DESCRIPTION_MAX) {
       const over = `${label}: description is ${len} chars, over the ${DESCRIPTION_MAX}-char house limit`;
-      (exempt ? warnings : errors).push(over);
+      (exempt ? held : errors).push(over);
     }
     if (!TRIGGER_VERB.test(description)) {
       const noTrigger = `${label}: description needs a trigger verb (use/invoke/run/activate/trigger) saying when to fire`;
-      (exempt ? warnings : errors).push(noTrigger);
+      (exempt ? held : errors).push(noTrigger);
     }
   }
 
@@ -188,35 +228,36 @@ export function lintSkill(
   const skillLines = countLines(artifact.raw);
   if (skillLines > maxLines) {
     const tooLong = `${label}: SKILL.md is ${skillLines} lines, limit ${maxLines} (default ${SKILL_MAX_LINES})`;
-    (exempt ? warnings : errors).push(tooLong);
+    (exempt ? held : errors).push(tooLong);
   }
 
   const skillHeadings = headings(artifact.body);
   const exactSections = levelTwoHeadings(artifact.body);
-  if (!exempt) {
-    for (const section of REQUIRED_SECTIONS) {
-      if (!exactSections.has(section)) {
-        errors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
-      }
+  // Run for exempt skills too, into `held`. Skipping them outright is what made
+  // the corpus unmeasurable: 301 findings existed and nothing counted them, so
+  // "exempt" and "passes" looked identical from every command. The exemption
+  // decides severity, never whether the question gets asked.
+  const houseErrors = exempt ? held : errors;
+  for (const section of REQUIRED_SECTIONS) {
+    if (!exactSections.has(section)) {
+      houseErrors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
     }
-    // A present heading proves nothing — the fixture corpus already ships a
-    // skill whose required sections are headings with nothing under them. This
-    // asks Workflow position to answer its own question: name a skill, or say
-    // there is none.
-    //
-    // "None" is a real answer for a standalone skill, and the authoring spec
-    // already uses that shape for `Proof/risk: N/A — <reason>`. Without the
-    // escape the check forces authors to invent a relationship, and
-    // `av add-skill` would scaffold a skill that fails the moment it is created.
-    //
-    // .match, not .test: SKILL_REFERENCE is global, so .test carries lastIndex
-    // between calls and would answer differently on every other skill.
-    const position = sectionBody(artifact.body, "Workflow position");
-    if (position !== null && position.match(SKILL_REFERENCE) === null && !DECLARES_NONE.test(position)) {
-      errors.push(
-        `${label}: Workflow position names no av:<slug> — name what it hands off to or follows, or say "none"`,
-      );
-    }
+  }
+  // A present heading proves nothing — the fixture corpus already ships a
+  // skill whose required sections are headings with nothing under them. This
+  // asks Workflow position to answer its own question: name a skill, or say
+  // there is none.
+  //
+  // "None" is a real answer for a standalone skill, and the authoring spec
+  // already uses that shape for `Proof/risk: N/A — <reason>`. Without the
+  // escape the check forces authors to invent a relationship, and
+  // `av add-skill` would scaffold a skill that fails the moment it is created.
+  //
+  const position = sectionBody(artifact.body, "Workflow position");
+  if (position !== null && position.match(skillReferencePattern()) === null && !DECLARES_NONE.test(position)) {
+    houseErrors.push(
+      `${label}: Workflow position names no av:<slug> — name what it hands off to or follows, or say "none"`,
+    );
   }
   for (const ref of references) {
     const refLines = countLines(ref.content);
@@ -227,7 +268,7 @@ export function lintSkill(
       // so it never bound anything. At 800 the six outliers answer for
       // themselves — as errors, unless the skill is on the exemption list.
       const tooLong = `${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`;
-      (exempt ? warnings : errors).push(tooLong);
+      (exempt ? held : errors).push(tooLong);
     }
     for (const [normalized, original] of headings(ref.content)) {
       if (skillHeadings.has(normalized)) {
@@ -238,5 +279,5 @@ export function lintSkill(
     }
   }
 
-  return { errors, warnings };
+  return { errors, warnings, held };
 }

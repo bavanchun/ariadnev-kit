@@ -29,6 +29,7 @@ describe("docs bundle projector hostile fixtures", () => {
       rules: [],
       hooks: [],
       warnings: [],
+      held: [],
       scriptsDir: null,
       envExample: null,
       workflows: [],
@@ -90,6 +91,7 @@ describe("docs bundle projector hostile fixtures", () => {
       rules: [],
       hooks: [],
       warnings: [],
+      held: [],
       scriptsDir: null,
       envExample: null,
       workflows: [{

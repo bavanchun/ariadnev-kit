@@ -19,9 +19,12 @@ What it produced, measured on 2026-08-22:
   skipped outright for them, so nothing distinguishes "passes" from "was never
   asked". The corpus is **unmeasurable**, which is a different and worse thing
   than lenient.
-- The downgrade produced **246 warnings that no command read.**
-  `Kit.warnings` was populated by `load-kit.ts` and consumed by one test.
-  "Reported as a warning rather than ignored" was not true.
+- The downgrade produced **87 warnings that no command read**, and it *skipped*
+  a further **301 checks** outright (101 × Output format, 101 × Quality gates,
+  99 × Workflow position) — those were never findings at all. `Kit.warnings` was
+  populated by `load-kit.ts` and consumed by one test. "Reported as a warning
+  rather than ignored" was not true of the 87, and was not even attempted for
+  the 301.
 - The exempt class can only grow. Adding `origin: ported` to a new skill is one
   frontmatter line, and nothing reports that the exempt set got larger.
 
@@ -48,8 +51,17 @@ with a shrink-only test.
    `validate-command.ts`, is easy to miss and is exactly what phase 8 needs.
 4. A test fails when a listed skill already passes every check unaided. Without
    it the list is the old exemption with extra steps.
-5. `av validate` prints the held-warning count. A backlog nobody can see is not
-   a backlog.
+5. `lintSkill` returns a third channel, `held`, and `av validate` prints its
+   count. A backlog nobody can see is not a backlog.
+
+   Two things this had to get right, both found by review after a first attempt
+   got them wrong. The held count must exclude findings that hold for *every*
+   skill — the duplicate-heading heuristic contributes 159 — or the number
+   overstates the backlog and cannot reach zero even with the list empty. And
+   the three skipped checks must actually run for listed skills, into `held`,
+   or the largest part of the backlog stays invisible. First attempt printed
+   `246 warning(s) held`, of which 159 were unrelated and 301 were missing.
+   It now prints **388 held, 159 warnings**, as separate numbers.
 
 ### `REFERENCE_MAX_LINES` moves 300 → 800
 
@@ -58,6 +70,19 @@ Measured over the 463 reference files the loader actually sees: **83 exceed 300,
 limit, it is a warning generator — and it was suppressed for precisely the files
 that tripped it, so it never bound anything. 800 leaves six real outliers
 (822–1718 lines) to answer for themselves.
+
+"Actually sees" is load-bearing. `readReferenceFiles` does not recurse, so
+`references/<subdir>/*.md` is never linted at all. Counted recursively the corpus
+is 500 files, **89 over 300 and 8 over 800** — two outliers no line limit can
+reach, and `install-plan.ts` copies them to users regardless. That blind spot is
+older and wider than this ADR; it is recorded here because the measurement above
+would otherwise read as a statement about the corpus rather than about the
+linter's field of view.
+
+ADR 0008's table counted 740 files with the longest at 2249. That was the
+upstream source tree before porting, walked recursively and including files that
+are not skill references. Neither number contradicts the other; they count
+different things.
 
 ### Anti-filler checks: one gate, two advisories
 
@@ -87,12 +112,25 @@ without the escape the scaffold would produce a skill that fails on creation, an
 authors would be pushed to invent relationships. The spec already uses this shape
 for `Proof/risk: N/A — <reason>`.
 
+The escape is anchored to a whole line: an optional label, then the word. A
+first version accepted `none` anywhere in the section, which also accepted
+"none of the downstream skills depend on it" — prose, and exactly what the rule
+exists to reject. An escape wide enough to admit prose is not an escape, it is
+an off switch.
+
 **None of these detect filler.** A short generator satisfies all of them. They
 are a floor. The actual control is second-reader review, budgeted in phase 8.
 
 ## Consequences
 
-- The exempt set is a number that can be watched. It starts at **101**.
+- The exempt set is a number that can be watched. It starts at **101** skills
+  and **388** held findings.
+- The ratchet measures `lintSkill` only. The second exemption site — the
+  reference-orphan severity in `validate-command.ts` — is not covered. The
+  corpus has zero orphans today, so nothing diverges yet, but a skill whose lint
+  errors are fixed will be ordered off the list while an orphan it acquired
+  meanwhile becomes a hard error. Fold orphans into the ratchet if that ever
+  bites.
 - Deleting the last entry deletes the file, `exemptSkillNames`, and the
   `exemptNames` parameter. The mechanism is designed to be removed.
 - A non-empty list when phase 8 closes means the plan does not close — it

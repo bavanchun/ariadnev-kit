@@ -85,7 +85,7 @@ export function exemptSkillNames(kitRoot: string): Set<string> {
   }
 }
 
-function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
+function loadSkills(kitRoot: string, warnings: string[], held: string[]): Artifact[] {
   const skillsDir = join(kitRoot, "skills");
   const exemptNames = exemptSkillNames(kitRoot);
   if (!existsSync(skillsDir)) return [];
@@ -103,6 +103,7 @@ function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
       throw new KitValidationError(lint.errors.join("\n"));
     }
     warnings.push(...lint.warnings);
+    held.push(...lint.held);
     if (seen.has(artifact.name)) {
       throw new KitValidationError(`duplicate skill name: ${artifact.name}`);
     }
@@ -203,7 +204,8 @@ export function loadKit(kitRoot: string): Kit {
   const scriptsDir = join(kitRoot, "scripts");
   const envExample = join(kitRoot, ".env.example");
   const warnings: string[] = [];
-  const skills = loadSkills(kitRoot, warnings);
+  const held: string[] = [];
+  const skills = loadSkills(kitRoot, warnings, held);
   const agents = loadAgents(kitRoot);
   return {
     root: kitRoot,
@@ -220,5 +222,6 @@ export function loadKit(kitRoot: string): Kit {
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
     warnings,
+    held,
   };
 }

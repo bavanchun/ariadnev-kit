@@ -103,9 +103,17 @@ deciding to load the skill. Formula: *what it does* + *when to fire*.
 | File | Limit |
 |---|---|
 | `SKILL.md` | ≤ 300 lines (override: `metadata.maxLines`, hard ceiling 400) |
-| each `references/*.md` | ≤ 300 lines |
+| each `references/*.md` | ≤ 800 lines |
 
-An error for an authored skill; a warning for a ported one.
+An error, unless the skill is named in `kit/skills-lint-exempt.json` — then it
+is a held finding, counted in `av validate`'s output but not failing the build.
+That list is a shrinking backlog, not a category: see
+[ADR 0013](./decisions/0013-lint-exemption-is-a-shrinking-list.md). Provenance
+(`metadata.origin: ported`) no longer affects severity.
+
+The reference limit is 800 rather than 300 because 83 of the 463 reference files
+in the kit exceed 300 and 6 exceed 800. A limit most of the corpus-by-weight
+breaks does not bind anything.
 
 Tier model — spend context only when needed:
 
@@ -173,6 +181,12 @@ proof/risk quality remain authoring contracts reviewers check by reading.
    "read when …" trigger. Aim ~100–150 lines; hard ceiling stays 300.
 7. **`## Workflow position`.** Name the skills this one typically follows,
    precedes, and relates to, so the kit reads as one graph, not 21 islands.
+   Enforced: the section must name at least one `av:<slug>`, or declare `none`
+   as its whole answer (`Related: none.`, `**Typically precedes:** none`). A
+   heading with prose under it and no skill named fails the build — a present
+   section proves nothing, which is the whole reason the rule exists. "None" is
+   a real answer for a standalone skill; inventing a relationship to satisfy the
+   check is worse than declaring there is none.
 
 ## Agent authoring
 
@@ -205,10 +219,11 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 
 - [ ] Slug is kebab-case; `name: av:<slug>` matches the directory
 - [ ] Description is 20–200 chars, states what + when, contains a trigger verb
-- [ ] SKILL.md ≤ 300 lines; every reference ≤ 300 lines
+- [ ] SKILL.md ≤ 300 lines; every reference ≤ 800 lines
 - [ ] Each `references/*.md` is linked from SKILL.md with a "read when …" condition
 - [ ] No heading duplicated between SKILL.md and references
 - [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
+- [ ] `## Workflow position` names an `av:<slug>` or declares `none` as its whole answer
 - [ ] Every `av:<slug>` reference resolves to an existing kit skill
 - [ ] All four provenance fields are strings and match the pinned source; original skills use the all-`"none"` sentinel
 - [ ] Claim-tracked skills classify every claim and pass strict `ariadnev coverage --skill <name>`
