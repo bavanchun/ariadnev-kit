@@ -185,6 +185,23 @@ describe("runValidate", () => {
     expect(result.heldFindings.filter((h) => result.warnings.includes(h))).toEqual([]);
   });
 
+  /**
+   * The backlog may shrink; it may not grow. Membership of the exemption list is
+   * already ratcheted, but a listed skill can gain findings freely — a longer
+   * SKILL.md, a new over-cap reference, a section deleted — and every one of
+   * those lands in `held` with CI green. Phase 8 edits 101 listed skills, which
+   * is exactly when that channel gets exercised.
+   *
+   * Lower this number when the backlog drops. Never raise it: a finding worth
+   * adding to a listed skill is worth fixing in the same change.
+   */
+  const HELD_FINDING_HIGH_WATER = 388;
+
+  it("never lets the held backlog grow", () => {
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()) });
+    expect(result.heldFindings.length).toBeLessThanOrEqual(HELD_FINDING_HIGH_WATER);
+  });
+
   it("holds nothing when no skill is on the list", () => {
     writeSkill(tmp, `${GOOD_FRONTMATTER}\nNo links here.\n`);
     writeExemptList(tmp, []);
