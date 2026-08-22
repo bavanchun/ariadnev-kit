@@ -219,21 +219,80 @@ describe("lintSkill: Workflow position names something", () => {
     expect(res.errors).toEqual([]);
   });
 
-  // The escape has to be the answer, not a word in a sentence. Without this the
-  // rule accepts any prose containing "none" and stops meaning anything.
-  it("does not accept none buried in prose", () => {
-    const res = lintSkill(
-      makeSkill({ body: withPosition("Runs standalone; none of the other skills depend on it.") }),
-      [],
-    );
-    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
-  });
+  // The escape has to be the whole answer, not a word in a sentence. Each of
+  // these slipped past an earlier attempt that only anchored to a line start or
+  // to a colon, and a test covering the mid-sentence case alone certified a hole
+  // it did not close.
+  const PROSE = [
+    "Runs standalone; none of the other skills depend on it.",
+    "None of the other skills depend on this one.",
+    "Caveat: none of this applies to CI runs.",
+    "This skill has none.",
+  ];
+  for (const prose of PROSE) {
+    it(`does not accept ${JSON.stringify(prose.slice(0, 34))}…`, () => {
+      const res = lintSkill(makeSkill({ body: withPosition(prose) }), []);
+      expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    });
+  }
+
+  // The label shapes the corpus and the scaffold actually write.
+  for (const declaration of ["Related: none.", "**Typically precedes:** none", "None.", "- Related: none"]) {
+    it(`accepts ${JSON.stringify(declaration)}`, () => {
+      expect(lintSkill(makeSkill({ body: withPosition(declaration) }), []).errors).toEqual([]);
+    });
+  }
+
+  // Two spaces after `##` is still the same heading to `REQUIRED_SECTIONS`. If
+  // the body lookup disagrees, the section is "present" and its content is never
+  // read — the gate turns itself off and says nothing.
+  for (const heading of ["##  Workflow position", "##\tWorkflow position"]) {
+    it(`still fires when the heading is written ${JSON.stringify(heading)}`, () => {
+      const body = REQUIRED_BODY.replace("## Workflow position\n\nRelated: none.\n", `${heading}\n\nFits into the wider workflow.\n`);
+      const res = lintSkill(makeSkill({ body }), []);
+      expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    });
+  }
 
   // The rule is a house check, so a name on the exemption list escapes it —
   // that, and not `metadata.origin`, is what decides severity since ADR 0013.
-  it("skips the check for a skill on the exemption list", () => {
+  // The finding still has to be produced, or the backlog cannot be counted.
+  it("holds the finding for a listed skill instead of skipping the check", () => {
     const body = withPosition("Fits into the wider workflow.");
-    expect(lintSkill(makeSkill({ body }), [], new Set(["demo"])).errors).toEqual([]);
-    expect(lintSkill(makeSkill({ body }), [], new Set(["other"])).errors.length).toBeGreaterThan(0);
+    const listed = lintSkill(makeSkill({ body }), [], new Set(["demo"]));
+    expect(listed.errors).toEqual([]);
+    expect(listed.held.some((h) => h.includes("Workflow position"))).toBe(true);
+
+    const unlisted = lintSkill(makeSkill({ body }), [], new Set(["other"]));
+    expect(unlisted.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    expect(unlisted.held).toEqual([]);
+  });
+});
+
+describe("lintSkill: held findings are separated from warnings", () => {
+  // The exemption backlog has to be countable on its own. Mixing it with
+  // findings that hold for every skill produced a number that overstated the
+  // backlog and could never reach zero, even with the list empty.
+  it("routes suppressed house findings to held, not warnings", () => {
+    const longRef = { name: "references/big.md", content: "x\n".repeat(REFERENCE_MAX_LINES + 10) };
+    const res = lintSkill(makeSkill(), [longRef], new Set(["demo"]));
+    expect(res.errors).toEqual([]);
+    expect(res.held.some((h) => h.includes("references/big.md"))).toBe(true);
+    expect(res.warnings).toEqual([]);
+  });
+
+  it("keeps the duplicate-heading warning out of held for a listed skill", () => {
+    const dupe = { name: "references/dupe.md", content: "## Output format\n" };
+    const res = lintSkill(makeSkill(), [dupe], new Set(["demo"]));
+    expect(res.warnings.some((w) => w.includes("Output format"))).toBe(true);
+    expect(res.held).toEqual([]);
+  });
+
+  // Missing required sections were skipped outright for listed skills. 301
+  // findings existed across the corpus and no command could see one of them.
+  it("reports a listed skill's missing sections as held", () => {
+    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), [], new Set(["demo"]));
+    expect(res.errors).toEqual([]);
+    expect(res.held.filter((h) => h.includes("missing required section"))).toHaveLength(3);
   });
 });

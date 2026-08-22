@@ -75,13 +75,20 @@ export interface ValidateResult {
   findings: ValidateFinding[];
   counts: { skills: number; agents: number; hooks: number };
   /**
-   * Lint findings the exemption held back from erroring. Until now these went
-   * onto `Kit.warnings` and no command read them, so "downgraded to a warning"
-   * meant "discarded" — and the exemption's whole defence is that the cost stays
-   * in view. Carried in full here for programmatic consumers; the summary prints
-   * only the count, because 246 lines would bury the errors that matter.
+   * Lint findings `kit/skills-lint-exempt.json` held back from erroring. Until
+   * ADR 0013 these went onto `Kit.warnings` and no command read them, so
+   * "downgraded to a warning" meant "discarded" — and the exemption's whole
+   * defence is that the cost stays in view. Carried in full for programmatic
+   * consumers; the summary prints only the count.
    */
-  heldWarnings: string[];
+  heldFindings: string[];
+  /**
+   * Lint findings that hold for every skill regardless of the exemption list
+   * (today: the duplicate-heading heuristic). Kept apart from `heldFindings`
+   * because these are not a backlog and clearing the exemption list will not
+   * reduce them.
+   */
+  warnings: string[];
   summary: string;
 }
 
@@ -95,11 +102,12 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "av:scout"). Used by `av eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
-  /**
-   * Promote reference-integrity findings (orphan, dangling) to errors even for
-   * ported skills. Deliberately narrow: size and style stay warnings for ported
-   * content, so this gate does not block the next port of a long upstream skill.
-   */
+   /**
+    * Promote the reference-orphan finding to an error even for a skill on
+    * `kit/skills-lint-exempt.json`. Deliberately narrow: size and style stay
+    * held for listed skills, so this gate does not block work on a long ported
+    * skill. (Dangling was always an error and is unaffected.)
+    */
   strict?: boolean;
 }
 
@@ -137,16 +145,21 @@ export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry
 function renderSummary(
   findings: ValidateFinding[],
   counts: ValidateResult["counts"],
-  heldWarnings: string[] = [],
+  heldFindings: string[] = [],
+  warnings: string[] = [],
 ): string {
   const header = `ariadnev validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
-  // One line, not 246. The count is what makes the exemption backlog a number
-  // someone can watch shrink; the text of each warning is on the result object.
-  const held =
-    heldWarnings.length > 0
-      ? `\n  ${heldWarnings.length} warning(s) held by kit/skills-lint-exempt.json`
-      : "";
-  if (findings.length === 0) return `${header}\n  all checks passed${held}`;
+  // Counts, not the hundreds of lines behind them — the text is on the result
+  // object. Two separate numbers because they mean different things: the held
+  // count is the exemption backlog and is meant to reach zero, the warning count
+  // holds for every skill and never will. One combined number was worse than no
+  // number: it overstated the backlog and could not have reached zero.
+  const extra: string[] = [];
+  if (heldFindings.length > 0) {
+    extra.push(`  ${heldFindings.length} finding(s) held by kit/skills-lint-exempt.json`);
+  }
+  if (warnings.length > 0) extra.push(`  ${warnings.length} warning(s)`);
+  if (findings.length === 0) return [header, "  all checks passed", ...extra].join("\n");
   const lines = [header];
   for (const f of findings) {
     const tag = (f.level ?? "error") === "warn" ? "warn:" : "";
@@ -155,7 +168,7 @@ function renderSummary(
   const errors = findings.filter((f) => (f.level ?? "error") === "error").length;
   const warns = findings.length - errors;
   lines.push(`  ${errors} error(s), ${warns} warning(s)`);
-  if (held) lines.push(held.trimStart());
+  lines.push(...extra);
   return lines.join("\n");
 }
 
@@ -170,7 +183,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     const message = err instanceof Error ? err.message : String(err);
     const findings: ValidateFinding[] = [{ skill: "(kit)", kind: "lint", message }];
     const counts = { skills: 0, agents: 0, hooks: 0 };
-    return { ok: false, findings, counts, heldWarnings: [], summary: renderSummary(findings, counts) };
+    return { ok: false, findings, counts, heldFindings: [], warnings: [], summary: renderSummary(findings, counts) };
   }
 
   const findings: ValidateFinding[] = [];
@@ -309,6 +322,16 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const counts = { skills: kit.skills.length, agents: kit.agents.length, hooks: kit.hooks.length };
   // Warnings surface but don't fail; only error-level findings break the gate.
   const ok = !findings.some((f) => (f.level ?? "error") === "error");
-  const heldWarnings = kit.warnings;
-  return { ok, findings, counts, heldWarnings, summary: renderSummary(findings, counts, heldWarnings) };
+  // Copied, not aliased: `ValidateResult` is handed to callers and must not be
+  // a live window onto the Kit's arrays.
+  const heldFindings = [...kit.held];
+  const warnings = [...kit.warnings];
+  return {
+    ok,
+    findings,
+    counts,
+    heldFindings,
+    warnings,
+    summary: renderSummary(findings, counts, heldFindings, warnings),
+  };
 }
