@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, chmodSync, renameSync } from "
 import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { receiptVersion, type Receipt } from "../install/install-receipt.js";
-import { isValidVersion, versionQuery } from "./update-version.js";
+import { isValidVersion, isPrerelease, versionQuery } from "./update-version.js";
 import { verifyChecksums } from "./update-signature.js";
 
 // Everything goes through the public edge (a Cloudflare Worker on this domain)
@@ -308,6 +308,16 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
   if (!isValidVersion(target)) {
     lines.push("  the update server returned a version that is not an exact x.y.z — nothing changed");
     return done(1);
+  }
+
+  // Defence in depth for the beta channel. Nothing routes betas: a prerelease is
+  // reachable only by naming its exact version, and the bare path stays on
+  // stable because `/version` answers from the latest release and a prerelease
+  // is never marked latest. That is two facts in two repositories, one of which
+  // is a GitHub flag — so this refuses rather than relying on both holding.
+  if (opts.to === null && isPrerelease(target)) {
+    lines.push(`  ${target} is a prerelease and is not offered without --to — nothing changed`);
+    return done();
   }
 
   // The latest path skips a no-op update; a pinned target always proceeds —

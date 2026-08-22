@@ -152,6 +152,41 @@ gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
 `--ref "$TAG"` is not cosmetic: the workflow asserts the dispatch ref is exactly
 `refs/tags/<tag>` and fails otherwise.
 
+## Cutting a beta
+
+A beta is not a separate pipeline. It is the same release, tagged
+`ariadnev@X.Y.Z-beta.N`, published but never marked latest — and since
+`/version` answers from the latest release, that single flag is what keeps every
+bare `curl | bash` and bare `av update` on stable. Finalization sets it and
+asserts it afterwards.
+
+Installing one is explicit and has no shorthand:
+
+```bash
+ariadnev update --to 2.0.0-beta.1
+```
+
+`ariadnev update` with no arguments will not offer a beta even if the edge
+somehow reports one. Someone running a beta is not stranded on it: the stable
+release of the same version outranks every prerelease of it, so the ordinary
+update path moves them across.
+
+Entering and leaving the channel:
+
+```bash
+gh variable set ARIADNEV_RELEASE_CHANNEL --body beta   # then: changeset pre enter beta
+gh variable delete ARIADNEV_RELEASE_CHANNEL            # then: changeset pre exit
+```
+
+Both halves are required and CI refuses a mismatch in either direction. That
+guard exists because changesets pre mode persists until explicitly exited, and a
+forgotten one cuts what looks like a stable release as `-beta.N` — which, being
+never-latest, reaches nobody and looks like a broken pipeline rather than a
+forgotten mode.
+
+The edge must understand the selector before the CLI depends on it; that lives
+in `ariadnev-web` and deploys separately.
+
 Finalization reads the public key out of `packages/cli/src/cli/update-signature.ts`
 at the release SHA, so the key that gates publishing is the key that release's
 binary carries. A signature by any other key, or over the tag instead of the
