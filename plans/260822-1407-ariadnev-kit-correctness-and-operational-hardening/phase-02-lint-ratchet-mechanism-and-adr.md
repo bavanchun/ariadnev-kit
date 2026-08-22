@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Lint ratchet mechanism and ADR"
-status: todo
+status: completed
 priority: P1
 effort: "1-2d"
 dependencies: []
@@ -141,14 +141,69 @@ floor checks; the real control is second-reader review in phase 8.
 
 ## Success Criteria
 
-- [ ] Every gate check passes against all 4 authored skills. Non-negotiable.
-- [ ] `kit/skills-lint-exempt.json` exists with 101 entries; `isPorted()` is gone.
-- [ ] `skill-lint.ts` contains no `fs` import; its tests need no real kit.
-- [ ] Shrink-only test fails when a compliant skill is left listed — proven by
-      temporarily listing an authored skill.
-- [ ] `REFERENCE_MAX_LINES` is 800; exactly 6 files exceed it.
-- [ ] `kit.warnings` is displayed or deleted.
-- [ ] `pnpm test` green; `av validate` output unchanged from today.
+- [x] Every gate check passes against all 4 authored skills. Non-negotiable.
+- [x] `kit/skills-lint-exempt.json` exists with 101 entries; `isPorted()` is gone.
+- [x] `skill-lint.ts` contains no `fs` import; its tests need no real kit.
+- [x] Shrink-only test fails when a compliant skill is left listed — proven by
+      temporarily listing an authored skill (`expected [ 'pm' ] to deeply equal []`),
+      re-proven after the ratchet moved to the loader's own readers.
+- [x] `REFERENCE_MAX_LINES` is 800; exactly 6 files exceed it — 822-1718 lines,
+      counted the way `countLines` counts, over the 463 files the loader sees.
+- [x] `kit.warnings` is displayed — as **two** numbers, which the first attempt
+      got wrong. See below.
+- [x] `pnpm test` green (1159); `av validate` finds nothing new on the real kit.
+
+## What review changed
+
+The mechanism was right; two of the three things the phase actually ships were
+defective, and a third was undocumented. All found by the reviewer, all verified
+here before acting.
+
+**The held count was wrong in both directions.** `heldWarnings = kit.warnings`
+printed `246 warning(s) held by kit/skills-lint-exempt.json`. Measured: 87 were
+actually held by the list; 159 were duplicate-heading warnings that hold for
+every skill and would still print with the list empty. And the three house
+checks the exemption *skipped* produced no findings at all — 301 of them, the
+largest part of the backlog, invisible. A number that overstates the backlog 2.8x
+and can never reach zero is worse than no number, and it falsified the ADR's own
+"a backlog nobody can see is not a backlog".
+
+Fixed by giving `lintSkill` a third channel. Listed skills are still checked;
+their findings go to `held` rather than `errors`. `av validate` now prints
+`388 finding(s) held` and `159 warning(s)` separately — the first is a backlog
+that reaches zero, the second never will.
+
+**The gate could be switched off with one keystroke.** `sectionBody` compared
+`line.trim()` to a literal `"## Workflow position"` while the required-section
+check used `/^##\s+(.+?)\s*$/`. So `##<space><space>Workflow position` satisfied
+"section present" and made its body unreadable — gate silent, no error. Proven
+against the live file before fixing. Both now go through one matcher.
+
+**The "none" escape admitted prose.** Anchoring to a line start or a colon was
+not enough: "None of the other skills depend on this one." and "Caveat: none of
+this applies" both passed, and the test written for it covered only the
+mid-sentence case — it certified a hole it did not close. The escape is now the
+whole line. Self-references are excluded too: 0 skills name only themselves, so
+it was free to close.
+
+**The spec authors read still described the old contract.**
+`docs/av-skill-authoring-spec.md` documented a 300-line reference limit and
+severity-by-provenance, and said nothing about the new hard requirement. An
+author following its checklist would have hit an undocumented build failure —
+exactly the risk this phase's own register names. Updated.
+
+Smaller, same review: the shared `/g` regex is now a factory (`matchAll` copies
+`lastIndex` into its clone, so one stray `.test()` would silently drop
+references); `ValidateResult` copies the Kit's arrays instead of aliasing them;
+the ratchet asserts the list is non-empty, since every other assertion in it
+iterates the list and an empty one passes them all; and the benchmark-report
+re-freeze was unrelated churn, reverted.
+
+**Left open, recorded in ADR 0013:** the ratchet measures `lintSkill` only, not
+the reference-orphan severity in `validate-command.ts`. Zero orphans exist today
+so nothing diverges, but the coupling is real. And `readReferenceFiles` does not
+recurse: counted recursively the corpus is 500 files with 89 over 300 and 8 over
+800, so two outliers no line limit can reach still install to users.
 
 ## Risk Assessment
 

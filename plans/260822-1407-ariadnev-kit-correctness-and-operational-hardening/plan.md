@@ -143,7 +143,7 @@ path-shape are now two separate rules.
 |---|-------|------------|--------|
 | 0 | [Installer checksum pin](./phase-00-installer-checksum-pin.md) | — | **Completed** (merged, live) |
 | 1 | [Link integrity](./phase-01-link-integrity.md) | — | **Completed** (merged to dev) |
-| 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | Pending |
+| 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | **Completed** (merged to dev) |
 | 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | Pending |
 | 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | Pending |
 | 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | Pending |

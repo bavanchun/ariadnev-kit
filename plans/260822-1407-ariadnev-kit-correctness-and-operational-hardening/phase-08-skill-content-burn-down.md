@@ -12,6 +12,13 @@ dependencies: [2, 3]
 ## Overview
 
 Bring all 101 exempted skills to the house authoring bar and empty the ratchet.
+
+Phase 2 made the target a number: `av validate` reports **388 finding(s) held by
+kit/skills-lint-exempt.json**. That is the burn-down. The 159 warnings printed
+beside it are the duplicate-heading heuristic, hold for every skill, and are not
+this phase's work. Of the 388, 301 are missing required sections (101 × Output
+format, 101 × Quality gates, 99 × Workflow position) — a section written, not a
+line trimmed, is most of the job.
 The long pole — a content-authoring project, not an engineering one. Depends on
 phase 2 for the mechanism that makes it mergeable one skill at a time, and on
 phase 4 so edits are authored against final install semantics.
