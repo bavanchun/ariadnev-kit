@@ -193,15 +193,15 @@ proof/risk quality remain authoring contracts reviewers check by reading.
 Agents live in `kit/agents/`; enforced by
 `packages/cli/src/kit/agent-lint.ts` inside `loadKit`.
 
-The `av-` prefix is the marker here, doing the job `metadata.origin` does for
-skills: an agent we wrote is `av-<slug>.md`, a ported one keeps the name upstream
-gave it (`code-reviewer.md`, `explore.md`). House rules — the example pair, the
-checklist heading, the length budget — apply to the first kind only.
+Every agent in `kit/agents/` is held to the same rules, ported or not. The
+lint once exempted agents whose filename lacked an `av-` prefix; no agent file
+carried it, so the exemption covered all sixteen and the gate certified
+nothing. All sixteen now meet the rules and the exemption is gone.
 
 | Field | Required | Rule |
 |---|---|---|
-| `name` | yes | the file stem (`av-<slug>.md` → `name: av-<slug>`); a ported agent may differ in case only, because the provider addresses it by the declared name |
-| `description` | yes | ≥50 chars; for an authored agent, ≤1200 and containing ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
+| `name` | yes | the file stem (`<slug>.md` → `name: <slug>`). One exception: `explore.md` declares `name: Explore`, because Claude Code ships a built-in `Explore` subagent type and the `Task(Explore)` grants in other agents address both by that spelling |
+| `description` | yes | 50-1200 chars, containing ≥1 `<example>...</example><commentary>...</commentary>` pair so the model auto-delegates correctly |
 | `tools` | no | comma-separated string or array of tool names |
 | `model` | no | one of `opus`, `sonnet`, `haiku`, `fable`, or `inherit` — tier by task weight (fable: hardest calls; opus: planning/brainstorming; sonnet: review/debug/implement; haiku: mechanical/read-heavy work; `inherit`: run on whatever the caller runs on) |
 | `memory` | no | claude-code only |
