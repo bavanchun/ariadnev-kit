@@ -4,9 +4,8 @@ How to compose installed skills into a workflow: the skeleton, the link
 contract, context passing, when to collapse, and how to recover. Sequences for
 engineer development work are owned by
 `../../av-cook/references/workflow-routing.md` — load that file for them; this
-file never re-lists its tables. Marketing sequences live here because no
-installed reference owns them today; if a marketing routing reference ships
-later, this section slims to a pointer.
+file never re-lists its tables. No installed reference owns marketing
+sequences; see Marketing Sequences below for what that means for routing.
 
 ## The Skeleton
 
@@ -80,11 +79,13 @@ descriptions.
 
 ## Marketing Sequences
 
-This kit ships no marketing routing reference and no marketing skills. The
-taxonomy still classifies `plan-campaign`, `create-content`, and
-`analyze-performance` tasks, but there is nothing here to route them to: build
-the chain from whatever Step 2 actually found, and report the gap rather than
-inventing a skill name that looks plausible.
+This kit ships no marketing *routing reference* — no owning file defines
+campaign, funnel, or channel sequences. It does ship marketing-adjacent
+execution skills: `av:copywriting` for conversion copy, emails and landing
+pages, `av:design` for campaign and poster assets, `av:ai-artist` for marketing
+imagery. Build the chain from what Step 2 actually found, and report the gap
+for anything those three do not cover rather than inventing a skill name that
+looks plausible.
 
 ## Failure and Detours
 

@@ -76,10 +76,13 @@ runtime-native:
   context (Skill tool); installed agents are the available subagent types
   (Agent tool). Trust that list, not memory.
 - **Codex**: skills auto-discovered from `~/.agents/skills/` and the repo's
-  `.agents/skills/`; agents are the `.toml` files installed under
-  `~/.codex/agents/` (project: `.codex/agents/`) — `codex debug prompt-input`
-  lists both. Codex ships no in-session spawn tool, so a "subagent" there is
-  that agent's instructions read and executed inline.
+  `.agents/skills/`; agents are the `.toml` files av installs under
+  `~/.codex/agents/` — av writes home scope regardless of `--global`, so also
+  check the project's `.codex/agents/` in case another tool wrote there.
+  `codex debug prompt-input` lists both skills and agents. Nothing in this repo
+  observes a Codex in-session spawn tool, and av registers none, so treat a
+  "subagent" there as that agent's instructions read and executed inline unless
+  the live session shows otherwise.
 
 Capability missing? Use `av:find-skills` to discover and install it when
 present; otherwise do the work inline and name the gap in your final report. Do
@@ -120,7 +123,7 @@ when they fragment a task that needed full conversation context.
 Load [references/subagent-timing.md](references/subagent-timing.md) for the
 trigger table (stage × condition → role), the delegation contract every spawn
 must carry, parallel-safety rules, and the per-runtime dispatch dialect
-(Claude Code Agent tool vs Codex `agent_<slug>` MCP tools).
+(Claude Code Agent tool vs Codex's inline-agent fallback).
 
 Fast triggers you should never miss:
 
@@ -159,10 +162,10 @@ risk makes it mandatory).
 
 **"Why did checkout latency double last week?"** — class: investigate-explain,
 size: standard, risk: low (read-only), domains: 2. Chain: `/av:scout` to locate
-the checkout path and its recent changes → `/av:debug` to prove the cause →
-findings report. No mutation link: the route ends at a diagnosis, and `/av:fix`
-is a separate decision the user makes on it. Agents: parallel `Explore` roles
-because the investigation spans more than two areas.
+the checkout path → `/av:debug` to prove the cause → findings report. No
+mutation link: the route ends at a diagnosis, and `/av:fix` is a separate
+decision the user makes on it. Agents: parallel `Explore` roles because the
+investigation spans more than two files.
 
 ## Anti-Patterns
 
@@ -220,7 +223,8 @@ remain.
 ## Quality gates
 
 These check the routing decision. The gates that apply to the *work* being
-routed are Step 5's verification-by-risk table.
+routed are the Risk modifier table in `references/task-taxonomy.md` that Step 5
+applies.
 
 - [ ] Step 2 ran: every skill and agent named in the chain was confirmed
       installed, not assumed from this kit's documentation

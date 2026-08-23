@@ -29,7 +29,7 @@ Do NOT spawn when:
 | decide | size epic, multi-file build ahead | planner (`planner`) — prefer the planning skill instead when the user should review the plan |
 | decide | Approach contested or high-stakes | second-opinion role (`brainstormer`) with an adversarial prompt |
 | execute | Independent file sets across phases | implementer per phase (`fullstack-developer`), disjoint ownership, parallel only when files do not overlap |
-| execute | Marketing: multiple channels from one brief | one content role per channel (`content-creator`, `copywriter`, `email-wizard`, `social-media-manager`) |
+| execute | Content for multiple channels from one brief | one role per channel, resolved against the live inventory; this kit ships no content agents, so the work runs inline under `av:copywriting` |
 | verify | Implementation or fix just finished | tester (`tester`) before claiming done |
 | verify | Ship/publish/public-contract ahead, or risk high | independent reviewer (`code-reviewer`, `content-reviewer`) |
 | any | Same failure twice despite fixes | debugger with all evidence so far (`debugger`, `campaign-debugger`) |
@@ -85,11 +85,12 @@ retry.
 
 **Codex**
 
-- No in-session spawn tool exists. Installed agents are `.toml` files under
-  `~/.codex/agents/` or the project's `.codex/agents/`; read the matching one
-  and do the work inline under its instructions, or ask the user to run a
-  separate `codex exec`.
-- Discover installed agents by listing those two directories.
+- No in-session spawn tool is verified for Codex. Installed agents are `.toml`
+  files av writes under `~/.codex/agents/`; read the matching one and do the
+  work inline under its instructions, or ask the user to run a separate
+  `codex exec`.
+- Discover installed agents by listing `~/.codex/agents/`, and the project's
+  `.codex/agents/` in case another tool wrote there.
 
 **Neither available** — do the work inline and name the gap in the final
 report; never fake a delegation.

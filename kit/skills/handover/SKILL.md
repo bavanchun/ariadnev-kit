@@ -92,9 +92,8 @@ returns a clear blocker in the final report without silent substitution.
 ## Handoff validation
 
 Before dispatching, the artifact (freshly generated or supplied via
-`--handoff`) must pass the "Validation summary" in
-[artifact-schema.md](../av-handoff/references/artifact-schema.md), which owns
-the authoritative list:
+`--handoff`) must pass the four checks in the "Validation summary" of
+[artifact-schema.md](../av-handoff/references/artifact-schema.md):
 
 - The document begins with an H1 starting `HANDOFF: `.
 - Every required H2 section is present, spelled exactly.
@@ -102,12 +101,16 @@ the authoritative list:
   bold-prefixed `**First safe step**`.
 - No raw-secret pattern from
   [redaction-patterns.md](../av-handoff/references/redaction-patterns.md)
-  matches any line, and no required section is empty — `Not captured in this
-  session` is the only permitted stand-in.
+  matches any line.
 
-Plus one rule this skill owns: frontmatter `handoff-version` (if present) is
-`1`, so an artifact written by a future version is rejected rather than
-half-understood.
+Plus two rules owned outside that summary:
+
+- No required section is empty — `Not captured in this session` is the only
+  permitted stand-in
+  ([redaction-patterns.md](../av-handoff/references/redaction-patterns.md)).
+- Frontmatter `handoff-version` (if present) is `1`, this skill's own rule, so
+  an artifact written by a future version is rejected rather than
+  half-understood.
 
 Any failure is a hard blocker — this skill refuses to dispatch and prints
 the failing check(s) plus the failing file's path. A malformed fresh
@@ -161,7 +164,7 @@ Print exactly:
 - Model: <resolved-model-or-n/a>
 - Job result: <success|failure|blocked>
 - Verification: <arbiter-verdict-summary>
-- Artifacts: <paths under the run dir — the job's artifacts/ directory, stdout.txt/stderr.txt (CLI) or result.md (internal), and report.md — or "none">
+- Artifacts: <paths under the run dir — for example the job's artifacts/ directory, its capture files (stdout.txt/stderr.txt for CLI, result.md for internal), and report.md — or "none">
 - First safe step: <the handoff's first Exact-next-action, the item marked **First safe step**>
 - Next action: <what the successor agent completed / where to look>
 
@@ -235,7 +238,7 @@ this skill's last act is the dispatch and its report.
 **Related:** `av:orchestrate` owns runtime discovery, model routing, dispatch,
 capture, resume, and arbiter review, and is the right skill for a multi-job
 graph or parallel worktrees; this one is the single-job front door over it.
-`av:handoff` owns capture and redaction. `av:advise` or `kongming` picks *which*
-agent to use — this skill dispatches the one already chosen. `av:watzup` owns
-human-facing status from branches, CI, and repository history; never route that
-here.
+`av:handoff` owns capture and redaction. `av:advise` (user-invoked) or
+`kongming` picks *which* agent to use — this skill dispatches the one already
+chosen. `av:watzup` owns human-facing status from branches, CI, repository
+history, and team state; never route that here.
