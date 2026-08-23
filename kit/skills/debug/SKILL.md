@@ -33,7 +33,7 @@ Random fixes waste time and create new bugs. Find root cause, fix at source, val
 
 ### 1. Systematic Debugging (`references/systematic-debugging.md`)
 
-Four-phase framework: Root Cause Investigation → Pattern Analysis → Hypothesis Testing → Implementation. Complete each phase before proceeding. Run phases 1-3 here; phase 4 Implementation is `av:fix`'s, and this skill hands it the diagnosis.
+Four-phase framework: Root Cause Investigation → Pattern Analysis → Hypothesis Testing → Implementation. Complete each phase before proceeding. Run phases 1-2 here and form the phase-3 hypothesis; the phase-3 minimal test and phase 4 Implementation both change code, so both belong to `av:fix`, and this skill hands it the diagnosis.
 
 **Load when:** Any bug/issue requiring investigation and fix
 
@@ -98,7 +98,7 @@ Visual verification of frontend implementations via `av:agent-browser`, `av:chro
 ## Quick Reference
 
 ```
-Code bug       → systematic-debugging.md (Phases 1-3; phase 4 is av:fix)
+Code bug       → systematic-debugging.md (Phases 1-2 + the hypothesis; testing it and phase 4 are av:fix)
   Deep in stack  → root-cause-tracing.md (trace backward)
   Found cause    → defense-in-depth.md (specify layers)
   Claiming done  → verification.md (verify first)
@@ -153,6 +153,8 @@ concrete artifact; where its prose section list differs, the template wins.
 
 ## Quality gates
 
+- [ ] Root cause is proven, not guessed — the evidence would convince someone
+      who disagreed, and correlation is distinguished from causation
 - [ ] No production code was changed; the fix is described, not applied
 - [ ] Every item in Evidence is labelled `confirmed` or `hypothesis`, and the
       Status matches — an investigation carrying only hypotheses is not
