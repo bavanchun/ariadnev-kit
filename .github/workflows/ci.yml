@@ -1,29 +1,40 @@
 name: CI
 
-# Two paths never reach any gate below, so a commit touching only them buys a
-# ~14-minute run that can only pass:
-#   plans/**   — dated plans and reports. Nothing in this job reads the real
+# Two paths never reach any gate in the `ci` job, so a commit touching only
+# them buys a ~14-minute run that can only pass:
+#   plans/**   — dated plans and reports. Nothing in that job reads the real
 #                directory (the plan-command tests use in-memory fixtures), and
 #                check-brand-drift.mjs already allowlists the `plans/` prefix
 #                because those documents quote the old name on purpose.
 #   .claude/** — local agent working state. Nothing tracked lives there today
 #                and no gate reads it, but agents churn it constantly.
+#
+# THE FILTER IS A JOB CONDITION, NOT A TRIGGER FILTER — do not "simplify" it
+# back into `paths-ignore:` under `on:`. `Lint · Build · Test` is a required
+# status check on `dev` and `main`. A trigger-level `paths-ignore` makes the
+# whole workflow never start, and GitHub then leaves the required check
+# Pending forever: "If a workflow is skipped due to path filtering … checks
+# associated with that workflow will remain in a Pending state. A pull request
+# that requires those checks to be successful will be blocked from merging."
+# A docs-only PR would be unmergeable. A job skipped by `if:` instead reports
+# "skipped", which required status checks count as success — so the workflow
+# always starts, and `changes` decides whether `ci` does any work.
+#
+# `changes` fails open in every direction: a new branch, a force-push whose
+# base is gone, an API error, an unrecognised event, or the job itself failing
+# all run the full gate. Only a positive, complete file list that lies entirely
+# inside the two paths above skips it.
+#
 # Unlike plans/, `.claude/` is NOT brand-drift-allowlisted, so text committed
 # there could carry drift past this filter. The Monday run is the backstop that
 # closes that hole: it re-scans the whole tree regardless of what changed.
 on:
   push:
     branches: [main, dev]
-    paths-ignore:
-      - "plans/**"
-      - ".claude/**"
   # dev is where work actually lands; without it here a PR into dev gets no
   # checks at all and the review gate is decorative.
   pull_request:
     branches: [main, dev]
-    paths-ignore:
-      - "plans/**"
-      - ".claude/**"
   schedule:
     # Weekly full run on the default branch: catches anything the path filter
     # above deferred, and proves the pipeline still works on a quiet week.
@@ -42,8 +53,89 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - name: Decide whether the full gate must run
+        id: detect
+        env:
+          # gh is preinstalled on every runner, so this needs no third-party
+          # action and no checkout. Every value below is passed as an
+          # environment variable rather than interpolated into the script.
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+
+          # Every uncertain path lands here. The expensive answer is the safe
+          # one, so it is also the default: nothing below may skip the gate
+          # without a complete file list proving the change is ignorable.
+          run_full_gate() {
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "full gate: $1"
+            exit 0
+          }
+
+          case "$EVENT_NAME" in
+            pull_request)
+              [ -n "$PR_NUMBER" ] || run_full_gate "pull_request carried no number"
+              files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate --jq '.[].filename') \
+                || run_full_gate "could not list the files of pull request $PR_NUMBER"
+              ;;
+            push)
+              # All-zeros is a branch that did not exist before this push, so
+              # there is no base to compare against.
+              case "$BEFORE_SHA" in
+                "" | 0000000000000000000000000000000000000000)
+                  run_full_gate "push has no previous commit to compare against" ;;
+              esac
+              # A force-push whose old tip is gone makes this 404, which is a
+              # failure and therefore runs the gate.
+              files=$(gh api "repos/$REPO/compare/$BEFORE_SHA...$AFTER_SHA" --paginate --jq '.files[].filename') \
+                || run_full_gate "could not compare $BEFORE_SHA...$AFTER_SHA"
+              ;;
+            *)
+              # schedule is the weekly backstop and must scan everything.
+              # Anything else is an event this logic has never been read
+              # against, which is the same as not knowing.
+              run_full_gate "event $EVENT_NAME always runs the full gate" ;;
+          esac
+
+          [ -n "$files" ] || run_full_gate "the API returned no files"
+
+          # Both endpoints stop enumerating at 3000 files, and a truncated list
+          # could look ignorable while hiding real changes behind the cut.
+          count=$(printf '%s\n' "$files" | wc -l | tr -d '[:space:]')
+          [ "$count" -lt 3000 ] || run_full_gate "file list hit the API cap at $count"
+
+          outside=$(printf '%s\n' "$files" | grep -vE '^(plans/|\.claude/)' || true)
+          if [ -n "$outside" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "full gate: $(printf '%s\n' "$outside" | wc -l | tr -d '[:space:]') of $count changed files are outside plans/ and .claude/"
+            printf '%s\n' "$outside" | head -20
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "skipping: all $count changed files are under plans/ or .claude/"
+          fi
+
   ci:
     name: Lint · Build · Test
+    needs: [changes]
+    # `!cancelled()` is what lets this run even when `changes` failed — without
+    # a status function here, a failed `needs` would silently skip the job, and
+    # a skipped required check counts as success. So: run unless the whole run
+    # was cancelled and `changes` positively said there is nothing to check.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
