@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import { lifecycleRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
 import { jsonEnvelope } from "./json-envelope.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -65,17 +66,21 @@ export function registerMigrate(program: Command): void {
     .option("--provider <id>", "limit to one provider")
     .option("--global", "operate on ~/ instead of ./", false)
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action((opts: { provider?: string; global?: boolean; json?: boolean }) => {
+    .action(async (opts: { provider?: string; global?: boolean; json?: boolean }) => {
       const g = program.opts<{ home: string; cwd: string; dryRun?: boolean }>();
       const root = opts.global ? (g.home ?? homedir()) : (g.cwd ?? process.cwd());
-      const { summary } = runMigrate({
-        root,
-        manifestPath: defaultManifestPath(),
-        provider: opts.provider,
-        dryRun: !!g.dryRun,
-        timestamp: nowStamp(),
-        json: !!opts.json,
-      });
+      const { summary } = await withLifecycleLock(
+        g.dryRun ? [] : lifecycleRoots({ home: g.home ?? homedir(), cwd: g.cwd ?? process.cwd() }),
+        "migrate",
+        () => runMigrate({
+          root,
+          manifestPath: defaultManifestPath(),
+          provider: opts.provider,
+          dryRun: !!g.dryRun,
+          timestamp: nowStamp(),
+          json: !!opts.json,
+        }),
+      );
       emit(summary);
     });
 }

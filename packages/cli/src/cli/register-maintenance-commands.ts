@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import { executableRoot, lifecycleRoots, runUnlock, withLifecycleLock } from "../install/lifecycle-lock.js";
 import type { Command } from "commander";
 import { runBackupsList, runBackupsPrune, runBackupsRestore } from "./backups-command.js";
 import { runBackupsShow, runBackupsVerify, type BackupsResult } from "./backups-inspect.js";
@@ -97,6 +98,16 @@ function runBackupsAction(
   };
 }
 
+/**
+ * Only `restore` and `prune` write. `list`, `show` and `verify` read a manifest,
+ * and blocking them during an install would take away the commands someone
+ * reaches for precisely when they want to know what is going on.
+ */
+function backupsLockRoots(action: string, global: GlobalOpts): string[] {
+  const mutates = action === "restore" || action === "prune";
+  return mutates && !global.dryRun ? lifecycleRoots(global) : [];
+}
+
 function finishBackups(result: BackupsResult): void {
   if (result.exitCode === EXIT.ok) emit(result.output);
   else emitError(result.output);
@@ -113,10 +124,15 @@ export function registerMaintenanceCommands(
     .option("--global", "check ~/ scope", false)
     .option("--fix", "re-merge hook bindings that drifted out of settings.json (backs up first)", false)
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action((opts: { global?: boolean; fix?: boolean; json?: boolean }) => {
+    .action(async (opts: { global?: boolean; fix?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
-      const { summary, exitCode, status } = runDoctor({
+      // Only `--fix` mutates; a read-only health check must never be blocked by
+      // a running install, which is exactly when someone reaches for it.
+      const { summary, exitCode, status } = await withLifecycleLock(
+        opts.fix && !global.dryRun ? lifecycleRoots(global) : [],
+        "doctor --fix",
+        () => runDoctor({
         scope,
         home: global.home,
         cwd: global.cwd,
@@ -125,7 +141,8 @@ export function registerMaintenanceCommands(
         timestamp: nowStamp(),
         color: context.outColor(),
         json: !!opts.json,
-      });
+        }),
+      );
       emit(summary);
       context.record("doctor", { scope, status });
       if (exitCode !== 0) process.exitCode = exitCode;
@@ -142,11 +159,15 @@ export function registerMaintenanceCommands(
     .option("--older-than <days>", "prune: remove backups older than this many days")
     .option("--keep-last <n>", "prune: keep this many newest backups")
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action((action: string, timestamp: string | undefined, opts: BackupsCliOpts) => {
+    .action(async (action: string, timestamp: string | undefined, opts: BackupsCliOpts) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       const base = { home: global.home, cwd: global.cwd, scope } as const;
-      finishBackups(runBackupsAction(action, timestamp, opts, base, !!global.dryRun));
+      finishBackups(
+        await withLifecycleLock(backupsLockRoots(action, global), `backups ${action}`, () =>
+          runBackupsAction(action, timestamp, opts, base, !!global.dryRun),
+        ),
+      );
     });
 
   // `recover` is an alias, not a second implementation. The kit this was ported
@@ -159,18 +180,36 @@ export function registerMaintenanceCommands(
     .option("--global", "use ~/ scope", false)
     .option("--file <rel>", "restore only the file matching this name")
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action((timestamp: string | undefined, opts: BackupsCliOpts) => {
+    .action(async (timestamp: string | undefined, opts: BackupsCliOpts) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       finishBackups(
-        runBackupsAction(
-          "restore",
-          timestamp,
-          { ...opts, latest: timestamp === undefined },
-          { home: global.home, cwd: global.cwd, scope },
-          !!global.dryRun,
+        await withLifecycleLock(backupsLockRoots("restore", global), "recover", () =>
+          runBackupsAction(
+            "restore",
+            timestamp,
+            { ...opts, latest: timestamp === undefined },
+            { home: global.home, cwd: global.cwd, scope },
+            !!global.dryRun,
+          ),
         ),
       );
+    });
+
+  // The escape hatch a refuse-never-steal policy requires. A lock is only ever
+  // cleared because someone decided it was leaked, and this is where they say so.
+  program
+    .command("unlock")
+    .description("Clear a leaked ariadnev lifecycle lock (only when no ariadnev command is running)")
+    .option("--global", "use ~/ scope", false)
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((opts: { global?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const result = runUnlock({
+        roots: [...lifecycleRoots(global), executableRoot(process.execPath)],
+        json: !!opts.json,
+      });
+      emit(result.output);
     });
 
   program
@@ -183,7 +222,14 @@ export function registerMaintenanceCommands(
     .action(async (opts: { global?: boolean; check?: boolean; to?: string; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const isBinary = !/^(node|bun)/i.test(basename(process.execPath));
-      const { summary, exitCode } = await runUpdate(
+      // `--check` only reports. The executable root is locked as well as the
+      // scope roots: `update` replaces `process.execPath`, one file shared by
+      // every project and outside every scope root, so two updates in different
+      // directories would otherwise be entirely unserialized.
+      const { summary, exitCode } = await withLifecycleLock(
+        opts.check || global.dryRun ? [] : [...lifecycleRoots(global), executableRoot(process.execPath)],
+        "update",
+        () => runUpdate(
         {
           home: global.home,
           cwd: global.cwd,
@@ -198,6 +244,7 @@ export function registerMaintenanceCommands(
           json: !!opts.json,
         },
         realUpdateDeps(),
+        ),
       );
       emit(summary);
       if (exitCode !== 0) process.exitCode = exitCode;

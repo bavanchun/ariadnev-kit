@@ -4,6 +4,7 @@
 // Commander.
 
 import { execFileSync } from "node:child_process";
+import { lifecycleRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Command } from "commander";
@@ -440,16 +441,20 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .description("Rebuild the artifacts from the receipt (deterministic — a repair, not a reconcile)")
     .option("--global", "use the ~/ scope", false)
     .option("--json", "emit the machine envelope", false)
-    .action((opts: { global?: boolean; json?: boolean }) => {
+    .action(async (opts: { global?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
-      const { output, exitCode } = runAdaptersRegenerate({
-        home: global.home,
-        cwd: global.cwd,
-        scope: opts.global ? "global" : "project",
-        kitVersion: context.version,
-        json: !!opts.json,
-        dryRun: !!global.dryRun,
-      });
+      const { output, exitCode } = await withLifecycleLock(
+        global.dryRun ? [] : lifecycleRoots(global),
+        "adapters regenerate",
+        () => runAdaptersRegenerate({
+          home: global.home,
+          cwd: global.cwd,
+          scope: opts.global ? "global" : "project",
+          kitVersion: context.version,
+          json: !!opts.json,
+          dryRun: !!global.dryRun,
+        }),
+      );
       emit(output);
       if (exitCode !== EXIT.ok) process.exitCode = exitCode;
     });
