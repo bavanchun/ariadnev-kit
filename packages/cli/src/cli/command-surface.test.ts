@@ -94,6 +94,20 @@ describe("commandSurface", () => {
     expect(render(commandSurface(), "av")).toEqual(render(surfaceOf(buildProgram()), "av"));
   });
 
+  /**
+   * `ValidateOpts.surface` is optional, so a caller that forgets it turns the
+   * whole av-invocation check off in silence. Nothing in the type system catches
+   * that. Driving the real command is what proves the registration layer still
+   * hands it over.
+   */
+  it("reaches validate through the real command wiring", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const exitCode = process.exitCode;
+    await buildProgram().parseAsync(["node", "ariadnev", "validate"]);
+    process.exitCode = exitCode;
+    expect(log.mock.calls.flat().join("\n")).toContain("av-invocation");
+  });
+
   it("lints the kit's own documented invocations against itself", () => {
     expect(lintAvInvocations("`av plan use <name>` then `av plan show --json`", surface)).toEqual([]);
     expect(lintAvInvocations("`av plan create`", surface)).toMatchObject([{ severity: "error", token: "create" }]);

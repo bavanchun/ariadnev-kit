@@ -13,6 +13,7 @@ import { loadKit } from "../kit/load-kit.js";
 import { packageVersion } from "../version.js";
 import type { EvalResult } from "./eval-command.js";
 import { runValidate } from "./validate-command.js";
+import type { CommandSurface } from "../kit/av-invocation-lint.js";
 
 interface SuiteResult {
   population: { skillScenarios: number; skillCells: number; deepTasks: number; runs: number };
@@ -46,6 +47,9 @@ export interface BehavioralEvalOptions {
   runnerHome?: string;
   evalRoot?: string;
   deps?: BehavioralEvalDeps;
+  /** Live command tree for the av-invocation check, threaded to runValidate.
+   *  See ValidateOpts.surface for why it is passed rather than built. */
+  surface?: CommandSurface;
 }
 
 export function parseBehavioralCommand(value: string): string[] {
@@ -115,7 +119,7 @@ export function realBehavioralEvalDeps(): BehavioralEvalDeps {
 }
 
 export async function runBehavioralEval(options: BehavioralEvalOptions): Promise<EvalResult> {
-  const tier1 = runValidate({ kitRoot: options.kitRoot });
+  const tier1 = runValidate({ kitRoot: options.kitRoot, surface: options.surface });
   const deps = options.deps ?? realBehavioralEvalDeps();
   const suite = await deps.runSuite({
     command: options.command,
