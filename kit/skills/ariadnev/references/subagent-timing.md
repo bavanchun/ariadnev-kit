@@ -19,8 +19,6 @@ Do NOT spawn when:
   start blank; the contract below is ALL they know.
 - The user is mid-dialogue on the same question (interactive loops stay in
   the controller).
-- On Codex, the work is smaller than the per-dispatch subprocess cost (each
-  call is a fresh `codex exec`, roughly 1-3s before first token).
 
 ## Trigger Table
 
@@ -87,21 +85,18 @@ retry.
 
 **Codex**
 
-- Spawn: call the `agent_<slug>` MCP tool with a `prompt` argument when the
-  `av-codex-agent-runtime` MCP server is registered; each call runs a fresh
-  `codex exec` subprocess with the agent's instructions.
-- Not registered? Run `av codex-agent-runtime register`, restart Codex, or do
-  the work inline this session. Discover installed agents by listing
-  `~/.codex/agents/` or the project's `.codex/agents/`.
-- Semantics: subprocess per call (~1-3s start), sandbox derived from the
-  agent's tool allow-list, result returned as tool output.
+- No in-session spawn tool exists. Installed agents are `.toml` files under
+  `~/.codex/agents/` or the project's `.codex/agents/`; read the matching one
+  and do the work inline under its instructions, or ask the user to run a
+  separate `codex exec`.
+- Discover installed agents by listing those two directories.
 
 **Neither available** — do the work inline and name the gap in the final
 report; never fake a delegation.
 
 ## Reporting Back
 
-The controller reports outcome-first after agents return: what each role
-produced, what was verified, which reports exist where, and any
-`DONE_WITH_CONCERNS` items verbatim — concerns from fresh-context agents are
-signal, not noise.
+Agent results feed the controller's single outcome-first report (`## Output
+format` in ../SKILL.md). Carry `DONE_WITH_CONCERNS` items through verbatim —
+concerns from fresh-context agents are signal, not noise — and name where each
+role's report file landed.
