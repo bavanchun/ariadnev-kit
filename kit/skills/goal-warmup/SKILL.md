@@ -1,6 +1,6 @@
 ---
 name: av:goal-warmup
-description: "Outcome-locked preflight before long-running /goal or autonomous runs. Interview to a user-approved Outcome Contract, plan without silent scope drift, contract-preserving review, whole-plan preflight matrix, then Ready/Blocked/Decision handoff. Never auto-starts /goal. Use for goal warmup, goal prepare, long-running goal prep, outcome lock, execution readiness."
+description: "Use before long-running goals to lock an approved outcome contract, review scope, build a preflight matrix, and hand off Ready, Blocked, or Decision-required state."
 user-invocable: true
 when_to_use: "Invoke before expensive multi-phase /goal or long-run work when outcome must stay locked and blockers must surface first."
 category: dev-tools
@@ -198,7 +198,7 @@ Before claiming Ready, self-check assertions in `fixtures/*`.
 
 See `references/decisions.md` (D1–D8 locked product defaults).
 
-## Completion report
+## Output format
 
 ```markdown
 **Goal-warmup result**
@@ -209,6 +209,15 @@ See `references/decisions.md` (D1–D8 locked product defaults).
 - Fast path: used | refused | n/a
 - Next: paste packet into /goal or long-run session | supply blockers | choose option
 ```
+
+## Quality gates
+
+- [ ] User explicitly approved the outcome contract before planning.
+- [ ] Every plan phase traces to acceptance signals without silent scope change.
+- [ ] Review findings use the warmup taxonomy and preserve the locked outcome.
+- [ ] Every phase appears in the preflight matrix with evidence or `unknown`.
+- [ ] No secrets, chargeable probes, external mutations, or goal start occurred.
+- [ ] Ready is emitted only after final user confirmation and zero blockers.
 
 ## Workflow position
 

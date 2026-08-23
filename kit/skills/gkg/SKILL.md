@@ -1,6 +1,6 @@
 ---
 name: av:gkg
-description: Semantic code analysis with GitLab Knowledge Graph. Use for go-to-definition, find-usages, impact analysis, architecture visualization. Supports Ruby, Java, Kotlin, Python, TypeScript/JavaScript.
+description: "Use when analyzing code semantically with GitLab Knowledge Graph for definitions, usages, impact analysis, architecture, and supported-language navigation."
 user-invocable: true
 when_to_use: "Invoke for semantic code navigation and impact analysis."
 category: dev-tools
@@ -97,3 +97,28 @@ gkg server start
 - Requires initialized Git repository
 - Languages not connected across repos (yet)
 - TS/JS/Python cross-file refs incomplete
+
+## Output format
+
+Return repository/index identity, GKG version, query or symbol, definitions and
+references with paths, confidence/unsupported-language limits, impact summary,
+and the commands or source checks used to verify important edges.
+
+## Quality gates
+
+- [ ] Installed GKG help and language support were checked before claiming coverage.
+- [ ] Index corresponds to the current repository revision and server state.
+- [ ] Symbol results are verified against source before changing callers.
+- [ ] Incomplete cross-file or cross-repo coverage is stated explicitly.
+- [ ] Server processes started for the task are tracked and stopped when done.
+- [ ] No remote install script is executed without inspecting source and approval.
+
+## Workflow position
+
+**Typically follows:** repository identification or `av:scout` when text search
+cannot establish semantic impact.
+
+**Typically precedes:** `av:plan`, refactoring implementation, or `av:fix`.
+
+**Related:** `av:repomix` for portable context and `av:graphify` for a broader
+queryable knowledge graph rather than code-symbol navigation.

@@ -1,6 +1,6 @@
 ---
 name: av:google-adk-python
-description: "Build AI agents with Google ADK Python. Multi-agent systems, A2A protocol, MCP tools, workflow agents, state/memory, callbacks/plugins, Vertex AI deployment, evaluation."
+description: "Use when building Google ADK Python agents with multi-agent workflows, A2A, MCP tools, state or memory, callbacks, plugins, evaluation, or Vertex AI deployment."
 user-invocable: true
 when_to_use: "Invoke for Google ADK agents, A2A, MCP, or Vertex deployment."
 category: ai-ml
@@ -138,3 +138,27 @@ Detailed guides (load as needed):
 - Docs: https://google.github.io/adk-docs/
 - Samples: https://github.com/google/adk-python/tree/main/contributing/samples
 - llms.txt: https://raw.githubusercontent.com/google/adk-python/refs/heads/main/llms.txt
+
+## Output format
+
+Return ADK/Python versions, agent and tool topology, files changed, state/memory
+and callback contracts, model/runtime assumptions, evaluation evidence, and any
+Cloud Run, Vertex AI, or GKE deployment step still requiring authorization.
+
+## Quality gates
+
+- [ ] APIs, imports, CLI flags, Python, and model IDs match installed ADK docs.
+- [ ] Root agent or App discovery follows the selected project structure.
+- [ ] Tool schemas validate inputs and sensitive operations require confirmation.
+- [ ] Session state, memory, artifacts, and callbacks have explicit lifetimes.
+- [ ] Focused evals cover success, tool failure, and multi-agent handoff paths.
+- [ ] No cloud deployment or billable resource mutation occurred without approval.
+
+## Workflow position
+
+**Typically follows:** `av:plan` and current-doc lookup through `av:docs-seeker`.
+
+**Typically precedes:** `av:test`, security review, and an authorized `av:deploy`.
+
+**Related:** `av:mcp-builder` for standalone MCP servers and `av:orchestrate`
+for coding-runtime jobs rather than application-level ADK agents.

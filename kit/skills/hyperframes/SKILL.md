@@ -1,6 +1,6 @@
 ---
 name: av:hyperframes
-description: "Wrap HeyGen HyperFrames CLI for HTML-first programmatic video generation. Use for short vertical/social videos, product-launch clips, motion graphics rendered from HTML composition. See also the installed remotion skill for a React-based alternative."
+description: "Use when generating HTML-first videos with HeyGen HyperFrames CLI, including vertical social clips, product launches, and motion graphics."
 user-invocable: true
 when_to_use: "Invoke for HTML-first programmatic video via HeyGen HyperFrames."
 category: frontend
@@ -119,12 +119,33 @@ full attribute reference and a complete vertical 1080×1920 example.
 
 ## See also
 
-- The installed remotion skill (`av-remotion`) — React-based programmatic
+- The installed remotion skill (`av:remotion`) — React-based programmatic
   video generation; use it when the composition is naturally a React
   component tree rather than HTML markup.
-- The av-html-video skill — a separate HTML-to-MP4 wrapper
+- The `av:html-video` skill — a separate HTML-to-MP4 wrapper
   (`nexu-io/html-video`) with its own template/Studio workflow; use
-  av-hyperframes specifically when the task is a HeyGen HyperFrames
+  `av:hyperframes` specifically when the task is a HeyGen HyperFrames
   composition.
-- The av-motion-graphics skill — router across all in-repo video/motion
-  skills plus external motion-skills packs.
+
+## Output format
+
+Return pinned CLI version, composition path and attributes, preview/lint result,
+render command, MP4 path, media verification, and any cloud-render action still
+requiring user authorization.
+
+## Quality gates
+
+- [ ] Prerequisite verifier and pinned CLI help pass before composition work.
+- [ ] Commands and attributes match the pinned package and bundled references.
+- [ ] Preview and lint pass before render.
+- [ ] Final MP4 has nonzero duration and expected dimensions/audio behavior.
+- [ ] Cloud/API credentials are not printed and remote rendering is authorized.
+- [ ] Generated media is not committed unless the user requests it.
+
+## Workflow position
+
+**Typically follows:** an accepted video brief and approved source assets.
+
+**Typically precedes:** `av:media-processing` for final encoding or user review.
+
+**Related:** `av:html-video` for nexu templates and `av:remotion` for React video.
