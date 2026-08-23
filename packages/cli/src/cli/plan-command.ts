@@ -11,6 +11,7 @@
 // or later, and does it quietly.
 
 import { EXIT, UnavailableError, UsageError, type ExitCode } from "./exit-codes.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import {
   currentPlan,
   isPlanDirectory,
@@ -65,7 +66,7 @@ export function pointerPath(cwd: string): string {
 }
 
 function envelope(kind: string, data: unknown): string {
-  return JSON.stringify({ schema_version: PLAN_SCHEMA_VERSION, kind, data }, null, 2);
+  return jsonEnvelope(PLAN_SCHEMA_VERSION, kind, data);
 }
 
 /** The branch a pointer is filed under. Detached or non-git work shares one. */

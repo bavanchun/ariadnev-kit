@@ -11,6 +11,7 @@
 // the top level, and two spellings of one command is how they drift apart.
 
 import { rmSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { cacheRoot, materializeEmbeddedKit } from "../kit/embedded-kit.js";
 import { EXIT, UsageError, type ExitCode } from "./exit-codes.js";
 import { MATRIX_PROVIDERS } from "../providers/provider-matrix.js";
@@ -35,7 +36,7 @@ export interface KitPathOpts {
 }
 
 function envelope(kind: string, data: unknown): string {
-  return JSON.stringify({ schema_version: KIT_SCHEMA_VERSION, kind, data }, null, 2);
+  return jsonEnvelope(KIT_SCHEMA_VERSION, kind, data);
 }
 
 /**
