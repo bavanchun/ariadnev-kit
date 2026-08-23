@@ -21,6 +21,7 @@ import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
 import { installKit } from "./install-execute.js";
 import { fromPortablePath, type Receipt } from "./install-receipt.js";
 import { readJournal, writeJournal, JOURNAL_SCHEMA_VERSION } from "./intent-journal.js";
+import { readBackupManifest } from "./backup.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 
 const kit = loadKit(resolveKitRoot(process.cwd()));
@@ -156,9 +157,7 @@ describe("installing over a pre-prefix layout", () => {
 
     const dirs = healBackupDirs();
     expect(dirs).toHaveLength(1);
-    const manifest = JSON.parse(
-      readFileSync(join(baseRoot(), ".ariadnev", "backups", dirs[0], "manifest.json"), "utf8"),
-    ) as { originalPath: string; relPath: string }[];
+    const manifest = readBackupManifest(join(baseRoot(), ".ariadnev", "backups", dirs[0]));
     const entry = manifest.find((e) => e.originalPath === legacy);
     expect(entry, "the deleted file must be in the heal manifest").toBeDefined();
     expect(

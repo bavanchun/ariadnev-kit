@@ -1,11 +1,107 @@
 import { basename } from "node:path";
 import type { Command } from "commander";
-import { runBackupsList, runBackupsRestore } from "./backups-command.js";
+import { runBackupsList, runBackupsPrune, runBackupsRestore } from "./backups-command.js";
+import { runBackupsShow, runBackupsVerify, type BackupsResult } from "./backups-inspect.js";
+import { EXIT } from "./exit-codes.js";
+import { BACKUPS_SCHEMA_VERSION } from "./backups-inspect.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
 import { runDoctor } from "./doctor-command.js";
 import { emit, emitError } from "./emit.js";
 import { nowStamp } from "./timestamp.js";
 import { realUpdateDeps, runUpdate } from "./update-command.js";
+
+type Scope = "project" | "global";
+
+interface BackupsCliOpts {
+  global?: boolean;
+  file?: string;
+  latest?: boolean;
+  olderThan?: string;
+  keepLast?: string;
+  json?: boolean;
+}
+
+/** Positive integer from a CLI string, or null when it is not one. */
+function count(raw: string | undefined): number | null {
+  if (raw === undefined) return null;
+  return /^\d+$/.test(raw) ? Number(raw) : null;
+}
+
+function needsTimestamp(action: string, timestamp: string | undefined, latest: boolean): BackupsResult | null {
+  if (timestamp !== undefined || latest) return null;
+  return { output: `usage: ariadnev backups ${action} <timestamp>`, exitCode: EXIT.usage };
+}
+
+/**
+ * One dispatch for every backups verb, so `recover` reaches the same code as
+ * `backups restore` rather than growing a parallel path that drifts from it.
+ */
+function runBackupsAction(
+  action: string,
+  timestamp: string | undefined,
+  opts: BackupsCliOpts,
+  base: { home: string; cwd: string; scope: Scope },
+  dryRun: boolean,
+): BackupsResult {
+  const json = !!opts.json;
+  if (action === "list") return { output: runBackupsList({ ...base, json }), exitCode: EXIT.ok };
+
+  if (action === "show" || action === "verify") {
+    const missing = needsTimestamp(action, timestamp, false);
+    if (missing) return missing;
+    const inspect = { ...base, timestamp: timestamp!, json };
+    return action === "show" ? runBackupsShow(inspect) : runBackupsVerify(inspect);
+  }
+
+  if (action === "restore") {
+    const latest = !!opts.latest;
+    const missing = needsTimestamp("restore", timestamp, latest);
+    if (missing) return missing;
+    const { summary, restored } = runBackupsRestore({
+      ...base,
+      timestamp: timestamp ?? "",
+      latest,
+      dryRun,
+      file: opts.file,
+      preRestoreTimestamp: nowStamp(),
+    });
+    if (json) {
+      return {
+        output: jsonEnvelope(BACKUPS_SCHEMA_VERSION, "backups.restore", { dryRun, restored }),
+        exitCode: EXIT.ok,
+      };
+    }
+    return { output: summary, exitCode: EXIT.ok };
+  }
+
+  if (action === "prune") {
+    const olderThanDays = count(opts.olderThan);
+    const keepLast = count(opts.keepLast);
+    if ((opts.olderThan !== undefined && olderThanDays === null) || (opts.keepLast !== undefined && keepLast === null)) {
+      return { output: "ariadnev backups prune — --older-than and --keep-last take a whole number", exitCode: EXIT.usage };
+    }
+    return runBackupsPrune({
+      ...base,
+      olderThanDays: olderThanDays ?? undefined,
+      keepLast: keepLast ?? undefined,
+      dryRun,
+      now: Date.now(),
+      json,
+    });
+  }
+
+  return {
+    output: `unknown backups action: ${action} (use list, show, verify, restore or prune)`,
+    exitCode: EXIT.usage,
+  };
+}
+
+function finishBackups(result: BackupsResult): void {
+  if (result.exitCode === EXIT.ok) emit(result.output);
+  else emitError(result.output);
+  if (result.exitCode !== EXIT.ok) process.exitCode = result.exitCode;
+}
 
 export function registerMaintenanceCommands(
   program: Command,
@@ -35,38 +131,44 @@ export function registerMaintenanceCommands(
 
   program
     .command("backups")
-    .description("List or restore ariadnev-managed backups")
-    .argument("<action>", "list | restore <timestamp>")
-    .argument("[timestamp]", "backup timestamp (for restore)")
+    .description("List, show, verify, restore or prune ariadnev-managed backups")
+    .argument("<action>", "list | show <ts> | verify <ts> | restore <ts> | prune")
+    .argument("[timestamp]", "backup timestamp (for show, verify, restore)")
     .option("--global", "use ~/ scope", false)
     .option("--file <rel>", "restore only the file matching this name")
-    .action((action: string, timestamp: string | undefined, opts: { global?: boolean; file?: string }) => {
+    .option("--latest", "restore the newest backup instead of a named one", false)
+    .option("--older-than <days>", "prune: remove backups older than this many days")
+    .option("--keep-last <n>", "prune: keep this many newest backups")
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((action: string, timestamp: string | undefined, opts: BackupsCliOpts) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
-      if (action === "list") {
-        emit(runBackupsList({ home: global.home, cwd: global.cwd, scope }));
-        return;
-      }
-      if (action === "restore") {
-        if (!timestamp) {
-          emitError("usage: ariadnev backups restore <timestamp> [--file <rel>]");
-          process.exitCode = 1;
-          return;
-        }
-        const { summary } = runBackupsRestore({
-          home: global.home,
-          cwd: global.cwd,
-          scope,
+      const base = { home: global.home, cwd: global.cwd, scope } as const;
+      finishBackups(runBackupsAction(action, timestamp, opts, base, !!global.dryRun));
+    });
+
+  // `recover` is an alias, not a second implementation. AgentKit's own help
+  // describes it as one, and the only thing it really adds is `--latest`, which
+  // now lives on `restore` where the rest of the restore flags already are.
+  program
+    .command("recover")
+    .description("Alias for `backups restore --latest` (pass a timestamp to pick one)")
+    .argument("[timestamp]", "backup timestamp; omit to take the newest")
+    .option("--global", "use ~/ scope", false)
+    .option("--file <rel>", "restore only the file matching this name")
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((timestamp: string | undefined, opts: BackupsCliOpts) => {
+      const global = program.opts<GlobalOpts>();
+      const scope = opts.global ? "global" : "project";
+      finishBackups(
+        runBackupsAction(
+          "restore",
           timestamp,
-          dryRun: !!global.dryRun,
-          file: opts.file,
-          preRestoreTimestamp: nowStamp(),
-        });
-        emit(summary);
-        return;
-      }
-      emitError(`unknown backups action: ${action} (use "list" or "restore")`);
-      process.exitCode = 1;
+          { ...opts, latest: timestamp === undefined },
+          { home: global.home, cwd: global.cwd, scope },
+          !!global.dryRun,
+        ),
+      );
     });
 
   program

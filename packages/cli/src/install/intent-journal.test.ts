@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readBackupManifest } from "./backup.js";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -221,9 +222,7 @@ describe("backups survive a mass overwrite", () => {
 
     installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000002" });
 
-    const manifest = JSON.parse(
-      readFileSync(join(ctx.cwd, ".ariadnev", "backups", "20260814-000002", "manifest.json"), "utf8"),
-    ) as { originalPath: string; relPath: string }[];
+    const manifest = readBackupManifest(join(ctx.cwd, ".ariadnev", "backups", "20260814-000002"));
     const skillBackups = manifest.filter((e) => e.originalPath.endsWith("SKILL.md"));
     expect(skillBackups).toHaveLength(3);
     const contents = skillBackups

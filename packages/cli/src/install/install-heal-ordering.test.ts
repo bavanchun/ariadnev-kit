@@ -30,6 +30,7 @@ vi.mock("./fs-atomic.js", async (importOriginal) => {
 const { loadKit, resolveKitRoot } = await import("../kit/load-kit.js");
 const { installKit } = await import("./install-execute.js");
 const { readJournal } = await import("./intent-journal.js");
+const { readBackupManifest } = await import("./backup.js");
 const { fromPortablePath } = await import("./install-receipt.js");
 type Receipt = import("./install-receipt.js").Receipt;
 
@@ -107,10 +108,7 @@ describe("the journal at the moment the receipt is written", () => {
     ).toThrow();
 
     const backup = join(ctx.cwd, ".ariadnev", "backups", "heal-20260102-000000");
-    const manifest = JSON.parse(readFileSync(join(backup, "manifest.json"), "utf8")) as {
-      originalPath: string;
-      relPath: string;
-    }[];
+    const manifest = readBackupManifest(backup);
     const entry = manifest.find((e) => e.originalPath === legacy);
     expect(entry).toBeDefined();
     expect(readFileSync(join(backup, entry!.relPath), "utf8")).toBe(contents);

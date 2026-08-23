@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from "node:fs";
-import { join, dirname, resolve, relative, isAbsolute } from "node:path";
+import { join, dirname, resolve, relative, isAbsolute, sep } from "node:path";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 /**
@@ -37,15 +38,77 @@ const RelPath = z
   .refine((value) => !isAbsolute(value), { message: "relPath must not be absolute" })
   .refine((value) => !value.split(/[/\\]/).includes(".."), { message: "relPath must not contain \"..\"" });
 
+/**
+ * Manifest schema 2 adds `kind`, `sha256` and `size`.
+ *
+ * Schema 1 recorded only where a copy came from, which is enough to put it back
+ * and not enough to know whether it is still the thing that was copied. Without
+ * a hash `backups verify` cannot exist, and a `verify` that answers `ok` because
+ * it has nothing to compare is worse than no `verify` at all — it is trusted.
+ *
+ * The three fields are optional in the type so a schema-1 manifest still parses
+ * and still restores. `verify` reports `unverifiable` for those rather than a
+ * false `ok`.
+ */
+export const BACKUP_MANIFEST_VERSION = 2;
+
 const ManifestEntry = z.object({
   originalPath: z.string().min(1),
   relPath: RelPath,
   label: z.string(),
+  /** Absent in a schema-1 entry. */
+  kind: z.enum(["file", "dir"]).optional(),
+  /** Bytes for a file; the tree digest below for a directory. Absent in schema 1. */
+  sha256: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  /** Total bytes, summed across the tree for a directory. Absent in schema 1. */
+  size: z.number().int().nonnegative().optional(),
 });
 
-export const BackupManifestSchema = z.array(ManifestEntry);
+/** A schema-1 manifest is a bare array; a schema-2 one wraps it in an object. */
+export const BackupManifestSchema = z.union([
+  z.array(ManifestEntry),
+  z.object({
+    manifestVersion: z.literal(BACKUP_MANIFEST_VERSION),
+    entries: z.array(ManifestEntry),
+  }),
+]);
 
 export type BackupManifestEntry = z.infer<typeof ManifestEntry>;
+
+/**
+ * Content digest of a backed-up target.
+ *
+ * A directory gets a tree digest: every file below it, sorted by its path
+ * relative to the target, folded in as `relpath\0<sha256 of bytes>\n`. Paths
+ * are part of the digest, so moving a file inside the tree changes it — hashing
+ * only the contents would call a rearranged tree identical.
+ */
+export function hashTarget(target: string): { kind: "file" | "dir"; sha256: string; size: number } {
+  const info = statSync(target);
+  if (!info.isDirectory()) {
+    const bytes = readFileSync(target);
+    return { kind: "file", sha256: createHash("sha256").update(bytes).digest("hex"), size: bytes.length };
+  }
+  const digest = createHash("sha256");
+  let size = 0;
+  for (const rel of filesUnder(target).sort()) {
+    const bytes = readFileSync(join(target, rel));
+    digest.update(`${rel.split(sep).join("/")}\0${createHash("sha256").update(bytes).digest("hex")}\n`);
+    size += bytes.length;
+  }
+  return { kind: "dir", sha256: digest.digest("hex"), size };
+}
+
+/** Every file below `root`, as paths relative to it. Symlinks are not followed. */
+function filesUnder(root: string, prefix = ""): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(join(root, prefix), { withFileTypes: true })) {
+    const rel = join(prefix, entry.name);
+    if (entry.isDirectory()) out.push(...filesUnder(root, rel));
+    else if (entry.isFile()) out.push(rel);
+  }
+  return out;
+}
 
 function manifestPath(backupRoot: string): string {
   return join(backupRoot, "manifest.json");
@@ -73,7 +136,7 @@ export function readBackupManifest(backupRoot: string): BackupManifestEntry[] {
   if (!result.success) {
     throw new Error(`invalid backup manifest at ${p}: ${result.error.issues.map((i) => i.message).join("; ")}`);
   }
-  return result.data;
+  return Array.isArray(result.data) ? result.data : result.data.entries;
 }
 
 /**
@@ -116,8 +179,17 @@ export function backupPath(target: string, backupRoot: string, label: string, sc
     existing = [];
   }
   const manifest = existing.filter((e) => e.relPath !== relPath);
-  manifest.push({ originalPath: resolve(target), relPath, label });
-  writeFileSync(manifestPath(backupRoot), `${JSON.stringify(manifest, null, 2)}\n`);
+  // Hashed from the copy, not the source: those are byte-identical right now,
+  // and reading the copy is what `verify` will later re-read, so a difference
+  // between the two shows up immediately rather than on the day it matters.
+  manifest.push({ originalPath: resolve(target), relPath, label, ...hashTarget(dest) });
+  writeManifest(backupRoot, manifest);
+}
+
+/** Always schema 2. Reading still accepts a schema-1 bare array. */
+function writeManifest(backupRoot: string, entries: BackupManifestEntry[]): void {
+  const doc = { manifestVersion: BACKUP_MANIFEST_VERSION, entries };
+  writeFileSync(manifestPath(backupRoot), `${JSON.stringify(doc, null, 2)}\n`);
 }
 
 /** Directory names under `backupsParent` matching `pattern`, oldest first. */
