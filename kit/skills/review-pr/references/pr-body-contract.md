@@ -4,9 +4,10 @@
 to the effective writing language; English forms shown). Validate with:
 
 ```bash
-gh pr view "$PR" --json body -q .body | PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
 test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
-node "$PR_BIN"
+gh pr view "$PR" --json body -q .body | node "$PR_BIN"            # ship-authored PR
+gh pr view "$PR" --json body -q .body | node "$PR_BIN" --loose    # any other PR
 ```
 
 ## Required sections
@@ -47,7 +48,7 @@ Fold prior ship fields into this body without duplicating facts:
 
 ## `av:review-pr` validation
 
-- Missing required sections → **Important** findings.
-- Unsupported claims / empty evidence where evidence is asserted → **Important**.
-- Missing Linked Issues / Ship Mode on ship-authored PRs → **Suggestion**.
+- Missing required sections → the script returns **Important** in both modes. Keep that on a ship-authored PR; on any other PR (run with `--loose`) downgrade them to **Suggestion**.
+- Unsupported claims / empty evidence where evidence is asserted → **Important** on every PR.
+- Missing Linked Issues → **Important** in bare mode (the script upgrades it); traceability is not reported under `--loose`.
 - Do not pad sections; prefer honest `None` / `Not run` / `Unavailable`.
