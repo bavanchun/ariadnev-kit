@@ -1,6 +1,6 @@
 ---
 name: av:mintlify
-description: Build and maintain Mintlify documentation sites. Covers docs.json, MDX components, navigation, page frontmatter, theming, OpenAPI/AsyncAPI, AI docs assets such as llms.txt and skill.md, deployment targets, and local validation CLI commands.
+description: Build and maintain Mintlify documentation sites with docs.json, MDX, navigation, theming, API references, AI docs assets, deployment, and local validation.
 user-invocable: true
 when_to_use: "Invoke for Mintlify docs site structure, MDX, or local checks."
 category: dev-tools
@@ -126,3 +126,23 @@ pip install
 - Official docs: https://mintlify.com/docs
 - GitHub: https://github.com/mintlify
 - Community: Discord server for support
+
+## Output format
+
+Report changed documentation paths, navigation/configuration effects, the local
+validation command and result, and any preview or deployment step left to run.
+
+## Quality gates
+
+- Confirm current Mintlify CLI and schema behavior from installed help or
+  first-party documentation before adding commands or configuration keys.
+- Validate `docs.json`, frontmatter, internal links, and referenced assets.
+- Keep MDX components accessible and consistent with the existing site theme.
+- Do not claim deployment success without checking the target deployment.
+
+## Workflow position
+
+**Typically follows:** product/API changes or an accepted documentation plan.
+**Typically precedes:** documentation preview, review, and deployment.
+**Related:** `av:docs` owns general repository documentation maintenance;
+`av:llms` owns standalone llms.txt generation.
