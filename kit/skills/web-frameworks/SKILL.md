@@ -1,333 +1,133 @@
 ---
 name: av:web-frameworks
-description: Build with Next.js (App Router, RSC, SSR, ISR), Turborepo monorepos. Use for React apps, server rendering, build optimization, caching strategies, shared dependencies.
-user-invocable: true
-when_to_use: "Invoke for Next.js, RSC, SSR, ISR, Turborepo, or caching."
-category: frameworks
-keywords: [nextjs, turborepo, ssr, isr, rsc]
-license: MIT
-argument-hint: "[framework] [feature]"
-metadata:
-  origin: ported
-  author: upstream
-  version: "1.0.0"
+description: "Use when building Next.js apps with App Router, RSC, SSR, ISR, and caching, or Turborepo monorepos with shared dependencies, task graphs, and build optimization."
 ---
 
-# Web Frameworks Skill Group
+# Web Frameworks
 
-Comprehensive guide for building modern full-stack web applications using Next.js, Turborepo, and RemixIcon.
+Build and maintain Next.js App Router applications and Turborepo monorepos.
+Inspect installed versions and configuration before choosing rendering, caching,
+or task-graph behavior; these contracts change across major releases.
 
-## Overview
+## When to use
 
-This skill group combines three powerful tools for web development:
+Use for Next.js App Router, RSC, SSR, ISR, routing, metadata, streaming, caching,
+and optimization; Turborepo workspace structure, shared packages, task graphs,
+outputs, and caching; or a combined Next.js monorepo. Use `av:tanstack` for
+TanStack Start and a general frontend skill when architecture is unchanged.
 
-**Next.js** - React framework with SSR, SSG, RSC, and optimization features
-**Turborepo** - High-performance monorepo build system for JavaScript/TypeScript
-**RemixIcon** - Icon library with 3,100+ outlined and filled style icons
+## Reference navigation
 
-## When to Use This Skill Group
+### Next.js
 
-- Building new full-stack web applications with modern React
-- Setting up monorepos with multiple apps and shared packages
-- Implementing server-side rendering and static generation
-- Optimizing build performance with intelligent caching
-- Creating consistent UI with professional iconography
-- Managing workspace dependencies across multiple projects
-- Deploying production-ready applications with proper optimization
+- [nextjs-app-router.md](references/nextjs-app-router.md) — routing and metadata.
+- [nextjs-server-components.md](references/nextjs-server-components.md) — RSC,
+  Client Components, streaming, and boundaries.
+- [nextjs-data-fetching.md](references/nextjs-data-fetching.md) — fetching,
+  caching, revalidation, and loading/error states.
+- [nextjs-optimization.md](references/nextjs-optimization.md) — images, fonts,
+  scripts, bundles, and rendering optimization.
 
-## Stack Selection Guide
+### Turborepo
 
-### Single Application: Next.js + RemixIcon
+- [turborepo-setup.md](references/turborepo-setup.md) — workspace/package structure.
+- [turborepo-pipelines.md](references/turborepo-pipelines.md) — task graph and order.
+- [turborepo-caching.md](references/turborepo-caching.md) — cache inputs, outputs,
+  environment variables, and remote caching.
 
-Use when building a standalone application:
-- E-commerce sites
-- Marketing websites
-- SaaS applications
-- Documentation sites
-- Blogs and content platforms
+### Icons
 
-**Setup:**
-```bash
-npx create-next-app@latest my-app
-cd my-app
-npm install remixicon
-```
+- [remix-icon-integration.md](references/remix-icon-integration.md) — Remix Icon
+  installation, usage, and accessibility.
 
-### Monorepo: Next.js + Turborepo + RemixIcon
+Resolve version-sensitive details against installed packages and current official
+documentation.
 
-Use when building multiple applications with shared code:
-- Microfrontends
-- Multi-tenant platforms
-- Internal tools with shared component library
-- Multiple apps (web, admin, mobile-web) sharing logic
-- Design system with documentation site
+## Next.js workflow
 
-**Setup:**
-```bash
-npx create-turbo@latest my-monorepo
-# Then configure Next.js apps in apps/ directory
-# Install remixicon in shared UI packages
-```
+1. Inspect `package.json`, Next config, `app/`, runtime targets, TypeScript,
+   styling, tests, and deployment constraints.
+2. For a new app, use the current official scaffold:
 
-### Framework Features Comparison
+   ```bash
+   pnpm create next-app@latest my-app --yes
+   ```
 
-| Feature | Next.js | Turborepo | RemixIcon |
-|---------|---------|-----------|-----------|
-| Primary Use | Web framework | Build system | UI icons |
-| Best For | SSR/SSG apps | Monorepos | Consistent iconography |
-| Performance | Built-in optimization | Caching & parallel tasks | Lightweight fonts/SVG |
-| TypeScript | Full support | Full support | Type definitions available |
+3. Keep Server Components as default. Add `"use client"` only at the smallest
+   boundary needing browser APIs, state, effects, or handlers.
+4. Choose rendering and caching per route from freshness requirements; document
+   why a route is static, dynamic, streamed, or revalidated.
+5. Keep secrets and privileged data server-side. Validate and authorize every
+   mutation, including Server Actions and route handlers.
+6. Use framework image, font, metadata, and script facilities when appropriate.
 
-## Quick Start
+Modern Next.js does not cache every `fetch` by default. Projects with Cache
+Components enabled use `use cache` and cache-lifetime APIs; projects on the
+previous model use fetch/route revalidation controls. Detect the installed model
+and do not mix both or copy an old ISR recipe blindly.
 
-### Next.js Application
+## Turborepo workflow
 
-```bash
-# Create new project
-npx create-next-app@latest my-app
-cd my-app
+1. Inspect workspace configuration, package graph, scripts, lockfile, and
+   `turbo.json`/`turbo.jsonc`.
+2. Put reusable code in packages with explicit exports and dependencies.
+3. Define current task configuration under `tasks`. Use `dependsOn` for order,
+   `outputs` for artifacts, and `persistent: true` with `cache: false` for
+   long-running development tasks where appropriate.
+4. Include environment variables/external files in correct cache inputs without
+   leaking secret values into logs or committed config.
+5. Run scripts through the graph and verify cache behavior before remote caching.
 
-# Install RemixIcon
-npm install remixicon
-
-# Import in layout
-# app/layout.tsx
-import 'remixicon/fonts/remixicon.css'
-
-# Start development
-npm run dev
-```
-
-### Turborepo Monorepo
-
-```bash
-# Create monorepo
-npx create-turbo@latest my-monorepo
-cd my-monorepo
-
-# Structure:
-# apps/web/          - Next.js application
-# apps/docs/         - Documentation site
-# packages/ui/       - Shared components with RemixIcon
-# packages/config/   - Shared configs
-# turbo.json         - Pipeline configuration
-
-# Run all apps
-npm run dev
-
-# Build all packages
-npm run build
-```
-
-### RemixIcon Integration
-
-```tsx
-// Webfont (HTML/CSS)
-<i className="ri-home-line"></i>
-<i className="ri-search-fill ri-2x"></i>
-
-// React component
-import { RiHomeLine, RiSearchFill } from "@remixicon/react"
-<RiHomeLine size={24} />
-<RiSearchFill size={32} color="blue" />
-```
-
-## Reference Navigation
-
-**Next.js References:**
-- [App Router Architecture](./references/nextjs-app-router.md) - Routing, layouts, pages, parallel routes
-- [Server Components](./references/nextjs-server-components.md) - RSC patterns, client vs server, streaming
-- [Data Fetching](./references/nextjs-data-fetching.md) - fetch API, caching, revalidation, loading states
-- [Optimization](./references/nextjs-optimization.md) - Images, fonts, scripts, bundle analysis, PPR
-
-**Turborepo References:**
-- [Setup & Configuration](./references/turborepo-setup.md) - Installation, workspace config, package structure
-- [Task Pipelines](./references/turborepo-pipelines.md) - Dependencies, parallel execution, task ordering
-- [Caching Strategies](./references/turborepo-caching.md) - Local cache, remote cache, cache invalidation
-
-**RemixIcon References:**
-- [Integration Guide](./references/remix-icon-integration.md) - Installation, usage, customization, accessibility
-
-## Common Patterns & Workflows
-
-### Pattern 1: Full-Stack Monorepo
-
-```
-my-monorepo/
-├── apps/
-│   ├── web/              # Customer-facing Next.js app
-│   ├── admin/            # Admin dashboard Next.js app
-│   └── docs/             # Documentation site
-├── packages/
-│   ├── ui/               # Shared UI with RemixIcon
-│   ├── api-client/       # API client library
-│   ├── config/           # ESLint, TypeScript configs
-│   └── types/            # Shared TypeScript types
-└── turbo.json            # Build pipeline
-```
-
-**turbo.json:**
 ```json
 {
-  "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "lint": {},
-    "test": {
-      "dependsOn": ["build"]
-    }
+    "dev": { "cache": false, "persistent": true }
   }
 }
 ```
 
-### Pattern 2: Shared Component Library
+## Icon accessibility
 
-```tsx
-// packages/ui/src/button.tsx
-import { RiLoader4Line } from "@remixicon/react"
+Use the project's icon library consistently. Hide decorative icons from
+assistive technology and give icon-only controls an accessible name. Do not use
+emoji as product-interface icons when a stable library icon exists.
 
-export function Button({ children, loading, icon }) {
-  return (
-    <button>
-      {loading ? <RiLoader4Line className="animate-spin" /> : icon}
-      {children}
-    </button>
-  )
-}
+## Legacy utility warning
 
-// apps/web/app/page.tsx
-import { Button } from "@repo/ui/button"
-import { RiHomeLine } from "@remixicon/react"
+- `scripts/nextjs_init.py` is a hand-written scaffold with legacy dependency and
+  Tailwind assumptions. Prefer official `create-next-app` for new applications.
+- `scripts/turborepo_migrate.py` emits the removed `pipeline` key. Current
+  Turborepo uses `tasks`; rewrite and validate generated config before use.
 
-export default function Page() {
-  return <Button icon={<RiHomeLine />}>Home</Button>
-}
-```
+## Output format
 
-### Pattern 3: Optimized Data Fetching
+Return versions/config inspected; changed files, routes, packages, and public
+boundaries; rendering/cache model and freshness rationale; Turborepo tasks,
+outputs, and inputs; security/server-client/accessibility considerations; and
+lint, typecheck, build, focused test, and cache-check outcomes.
 
-```tsx
-// app/posts/[slug]/page.tsx
-import { notFound } from 'next/navigation'
+## Quality gates
 
-// Static generation at build time
-export async function generateStaticParams() {
-  const posts = await getPosts()
-  return posts.map(post => ({ slug: post.slug }))
-}
+- [ ] Server/Client boundaries are minimal and secrets stay server-side.
+- [ ] Rendering, caching, and ISR/revalidation match installed Next.js behavior.
+- [ ] Route handlers and Server Actions validate and authorize mutations.
+- [ ] `turbo.json` uses `tasks` with accurate dependencies, outputs, and inputs.
+- [ ] Shared packages have explicit exports and no unintended cycles.
+- [ ] Icons and interactive UI meet accessible-name and keyboard requirements.
+- [ ] Project lint, typecheck, build, and focused tests pass.
 
-// Revalidate every hour
-async function getPost(slug: string) {
-  const res = await fetch(`https://api.example.com/posts/${slug}`, {
-    next: { revalidate: 3600 }
-  })
-  if (!res.ok) return null
-  return res.json()
-}
+## Workflow position
 
-export default async function Post({ params }: { params: { slug: string } }) {
-  const post = await getPost(params.slug)
-  if (!post) notFound()
+**Typically follows:** an accepted architecture or feature plan and repository
+inspection; use `av:frontend-design` first when visual direction is undecided.
 
-  return <article>{post.content}</article>
-}
-```
+**Typically precedes:** `av:ui-styling`, `av:test`, code review, and a separately
+authorized deploy workflow.
 
-### Pattern 4: Monorepo CI/CD Pipeline
-
-```yaml
-# .github/workflows/ci.yml
-name: av:CI
-on: [push, pull_request]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - run: npm install
-      - run: npx turbo run build test lint
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-```
-
-## Utility Scripts
-
-Python utilities in `scripts/` directory:
-
-**nextjs_init.py** - Initialize Next.js project with best practices
-**turborepo_migrate.py** - Convert existing monorepo to Turborepo
-
-Usage examples:
-```bash
-# Initialize new Next.js app with TypeScript and recommended setup
-python scripts/nextjs_init.py --name my-app --typescript --app-router
-
-# Migrate existing monorepo to Turborepo with dry-run
-python scripts/turborepo_migrate.py --path ./my-monorepo --dry-run
-
-# Run tests
-cd scripts/tests
-pytest
-```
-
-## Best Practices
-
-**Next.js:**
-- Default to Server Components, use Client Components only when needed
-- Implement proper loading and error states
-- Use Image component for automatic optimization
-- Set proper metadata for SEO
-- Leverage caching strategies (force-cache, revalidate, no-store)
-- Track stable Next.js security releases separately from canary framework drift. Production apps should stay on a patched stable release line and avoid canary-only pins unless testing a specific upstream issue.
-
-**Turborepo:**
-- Structure monorepo with clear separation (apps/, packages/)
-- Define task dependencies correctly (^build for topological)
-- Configure outputs for proper caching
-- Enable remote caching for team collaboration
-- Use filters to run tasks on changed packages only
-
-**RemixIcon:**
-- Use line style for minimal interfaces, fill for emphasis
-- Maintain 24x24 grid alignment for crisp rendering
-- Provide aria-labels for accessibility
-- Use currentColor for flexible theming
-- Prefer webfonts for multiple icons, SVG for single icons
-
-## Resources
-
-- Next.js: https://nextjs.org/docs/llms.txt
-- Turborepo: https://turbo.build/repo/docs
-- RemixIcon: https://remixicon.com
-
-## Implementation Checklist
-
-Building with this stack:
-
-- [ ] Create project structure (single app or monorepo)
-- [ ] Configure TypeScript and ESLint
-- [ ] Set up Next.js with App Router
-- [ ] Configure Turborepo pipeline (if monorepo)
-- [ ] Install and configure RemixIcon
-- [ ] Implement routing and layouts
-- [ ] Add loading and error states
-- [ ] Configure image and font optimization
-- [ ] Set up data fetching patterns
-- [ ] Configure caching strategies
-- [ ] Add API routes as needed
-- [ ] Implement shared component library (if monorepo)
-- [ ] Configure remote caching (if monorepo)
-- [ ] Set up CI/CD pipeline
-- [ ] Configure deployment platform
+**Related:** `av:frontend-development` for broader implementation,
+`av:tanstack` for TanStack Start, and `av:react-best-practices` for performance.
