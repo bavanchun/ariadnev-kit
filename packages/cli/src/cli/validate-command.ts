@@ -12,6 +12,8 @@ import { buildSkillIndex, checkCrossSkillReferences } from "../kit/cross-skill-r
 import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
+import { commandSurface } from "./command-surface.js";
+import { readSkillScripts, scanInvocations } from "./validate-invocations.js";
 
 // `ariadnev validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -65,7 +67,8 @@ export interface ValidateFinding {
     | "missing-skill"
     | "matrix"
     | "collision"
-    | "graph";
+    | "graph"
+    | "av-invocation";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
@@ -242,6 +245,10 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     kit.skills.map((skill) => ({ name: skill.name, files: skillFileNames(dirname(skill.sourcePath)) })),
   );
 
+  // Built once: it walks every Commander registration, and the answer is the
+  // same for all 105 skills.
+  const surface = commandSurface();
+
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
     const referenceFiles = existsSync(refsDir)
@@ -307,6 +314,45 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
         level: "error",
         message: `${cross.source} links ${cross.raw} — ${cross.detail}`,
       });
+    }
+
+    for (const hit of scanInvocations(
+      [
+        { name: `${skill.name}/SKILL.md`, content: skill.raw },
+        ...referenceFiles.map((file) => ({ name: `${skill.name}/${file.name}`, content: file.content })),
+        ...readSkillScripts(dirname(skill.sourcePath)).map((script) => ({
+          ...script,
+          name: `${skill.name}/${script.name}`,
+        })),
+      ],
+      surface,
+    )) {
+      findings.push({
+        skill: skill.name,
+        kind: "av-invocation",
+        // An exempt skill degrades to a warning the way its lint findings do —
+        // unconditionally, not only when --strict is off. `plans-kanban` cites a
+        // dashboard the upstream kit had and this CLI does not; whether that skill
+        // should exist at all is a content decision, and --strict promoting the
+        // finding would block every unrelated change until someone made it.
+        level: hit.severity === "warning" || exemptNames.has(skill.name) ? "warn" : "error",
+        message: `${hit.source}:${hit.line} ${hit.message}`,
+      });
+    }
+  }
+
+  // Agents cite the CLI too, and nothing exempts them — there is no ported-agent
+  // backlog to hold. Skipped under --skill, which asks about one skill.
+  if (opts.skillFilter === undefined) {
+    for (const agent of kit.agents) {
+      for (const hit of scanInvocations([{ name: `agents/${agent.name}.md`, content: agent.raw }], surface)) {
+        findings.push({
+          skill: `agent:${agent.name}`,
+          kind: "av-invocation",
+          level: hit.severity === "warning" ? "warn" : "error",
+          message: `${hit.source}:${hit.line} ${hit.message}`,
+        });
+      }
     }
   }
 
