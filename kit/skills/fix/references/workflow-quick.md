@@ -68,11 +68,11 @@ Report summary to user (root cause, files changed, prevention).
 **Output:** `✓ Step 5: Reported`
 
 ### Step 6: Finalize (MANDATORY — every fix)
-1. **Activate `the engineer project-management skill` skill (MANDATORY)** → sync plan status if the fix is part of a plan, update progress, and refresh runtime tracking when available.
+1. **Activate `av:pm` (MANDATORY)** → sync plan status if the fix is part of a plan, update progress, and refresh runtime tracking when available.
 2. Evaluate docs impact; use `docs-manager` only when a routed authority surface changed.
 3. Reflect completion in the live task-management surface when available.
 4. Spawn `git-manager` subagent to commit.
-5. Run `/av:journal` to log decisions — unless the shared "Journal step — opt-out" applies (see SKILL.md; skip when `--skip-journal` or `journal.auto=false`).
+5. Run `/av:journal` to log decisions — unless the invocation carries `--skip-journal` (see "Journal step — opt-out" in SKILL.md).
 
 **Output:** `✓ Step 6: Finalized - sync-back complete, committed, journaled`
 
@@ -85,7 +85,7 @@ Report summary to user (root cause, files changed, prevention).
 | 3 | Parallel `run_shell` for verification |
 | 4 | `code-reviewer` subagent |
 | 5 | Report |
-| 6 | `the engineer project-management skill` (MANDATORY), conditional `docs-manager`, `git-manager`, `/av:journal` (unless the shared "Journal step — opt-out" applies — see SKILL.md) |
+| 6 | `av:pm` (MANDATORY), conditional `docs-manager`, `git-manager`, `/av:journal` (unless the shared "Journal step — opt-out" applies — see SKILL.md) |
 
 **Extra:** `av:context-engineering` if dealing with AI/LLM code
 
@@ -96,4 +96,4 @@ Report summary to user (root cause, files changed, prevention).
 - No planning phase needed
 - Opening brainstorm contract is inherited from the parent skill
 - Pre-fix state capture is STILL mandatory (even for quick fixes)
-- Step 6 finalize is MANDATORY for every fix — `the engineer project-management skill` is NOT optional
+- Step 6 finalize is MANDATORY for every fix — `av:pm` is NOT optional

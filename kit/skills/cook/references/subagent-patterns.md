@@ -2,6 +2,18 @@
 
 Standard patterns for spawning and using subagents in cook workflows.
 
+## Required per phase
+
+| Phase | Subagent | Requirement |
+|-------|----------|-------------|
+| Research | `researcher` | Optional in fast/code |
+| Scout | `av:scout` | Optional in code |
+| Plan | `planner` | Optional in code |
+| UI Work | `ui-ux-designer` | If frontend work |
+| Testing | `tester`, `debugger` | **MUST** spawn |
+| Review | `code-reviewer` | **MUST** spawn |
+| Finalize | `av:pm` (skill activation); conditional `docs-manager`; `git-manager` | Project sync and docs-impact decision are mandatory |
+
 ## Delegation Capability Pattern
 ```
 delegate_agent capability(subagent_type="[type]", prompt="[task description]", description="[brief]")
@@ -59,14 +71,14 @@ delegate_agent capability(subagent_type="code-reviewer",
 delegate_agent capability(subagent_type="code-simplifier", prompt="Simplify these files while preserving behavior exactly: [file-list]", description="Simplify recent edits")
 ```
 - Trigger when live `git diff --numstat HEAD --ignore-all-space` breaches any
-  `simplify.threshold` from `.ck.json` (defaults: 400 LOC / 8 files / 200 single-file LOC)
+  threshold (400 LOC / 8 files / 200 single-file LOC — the `simplify-gate` hook's defaults)
 - Scope the prompt to `git diff --name-only HEAD`
 - Verify with `git diff --shortstat HEAD -- [file-list]` before/after the subagent;
   do not rely on the agent's prose summary
-- Skip when `CK_SIMPLIFY_DISABLED=1` or `.ck.json` `simplify.gate.enabled=false`
+- Skip when `AV_SIMPLIFY_DISABLED=1` or the `hooks.simplify-gate` preference is `false`
 
 ## Project Management
-Activate the `the engineer project-management skill` skill (MANDATORY at Finalize — not a subagent):
+Activate `av:pm` (MANDATORY at Finalize — a skill activation, not a subagent):
 > Run full sync-back in [plan-path]: reconcile completed tasks with all phase files, backfill stale completed checkboxes across all phases, update plan.md status/progress, and report unresolved mappings.
 
 ## Documentation

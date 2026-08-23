@@ -69,7 +69,7 @@ LOOP:
 - Principles: KISS, DRY violations; unrequested scope added beyond the task
 
 ## Output Formats
-- Waiting: `⏸ Step 4: Code reviewed - [score]/10 - WAITING for approval`
-- After fix: `✓ Step 4: [old]/10 → Fixed [N] issues → [new]/10 - Approved`
-- Auto-approved: `✓ Step 4: Code reviewed - 9.8/10 - Auto-approved`
-- Approved: `✓ Step 4: Code reviewed - [score]/10 - User approved`
+- Waiting: `⏸ Step 5: Code reviewed - [score]/10 - WAITING for approval`
+- After fix: `✓ Step 5: [old]/10 → Fixed [N] issues → [new]/10 - Approved`
+- Auto-approved: `✓ Step 5: Code reviewed - 9.8/10 - Auto-approved`
+- Approved: `✓ Step 5: Code reviewed - [score]/10 - User approved`
