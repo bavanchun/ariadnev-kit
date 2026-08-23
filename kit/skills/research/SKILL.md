@@ -1,6 +1,6 @@
 ---
 name: av:research
-description: "Research technical solutions, analyze architectures, gather requirements thoroughly. Use for technology evaluation, best practices research, solution design, scalability/security/maintainability analysis."
+description: "Research technical solutions, architectures, and requirements. Use for technology evaluation, best practices, solution design, scalability, security, or maintainability analysis."
 user-invocable: true
 when_to_use: "Invoke for deep technical research before implementation."
 category: utilities
@@ -176,3 +176,22 @@ Your final report must:
 **IMPORTANT:** In reports, list any unresolved questions at the end, if any.
 
 **Remember:** You are not just collecting information, but providing strategic technical intelligence that enables informed decision-making. Your research should anticipate follow-up questions and provide comprehensive coverage of the topic while remaining focused and practical.
+
+## Output format
+
+Write the requested decision-ready report with dated scope, findings, source
+links, alternatives, trade-offs, recommendation, uncertainty, and next steps.
+
+## Quality gates
+
+- Prefer current primary sources and cite each consequential claim nearby.
+- Distinguish verified facts, source-backed inference, and unresolved uncertainty.
+- Check contradictions, deprecations, security advisories, and version scope.
+- Keep recommendations within the user's constraints and decision boundary.
+
+## Workflow position
+
+**Typically follows:** `av:research-prompt` or a concrete technical question.
+**Typically precedes:** `av:brainstorm`, `av:plan`, or an explicit user decision.
+**Related:** `av:docs-seeker` retrieves focused library documentation;
+`av:scout` inspects the local repository rather than external evidence.

@@ -1,6 +1,6 @@
 ---
 name: av:scenario
-description: "Generate comprehensive edge cases and test scenarios by decomposing features across 12 dimensions. Use for pre-implementation risk discovery, QA planning, regression design, and iterative saturation when coverage must be exhaustive."
+description: "Generate edge cases and test scenarios across 12 dimensions. Use for pre-implementation risk discovery, QA planning, regression design, or iterative coverage saturation."
 user-invocable: true
 when_to_use: "Invoke to expand requirements into edge cases and QA scenarios."
 category: utilities
@@ -228,3 +228,22 @@ Saturation loop mechanics, novelty detection, and generation strategy are embedd
 Faithful absorption (in scope) of upstream `/autoresearch:scenario` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). The local version supports both one-shot generation and the iterative saturation loop.
 
 See `/av:autoresearch` for the full family map.
+
+## Output format
+
+Return the scenario matrix, edge cases, actor/state coverage, severity and
+priority, unresolved assumptions, and bounded/saturation stop reason.
+
+## Quality gates
+
+- Cover all applicable dimensions without inventing product behavior.
+- Make preconditions, action, and expected result testable for each scenario.
+- Deduplicate equivalent cases and preserve materially different actors/states.
+- Iterative mode stops at the requested bound or documented saturation rule.
+
+## Workflow position
+
+**Typically follows:** concrete requirements, a feature design, or risk findings.
+**Typically precedes:** `av:test`, `av:plan`, or `av:predict` for the highest risks.
+**Related:** `av:predict` debates a proposed change; this skill expands its
+behavioral and failure-state coverage.

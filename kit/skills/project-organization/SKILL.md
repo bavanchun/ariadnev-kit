@@ -231,3 +231,25 @@ Before writing any file:
 4. Apply body template if markdown (Rule 4)
 5. Check if file/folder exists (avoid overwrite)
 6. Create directory structure if needed
+
+## Output format
+
+For proposals, return a source-to-destination table and conflicts requiring
+approval. After authorized changes, report moved/created paths and the verified
+final structure.
+
+## Quality gates
+
+- Follow repository conventions before applying generic directory rules.
+- Resolve every target and collision before moving files.
+- Never overwrite, expose secrets, or mutate ignored/vendor directories.
+- Update references affected by an authorized move and verify they resolve.
+
+## Workflow position
+
+**Typically follows:** file creation planning or discovery of structural drift.
+**Typically precedes:** content generation, implementation, or documentation
+that needs stable output paths.
+**Related:** artifact-producing skills such as `av:plan`, `av:docs`, and
+`av:media-processing` may consult this skill; content ownership remains with the
+originating domain skill.

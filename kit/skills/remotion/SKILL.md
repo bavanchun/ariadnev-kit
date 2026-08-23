@@ -57,3 +57,23 @@ Read individual rule files for detailed explanations and code examples:
   HyperFrames CLI. Prefer it over this skill when the composition is authored
   as plain HTML/CSS with `data-*` timing attributes rather than React
   components.
+
+## Output format
+
+Report the composition ID, dimensions, frame rate and duration, changed files,
+preview/render command, output path, and any media or font dependency.
+
+## Quality gates
+
+- Use Remotion primitives and rules compatible with the installed version.
+- Keep animation deterministic by frame and verify assets decode before render.
+- Preview representative frames and inspect the rendered output for clipping,
+  timing, audio, and caption issues.
+- Do not claim completion from a successful TypeScript build alone.
+
+## Workflow position
+
+**Typically follows:** a storyboard, timing plan, assets, and data contract.
+**Typically precedes:** `av:media-processing` for final transcoding and delivery.
+**Related:** `av:hyperframes` owns HTML-first compositions; this skill owns
+React/Remotion compositions.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T15:31:23.483Z",
+  "generatedAt": "2026-08-23T16:22:54.414Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:0e0ac999358d9cf2ee0cdd360480e7d9abed75890eb7fb6fcdef89e56c16aa66",
+    "corpusDigest": "sha256:1ff1a021de31496787f0ae4fd6faffd427980e757fdc1cf905922b79f154af34",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -123,7 +123,7 @@
               "kit/skills/plan/SKILL.md",
               "kit/skills/fix/SKILL.md",
               "kit/agents/code-reviewer.md",
-              "kit/skills/git/SKILL.md"
+              "kit/skills/brainstorm/SKILL.md"
             ]
           },
           {
@@ -178,8 +178,8 @@
               "kit/workflows/safe-change-delivery.json",
               "kit/skills/brainstorm/SKILL.md",
               "kit/workflows/read-only-delivery.json",
-              "kit/skills/fix/SKILL.md",
-              "kit/workflows/bugfix-delivery.json"
+              "kit/workflows/bugfix-delivery.json",
+              "kit/skills/fix/SKILL.md"
             ]
           },
           {
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.393833,
-            "p95Ms": 2.938916,
-            "maxMs": 3.304833
+            "p50Ms": 2.36875,
+            "p95Ms": 2.966958,
+            "maxMs": 4.871667
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.203541,
-            "p95Ms": 0.269875,
-            "maxMs": 0.704
+            "p50Ms": 0.198625,
+            "p95Ms": 0.261834,
+            "maxMs": 0.613125
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.183959,
-            "p95Ms": 0.255584,
-            "maxMs": 0.694083
+            "p50Ms": 0.182208,
+            "p95Ms": 0.243792,
+            "maxMs": 0.697459
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 177954
+        "indexBytes": 178730
       },
       "externalDependencies": []
     },
@@ -454,30 +454,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.967292,
-            "p95Ms": 3.37775,
-            "maxMs": 4.0825
+            "p50Ms": 3.081333,
+            "p95Ms": 3.385334,
+            "maxMs": 3.556583
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.95175,
-            "p95Ms": 1.10075,
-            "maxMs": 1.632
+            "p50Ms": 0.9755,
+            "p95Ms": 1.132375,
+            "maxMs": 1.91925
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.9235,
-            "p95Ms": 1.089333,
-            "maxMs": 4.870333
+            "p50Ms": 0.946709,
+            "p95Ms": 1.133792,
+            "maxMs": 3.773792
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 180258,
+        "indexBytes": 181034,
         "edges": 24
       },
       "externalDependencies": []

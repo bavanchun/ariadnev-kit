@@ -102,3 +102,22 @@ Load detailed guides as needed:
 - `references/inversion-exercise.md` - Assumption flipping methodology
 - `references/scale-game.md` - Extreme testing procedures
 - `references/attribution.md` - Source and adaptation notes
+
+## Output format
+
+State the stuck pattern, selected technique, assumptions tested, resulting
+insights, and the smallest concrete next experiment or decision.
+
+## Quality gates
+
+- Select the technique from observed symptoms, not preference.
+- Separate facts, assumptions, inversions, and speculative analogies.
+- Test insights against the original constraints before recommending action.
+- Stop at reframing unless the user also authorized implementation.
+
+## Workflow position
+
+**Typically follows:** a blocked implementation, design, or investigation.
+**Typically precedes:** renewed `av:brainstorm`, `av:plan`, or a scoped experiment.
+**Related:** `av:sequential-thinking` structures difficult analysis without this
+skill's stuck-pattern technique library.

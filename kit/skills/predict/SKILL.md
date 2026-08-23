@@ -1,6 +1,6 @@
 ---
 name: av:predict
-description: "5 expert personas debate proposed changes before implementation. Catches architectural, security, performance, and UX issues early. Use before major features or risky changes."
+description: "Evaluate proposed changes through five expert personas before implementation. Use to surface architecture, security, performance, and UX risks in major or risky work."
 user-invocable: true
 when_to_use: "Invoke before high-risk changes that need persona debate."
 category: utilities
@@ -149,3 +149,23 @@ These chain modes absorb upstream `/autoresearch:reason` and `/autoresearch:prob
 Faithful absorption (in scope) of upstream `/autoresearch:predict` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). The local version supports the 5-persona debate plus `--chain reason` (subjective refinement) and `--chain probe` (requirement interrogation), folding upstream's `/autoresearch:reason` and `/autoresearch:probe` sub-commands into chain modes rather than separate skills.
 
 See `/av:autoresearch` for the full family map.
+
+## Output format
+
+Return the five persona findings, a deduplicated risk table, recommendations,
+unresolved assumptions, and one `PROCEED`, `CAUTION`, or `STOP` verdict.
+
+## Quality gates
+
+- Every finding names evidence, impact, and a concrete mitigation or question.
+- Personas challenge the actual proposal and do not invent missing system facts.
+- Critical contradictions remain visible after synthesis.
+- The verdict follows the documented triggers rather than majority sentiment.
+
+## Workflow position
+
+**Typically follows:** a concrete proposal, plan, or risky design decision.
+**Typically precedes:** `av:scenario`, `av:plan`, or `av:cook`, with CAUTION and
+STOP items carried forward as constraints.
+**Related:** `av:security` performs a dedicated threat audit rather than a
+multi-discipline proposal debate.

@@ -56,3 +56,23 @@ The paragraph must:
   execute the completed brief.
 - Keep the final paragraph focused on evidence and a decision, not marketing
   copy or a speculative solution.
+
+## Output format
+
+Return exactly one self-contained paragraph containing the research context,
+decision, numbered questions, source hierarchy, constraints, and completion bar.
+
+## Quality gates
+
+- A researcher with no prior context can execute the brief without follow-up.
+- Every sub-question informs the stated decision and fits the same mission.
+- Primary-source, contradiction, uncertainty, and per-finding citation rules are
+  explicit.
+- The paragraph contains no invented facts, secrets, or private identifiers.
+
+## Workflow position
+
+**Typically follows:** a request to delegate or prepare deep research.
+**Typically precedes:** `av:research` or another user-selected research runner.
+**Related:** this skill writes the assignment only; it does not gather evidence
+or recommend a decision.
