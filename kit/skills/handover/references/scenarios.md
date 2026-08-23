@@ -40,14 +40,19 @@ was written and is included in the blocker report so no work is lost.
 
 ## Scenario 4 — Write confirmation without `--yes`
 
-**Given** the task text explicitly requests destructive or write work
-(the handoff's Exact next actions section says "delete legacy adapter" or
-similar).
+**Given** the task text requests write work the handoff's Scope section does
+**not** mark destructive (its Exact next actions say "delete legacy adapter",
+and Scope confirms the adapter is dead code inside the change's own boundary).
 **When** `/av:handover --agent claude-code "delete the legacy adapter"`
 runs without `--yes`.
 **Expect** the job spec has `approval: require` and `effect: scoped-write`;
 orchestrate stops at the confirmation gate; the report notes the block and
 suggests rerunning with `--yes` once the user approves.
+
+Had Scope marked the change destructive, the effect would be
+`high-impact-write` and `approval` would stay `require` whatever `--yes` said —
+Trap 3 in [job-spec-template.md](job-spec-template.md) is the mapping, and the
+report must say `--yes` will not clear that gate.
 
 ## Scenario 5 — Secret in `--task` text
 
