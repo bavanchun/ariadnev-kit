@@ -1,6 +1,6 @@
 ---
 name: av:docs-seeker
-description: Search library/framework documentation via llms.txt (context7.com). Use for API docs, GitHub repository analysis, technical documentation lookup, latest library features.
+description: "Use when searching current library or framework docs via llms.txt or Context7, analyzing a GitHub repository, or checking latest APIs and features."
 user-invocable: true
 when_to_use: "Invoke when current library or framework docs are needed."
 category: dev-tools
@@ -28,11 +28,11 @@ Execute scripts to handle entire workflow - no manual URL construction needed.
 # 1. DETECT query type (topic-specific vs general)
 node scripts/detect-topic.js "<user query>"
 
-# 2. FETCH documentation using script output
-node scripts/fetch-docs.js "<user query>"
+# 2. FETCH documentation as a JSON envelope
+node scripts/fetch-docs.js "<user query>" > /tmp/av-docs-result.json
 
-# 3. ANALYZE results (if multiple URLs returned)
-cat llms.txt | node scripts/analyze-llms-txt.js -
+# 3. ANALYZE the fetched llms.txt content when needed
+jq -r '.content // empty' /tmp/av-docs-result.json | node scripts/analyze-llms-txt.js -
 ```
 
 Scripts handle URL construction, fallback chains, and error handling automatically.
@@ -43,19 +43,16 @@ Scripts handle URL construction, fallback chains, and error handling automatical
 - Identifies topic-specific vs general queries
 - Extracts library name + topic keyword
 - Returns JSON: `{topic, library, isTopicSpecific}`
-- Zero-token execution
 
 **`fetch-docs.js`** - Retrieve documentation
 - Constructs context7.com URLs automatically
 - Handles fallback: topic → general → error
-- Outputs llms.txt content or error message
-- Zero-token execution
+- Outputs a JSON envelope whose `content` field contains llms.txt text on success
 
 **`analyze-llms-txt.js`** - Process llms.txt
 - Categorizes URLs (critical/important/supplementary)
 - Recommends agent distribution (1 agent, 3 agents, 7 agents, phased)
 - Returns JSON with strategy
-- Zero-token execution
 
 ## Workflow References
 
@@ -86,17 +83,42 @@ Scripts handle URL construction, fallback chains, and error handling automatical
 **Topic query:** "How do I use date picker in shadcn?"
 ```bash
 node scripts/detect-topic.js "<query>"  # → {topic, library, isTopicSpecific}
-node scripts/fetch-docs.js "<query>"    # → 2-3 URLs
-# Read URLs with web_search capability
+node scripts/fetch-docs.js "<query>"    # → JSON with source URL and content
+# Open cited URLs with available web tooling
 ```
 
 **General query:** "Documentation for Next.js"
 ```bash
 node scripts/detect-topic.js "<query>"         # → {isTopicSpecific: false}
-node scripts/fetch-docs.js "<query>"           # → 8+ URLs
-cat llms.txt | node scripts/analyze-llms-txt.js -  # → {totalUrls, distribution}
-# Deploy agents per recommendation
+node scripts/fetch-docs.js "<query>" > /tmp/av-docs-result.json
+jq -r '.content // empty' /tmp/av-docs-result.json | node scripts/analyze-llms-txt.js -
+# Treat distribution as advice; delegate only when runtime and task permit it
 ```
+
+## Output format
+
+Return the library and version targeted, query, source URLs, retrieval date,
+relevant API facts with nearby links, unresolved version ambiguity, and a short
+answer tied to those sources. Distinguish repository code from external docs.
+
+## Quality gates
+
+- [ ] Version and framework variant match the installed dependency.
+- [ ] Every material API claim is supported by current primary documentation.
+- [ ] Fetch JSON was checked for `success` before analyzing `content`.
+- [ ] Fallback search is explicit when Context7 has no matching document.
+- [ ] No credentials or local configuration values appear in output.
+- [ ] Links point to supporting pages, not search-result pages.
+
+## Workflow position
+
+**Typically follows:** `av:scout`, after versions and the API question are known.
+
+**Typically precedes:** `av:plan`, implementation, or `av:fix` when current docs
+are needed to choose behavior.
+
+**Related:** `av:research` for comparative research and `av:llms` for generating
+an llms.txt file rather than consuming one.
 
 ## Environment
 

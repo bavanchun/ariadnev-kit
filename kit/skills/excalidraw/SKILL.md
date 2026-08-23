@@ -1,12 +1,6 @@
 ---
 name: av:excalidraw
-description: >-
-  Create Excalidraw diagrams — architecture, data flow, workflows, system design.
-  Use when user wants to visualize, diagram, draw architecture, show data flow,
-  create flowcharts, map components, or export .excalidraw files to PNG/SVG.
-  Supports two modes: live MCP canvas (real-time) or file-based JSON + Playwright
-  rendering. Also supports zero-config codebase auto-diagramming — just say
-  "diagram this repo" or "visualize the architecture".
+description: "Use when creating editable Excalidraw architecture, data-flow, workflow, system-design, or codebase diagrams via live MCP canvas or file-based JSON export."
 user-invocable: true
 when_to_use: "Invoke for editable canvas diagrams or codebase visual maps."
 category: dev-tools
@@ -179,7 +173,13 @@ After generating, validate before presenting:
 
 ---
 
-## Quality Checklist
+## Output format
+
+Return the editable `.excalidraw` file or live-canvas result, a rendered PNG/SVG
+preview when supported, the active backend, source evidence used, and a concise
+description of the visual argument and reading order.
+
+## Quality gates
 
 - [ ] Research done (for technical diagrams)
 - [ ] Evidence artifacts included (code snippets, real data)
@@ -193,6 +193,17 @@ After generating, validate before presenting:
 - [ ] Rendered and visually validated
 - [ ] No overlapping/clipped elements
 - [ ] Balanced composition
+
+## Workflow position
+
+**Typically follows:** `av:scout` for codebase evidence or `av:brainstorm` for
+an agreed concept and audience.
+
+**Typically precedes:** user review, documentation placement, or a publish-grade
+redraw through `av:tech-graph` when the output must be a standalone SVG/HTML asset.
+
+**Related:** `av:preview` for rendering local artifacts and `av:mermaidjs-v11`
+for text-source diagrams that do not need an editable canvas.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: av:find-skills
-description: Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.
+description: "Use when discovering or installing an external agent skill, or routing a request among installed ariadnev skills."
 user-invocable: true
 when_to_use: "Invoke when the user is looking for a skill capability."
 category: dev-tools
@@ -146,3 +146,28 @@ I can still help you with this task directly! Would you like me to proceed?
 If this is something you do often, you could create your own skill:
 npx skills init my-xyz-skill
 ```
+
+## Output format
+
+Return whether the need is already covered locally; otherwise list each external
+candidate with capability, source, install command, link, maintenance/security
+notes, and why it matches. Keep installation as a separate approval step.
+
+## Quality gates
+
+- [ ] Installed ariadnev skills were checked before external discovery.
+- [ ] Search terms reflect the user's exact domain and task.
+- [ ] Candidate source and command were verified against current CLI output.
+- [ ] No package was installed merely because it appeared in search results.
+- [ ] User explicitly approved the package, scope, and target before installation.
+- [ ] Newly installed content is inspected for instructions, scripts, and secrets.
+
+## Workflow position
+
+**Typically follows:** a capability gap identified during intake or `av:scout`.
+
+**Typically precedes:** the selected installed skill, or `av:skill-creator` when
+no safe maintained candidate exists.
+
+**Related:** `av:help` for the installed ariadnev command index and
+`av:use-mcp` when the needed capability is exposed by an MCP server instead.
