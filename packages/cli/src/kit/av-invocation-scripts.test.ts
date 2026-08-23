@@ -7,6 +7,7 @@ function node(spec: { flags?: string[]; subs?: Record<string, Parameters<typeof 
     flags: new Set([...(spec.flags ?? []), "--help", "-h"]),
     valueFlags: new Set(),
     subcommands: new Map(Object.entries(spec.subs ?? {}).map(([name, sub]) => [name, node(sub)])),
+    acceptsPositional: false,
   };
 }
 

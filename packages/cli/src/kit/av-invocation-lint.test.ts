@@ -5,6 +5,7 @@ interface NodeSpec {
   flags?: string[];
   valueFlags?: string[];
   subs?: Record<string, NodeSpec>;
+  positional?: boolean;
 }
 
 /** A hand-built surface, so these tests never depend on the real command tree.
@@ -14,6 +15,7 @@ function node(spec: NodeSpec): CommandNode {
     flags: new Set([...(spec.flags ?? []), ...(spec.valueFlags ?? []), "--help", "-h"]),
     valueFlags: new Set(spec.valueFlags ?? []),
     subcommands: new Map(Object.entries(spec.subs ?? {}).map(([name, sub]) => [name, node(sub)])),
+    acceptsPositional: spec.positional ?? false,
   };
 }
 
@@ -23,6 +25,7 @@ const surface: CommandSurface = node({
   subs: {
     validate: { flags: ["--strict", "--check", "--json"] },
     config: { subs: { prefs: { flags: ["--json"] } } },
+    run: { positional: true, flags: ["--validate"], subs: { resume: {}, status: {}, cancel: {} } },
     plan: {
       subs: {
         use: { flags: ["--json"] },
@@ -56,6 +59,19 @@ describe("lintAvInvocations — unregistered subcommands", () => {
     expect(tokens("$ av config stop")).toEqual(["error:stop"]);
   });
 
+  it("reads a positional as an argument when the command declares one", () => {
+    // `av run` has resume/status/cancel beneath it and also takes [workflow].
+    // Reporting `code-review` as a phantom subcommand was a false error on
+    // correct content.
+    expect(tokens("`av run code-review`")).toEqual([]);
+    expect(tokens("`av run code-review --validate`")).toEqual([]);
+    expect(tokens("`av run resume abc123`")).toEqual([]);
+  });
+
+  it("still checks a group command that takes no positional of its own", () => {
+    expect(tokens("`av plan code-review`")).toEqual(["error:code-review"]);
+  });
+
   it("accepts every registered path", () => {
     expect(tokens("`av validate --strict`, `av plan use <name>`, `av config prefs resolve`")).toEqual([]);
   });
@@ -87,6 +103,13 @@ describe("lintAvInvocations — flags", () => {
 
   it("does not read a value-taking flag's value as a subcommand", () => {
     expect(tokens("`av plan phase --plan create 3`")).toEqual([]);
+  });
+
+  it("does not let an inline flag value swallow the token after it", () => {
+    // `--cwd=/tmp` carries its own value, so `frobnicate` is still the
+    // subcommand and still has to exist.
+    expect(tokens("`av --cwd=/tmp frobnicate`")).toEqual(["error:frobnicate"]);
+    expect(tokens("`av --cwd=/tmp plan use x`")).toEqual([]);
   });
 
   it("stops at a shell pipe so another program's flags are not attributed to av", () => {
@@ -160,6 +183,8 @@ describe("lintAvInvocations — what it deliberately does not read", () => {
   });
 
   it("does not check a flag that is not attached to an invocation", () => {
-    expect(tokens("The index stores no `--root-comment-id`.")).toEqual([]);
+    // Deliberately free of any denial word: the point is that an unattached
+    // flag is never read at all, not that the sentence excused it.
+    expect(tokens("Pass `--root-comment-id` when a tracking comment exists.")).toEqual([]);
   });
 });

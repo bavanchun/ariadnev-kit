@@ -40,6 +40,12 @@ describe("commandSurface", () => {
     expect(surface.valueFlags.has("--home")).toBe(true);
   });
 
+  it("knows which group commands take a positional of their own", () => {
+    expect(child("run")?.acceptsPositional).toBe(true);
+    expect(child("plan")?.acceptsPositional).toBe(false);
+    expect(child("config")?.acceptsPositional).toBe(false);
+  });
+
   it("accepts help everywhere", () => {
     expect(child("plan", "help")).toBeDefined();
     expect(child("plan", "use")?.flags.has("--help")).toBe(true);
@@ -74,8 +80,13 @@ describe("commandSurface", () => {
    * that is missing a whole command group.
    */
   it("matches the program the binary actually runs", () => {
+    // valueFlags and the positional bit are part of the tree's meaning, not
+    // decoration: without them `--home <dir>` and a bare `--home` render
+    // identically, and `av run` losing its `[workflow]` would pass unnoticed.
     const render = (node: CommandNode, path: string): string[] => [
-      `${path} :: ${[...node.flags].sort().join(" ")}`,
+      `${path} :: flags=${[...node.flags].sort().join(" ")}` +
+        ` :: values=${[...node.valueFlags].sort().join(" ")}` +
+        ` :: positional=${node.acceptsPositional}`,
       ...[...node.subcommands]
         .sort(([a], [b]) => a.localeCompare(b))
         .flatMap(([name, child]) => render(child, `${path} ${name}`)),
