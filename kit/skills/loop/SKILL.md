@@ -1,6 +1,6 @@
 ---
 name: av:loop
-description: "Autonomous iterative optimization loop — run N iterations against a mechanical metric, learn from git history, auto-keep/discard changes. Use for improving measurable metrics (coverage, performance, bundle size, etc.) through repeated experimentation."
+description: "Optimize a measurable metric through bounded, sequential experiments that keep improvements and revert regressions. Use for coverage, performance, bundle size, lint counts, or similar numeric goals."
 user-invocable: true
 disable-model-invocation: true
 when_to_use: "Invoke only when an objective metric can drive repeated trials."
@@ -192,3 +192,24 @@ When a reproduction command needs real credentials, write it as a *template* the
 Faithful absorption of upstream `/autoresearch` core ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). Implements Karpathy's Modify → Verify → Keep/Discard pattern with safety guardrails.
 
 See `/av:autoresearch` for the full family map and what's not yet absorbed.
+
+## Output format
+
+Report the baseline and final metric, iterations attempted, kept and reverted
+changes, guard status, stop reason, and the path to `loop-results.tsv`.
+
+## Quality gates
+
+- The scope, numeric verifier, direction, and iteration bound were explicit.
+- Each iteration made one atomic change and recorded its measured result.
+- Regressions were reverted and the guard remained green.
+- Output and logs contain no credential values.
+
+## Workflow position
+
+**Typically follows:** a scoped optimization goal with a trusted mechanical
+verifier and a clean Git worktree.
+**Typically precedes:** `av:test` or `av:code-review` for broader validation of
+the retained changes.
+**Related:** `av:autoresearch` handles broader research loops; `av:cook` handles
+one-pass implementation without metric-driven iteration.

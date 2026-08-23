@@ -124,3 +124,23 @@ Load `references/examples.md` for:
 - `references/examples.md` - Practical patterns and use cases
 
 For universal SVG layout rules when reviewing rendered output for collisions or unreadable labels, load `/av:tech-graph` and apply its component spacing, arrow routing, label placement, and z-index ordering guidance.
+
+## Output format
+
+Return the Mermaid source in a fenced `mermaid` block or write the requested
+`.mmd`/rendered artifact, then state the diagram type and output path.
+
+## Quality gates
+
+- Syntax uses Mermaid v11 constructs supported by the target renderer.
+- Labels, identifiers, and relationships reflect the supplied source facts.
+- Rendered output is inspected for parse errors, clipping, overlap, and
+  unreadable contrast before success is reported.
+- The diagram stays at the smallest complexity that communicates the model.
+
+## Workflow position
+
+**Typically follows:** code, architecture, process, or data-model inspection.
+**Typically precedes:** documentation review or publication.
+**Related:** `av:excalidraw` creates editable sketch-like diagrams;
+`av:tech-graph` owns production-quality SVG/PNG graph artifacts.
