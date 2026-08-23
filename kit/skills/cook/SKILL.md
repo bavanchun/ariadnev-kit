@@ -211,14 +211,14 @@ flowchart TD
 use it when available. Otherwise, update the active plan directly. Plan files
 are the durable source of truth; do not infer support from cached tool lists.
 
-**Plan resolution (files-first):** when the input is a plan path or an
-existing plan is in scope, resolve it via the CLI current-plan pointer
-(`av plan use`) first, falling back to `av plan resolve` for the current
-repo/branch/worktree. Read phase content with `av plan show` (or the files
-directly) and mutate status only through `av plan` file-mutating commands
-(`check`/`uncheck`/`update`/`status`) — never from GitHub issue comments, and
-never require a linked issue to resolve or progress a plan. See
-`references/plan-state-files-first.md` for the full model.
+**Plan resolution (files-first):** when the input is a plan path or an existing
+plan is in scope, read it with `av plan resolve` (the directory) or `av plan
+show` (the phases). Both answer for the current branch's pointer only and exit
+non-zero when it has none — that means "no plan", not an error; set the pointer
+with `av plan use <name>`. Mutate status only through `av plan status` (the
+plan) and `av plan update <phase> <status>` / `check` / `uncheck` (a phase) —
+never from GitHub issue comments, and never require a linked issue to resolve or
+progress a plan. See `references/plan-state-files-first.md` for the full model.
 
 | Mode | Research | Testing | Review Gates | Phase Progression |
 |------|----------|---------|--------------|-------------------|
@@ -301,7 +301,7 @@ Explicit `/av:journal` and `av journal create` are unaffected. The rest of the F
 - `references/workflow-steps.md` - Detailed step definitions for all modes
 - `references/review-cycle.md` - Interactive and auto review processes
 - `references/subagent-patterns.md` - Subagent invocation patterns
-- `references/plan-state-files-first.md` - Canonical plan-file model, `av plan` index, and optional GitHub projection
+- `references/plan-state-files-first.md` - Canonical plan-file model, what each `av plan` command reads and writes, and optional GitHub projection
 
 ## Workflow Position
 
