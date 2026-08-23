@@ -16,7 +16,7 @@ ask. Either language, or both.
 
 ## Know Your Own Defaults (why model prose converges on slop)
 
-The writing-domain instances of the failure modes in SKILL.md:
+The writing-domain instances of the failure modes in `reasoning-techniques.md`:
 
 - **Fluency inflation** — you fill silence with words that could open any text and
   therefore open none. An intro that fits every topic carries zero information about
@@ -126,8 +126,9 @@ The writing-domain instances of the failure modes in SKILL.md:
 
 ## Verify (fluency makes this mandatory — your prose always passes your own re-read)
 
-Apply Harness Leverage: anything a granted capability can check must be checked with it,
-as a loop, until a full pass over the final text is clean.
+Apply Harness Leverage (`reasoning-techniques.md`): anything a granted capability can
+check must be checked with it, as a loop, until a full pass over the final text is
+clean.
 
 1. **Read-aloud pass.** Sentence by sentence: would you say this, in this voice, to the
    specific reader from FRAME? Flag every sentence that exists for rhythm or bulk.
@@ -148,7 +149,7 @@ as a loop, until a full pass over the final text is clean.
 8. **Repair and re-verify.** Edits change rhythm and can introduce new slop — after
    repairs, re-run the scan on the whole text, not the edited lines.
 
-## Evaluate before delivering (act-backed, per the Self-Review Gate)
+## Evaluate before delivering (act-backed, per the Quality gates)
 
 | Dimension | Passes when | Proven by |
 |-----------|-------------|-----------|

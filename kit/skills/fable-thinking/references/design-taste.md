@@ -26,7 +26,7 @@ X" is a design task; the word "design" need not appear.
 
 ## Know Your Own Defaults (why model-generated design converges on slop)
 
-These are the design-domain instances of the failure modes in SKILL.md:
+These are the design-domain instances of the failure modes in `reasoning-techniques.md`:
 
 - **Mode collapse / template gravity** — with no strong brief, you emit the statistical
   mean of training data: one favorite palette, one favorite font, one favorite hero
@@ -126,8 +126,9 @@ Enumerate these deliberately — negative-space scanning, because absence is inv
 
 ## Verify (render blindness makes this mandatory, not optional)
 
-Apply the Harness Leverage rule: anything a granted capability can check must be checked
-with it, as a loop, until a full pass over the final artifact is clean.
+Apply the Harness Leverage rule (`reasoning-techniques.md`): anything a granted
+capability can check must be checked with it, as a loop, until a full pass over the
+final artifact is clean.
 
 1. **Render it.** If the harness grants a browser, screenshot, or preview capability,
    render the artifact and look at it — at a phone width, a tablet width, and a desktop
@@ -151,7 +152,7 @@ Where the harness grants no renderer, say so in the delivery, downgrade every vi
 claim to DERIVED or ASSUMED, and compensate by computing everything computable (step 4)
 and hand-tracing the layout with concrete content lengths.
 
-## Evaluate before delivering (act-backed, per the Self-Review Gate)
+## Evaluate before delivering (act-backed, per the Quality gates)
 
 Each verdict must point to the act that proved it:
 
