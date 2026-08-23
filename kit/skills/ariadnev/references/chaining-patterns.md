@@ -80,41 +80,11 @@ descriptions.
 
 ## Marketing Sequences
 
-For marketing installs. Names below are skill names (`ak-<name>`) to invoke on
-installs that ship them; guard each link with the Step 2 inventory:
-
-**Campaign** (class plan-campaign):
-
-```
-av-marketing-research → av-persona → av-funnel → av-campaign (brief)
-  → per-channel production: av-write | av-social | av-email | av-paid-ads
-  → av-analytics (tracking setup)
-```
-
-Researcher roles run the research links in parallel; content roles produce
-channels in parallel once the brief exists; content-reviewer role gates every
-channel before publish (mass-audience send = high risk).
-
-**Single content piece** (class create-content):
-
-```
-brand voice input (av-brand if installed) → av-write → av-seo (organic reach
-only) → content-reviewer role → publish or schedule (av-social)
-```
-
-**Launch** (class plan-campaign, launch flavor):
-
-```
-av-launch-strategy → av-campaign → assets (av-banner-design, av-video as
-needed) → distribution channels → av-analytics
-```
-
-**Funnel diagnosis** (class analyze-performance):
-
-```
-av-analyze → av-funnel (bottleneck) → av-form-cro or av-onboarding-cro (fix)
-  → av-ab-test-setup (prove it)
-```
+This kit ships no marketing routing reference and no marketing skills. The
+taxonomy still classifies `plan-campaign`, `create-content`, and
+`analyze-performance` tasks, but there is nothing here to route them to: build
+the chain from whatever Step 2 actually found, and report the gap rather than
+inventing a skill name that looks plausible.
 
 ## Failure and Detours
 

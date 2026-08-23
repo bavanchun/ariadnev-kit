@@ -1,6 +1,6 @@
 ---
 name: av:ariadnev
-description: "Task router for ariadnev installs. Classifies the task, activates the right installed skills, chains them into the shortest workflow that fits, and spawns installed subagents at defined trigger points to raise output quality. Use at the start of multi-step, multi-domain, or ambiguous work, or when unsure which skill or agent applies."
+description: "Route a task to the right installed skills, chain them in the shortest order that fits, and time subagent spawns. Use when work spans domains, or when which skill applies is unclear."
 user-invocable: true
 when_to_use: "Invoke at the start of multi-step or multi-domain work, when the right skill is unclear, when skills need sequencing into a workflow, or when deciding whether and when to spawn subagents."
 category: utilities
@@ -29,16 +29,15 @@ to risk, and refusing to orchestrate what a single skill does better.
 | Situation | Owner |
 |---|---|
 | Pick and sequence installed skills, time subagent spawns, in this session | this skill |
-| Coordinate headless CLI jobs across runtimes, models, worktrees | the orchestrate skill (`av-orchestrate`, engineer installs) |
-| Run multi-session agent teams | the team skill (`av-team`, engineer installs) |
-| Discover or install skills you do not have yet | the find-skills skill (`av-find-skills`, engineer installs) |
+| Coordinate headless CLI jobs across runtimes, models, worktrees | `av:orchestrate`, when installed |
+| Run multi-session agent teams | `av:team`, when installed |
+| Discover or install skills you do not have yet | `av:find-skills`, when installed |
 | Operate the `av` CLI itself (install, doctor, validate, migrate, update, ...) | `av:av` |
 | Add a bilingual Vietnamese/English switch to a plan's `plan.html` | `av:plan-i18n` |
 | Execute the domain work itself | the routed skill or agent owns execution |
 
 If the task is explicitly about running jobs headlessly, across CLIs, or in
-parallel worktrees, hand off to the orchestrate skill now (when installed) and
-stop.
+parallel worktrees, hand off to `av:orchestrate` now (when installed) and stop.
 
 ## The Protocol
 
@@ -77,13 +76,14 @@ runtime-native:
   context (Skill tool); installed agents are the available subagent types
   (Agent tool). Trust that list, not memory.
 - **Codex**: skills auto-discovered from `~/.agents/skills/` and the repo's
-  `.agents/skills/`; agents are `agent_<slug>` MCP tools when the
-  `av-codex-agent-runtime` MCP server is registered, or TOML files under
-  `~/.codex/agents/` / project `.codex/agents/`.
+  `.agents/skills/`; agents are the `.toml` files installed under
+  `~/.codex/agents/` (project: `.codex/agents/`) — `codex debug prompt-input`
+  lists both. Codex ships no in-session spawn tool, so a "subagent" there is
+  that agent's instructions read and executed inline.
 
-Capability missing? Use the find-skills skill (`av-find-skills`) to discover
-and install it when present; otherwise do the work inline and name the gap in
-your final report. Do not silently pretend the capability exists.
+Capability missing? Use `av:find-skills` to discover and install it when
+present; otherwise do the work inline and name the gap in your final report. Do
+not silently pretend the capability exists.
 
 ### Step 3 — Select and chain skills
 
@@ -100,7 +100,7 @@ re-deriving what they already encode:
 
 | Decision | Load |
 |---|---|
-| Which domain skill fits this intent | `../av-find-skills/references/domain-routing.md` (engineer installs; if absent, match installed skill descriptions) |
+| Which domain skill fits this intent | `../av-find-skills/references/domain-routing.md` (if absent, match installed skill descriptions) |
 | Which sequence fits multi-step dev work | `../av-cook/references/workflow-routing.md` |
 | Which visual/preview mode fits | `../av-preview/references/visual-explanation-routing.md` |
 | How to compose, pass context, and recover mid-chain | [references/chaining-patterns.md](references/chaining-patterns.md) |
@@ -130,18 +130,13 @@ Fast triggers you should never miss:
 - Ship, publish, or public-contract change ahead → reviewer role first.
 - Same failure twice → debugger role with the evidence so far.
 
-### Step 5 — Quality gates by risk
+### Step 5 — Verification by risk
 
-Verification is part of done, not optional polish:
-
-| Risk class | Mandatory before delivering |
-|---|---|
-| low (internal, reversible) | Executor skill's own checks |
-| elevated (user-visible behavior, cross-module) | Test/verification link + self-review of the diff or draft |
-| high (public contract, security, data, money, destructive, mass-audience send) | Verification link + independent reviewer role + explicit user confirmation before the irreversible step |
-
-Report outcome-first when the chain completes: what was delivered, which
-links ran, which agents were used, what was verified, what gaps remain.
+Verification is part of done, not optional polish. Apply the row of the Risk
+modifier table in [references/task-taxonomy.md](references/task-taxonomy.md)
+that matches the risk you declared at Step 1 — that table is the single
+definition of what each risk class must clear before delivering, and Step 1
+already loaded it.
 
 ## Worked Routes
 
@@ -162,12 +157,12 @@ payment and settings code in parallel; implementer roles take disjoint file
 sets per plan phase; tester after implementation; reviewer before ship (high
 risk makes it mandatory).
 
-**"Launch a campaign for the new feature"** (marketing install) — class:
-plan-campaign, size: standard, domains: 2+. Chain per the marketing sequences
-in chaining-patterns: research → persona/funnel → campaign brief → per-channel
-content production → analytics setup. Agents: researcher roles in parallel at
-the start; content-creator/copywriter roles per channel; content-reviewer role
-before anything publishes (mass-audience send = high risk).
+**"Why did checkout latency double last week?"** — class: investigate-explain,
+size: standard, risk: low (read-only), domains: 2. Chain: `/av:scout` to locate
+the checkout path and its recent changes → `/av:debug` to prove the cause →
+findings report. No mutation link: the route ends at a diagnosis, and `/av:fix`
+is a separate decision the user makes on it. Agents: parallel `Explore` roles
+because the investigation spans more than two areas.
 
 ## Anti-Patterns
 
@@ -178,7 +173,7 @@ before anything publishes (mass-audience send = high risk).
 | Route to a skill or agent you have not confirmed installed | Broken dispatch mid-task; inventory is Step 2 for a reason |
 | Re-route mid-chain without new evidence | Thrash; reroute once per link on evidence, else surface to the user |
 | Copy routing tables from owning references into prompts or docs | They drift; load them at decision time instead |
-| Use this skill for headless cross-CLI or multi-worktree runs | That is the orchestrate skill's layer |
+| Use this skill for headless cross-CLI or multi-worktree runs | That is `av:orchestrate`'s layer |
 | Skip the reviewer role on high-risk work because the diff "looks clean" | The gate exists precisely for confident mistakes |
 
 ## Failure Handling
@@ -192,12 +187,62 @@ Subagent status handling: `BLOCKED` or `NEEDS_CONTEXT` means change the
 context, scope, or approach before re-delegating. Never resend the same
 failing prompt.
 
-## Handoffs
+## Output format
 
-- Work should run headlessly, across CLIs, or in parallel worktrees → the
-  orchestrate skill (`av-orchestrate`, engineer installs).
-- Work needs multiple coordinated sessions → the team skill (`av-team`,
-  engineer installs).
-- Needed capability is not installed → the find-skills skill
-  (`av-find-skills`, engineer installs), else proceed inline and report the
-  gap.
+Before dispatching, state the route in this shape. It is short on purpose —
+routing that costs more than the work has already failed Step 0.
+
+```markdown
+**Route**
+- <the Step 1 classification line, verbatim>
+- Chain: av:<skill> → av:<skill> → av:<skill>   (or "direct: av:<skill>")
+- Subagents: <agent> at <trigger point>, or "none"
+- Verification: <the Step 5 verification this risk level requires>
+- Not routed: <capability needed but not installed, or "none">
+```
+
+The first line is Step 1's, restated rather than re-derived, so the enums are
+the taxonomy's — its Workflow Classes for the class, and `low | elevated |
+high` for risk. Where the Ambiguity Rule decided between two classes that fit
+equally, say which was dropped.
+
+When Step 0 short-circuits on its first or second row, skip the block and emit
+one line — ``Direct: `av:<skill>` — <the row that fired>`` ("user named it", or
+"single domain, obvious owner"). Step 0's third row, pure conversation, emits no
+route line at all: just answer. `direct:` inside the Chain field is a different
+case — Step 1 ran and the fitting chain turned out to be one link.
+
+After the chain runs, report outcome-first: what was delivered, which links
+actually executed, where any link was re-routed, which agents ran and what each
+returned (`DONE_WITH_CONCERNS` items verbatim), what was verified, and what gaps
+remain.
+
+## Quality gates
+
+These check the routing decision. The gates that apply to the *work* being
+routed are Step 5's verification-by-risk table.
+
+- [ ] Step 2 ran: every skill and agent named in the chain was confirmed
+      installed, not assumed from this kit's documentation
+- [ ] The chain is the shortest that fits — each link earns its handoff cost,
+      and a single-skill task was not dressed as a chain
+- [ ] Each subagent spawn names its trigger point and what fresh context buys
+      that this session cannot supply
+- [ ] The verification level matches the stated risk, and high-risk work keeps
+      its reviewer even when the change looks clean
+- [ ] No routing table was copied out of an owning reference into the route —
+      they are loaded at decision time because they drift
+- [ ] A missing capability is reported as a gap rather than silently replaced
+      with the nearest installed skill
+
+## Workflow position
+
+**Typically follows:** nothing — this is an entry point for work whose shape is
+not yet decided.
+**Typically precedes:** whichever skills the route names; they own execution
+from that point.
+**Related:** `av:orchestrate` runs jobs headlessly across CLIs, models, and
+parallel worktrees — hand off there and stop when the task is explicitly that;
+`av:team` coordinates multiple sessions; `av:find-skills` finds and installs a
+capability this kit lacks; `av:av` operates the CLI itself rather than routing
+work through it.
