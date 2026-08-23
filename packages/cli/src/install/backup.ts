@@ -4,14 +4,26 @@ import { z } from "zod";
 
 /**
  * A backup directory name: `nowStamp()`'s `YYYYMMDD-HHMMSS`, optionally the
- * `pre-restore-` safety copy taken before a restore overwrites anything.
+ * `pre-restore-` safety copy taken before a restore overwrites anything, or the
+ * `heal-` copy of a tree an install removed because this build no longer writes
+ * it there.
  *
  * Enforced rather than assumed. The backups parent is inside the user's project
  * for project scope, so anyone who can write a directory there can name it —
  * and the old lexicographic sort meant a `9999-…` directory outranked every
  * real backup while never being old enough to prune.
  */
-export const BACKUP_DIR_NAME = /^(?:pre-restore-)?\d{8}-\d{6}$/;
+export const BACKUP_DIR_NAME = /^(?:pre-restore-|heal-)?\d{8}-\d{6}$/;
+
+/**
+ * The subset rotation may prune — everything except a heal backup.
+ *
+ * A heal backup is the only surviving copy of a tree the upgrade deleted, and
+ * `rotateBackups(parent, keep = 3)` would expire it after three more mutating
+ * runs. That is weeks later, with nothing to connect the loss to the upgrade
+ * that caused it, and it would quietly void the rollback recipe.
+ */
+const ROTATABLE_DIR_NAME = /^(?:pre-restore-)?\d{8}-\d{6}$/;
 
 /**
  * `relPath` is a location inside the backup root, so it must stay inside it:
@@ -108,13 +120,18 @@ export function backupPath(target: string, backupRoot: string, label: string, sc
   writeFileSync(manifestPath(backupRoot), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
-/** Directory names under `backupsParent` that this tool wrote, oldest first. */
-export function backupDirNames(backupsParent: string): string[] {
+/** Directory names under `backupsParent` matching `pattern`, oldest first. */
+function dirNamesMatching(backupsParent: string, pattern: RegExp): string[] {
   if (!existsSync(backupsParent)) return [];
   return readdirSync(backupsParent)
-    .filter((name) => BACKUP_DIR_NAME.test(name))
+    .filter((name) => pattern.test(name))
     .filter((name) => statSync(join(backupsParent, name)).isDirectory())
     .sort();
+}
+
+/** Directory names under `backupsParent` that this tool wrote, oldest first. */
+export function backupDirNames(backupsParent: string): string[] {
+  return dirNamesMatching(backupsParent, BACKUP_DIR_NAME);
 }
 
 /**
@@ -127,7 +144,7 @@ export function backupDirNames(backupsParent: string): string[] {
  * window, and we do not remove other people's files to make room.
  */
 export function rotateBackups(backupsParent: string, keep = 3): void {
-  const names = backupDirNames(backupsParent);
+  const names = dirNamesMatching(backupsParent, ROTATABLE_DIR_NAME);
   const stale = names.slice(0, Math.max(0, names.length - keep));
   for (const name of stale) rmSync(join(backupsParent, name), { recursive: true, force: true });
 }

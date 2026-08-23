@@ -127,7 +127,7 @@ describe("planInstall (pure)", () => {
 
 describe("executeInstall + dry-run", () => {
   it("dry-run writes nothing but returns full plan", () => {
-    const [res] = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
+    const { results: [res] } = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
     expect(res.written).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".claude"))).toBe(false);
     expect(existsSync(join(ctx.cwd, ".ariadnev/receipt.json"))).toBe(false);
@@ -191,7 +191,7 @@ describe("executeInstall + dry-run", () => {
     const first = readFileSync(skill, "utf8");
     const res2 = installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000011" });
     expect(readFileSync(skill, "utf8")).toBe(first);
-    expect(res2[0].backedUp).toBeGreaterThan(0);
+    expect(res2.results[0].backedUp).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".ariadnev/backups/20260603-000011"))).toBe(true);
   });
 
@@ -235,7 +235,7 @@ describe("executeInstall + dry-run", () => {
     const hookKit = loadKit(kitRoot);
 
     // declined / non-interactive: file copied, settings.json untouched, skip logged
-    const [declined] = installKit(hookKit, ["claude-code"], ctx, {
+    const { results: [declined] } = installKit(hookKit, ["claude-code"], ctx, {
       timestamp: "20260603-000060",
     });
     expect(existsSync(join(ctx.cwd, ".claude/hooks/av/session-init.cjs"))).toBe(true);
@@ -294,7 +294,7 @@ describe("executeInstall + dry-run", () => {
     const hookOps = ops.filter((o) => o.kind === "hook");
     expect(hookOps.length).toBeGreaterThan(0);
     expect(hookOps.every((o) => o.action === "skip")).toBe(true);
-    const [res] = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
+    const { results: [res] } = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
     expect(res.skipped.some((s) => s.kind === "hook" && /unverified/.test(s.reason))).toBe(true);
   });
 
@@ -443,7 +443,7 @@ describe("full-kit install smoke (v2 roster)", () => {
   });
 
   it("codex: skills + agents install, every hook skips and logs", () => {
-    const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
+    const { results: [res] } = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
     expect(existsSync(join(ctx.home, ".agents/skills/av-brainstorm/SKILL.md"))).toBe(true);
     expect(existsSync(join(ctx.home, ".codex/agents/explore.toml"))).toBe(true);
     expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);

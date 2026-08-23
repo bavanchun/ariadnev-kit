@@ -271,10 +271,11 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({
         skill: skill.name,
         kind: cross.reason === "bad-shape" ? "cross-shape" : "cross-dangling",
-        // An unprefixed link resolves today and only breaks once installed dirs
-        // carry the prefix, so it warns until that lands. A stale root or a
-        // wrong depth is broken right now.
-        level: cross.shape === "unprefixed" ? "warn" : "error",
+        // Installed skill dirs carry the `av-` prefix now, so an unprefixed
+        // link is broken on disk exactly like a stale root or a wrong depth.
+        // It warned while the two halves were shipping apart; that staging is
+        // over and a warning would just be a broken link nobody reads.
+        level: "error",
         message: `${cross.source} links ${cross.raw} — ${cross.detail}`,
       });
     }

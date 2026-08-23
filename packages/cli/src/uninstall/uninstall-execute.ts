@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, readdirSync, rmdirSync, unlinkSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { assertWithinRoots } from "../install/path-guard.js";
+import { cleanEmptyDirsUpward } from "../install/dir-cleanup.js";
 import { atomicWrite } from "../install/fs-atomic.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
 import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
@@ -26,35 +27,6 @@ export interface UninstallResult {
   preserved: { path: string; reason: string }[];
   settingsUnmerged: boolean;
   agentsMdCleaned: boolean;
-}
-
-/**
- * Remove now-empty directories walking up from `startDir`, stopping before
- * ever deleting a "kind root" — a provider dir (e.g. `.claude`) or the
- * artifact-kind dir beneath it (e.g. `.claude/skills`), depth <= 2 below
- * `scopeRoot`. Only the artifact's own directory and anything nested deeper
- * gets cleaned. Bounded and conservative on purpose — this is the
- * highest-risk operation in the CLI.
- */
-function cleanEmptyDirsUpward(startDir: string, scopeRoot: string): void {
-  let current = resolve(startDir);
-  const root = resolve(scopeRoot);
-  for (;;) {
-    const rel = relative(root, current);
-    if (rel === "" || rel.startsWith("..")) return; // at or above scope root
-    const depth = rel.split(/[/\\]/).filter(Boolean).length;
-    if (depth <= 2) return; // kind root (e.g. .claude/skills) or provider root — never remove
-    if (!existsSync(current)) return;
-    let entries: string[];
-    try {
-      entries = readdirSync(current);
-    } catch {
-      return;
-    }
-    if (entries.length > 0) return;
-    rmdirSync(current);
-    current = dirname(current);
-  }
 }
 
 /** Apply an uninstall plan. Pure ops are already decided — this only executes. */
