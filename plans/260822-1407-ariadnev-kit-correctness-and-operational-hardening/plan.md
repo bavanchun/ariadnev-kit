@@ -276,7 +276,12 @@ split in phase 7. It converts ~25-40 hr of fragment-shuffling into ~3-6 hr.
 3. Hash strategy for directory-shaped backup entries. Phase 5 decides before
    implementing `verify`.
 4. Strip `metadata.origin: ported` once a skill clears the bar? Phase 2's ADR.
-5. Does `ariadnev-web` consume any `av --json` output? One grep before phase 5
-   pins `LEGACY_JSON_COMMANDS` — it is a permanent contract surface.
+5. ~~Does `ariadnev-web` consume any `av --json` output?~~ **No.** Grepped the
+   whole repo: every `--json` hit is documentation text or the web repo's own
+   unrelated `schemaVersion` fields, and its `mustFind` benchmark entries assert
+   what the docs *say*, not what any command returns. The only ariadnev-produced
+   input it reads is the release docs bundle, which carries its own
+   `docs-bundle-manifest-v1.schema.json` and is not a CLI `--json` surface. So
+   `LEGACY_JSON_COMMANDS` has no cross-repo consumer to preserve.
 
 <!-- slug: ariadnev-kit-correctness-and-operational-hardening -->
