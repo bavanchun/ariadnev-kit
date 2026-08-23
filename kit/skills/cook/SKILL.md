@@ -211,13 +211,14 @@ MANDATORY.
 ## Required Subagents (MANDATORY)
 
 `references/subagent-patterns.md` lists the subagent per phase and the exact
-prompts. `tester` (plus `debugger` on failure), `code-reviewer`, and
-`git-manager` are never optional; the rest are optional only in modes that
-skip their step.
+prompts. `tester` (plus `debugger` on failure) and `code-reviewer` are never
+optional; `git-manager` runs only after the user authorizes a commit. The rest
+are optional only in modes that skip their step.
 
 **CRITICAL ENFORCEMENT:**
-- Steps 4, 5, 6 **MUST** use the live delegation capability to spawn subagents
-- DO NOT implement testing, review, or finalization yourself - DELEGATE
+- Steps 4 and 5 **MUST** use the live delegation capability to spawn subagents;
+  Step 6 activates `av:pm` and delegates an authorized commit
+- DO NOT implement testing or review yourself - DELEGATE
 - If workflow ends without the required delegations, it is INCOMPLETE
 - Pattern: `delegate_agent capability(subagent_type="[type]", prompt="[task]", description="[brief]")`
 - If the user passed `--yagni`, include it in every subagent prompt and downstream
@@ -245,7 +246,8 @@ Cook complete: <task or plan path>
   Journal:  <entry path | skipped by --skip-journal>
 ```
 
-Every field comes from a step that ran — Review from the `code-reviewer` score, Plan from the `av:pm` sync-back, Commit from `git-manager`.
+Every field comes from a step that ran — Review from `code-reviewer`, Plan from
+`av:pm`, and Commit from `git-manager` or the recorded decision to decline.
 
 ## Quality gates
 
@@ -254,9 +256,8 @@ Every field comes from a step that ran — Review from the `code-reviewer` score
       and `code` mode, where the accepted plan is the reviewed plan
 - [ ] The brainstorm contract was stated or reused before scouting, and every
       acceptance criterion in it appears verbatim in the `code-reviewer` prompt
-- [ ] Steps 4, 5, 6 were delegated (`tester`, `code-reviewer`, `git-manager`)
-      and `av:pm` was activated at finalize — a workflow that ends with zero
-      delegations is incomplete
+- [ ] Steps 4 and 5 were delegated (`tester`, `code-reviewer`), `av:pm` was
+      activated at finalize, and `git-manager` ran only after commit approval
 - [ ] Plan state changed only through `av plan update` / `check` / `uncheck`
       (a phase) and `av plan status` (the plan); no frontmatter was hand-edited
       while `av` was available, and no invented subcommand was run

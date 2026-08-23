@@ -139,9 +139,9 @@ and `--list-categories` print the catalogues.
 22 styles × 16 palettes × 14 layouts × 8 textures (`data/poster/*.csv`).
 Model-agnostic: the scripts emit text prompts only, so the prompt goes to
 Gemini Nano Banana, GPT Image, Imagen, Midjourney, or another image model.
-Style, palette, and texture stay locked per call to preserve identity; layout
-and `--seed` vary for visible variety — five calls with the same `--style`
-read as one series.
+For a coherent series, pass the same explicit `--style`, `--palette`, and
+`--texture` on every call, then vary `--layout` and `--seed`. A shared
+`--style` alone does not lock the other axes.
 
 ```bash
 python3 scripts/poster/search.py --poster-brief --topic "AI Conference" --query "minimal grid"
@@ -157,8 +157,9 @@ carries prompt anatomy and per-model tweaks; rebuilding the knowledge base
 ## Output format
 
 **1. Design direction record** — written after intake, before any asset, and
-accepted by the user (or, in auto mode, recorded with the reasonable call
-stated). Saved beside the assets as `design-direction.md`:
+accepted by the user (or, when the caller explicitly authorized autonomous
+execution, recorded with the reasonable call stated). Saved beside the assets
+as `design-direction.md`:
 
 ```markdown
 # Design direction: <brand or project>
@@ -179,9 +180,10 @@ Acceptance criteria: <observable checks — e.g. "logo legible at 16px", "every 
 Brand assets: <brand-spec.md path | invented brand — none to locate>
 ```
 
-**2. Assets** — every generated file listed with its path, the sub-skill and
-command that produced it, and the model used. For a real brand, each artifact
-references `brand-spec.md` rather than inline hex codes.
+**2. Assets** — every delivered file listed with its path and sub-skill. Record
+the producing command and model when generation used them; otherwise write
+`n/a (manual composition)` rather than inventing provenance. For a real brand,
+each artifact references `brand-spec.md` rather than inline hex codes.
 
 **3. Delivery summary** — the template in `references/design-workflow.md`
 (Pass 4): what was delivered, caveats, next step. Short.
@@ -201,8 +203,9 @@ references `brand-spec.md` rather than inline hex codes.
       the exact target size, slides previewed in present mode
 - [ ] The self-critique ran; a concept score ≤ 5 capped the total at 6.0 and
       the idea was revised before craft polish
-- [ ] Poster and logo series keep style, palette, and texture locked across
-      calls; variation came only from layout and seed
+- [ ] Poster series pass the same explicit style, palette, and texture across
+      calls while layout and seed vary; logo series preserve the approved logo
+      direction and palette across variants
 - [ ] Every script flag in the report exists in the script's `--help`; a
       failed script was fixed or reported, never worked around with a
       hand-made asset presented as generated

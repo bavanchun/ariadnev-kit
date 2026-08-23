@@ -14,7 +14,7 @@ do when it misbehaves.
 
 **Known gap in this kit:** `assets/novel-theme.css` is sixteen lines of
 `@import url('./styles/novel-theme-*.css')`, and `assets/styles/` is not
-shipped (the AgentKit copy this was ported from lacks it too). Until those nine module
+shipped (the upstream source this was ported from lacks it too). Until those nine module
 sheets are restored, the theme rules above do not apply and pages render
 with browser defaults plus the Google Fonts link. `assets/directory-browser.css`
 is complete and does apply to `/browse`.
@@ -115,9 +115,9 @@ Use it from another device on the same network.
 |---------|------------------|
 | `Error 500: Error rendering markdown` | `marked`, `highlight.js`, or `gray-matter` not installed — run `npm install` in the skill directory |
 | Port in use | The server takes the next free port up to 3500 and prints `Port 3456 in use, using <n>` on stderr; read the real port from the output |
-| `No available port in range 3456-3500` | 45 viewers already running — `node scripts/server.cjs --stop` |
+| `No available port in range 3456-3500` | Every candidate port is unavailable; stop recorded viewers, then inspect and free any other process that owns a port before retrying |
 | Images not loading | Paths must be relative to the markdown file; they are served through `/file/*` and must sit inside an allowed directory |
-| Server will not stop | Remove stale `/tmp/md-novel-viewer-*.pid` files, then retry `--stop` |
+| Server will not stop | Inspect the recorded PID and process owner. Remove a PID file only after confirming its process is no longer live; do not erase the record for a live viewer |
 | Remote access denied | Bind with `--host 0.0.0.0` |
 | Page is unstyled | The `assets/styles/` sheets are not shipped — see the known gap above |
 | Diagram does not render | See `references/mermaid-diagrams.md`; the browser needs access to `cdn.jsdelivr.net` |

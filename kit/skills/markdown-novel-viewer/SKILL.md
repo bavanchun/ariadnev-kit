@@ -120,8 +120,9 @@ Viewer running: <url>            (LAN: <networkUrl>, when present)
       because opening is the default
 - [ ] Every viewer this session started was stopped with `--stop` before the
       task ended, or the user was told it is still running and how to stop it
-- [ ] The server was not used to render HTML deliverables — that is
-      `/av:preview --html`, which needs no server
+- [ ] The server was not used to render HTML deliverables — use a complete
+      preview producer mode such as `/av:preview --html --explain`, which needs
+      no server
 
 ## Workflow position
 
@@ -134,7 +135,6 @@ authoring skill with feedback.
 
 **Related:** `av:preview` is the normal entry point (it wraps `--file`,
 `--dir`, and `--stop`) and owns HTML, slide, and diagram generation;
-`av:plans-kanban` shows plan status as a board rather than as reading.
 `av:mintlify` builds a documentation site; this skill only reads files.
 
 ## References

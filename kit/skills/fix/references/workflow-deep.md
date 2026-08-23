@@ -26,7 +26,7 @@ runtime permits the needed delegation.
 
 ## Steps
 
-### Step 1: Scout Codebase (parallel with Steps 2+3)
+### Step 1: Scout Codebase (may overlap external research in Step 3)
 Record the scout phase as active.
 
 **Mandatory:** Activate `av:scout` skill or, when delegation is permitted,
@@ -41,7 +41,7 @@ See `references/parallel-exploration.md` for patterns.
 Record the scout phase as completed after its evidence is captured.
 **Output:** `✓ Step 1: Scouted - [N] files, system impact: [scope]`
 
-### Step 2: Diagnose Root Cause (parallel with Steps 1+3)
+### Step 2: Diagnose Root Cause (starts after scout evidence is captured)
 Record the diagnose phase as active.
 
 **Mandatory skill chain:**

@@ -131,9 +131,9 @@ skip the question are in `references/mode-selection.md`.
 
 ### Step 1: Scout (MANDATORY — never skip)
 
-Understand the affected codebase BEFORE forming any hypotheses: activate
-`av:scout` or launch 2-3 parallel `Explore` subagents; collect the five
-HARD-GATE-SCOUT-FIRST outputs; read `./docs` if the project is unfamiliar.
+Understand the affected codebase BEFORE forming hypotheses: activate `av:scout`
+or, when delegation was requested and permitted, 2-3 parallel `Explore`
+subagents. Collect the five HARD-GATE-SCOUT-FIRST outputs; read unfamiliar `docs/`.
 Quick mode scouts only the affected file(s) and their direct dependencies;
 Standard/Deep map module boundaries, test coverage, and call chains.
 
@@ -143,7 +143,9 @@ Structured root cause analysis, evidence-based only — HARD-GATE-EXACT-ROOT-CAU
 is the protocol:
 1. **Capture pre-fix state:** exact error messages, failing test output, stack traces, log snippets — the baseline Step 5 re-runs.
 2. Activate `av:debug` (systematic-debugging + root-cause-tracing), then `av:sequential-thinking` to form hypotheses through structured reasoning.
-3. Spawn parallel `Explore` subagents to test each hypothesis against codebase evidence; if 2+ hypotheses fail, auto-activate `av:problem-solving`.
+3. Test each hypothesis against codebase evidence; use parallel `Explore`
+   subagents only when delegation was explicitly requested and permitted. If
+   2+ hypotheses fail, auto-activate `av:problem-solving`.
 4. Write the diagnosis report: confirmed root cause, evidence chain, affected scope.
 
 ### Step 3: Complexity Assessment & Progress Orchestration
@@ -184,7 +186,9 @@ not widen the fix while addressing nearby symptoms.
 1. **Verify (iron-law):** Run the EXACT commands from pre-fix state capture. Compare output. NO claims without fresh evidence.
 2. **Regression test:** Add or update test(s) that specifically cover the fixed issue. The test MUST fail without the fix and pass with it.
 3. **Side-effect sweep:** Run tests across the full **blast radius** identified in Step 2 (not just the modified file). Walk each dependent code path. Confirm public contracts unchanged (signatures, response shapes, DB schemas, env vars).
-4. **Code review (delegate):** Spawn `code-reviewer` subagent with explicit instructions to check: (a) root cause actually addressed (not symptom-patched), (b) no broken business logic in blast radius, (c) no new failure modes, (d) follows existing patterns from scout. Pass scout summary + diagnosis report as context. Handle the result per `references/review-cycle.md`.
+4. **Code review:** When delegation was requested and permitted, spawn
+   `code-reviewer`; otherwise review locally. Check root cause, blast radius,
+   failure modes, and scouted patterns, then follow `references/review-cycle.md`.
 5. **Prevention gate:** Apply defense-in-depth validation where applicable.
 6. **Parallel verification:** Run typecheck + lint + build + test with `run_shell`; split across delegated workers only when delegation is permitted (`references/parallel-exploration.md`).
 
@@ -213,7 +217,7 @@ MANDATORY.
 
 `references/skill-activation-matrix.md` is the complete matrix. The
 non-negotiables in every workflow: `av:scout` (Step 1), `av:debug` and
-`av:sequential-thinking` (Step 2), `code-reviewer` (Step 5), `av:pm` (Step 6);
+`av:sequential-thinking` (Step 2), independent review in Step 5 (delegated when permitted), and `av:pm` (Step 6);
 `av:problem-solving` when 2+ hypotheses fail; `av:brainstorm` when more than
 one cause-aligned repair remains.
 

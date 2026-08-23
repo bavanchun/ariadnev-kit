@@ -7,7 +7,7 @@ map only; load the owning `SKILL.md` before executing details.
 
 | User intent | Sequence |
 |---|---|
-| Implement a feature | `/av:brainstorm` -> `av:plan` -> `/av:cook` -> `av:test` -> `av:code-review` |
+| Implement a feature | `/av:brainstorm` -> `av:plan` -> `/av:cook` (which owns implementation, testing, and review) |
 | Execute an accepted plan | reuse its brainstorm contract -> `/av:cook <plan-path>` |
 | Quick implementation | bounded brainstorm gate -> `/av:cook --fast` |
 | Bug, error, failed test, or CI failure | opening intent frame -> `/av:fix` |

@@ -37,7 +37,8 @@ exists (`av:use-mcp`) or wrapping local code that is already written
    naming a single tool: workflows over endpoints, context budget, actionable
    errors, natural task subdivisions, evaluation-driven development.
 2. **MCP protocol.** Fetch `https://modelcontextprotocol.io/llms-full.txt`
-   with `web_fetch capability` — the complete specification.
+   with `web_fetch capability` — the current MCP documentation corpus. Locate
+   the current dated specification within it when protocol details matter.
 3. **Framework guidance.** Read `reference/mcp-best-practices.md` (naming,
    response formats, pagination, character limits, transports, security).
    Then, for Python, fetch
@@ -45,7 +46,8 @@ exists (`av:use-mcp`) or wrapping local code that is already written
    and read `reference/python-mcp-server.md`; for Node/TypeScript, fetch
    `https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/main/README.md`
    and read `reference/node-mcp-server.md`.
-4. **The service's API.** Read ALL available documentation: the reference,
+4. **The service's API.** Read the authoritative documentation relevant to the
+   selected workflows: the reference,
    authentication and authorization, rate limiting and pagination, error
    responses and status codes, endpoints and parameters, data models. Use `web_search capability`
    and `web_fetch capability` as needed.
@@ -56,10 +58,11 @@ exists (`av:use-mcp`) or wrapping local code that is already written
 
 ### Phase 2: Implement
 
-1. **Project structure.** Python: a single `.py` file, or modules when
-   complex, with Pydantic models for input validation. Node/TypeScript: the
-   layout in `reference/node-mcp-server.md`, `package.json` + `tsconfig.json`,
-   Zod schemas for input validation.
+1. **Project structure.** Python: a single `.py` file, or modules when complex,
+   with typed tool parameters and Pydantic models for grouped or complex input.
+   Node/TypeScript: the layout in `reference/node-mcp-server.md`, `package.json`
+   + `tsconfig.json`, and a current Standard Schema-compatible validator such
+   as Zod v4.
 2. **Core infrastructure first.** Shared API request helpers, error handling
    utilities, response formatters (JSON and Markdown), pagination helpers,
    authentication/token management — before any tool.
@@ -71,11 +74,13 @@ exists (`av:use-mcp`) or wrapping local code that is already written
    for all I/O, both response formats, pagination, and the character limit;
    and the four annotations (`readOnlyHint`, `destructiveHint`,
    `idempotentHint`, `openWorldHint`).
-4. **Language checks.** Python: MCP SDK registration via `@mcp.tool`,
-   Pydantic v2 with `model_config`, type hints throughout, async I/O,
-   module-level `CHARACTER_LIMIT` and `API_BASE_URL`. Node/TypeScript:
-   `server.registerTool`, Zod schemas with `.strict()`, strict mode, no
-   `any`, explicit `Promise<T>` return types, `npm run build` configured.
+4. **Language checks.** Python: MCP SDK registration via `@mcp.tool`, type
+   hints throughout, Pydantic v2 for structured models, async I/O, module-level
+   `CHARACTER_LIMIT` and `API_BASE_URL`. Node/TypeScript:
+   `server.registerTool`, Standard Schema-compatible input schemas (use
+   `.strict()` when using Zod), strict mode, no `any`, explicit `Promise<T>`
+   return types, and `npm run build` configured. Current fetched SDK guidance
+   wins if a bundled language guide shows an older API.
 
 ### Phase 3: Review and build
 
