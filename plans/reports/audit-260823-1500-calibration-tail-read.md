@@ -141,4 +141,26 @@ file already being changed. No quality gate was deleted.
 
 ## Fix-diff re-read
 
-(Appended after the re-reader returns.)
+A fresh `general-purpose` subagent read `git diff origin/dev..HEAD -- kit/`
+after the first fix commit (`55438a2`), with only the frozen classes and ground
+truths as its brief. It verified the agent roster, skill directories, `gh`
+field list, `av plan` help, the plan/git/cook/xia citations, and both eval
+scenarios against the edited descriptions. It reported **3 substantive
+findings (stale 2, contract-mismatch 1), 1 redundant, 3 nits** — all
+substantive ones in `issue-to-plan/SKILL.md`, all opened by my fix.
+
+| # | Class | File:line | What | Disposition |
+|---|---|---|---|---|
+| R1 | stale | `issue-to-plan/SKILL.md:66-67` vs `:216-217` | My reworded default ("when creation fails, fall back") contradicted the Auth gap failure mode ("cannot create labels ... stop"). The pre-edit "otherwise" was vague; the edit made the contradiction explicit. | Accepted. Auth gap now covers comment, label-edit, and push; label creation alone is the Missing label case, where the decision label falls back and the plan-ready label is reported as the missing capability. `5faf4e2` |
+| R2 | stale | `issue-to-plan/SKILL.md:241` vs `:97-109`, `:176` | Extending the Decision enum with `already-handled` / `out-of-scope` left step 3's decision list and the evaluation comment template unable to emit them. | Accepted. Step 3 now reads "reject / defer / out of scope", the stop rule lists out of scope, and the template enum carries both. `5faf4e2` |
+| R3 | contract-mismatch (low) | `issue-to-plan/SKILL.md:262-263` | The gate I reworded enumerated two legal end states and missed an Auth-gap stop at step 6 after the worktree exists but before the push. | Accepted. Gate now allows "a pushed plan branch or a reported blocker" after the gate, and "no branch or worktree" on a gate stop. `5faf4e2` |
+| — | redundant | `debug/SKILL.md:158-159` | The tail I added to the restored gate restated gate 3 and the Output format. | Accepted; tail dropped, gate kept. `5faf4e2` |
+| — | nit | `xia/SKILL.md:142-143` | "since phase 3 was skipped" — `--fast` skips 3 and 4. | Fixed. `5faf4e2` |
+| — | nit | `vibe/SKILL.md:288` | "stops at a reviewed plan" reads as human-reviewed; the review comes after. | Fixed: "validated, red-teamed plan". `5faf4e2` |
+| — | nit | `debug/SKILL.md:156` | `Mitigated` is defined nowhere. | Not taken: the enum is inherited and defining it is outside this read. |
+
+Regressions in my own fix, as measured by the re-reader: **3 substantive on 1
+skill** (0 on the other 6 files). Every one was a line adjacent to an edit
+that the edit left inconsistent — the same failure shape as the batch's fix
+passes, at a lower rate. Validator, lint, and the kit/cli test run were clean
+after both fix commits.
