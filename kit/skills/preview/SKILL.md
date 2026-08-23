@@ -111,7 +111,7 @@ When processing arguments, follow this priority order:
 Adding `--html` to any generation flag switches output from Markdown to a self-contained HTML file.
 
 **Output:** Single `.html` file with all CSS/JS inline. Opens directly in browser — no server needed.
-**Location:** `{plan_dir}/visuals/{slug}.html` (same plan-aware logic as markdown mode)
+**Location:** `{plan_dir}/visuals/{topic-slug}.html` (same plan-aware logic as markdown mode)
 **Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start` (Windows)
 **MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `references/html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
 
@@ -158,39 +158,41 @@ Output: project identity, architecture snapshot (Mermaid), recent activity, deci
 
 ## Output format
 
-**View mode** returns the server URL and what is being served — a file or a
-directory listing — and nothing else. It does not summarize the file's contents
+**View mode** returns the local URL, the network URL for remote devices, what
+is being served — a file or a directory listing — and the fact that the server
+is running as a background task. It does not summarize the file's contents
 unless asked.
 
 **Generation mode** writes one file and reports:
 
-1. **Path** — `{plan_dir}/visuals/{slug}.md` when a plan is active, otherwise
-   `plans/visuals/{slug}.md`; the same two locations with `.html` under
-   `--html`. Give the actual path, not the pattern.
+1. **Path** — `{plan_dir}/visuals/{topic-slug}.md` when a plan is active,
+   otherwise `plans/visuals/{topic-slug}.md`; the same two locations with
+   `.html` under `--html`. Give the actual path, not the pattern.
 2. **Mode** — which generation flag produced it, and whether `--html` was set
    explicitly or implied by `--diff` / `--plan-review` / `--recap`.
 3. **What it shows** — two or three lines on the content, so the user can decide
    whether to open it.
-4. **Browser** — for HTML, whether the file was opened and with which command.
+4. **Preview URL** — for markdown output, the local and network URLs of the
+   viewer server that was started.
+5. **Browser** — for HTML, whether the file was opened and with which command.
 
 An existing file at the output path is overwritten without prompting; say so
 when it happened.
 
 ## Quality gates
 
-- [ ] Every HTML page carries the light/dark theme toggle from
-      `references/html-css-patterns.md` as the first child of `<body>`, with CSS
-      and JS inlined — a page without it is incomplete, not merely unstyled
-- [ ] The HTML file is genuinely self-contained: no external CSS, JS, or font
-      request, so it opens from disk with no server and no network
-- [ ] Every Mermaid block was validated before writing — an unparseable diagram
-      renders as an error box, which is worse than no diagram
-- [ ] The aesthetic differs from the previous HTML output in this session
-      (different font pairing and palette), rather than repeating one house style
+- [ ] The page is one file with every authored style and script inline; the
+      only external requests are the CDN libraries named in
+      `references/html-libraries.md` (Google Fonts, Mermaid, Chart.js, anime.js)
 - [ ] Claims in a `--diff`, `--plan-review`, or `--recap` page come from the
       git or plan data actually read, not from recollection of the session
-- [ ] Only the references this mode's row requires were loaded — the reference
-      table exists to keep the large pattern files out of context
+- [ ] Only the references this mode requires were loaded — its row in the
+      Reference Loading table, plus `references/html-responsive-nav.md` for a
+      multi-section page
+- [ ] The generated file was opened before reporting success; for `--diagram`
+      the rendered output was loaded back as an image and inspected per
+      `references/generation-modes.md` → "Visual Self-Review", never merely
+      re-read as markup — a page that fails to render still writes cleanly
 
 ## Workflow position
 

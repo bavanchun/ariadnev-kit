@@ -30,7 +30,9 @@ Turn any folder of code, docs, papers, or images into a queryable knowledge grap
 
 ## Installation
 
-**Note:** The PyPI package is `graphifyy` (double-y). Other `graphify*` packages on PyPI are unaffiliated.
+**Note:** The PyPI package is `graphifyy` (double-y); the CLI command is
+`graphify`. Do not `pip install graphify` — any `graphify*` package on PyPI is
+unaffiliated with this skill.
 
 ariadnev already bundles this skill in the installed plugin. Do not run
 `graphify install` for ariadnev setup: upstream uses that command to install a
@@ -64,7 +66,8 @@ graphify . --watch
 
 ## Output format
 
-The build writes four artifacts:
+The build writes these artifacts. A run may write more than this table lists,
+so report the paths the build actually produced:
 
 | File | Purpose |
 |------|---------|
@@ -75,8 +78,8 @@ The build writes four artifacts:
 
 Report back, rather than leaving the user to open the files:
 
-1. **Where the artifacts are** — the four paths above, and whether this was a
-   full or incremental build.
+1. **Where the artifacts are** — the paths the build actually wrote, and
+   whether this was a full or incremental build.
 2. **What the graph says** — the god nodes from `GRAPH_REPORT.md` and the
    relationships that answer the question the build was run for.
 3. **Provenance of each claim** — carry the `EXTRACTED` / `INFERRED` /
@@ -136,28 +139,6 @@ Relationships in the graph are tagged by provenance:
 | `INFERRED` | LLM-derived with confidence score |
 | `AMBIGUOUS` | Uncertain — needs human verification |
 
-## Workflow Integration
-
-### Before Planning
-
-```bash
-# Build graph first, then plan with context
-graphify .
-# Claude reads GRAPH_REPORT.md → understands architecture → better plans
-```
-
-### With Scout
-
-```bash
-# Graph for high-level structure, scout for specific files
-graphify .                        # build graph
-/av:scout "auth module"           # find specific files
-```
-
-### Incremental Updates
-
-Graph rebuilds are incremental — only changed files get reprocessed. Cache at `graphify-out/cache/` tracks file hashes.
-
 ## Privacy
 
 - **Code:** Processed locally via tree-sitter AST. No file contents leave your machine.
@@ -173,24 +154,21 @@ Graph rebuilds are incremental — only changed files get reprocessed. Cache at 
 
 ## Quality gates
 
-- [ ] `pip install graphifyy` (double-y) was used — a `graphify` package on
-      PyPI is someone else's
-- [ ] Every relationship reported carries its `EXTRACTED` / `INFERRED` /
-      `AMBIGUOUS` tag; inferred edges are never stated as established fact
-- [ ] Before running on a private repository, the user knows that docs and
-      images — unlike code and audio — are sent to the configured model provider
+- [ ] The user was told, before the run rather than after, that docs and images
+      are sent to the configured model provider while code and audio stay local
 - [ ] Conclusions cite the node or edge in `graph.json` that supports them,
       not a general impression of the visualization
 - [ ] A feature that needs an extra (`[mcp]`, `[neo4j]`, `[leiden]`) is not
       described as available until that extra is installed
+- [ ] The artifacts reported are the ones on disk after the run, checked rather
+      than copied from the table above
 
 ## Workflow position
 
 **Typically follows:** nothing — this is usually the first pass over an
 unfamiliar repository, before any file is chosen to read.
-**Typically precedes:** `av:plan` (understand the architecture before planning)
-and `av:scout`, which the graph tells you where to point.
-**Related:** `av:scout` searches for specific files where this builds the whole
-structure; `av:repomix` packs the raw corpus into one file for an LLM instead of
-extracting a graph from it; `av:gkg` navigates symbols semantically over a
+**Typically precedes:** `av:plan`, so the architecture is understood before
+phases are written, and `av:scout`, which the graph tells you where to point.
+**Related:** `av:repomix` packs the raw corpus into one file for an LLM instead
+of extracting a graph from it; `av:gkg` navigates symbols semantically over a
 narrower language set.
