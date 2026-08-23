@@ -72,7 +72,8 @@ mint migrate-mdx            # Migrate mint.json to docs.json
 
 - `references/docs-json-configuration-reference.md` - Complete docs.json configuration
 - `references/mdx-components-reference.md` - All 26+ MDX components
-- `references/api-documentation-components-reference.md` - API docs and OpenAPI integration
+- `references/api-documentation-components-reference.md` - OpenAPI, AsyncAPI, parameter, request, and request-example components
+- `references/api-response-components-reference.md` - Response examples, playgrounds, code languages, SDKs, and complete endpoints
 - `references/navigation-structure-and-organization-reference.md` - Navigation patterns
 - `references/deployment-and-continuous-integration-reference.md` - Deployment and CI/CD
 - `references/ai-features-and-integrations-reference.md` - AI assistant, llms.txt, MCP
