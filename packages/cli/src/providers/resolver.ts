@@ -5,7 +5,7 @@ import {
   type ArtifactKind,
   isVerified,
 } from "./spec-verified.js";
-import { CLAUDE_HOOKS_DIR } from "../adapt/paths.js";
+import { CLAUDE_HOOKS_DIR, installedSkillDirName } from "../adapt/paths.js";
 
 export type Scope = "project" | "global";
 
@@ -84,7 +84,12 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulesMode: "mdc",
     base: (_k, ctx) => pickBase(ctx),
     skillDir: ".agents/skills",
-    agentPath: (n) => `.agents/skills/${n}`, // shim: agent installed as skill-like dir
+    // Shim: an agent installed as a skill-like dir, in the *same* shared root
+    // the skills go to. It takes the same namespace prefix for the same reason
+    // — an unprefixed `advisor/` here is indistinguishable from a third-party
+    // skill of that name. Safe because no kit agent shares a name with a kit
+    // skill, which `resolver.test.ts` holds.
+    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}`,
     commandPath: (n) => `.cursor/commands/${n}.md`,
     outputStylePath: null,
     rulePath: (n) => `.cursor/rules/${n}.mdc`,
@@ -236,7 +241,7 @@ export function makeResolver(id: ProviderId): ProviderResolver {
       const kind = KIND_OF[artifact.type];
       if (!isVerified(id, kind)) return null;
       const base = cfg.base(kind, ctx);
-      if (artifact.type === "skill") return join(base, cfg.skillDir, artifact.name);
+      if (artifact.type === "skill") return join(base, cfg.skillDir, installedSkillDirName(artifact.name));
       if (artifact.type === "agent") return cfg.agentPath ? join(base, cfg.agentPath(artifact.name)) : null;
       if (artifact.type === "command") return cfg.commandPath ? join(base, cfg.commandPath(artifact.name)) : null;
       if (artifact.type === "outputStyle") return cfg.outputStylePath ? join(base, cfg.outputStylePath(artifact.name)) : null;

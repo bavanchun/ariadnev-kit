@@ -127,7 +127,7 @@ describe("recovery after an interrupted install", () => {
       mkdirSync(join(ctx.cwd, ".claude", "skills"), { recursive: true });
       // Block the second planned skill dir.
       const order = kit.skills.map((s) => s.name);
-      writeFileSync(join(ctx.cwd, ".claude", "skills", order[1]), "not a directory");
+      writeFileSync(join(ctx.cwd, ".claude", "skills", `av-${order[1]}`), "not a directory");
       return order;
     })();
 
@@ -136,8 +136,8 @@ describe("recovery after an interrupted install", () => {
     ).toThrow();
 
     return {
-      existing: [join(ctx.cwd, ".claude", "skills", dests[0], "SKILL.md")],
-      missing: [join(ctx.cwd, ".claude", "skills", dests[2], "SKILL.md")],
+      existing: [join(ctx.cwd, ".claude", "skills", `av-${dests[0]}`, "SKILL.md")],
+      missing: [join(ctx.cwd, ".claude", "skills", `av-${dests[2]}`, "SKILL.md")],
     };
   }
 
@@ -216,7 +216,7 @@ describe("backups survive a mass overwrite", () => {
   it("keeps one recoverable copy per overwritten file", () => {
     installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000001" });
     for (const n of ["aaa", "bbb", "ccc"]) {
-      writeFileSync(join(ctx.cwd, ".claude", "skills", n, "SKILL.md"), `local edit ${n}`);
+      writeFileSync(join(ctx.cwd, ".claude", "skills", `av-${n}`, "SKILL.md"), `local edit ${n}`);
     }
 
     installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000002" });

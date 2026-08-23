@@ -155,6 +155,36 @@ test('session-init emits context and never blocks the session', () => {
   assert.ok(stdout.trim().length > 0, 'session start should contribute something to context');
 });
 
+/**
+ * `.shadowed/` holds directories shadowed before installed skill dirs carried
+ * the `av-` prefix, so every name in it is bare. Restoring one whose prefixed
+ * twin is installed recreates a directory no receipt covers — the exact orphan
+ * the prefix exists to prevent — and shadows the real skill besides.
+ */
+test('session-init holds a shadowed skill whose av- twin is installed', () => {
+  const box = sandbox();
+  const skills = path.join(box.project, '.claude', 'skills');
+  fs.mkdirSync(path.join(skills, '.shadowed', 'cook'), { recursive: true });
+  fs.writeFileSync(path.join(skills, '.shadowed', 'cook', 'SKILL.md'), 'shadowed copy\n');
+  fs.mkdirSync(path.join(skills, 'av-cook'), { recursive: true });
+  fs.writeFileSync(path.join(skills, 'av-cook', 'SKILL.md'), 'installed\n');
+  // A name with no installed twin, to prove the guard is selective.
+  fs.mkdirSync(path.join(skills, '.shadowed', 'third-party'), { recursive: true });
+  fs.writeFileSync(path.join(skills, '.shadowed', 'third-party', 'SKILL.md'), 'someone else\n');
+
+  const { code } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home }
+  );
+
+  assert.strictEqual(code, 0);
+  assert.ok(fs.existsSync(path.join(skills, '.shadowed', 'cook', 'SKILL.md')), 'the held copy must survive');
+  assert.ok(!fs.existsSync(path.join(skills, 'cook')), 'the bare name must not be resurrected');
+  assert.strictEqual(fs.readFileSync(path.join(skills, 'av-cook', 'SKILL.md'), 'utf8'), 'installed\n');
+  assert.ok(fs.existsSync(path.join(skills, 'third-party', 'SKILL.md')), 'an unclaimed name still restores');
+});
+
 test('a hook handed nonsense fails open instead of blocking the session', () => {
   // A hook that throws on an unexpected payload takes the turn down with it.
   // Anything other than a clean exit here is that failure.

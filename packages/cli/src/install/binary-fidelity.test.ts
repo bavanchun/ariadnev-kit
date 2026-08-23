@@ -75,7 +75,7 @@ describe("binary assets survive the install path", () => {
 
   it("writes byte-identical PNG and woff2 into the provider tree", () => {
     installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000001" });
-    const installed = join(ctx.cwd, ".claude", "skills", "asset-skill", "assets");
+    const installed = join(ctx.cwd, ".claude", "skills", "av-asset-skill", "assets");
     expect(readFileSync(join(installed, "logo.png"))).toEqual(PNG_BYTES);
     expect(readFileSync(join(installed, "font.woff2"))).toEqual(WOFF2_BYTES);
   });
@@ -105,7 +105,7 @@ describe("binary assets survive the install path", () => {
     writeFileSync(script, "#!/bin/sh\necho hi\n");
     chmodSync(script, 0o700);
     installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000005" });
-    const installed = join(ctx.cwd, ".claude", "skills", "asset-skill", "run.sh");
+    const installed = join(ctx.cwd, ".claude", "skills", "av-asset-skill", "run.sh");
     // 0700 on the authoring machine ships as 0755 — the permission is declared,
     // not inherited.
     expect(statSync(installed).mode & 0o777).toBe(0o755);
@@ -120,7 +120,7 @@ describe("binary assets survive the install path", () => {
     // Guard against "fix binaries by never adapting anything": the SKILL.md must
     // still be rewritten for the provider.
     installKit(loadKit(kitRoot), ["codex"], ctx, { timestamp: "20260814-000004" });
-    const installed = join(ctx.home, ".agents", "skills", "asset-skill", "SKILL.md");
+    const installed = join(ctx.home, ".agents", "skills", "av-asset-skill", "SKILL.md");
     expect(statSync(installed).isFile()).toBe(true);
   });
 });
