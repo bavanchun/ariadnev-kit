@@ -75,7 +75,7 @@ av:git merge-pr <PR_REF>
 - watches post-merge CI on the target branch until every run for the merge commit concludes
 - on deterministic CI failure, drives a follow-up fix (`av:fix --auto` on a new branch) and repeats, up to 3 attempts
 - verifies follow-up: PR state `MERGED`, merge commit on the target branch, all watched runs green
-- closes the index row of a plan-backed change (matches the merged PR to its plan via `--linked-pr` or head branch, then `av plan close`; skips silently when there is no plan) per the shared "Delivery finalization" protocol
+- confirms a plan-backed change's `status: completed` reached the target branch (the ship flow writes it before its commit; there is no separate index to close) per the shared "Delivery finalization" protocol, matching the plan by directory or branch name and skipping silently when there is no plan
 
 Do not bypass its readiness gate or stop conditions. Do not stop this skill while post-merge CI is still pending — the run is complete only when target-branch CI is green, an external blocker remains, or the fix attempts are exhausted.
 

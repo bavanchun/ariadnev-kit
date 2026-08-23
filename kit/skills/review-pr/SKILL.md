@@ -227,7 +227,7 @@ Runs LAST — after the review, after the fix loop converges, and after the revi
 - `reviewDecision` is not `CHANGES_REQUESTED` from another reviewer.
 - CI checks are all passing, or only pending (pending is acceptable — the merge step uses auto-merge).
 
-If any condition fails, do NOT merge: report the PR as not-ready with the exact failed condition, and stop. `--merge` authorizes merging a ready PR, never forcing an unready one through. When the gate passes, activate `av:git merge-pr <PR_REF>` — it owns the merge method, auto-merge on pending checks, the post-merge CI watch, up to 3 follow-up fixes, and closing a plan-backed change's index row. Do not stop this skill while post-merge CI is still pending. For the `--advice` checkpoints around the merge, the mandatory post-CI-green PR comment, and failure handling, read `references/reply-and-merge.md`.
+If any condition fails, do NOT merge: report the PR as not-ready with the exact failed condition, and stop. `--merge` authorizes merging a ready PR, never forcing an unready one through. When the gate passes, activate `av:git merge-pr <PR_REF>` — it owns the merge method, auto-merge on pending checks, the post-merge CI watch, up to 3 follow-up fixes, and confirming that a plan-backed change's `status: completed` reached the target branch. Do not stop this skill while post-merge CI is still pending. For the `--advice` checkpoints around the merge, the mandatory post-CI-green PR comment, and failure handling, read `references/reply-and-merge.md`.
 
 ## Output format
 

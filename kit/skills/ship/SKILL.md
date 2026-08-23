@@ -75,11 +75,11 @@ Step 6:  Version bump     → Auto-detect version file, bump patch/minor
 Step 7:  Changelog        → Auto-generate from commits + diff
 Step 8:  Journal          → Write technical journal via /av:journal (see the shared "Journal step — opt-out" contract: --skip-journal flag or journal.auto config skips)
 Step 9:  Docs update      → Update project docs via /av:docs update (official only)
-Step 9b: Finalize plan    → av plan update --status completed (plan-backed; foreground, staged by Step 10)
+Step 9b: Finalize plan    → av plan status completed (plan-backed; foreground, staged by Step 10)
 Step 10: Commit           → Conventional commit with version/changelog
 Step 11: Push             → git push -u origin <branch>
 Step 12: Create PR        → gh pr create with structured body + linked issues
-Step 12b: Link plan↔PR    → av plan update --linked-pr <n> (plan-backed; no close until merge)
+Step 12b: Note plan↔PR    → no CLI stores this; record the PR in the plan body (plan-backed)
 Step 13: Social publish   → if --social: build-in-public draft → av journal create → post-social.cjs (see below)
 ```
 

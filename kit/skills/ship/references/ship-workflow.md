@@ -192,24 +192,29 @@ Update project documentation for official releases. Run as **background task**.
 ## Step 9b: Finalize plan (foreground, plan-backed ships only)
 
 Run **synchronously before Step 10** so the finalized plan files are staged by
-the ship commit. Full protocol: the "Delivery finalization (close on ship)"
+the ship commit. Full protocol: the "Delivery finalization (on ship)"
 section of the shared files-first plan-state reference
 (`../../av-cook/references/plan-state-files-first.md`).
 
-1. `av plan resolve` for the current repo + branch. **No active plan → skip this
-   step silently** (most ships carry no plan).
-2. Verify checkboxes with `av plan status`; if the diff proves a phase done,
-   `av plan check <phase-file>` it. If the work is genuinely partial, `av plan
-   update <id> --status in-progress` and skip the completion below.
-3. `av plan update <id> --status completed` — rewrites `plan.md` front-matter
-   `status:` (canonical) and the index in one op. Step 10's `git add -A` then
-   commits the finalized plan files with the ship, so `status: completed` reaches
-   the target branch in the same merge as the code.
+1. `av plan resolve` — the current branch's plan. It exits non-zero two ways:
+   "nothing selected" → **skip this step silently** (most ships carry no plan);
+   "points at `<name>`, which is not there" → the pointer is stale, so **warn
+   and print the plan-dir path** instead of skipping.
+2. Verify the phases against the diff with `av plan show`; where the diff proves
+   a phase done, `av plan check <n>` it (a phase **number**, not a file name).
+   If the work is genuinely partial, `av plan status in-progress` and skip the
+   completion below.
+3. `av plan status completed` — rewrites `plan.md` front-matter `status:`. (The
+   phases table was already updated by each `check` in step 2; this step only
+   sets the plan's own status.) Step 10's `git add -A` then commits the
+   finalized plan files with the ship, so `status: completed` reaches the
+   target branch in the same merge as the code.
 
-Do **not** run `av plan close` here — that is the merge flow's job (the index
-stays `active` through the review window). On any failure or missing `av`, report
-the plan-dir path + reason and continue the ship with a warning; never hand-edit
-or delete plan files.
+This is the only status write the plan needs; `av plan close` is an alias for
+the same command, and marking a plan completed hides it from nothing — `resolve`
+and `list` still return it, so the merge flow has no second close to perform. On
+any failure or missing `av`, report the plan-dir path + reason and continue the
+ship with a warning; never hand-edit or delete plan files.
 
 ## Step 10: Commit
 
@@ -291,16 +296,15 @@ EOF
 )"
 ```
 
-## Step 12b: Record plan↔PR linkage (plan-backed ships only)
+## Step 12b: Note the plan↔PR linkage (plan-backed ships only)
 
-If Step 9b finalized a plan, record the PR number on it so the merge flow can
-match plan to PR and close the index unambiguously:
-```bash
-av plan update <plan-id> --linked-pr <pr-number>
-```
-`--linked-pr` is index-only (it does not touch files). Skip silently when no
-plan was finalized. Do not close the plan here — the index `close` happens only
-after the PR merges (see the shared reference's "Delivery finalization" section).
+There is no command for this: `av plan` stores no PR number and has no
+`--linked-pr` flag. If Step 9b finalized a plan, put the PR number where a
+reader will find it — a `Tracking: #<n>` line in the plan body survives every
+CLI edit — and rely on the plan directory name or the branch name to match plan
+to PR later. Skip silently when no plan was finalized. Step 9b already set the
+plan's terminal status, so there is nothing further to close after the merge
+(see the shared reference's "Delivery finalization" section).
 
 ## Step 13: Social publish (if `--social`)
 
