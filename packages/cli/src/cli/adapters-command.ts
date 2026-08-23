@@ -7,6 +7,7 @@
 // is always the right answer to a discrepancy, never "reconcile".
 
 import { existsSync, readFileSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join } from "node:path";
 import type { Receipt } from "../install/install-receipt.js";
 import type { ProviderId } from "../providers/spec-verified.js";
@@ -72,7 +73,7 @@ export function runAdaptersRegenerate(opts: AdaptersOpts): AdaptersResult {
 
   if (opts.json) {
     return {
-      output: JSON.stringify({ schema_version: ADAPTERS_SCHEMA_VERSION, kind: "adapters.regenerate", data: { results } }, null, 2),
+      output: jsonEnvelope(ADAPTERS_SCHEMA_VERSION, "adapters.regenerate", { results }),
       exitCode: EXIT.ok,
     };
   }
