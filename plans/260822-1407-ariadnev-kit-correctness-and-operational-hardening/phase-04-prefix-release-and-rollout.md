@@ -134,3 +134,31 @@ the other. *Response:* step 3 names both.
 **Rollback that does not roll back.** The draft's recipe manufactured a
 mirror-image orphan set with no recoverable content. *Response:* step 8 executes
 it. An unexecuted rollback recipe is a guess.
+
+**The heal is one-directional, and the rollback recipe crosses it backwards.**
+Named as the single biggest risk of this phase by the phase 3 advisory review.
+`av update --to <prev>` restores a binary that has no heal: its next `install`
+writes unprefixed dirs and replaces the receipt wholesale, at which point the
+whole `av-` tree leaves the record with nothing referencing it — the exact
+orphan class phase 3 eliminated, recreated by the rollback path, and with no
+backup, because `applyOp` only backs up files already sitting at its own
+destinations. *Pre-decided response:* step 8 runs the recipe on a machine that
+has already healed and records the observed end state, or the recipe becomes
+"uninstall with the new binary first, then roll back". Do not publish a recipe
+whose cost has not been observed.
+
+**Cross-scope claims are invisible to the heal.** Codex writes `ctx.home`
+regardless of scope, so a *project*-scope codex install records
+`~/.agents/skills/…` claims in that project's receipt. A later *global* install
+computes its union from the global receipt alone and will remove legacy files
+the project receipt still claims. Bounded — hash-identical kit content, present
+in the heal backup, converges on the next project-scope install — but that
+project's `doctor` and `uninstall` report missing files until then. Not fixable
+in general: nothing can enumerate every project receipt on a machine.
+*Pre-decided response:* say so in the rollout note, and have `doctor` suggest
+reinstalling at this scope when a recorded file is missing.
+
+**`.DS_Store` makes `survivingDirs` look like an error.** Any legacy skill dir
+the user ever opened in Finder survives the heal and gets reported. That is
+correct behavior, and it will read as a failure unless the rollout note says
+what the line means before anyone sees it.
