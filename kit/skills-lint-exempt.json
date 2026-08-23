@@ -29,7 +29,6 @@
     "mermaidjs-v11",
     "mintlify",
     "mobile-development",
-    "orchestrate",
     "payment-integration",
     "plans-kanban",
     "predict",
@@ -50,7 +49,6 @@
     "sequential-thinking",
     "shader",
     "ship",
-    "shopify",
     "show-off",
     "skill-creator",
     "stitch",
@@ -58,10 +56,8 @@
     "team",
     "test",
     "threejs",
-    "ui-styling",
     "use-mcp",
     "web-design-guidelines",
-    "web-frameworks",
     "web-testing",
     "worktree"
   ]
