@@ -150,3 +150,20 @@ animate();
 - Examples: https://threejs.org/examples/
 - Editor: https://threejs.org/editor/
 - Discord: https://discord.gg/56GBJwAnUS
+
+## Output format
+
+Return the scene or component paths, asset requirements, rendering approach,
+performance considerations, and commands or checks run. Include a runnable
+snippet only when no project file is being changed.
+
+## Quality gates
+
+- Match APIs and examples to the project's installed Three.js version and renderer.
+- Dispose owned GPU resources and account for resize, pixel ratio, and lifecycle cleanup.
+- Verify loading, rendering, interaction, and performance on the target browser path.
+
+## Workflow position
+
+Use for Three.js scene and rendering work. Route standalone GLSL authoring to
+`av:shader`; follow implementation with browser testing and visual review.

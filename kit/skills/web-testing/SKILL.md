@@ -28,6 +28,24 @@ npx @axe-core/cli https://example.com  # Accessibility
 npx lighthouse https://example.com     # Performance
 ```
 
+## Output format
+
+Return the target and environment, exact commands, pass/fail/skip counts,
+browser or device matrix, measured performance/accessibility results, artifact
+paths, and untested scope.
+
+## Quality gates
+
+- Use project-native configuration and deterministic fixtures where available.
+- Separate measured results from recommendations and never invent coverage or browser support.
+- Clean up servers, browsers, containers, and test data started by the workflow.
+
+## Workflow position
+
+Use for repeatable web unit, integration, browser, accessibility, visual, or
+load checks after implementation. Route failures requiring code changes to
+`av:debug` or `av:fix`, then rerun the focused checks.
+
 ## Testing Strategy (Choose Your Model)
 
 | Model | Structure | Best For |

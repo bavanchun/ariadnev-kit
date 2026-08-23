@@ -1,6 +1,6 @@
 ---
 name: av:stitch
-description: "AI design generation with Google Stitch. Generate UI designs from text prompts, export Tailwind/HTML/DESIGN.md, orchestrate design-to-code pipeline. Use for rapid prototyping, UI generation, design exploration."
+description: "Generate UI designs with Google Stitch from text prompts and hand them off to code. Use for rapid prototyping, UI generation, design exploration, or design-to-code workflows."
 user-invocable: true
 when_to_use: "Invoke for AI-generated UI designs and design-to-code handoff."
 category: frontend
@@ -192,3 +192,21 @@ See `references/quota-management.md` for strategies.
 | MCP Setup | `references/stitch-mcp-setup.md` |
 | Pipeline Patterns | `references/design-to-code-pipeline.md` |
 | Quota Strategy | `references/quota-management.md` |
+
+## Output format
+
+Return the generated project or screen identifiers, export paths, selected
+artifacts, and design-to-code handoff notes. Include quota or authentication
+failures without exposing credentials.
+
+## Quality gates
+
+- Confirm the live Stitch capability and supported export format before relying on it.
+- Preserve the user's design constraints across prompt, generation, export, and handoff.
+- Inspect generated output before presenting it as implementation-ready.
+
+## Workflow position
+
+Use during visual exploration before frontend implementation. Hand accepted
+artifacts to `av:frontend-design` or `av:frontend-development`, then verify the
+implemented UI separately.

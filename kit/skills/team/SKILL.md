@@ -225,3 +225,22 @@ storage and lifecycle as runtime-owned.
 - `references/agent-teams-controls-and-modes.md`: stable control semantics
 - `references/agent-teams-examples-and-best-practices.md`: portable examples
 - `references/agent-teams-official-docs.md`: stable operating model and live-source boundary
+
+## Output format
+
+Return the team topology, task ownership, dependency state, teammate status,
+and integration-ready results. Surface blocked or unavailable runtime
+capabilities directly.
+
+## Quality gates
+
+- Use only the collaboration operations and parameters exposed by the live runtime.
+- Give each teammate bounded context, explicit file ownership, and acceptance criteria.
+- Reconcile all teammate results and shut down the team cleanly before completion.
+
+## Workflow position
+
+Use after work is decomposable into independently owned tasks and before the
+lead integrates results. Prefer ordinary single-session work when ownership or
+integration boundaries are unclear; use `av:orchestrate` for headless CLI-agent
+jobs rather than live teammates.

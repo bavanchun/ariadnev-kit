@@ -1,6 +1,6 @@
 ---
 name: av:shader
-description: "Write GLSL fragment shaders for procedural graphics. Topics: shapes (SDF), patterns, noise (Perlin/simplex/cellular), fBm, colors (HSB/RGB), matrices, gradients, animations. Use for generative art, textures, visual effects, WebGL, Three.js shaders."
+description: "Write GLSL fragment shaders for procedural graphics, SDF shapes, patterns, noise, fBm, colors, gradients, and animation. Use for generative art, textures, WebGL, or Three.js effects."
 user-invocable: true
 when_to_use: "Invoke for GLSL, procedural visuals, or WebGL effects."
 category: frontend
@@ -118,3 +118,21 @@ float wave = sin(st.x * 10.0 + u_time) * 0.5 + 0.5;
 - LYGIA Library: https://lygia.xyz (reusable shader functions)
 - ShaderToy: https://shadertoy.com
 - Inigo Quilez Articles: https://iquilezles.org/articles/
+
+## Output format
+
+Return the shader source plus its target runtime, required uniforms, integration
+notes, and a short visual description. Include a minimal host snippet only when
+the caller needs one.
+
+## Quality gates
+
+- Match GLSL version, output variables, precision, and uniforms to the target runtime.
+- Avoid undefined math and guard resolution-dependent divisions.
+- Verify compilation with an available project tool or clearly state that it was not run.
+
+## Workflow position
+
+Use for shader-specific implementation. Pair with `av:threejs` when the shader
+must be integrated into a broader Three.js scene, and with testing or visual
+review after implementation.
