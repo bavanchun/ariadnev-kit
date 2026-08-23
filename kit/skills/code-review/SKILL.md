@@ -1,6 +1,6 @@
 ---
 name: av:code-review
-description: "Review code quality with evidence-based rigor. Supports input modes: pending changes, PR number, commit hash, and codebase scan. Focuses on bugs, regressions, maintainability, reliability, and verification gaps."
+description: "Review code for bugs, regressions, security, public-contract breaks, and verification gaps with evidence-based rigor. Use on pending changes, a PR number, a commit hash, or a codebase scan."
 user-invocable: true
 when_to_use: "Invoke to review diffs, PRs, commits, or full codebases."
 category: utilities
@@ -63,7 +63,7 @@ Verify before implementing. Ask before assuming. Evidence before claims.
 | Requesting review | After tasks, before merge, stuck on problem | `references/requesting-code-review.md` |
 | Verification gates | Before any completion claim, commit, PR | `references/verification-before-completion.md` |
 | Edge case scouting | After implementation, before review | `references/edge-case-scouting.md` |
-| **Checklist review** | Pre-landing, `the engineer ship skill` pipeline, security audit | `references/checklist-workflow.md` |
+| **Checklist review** | Pre-landing, `av:ship` pipeline, security audit | `references/checklist-workflow.md` |
 | **Tracked reviews** | Multi-file features (3+ files), parallel reviewers, fix cycles | `references/task-management-reviews.md` |
 
 ## Quick Decision Tree
@@ -177,15 +177,15 @@ are the durable source of truth; runtime tracking is only a working view.
 - **Pull Requests:** Scout → Code quality → Verify → Merge
 - **Tracked Pipeline:** Record dependencies → advance only when prerequisites complete
 - **Cook Handoff:** Cook completes phase → review pipeline completes → cook proceeds
-- **PR Review:** `the installed code-review skill #123` → fetch diff → full review pipeline on PR changes
-- **Commit Review:** `the installed code-review skill abc1234` → review specific commit with full pipeline
+- **PR Review:** `/av:code-review #123` → fetch diff → full review pipeline on PR changes
+- **Commit Review:** `/av:code-review abc1234` → review specific commit with full pipeline
 
 ## Codebase Analysis Subcommands
 
 | Subcommand | Reference | Purpose |
 |------------|-----------|---------|
-| `the installed code-review skill codebase` | `references/codebase-scan-workflow.md` | Scan & analyze the codebase |
-| `the installed code-review skill codebase parallel` | `references/parallel-review-workflow.md` | Ultrathink edge cases, then parallel verify |
+| `/av:code-review codebase` | `references/codebase-scan-workflow.md` | Scan & analyze the codebase |
+| `/av:code-review codebase parallel` | `references/parallel-review-workflow.md` | Ultrathink edge cases, then parallel verify |
 
 ## Bottom Line
 
@@ -196,8 +196,59 @@ are the durable source of truth; runtime tracking is only a working view.
 
 Verify. Scout. Question. Then implement. Evidence. Then claim.
 
-## Workflow Position
+## Output format
 
-**Typically follows:** `/av:cook` (review after implementation), `/av:fix` (review after bug fix)
-**Typically precedes:** `the engineer ship skill` (ship after review passes)
-**Related:** `/av:scout` (scout before reviewing), `the installed test skill` (test before reviewing)
+Wrap the `code-reviewer` subagent's `## Code Review Summary` (its template lives
+in `kit/agents/code-reviewer.md`: Scope, Overall Assessment, Findings grouped
+Critical / High / Medium / Low, Edge Cases Found by Scout, Positive
+Observations, Recommended Actions, Metrics, Unresolved Questions) in this frame:
+
+```markdown
+# Review: <PR #n | commit abc1234 | pending | codebase[ parallel]>
+- Diff: <`gh pr diff n` | `git show sha` | `git diff` (staged+unstaged) | scan scope> · Files: <n> · Base: <branch/sha>
+- Spec compliance (Stage 1): PASS | FAIL (<missing>) | WARN (<extras>) | N/A — no plan/spec
+- Scout: <edge cases surfaced, or "skipped: <reason>">
+
+<## Code Review Summary from the subagent, verbatim>
+
+## Verification
+- Ran: `<command>` → <exit code / failure count> — or "NOT RUN: <why>"
+
+## Verdict
+READY | READY WITH FIXES (<High+ items>) | BLOCKED (<Critical items>)
+Cycles: <n of 3>
+```
+
+The older references in this skill rank findings Critical / Important / Minor;
+map Important → High and Minor → Low when carrying their output into this frame.
+
+## Quality gates
+
+- [ ] The input mode was resolved before reading any code and is named at the
+      top; an ambiguous argument was resolved by asking, not by guessing
+      `--pending`.
+- [ ] When a plan or spec existed, Stage 1 ran first and Stage 2 only after it
+      passed; a FAIL stops the review at Stage 1.
+- [ ] Every Critical or High finding cites `file:line` and the observed
+      behavior or test, not a suspicion; "should"/"probably"/"seems to" never
+      appears in a finding.
+- [ ] The Verification block names a command that was actually run in this
+      session with its exit status — a verdict of READY without it is not
+      allowed.
+- [ ] Requested scope was reviewed as a constraint: no finding asks to remove
+      what the user asked for unless `--yagni` was passed.
+- [ ] Re-review cycles stopped at 3 and escalated to the user.
+
+Proof/risk: the review asserts which ladder rung the change cleared
+(`unit` / `integration` / `e2e` / `platform`) from the Verification block; it
+never raises the rung by reading code alone.
+
+## Workflow position
+
+**Typically follows:** `/av:cook` (review after implementation), `/av:fix`
+(review after bug fix), and `/av:scout` (edge cases scouted before dispatch).
+**Typically precedes:** `/av:ship` (ship after review passes) and `/av:test`
+when the Verification block found no runnable suite and one must be written.
+**Related:** `/av:review-pr` reviews a GitHub PR with `--reply`/`--merge`
+capabilities; this skill reviews the diff without posting. `/av:security`
+takes over when findings are trust-boundary defects that need a STRIDE audit.

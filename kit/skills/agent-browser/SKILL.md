@@ -1,6 +1,6 @@
 ---
 name: av:agent-browser
-description: Browser and desktop automation through the agent-browser CLI. Use for long autonomous browsing, compact page snapshots, screenshots, form filling, login/test flows without real Chrome profile state, scraping, exploratory QA, cloud browsers, Electron apps, Slack automation, and bug hunts.
+description: Automate browsers and Electron apps through the agent-browser CLI. Use for headless snapshots, screenshots, form fills, scraping, exploratory QA, and cloud browsers without real Chrome profile state.
 user-invocable: true
 when_to_use: "Invoke for browser/app automation that needs snapshots or clicks and does not require the user's real Chrome profile state."
 category: dev-tools
@@ -101,6 +101,61 @@ Agent Browser exposes an observability dashboard independently of browser sessio
 | Stale commands / missing flags | `npm install -g agent-browser` then `agent-browser skills get core --full` |
 | Session stale | `agent-browser close` |
 | Element not found | Re-run `agent-browser snapshot -i` after page changes |
+
+## Output format
+
+The skill's deliverable is the browser evidence the task asked for plus a short
+session record. Return:
+
+```markdown
+## Browser session
+- Target: <url or app> · Provider: local | browserbase | agentcore | vercel-sandbox · Session: <--session name or default>
+- Skill content loaded: `agent-browser skills get core` [+ <electron|slack|dogfood|...>]
+
+## Steps taken
+1. `agent-browser open <url>` → <page title>
+2. `agent-browser snapshot -i` → acted on @eN (<role/name>)
+...
+
+## Evidence
+- Screenshots: <path> (one line each, what it shows)
+- Findings / broken states: <what, where, how reproduced> — or "none"
+
+## Session state
+- Closed with `agent-browser close` | left open for <reason>
+```
+
+Screenshots are written to the path given to `agent-browser screenshot <path>`;
+with no path the CLI saves to a temp directory, so always pass one and report
+it.
+
+## Quality gates
+
+- [ ] `agent-browser skills get core` was read in this session before the first
+      non-install command — this file is a stub and carries no command reference.
+- [ ] Every click/fill/type targets an `@eN` ref from a snapshot taken after the
+      last navigation or DOM change; a ref from a stale snapshot is the usual
+      cause of "element not found".
+- [ ] The task did not need the user's real Chrome login, cookies, or account;
+      if it did, the work was routed to `av:chrome-profile`, not done here.
+- [ ] Each reported broken state has a screenshot path and the step that
+      produced it — a finding without an artifact is hearsay.
+- [ ] The session was closed (`agent-browser close`) or the reason it stays
+      open is stated; an abandoned session holds the daemon until its idle
+      timeout (default 1h).
+
+Proof/risk: N/A — this skill observes and drives pages; it does not change code.
+
+## Workflow position
+
+**Typically follows:** `av:test` or `av:fix` when a frontend change needs live
+browser verification, and `av:design` when exported assets need exact-size
+screenshots.
+**Typically precedes:** `av:ai-multimodal` when captured screenshots need visual
+analysis.
+**Related:** `av:chrome-profile` owns work that needs the user's real Chrome
+profile; `av:web-testing` owns repeatable Playwright/Vitest suites rather than
+ad-hoc driving.
 
 ## Resources
 

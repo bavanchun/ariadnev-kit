@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T13:26:09.185Z",
+  "generatedAt": "2026-08-23T08:21:48.220Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:1f3f27015811870bc5773a18f23cf06078220a2efeadb6fa5adaa6c95ee7623e",
+    "corpusDigest": "sha256:75b300a21142bdeec193dcd72a4c9cf14ceb3e0a25c7b79a768a63dd3e8ef07a",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -37,7 +37,7 @@
       "name": "local lexical metadata index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.634580752243393,
+        "retrievalQuality": 0.6226188359387427,
         "taskSuccessRate": 0.6153846153846154,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -51,8 +51,8 @@
               "docs/graph-execution-architecture.md",
               "docs/decisions/0004-graph-native-control-plane.md",
               "kit/skills/cook/SKILL.md",
-              "kit/workflows/safe-change-delivery.json",
               "kit/skills/brainstorm/SKILL.md",
+              "kit/workflows/safe-change-delivery.json",
               "kit/skills/scout/SKILL.md"
             ]
           },
@@ -62,8 +62,8 @@
             "taskSucceeded": false,
             "contextTokens": 540,
             "resultPaths": [
-              "kit/skills/cook/SKILL.md",
               "kit/skills/fix/SKILL.md",
+              "kit/skills/cook/SKILL.md",
               "kit/skills/ship/SKILL.md",
               "docs/graph-execution-architecture.md",
               "kit/skills/brainstorm/SKILL.md",
@@ -81,26 +81,26 @@
               "kit/agents/debugger.md",
               "kit/workflows/bugfix-delivery.json",
               "kit/skills/brainstorm/SKILL.md",
-              "kit/skills/cook/SKILL.md"
+              "docs/decisions/0004-graph-native-control-plane.md"
             ]
           },
           {
             "id": "direct.release-gate",
-            "retrievalQuality": 0.9261946662938199,
+            "retrievalQuality": 0.9499797323370371,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
               "kit/skills/ship/SKILL.md",
               "kit/skills/git/SKILL.md",
               "kit/skills/code-review/SKILL.md",
-              "kit/skills/fix/SKILL.md",
-              "kit/skills/cook/SKILL.md",
-              "evals/scenarios/golden/release-to-pr.json"
+              "evals/scenarios/golden/release-to-pr.json",
+              "kit/skills/test/SKILL.md",
+              "kit/skills/cook/SKILL.md"
             ]
           },
           {
             "id": "direct.current-docs-research",
-            "retrievalQuality": 0.9673387413348702,
+            "retrievalQuality": 0.9584925251677545,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
@@ -108,8 +108,8 @@
               "evals/scenarios/golden/current-docs-research.json",
               "kit/skills/ask/SKILL.md",
               "kit/skills/plan/SKILL.md",
-              "kit/skills/docs-seeker/SKILL.md",
-              "kit/skills/cook/SKILL.md"
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md"
             ]
           },
           {
@@ -137,7 +137,7 @@
               "evals/scenarios/golden/safe-feature-delivery.json",
               "kit/workflows/bugfix-delivery.json",
               "docs/graph-execution-architecture.md",
-              "kit/workflows/read-only-delivery.json"
+              "kit/skills/fix/SKILL.md"
             ]
           },
           {
@@ -170,7 +170,7 @@
           },
           {
             "id": "relation.safe-feature-subjects",
-            "retrievalQuality": 0.3389232469311266,
+            "retrievalQuality": 0.18508763772517173,
             "taskSucceeded": false,
             "contextTokens": 540,
             "resultPaths": [
@@ -179,7 +179,7 @@
               "kit/skills/brainstorm/SKILL.md",
               "kit/workflows/read-only-delivery.json",
               "kit/workflows/bugfix-delivery.json",
-              "kit/skills/cook/SKILL.md"
+              "kit/skills/fix/SKILL.md"
             ]
           },
           {
@@ -192,8 +192,8 @@
               "kit/skills/git/SKILL.md",
               "kit/skills/ship/SKILL.md",
               "kit/skills/code-review/SKILL.md",
-              "kit/skills/cook/SKILL.md",
-              "kit/skills/brainstorm/SKILL.md"
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/cook/SKILL.md"
             ]
           },
           {
@@ -203,8 +203,8 @@
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
-              "kit/skills/plan/SKILL.md",
               "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/plan/SKILL.md",
               "kit/skills/fix/SKILL.md",
               "kit/skills/cook/SKILL.md",
               "kit/skills/ask/SKILL.md"
@@ -212,7 +212,7 @@
           },
           {
             "id": "relation.research-subjects",
-            "retrievalQuality": 0.7838401609851355,
+            "retrievalQuality": 0.7672320083545335,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
@@ -220,8 +220,8 @@
               "kit/skills/research/SKILL.md",
               "kit/skills/cook/SKILL.md",
               "kit/skills/plan/SKILL.md",
-              "kit/skills/docs-seeker/SKILL.md",
-              "kit/skills/brainstorm/SKILL.md"
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/docs-seeker/SKILL.md"
             ]
           }
         ]
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.276625,
-            "p95Ms": 2.541791,
-            "maxMs": 2.933958
+            "p50Ms": 2.378917,
+            "p95Ms": 2.921417,
+            "maxMs": 3.1325
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.19575,
-            "p95Ms": 0.257125,
-            "maxMs": 1.785125
+            "p50Ms": 0.209,
+            "p95Ms": 0.276583,
+            "maxMs": 0.675625
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.177667,
-            "p95Ms": 0.2355,
-            "maxMs": 0.594291
+            "p50Ms": 0.193125,
+            "p95Ms": 0.264041,
+            "maxMs": 0.828
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 176205
+        "indexBytes": 182284
       },
       "externalDependencies": []
     },
@@ -261,7 +261,7 @@
       "name": "deterministic artifact relationship graph plus lexical index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.8423462933814303,
+        "retrievalQuality": 0.8504198492645101,
         "taskSuccessRate": 0.9230769230769231,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -274,10 +274,10 @@
             "resultPaths": [
               "docs/graph-execution-architecture.md",
               "docs/decisions/0004-graph-native-control-plane.md",
-              "kit/skills/cook/SKILL.md",
               "kit/workflows/safe-change-delivery.json",
-              "kit/skills/test/SKILL.md",
-              "kit/skills/brainstorm/SKILL.md"
+              "kit/skills/cook/SKILL.md",
+              "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/scout/SKILL.md"
             ]
           },
           {
@@ -287,11 +287,11 @@
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/safe-feature-delivery.json",
-              "kit/workflows/safe-change-delivery.json",
               "evals/scenarios/golden/root-cause-bugfix.json",
               "kit/workflows/bugfix-delivery.json",
+              "kit/workflows/safe-change-delivery.json",
               "evals/scenarios/golden/release-to-pr.json",
-              "kit/skills/cook/SKILL.md"
+              "kit/skills/fix/SKILL.md"
             ]
           },
           {
@@ -310,16 +310,16 @@
           },
           {
             "id": "direct.release-gate",
-            "retrievalQuality": 0.7378720384008995,
+            "retrievalQuality": 0.8428282648809379,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/release-to-pr.json",
-              "kit/workflows/bugfix-delivery.json",
               "kit/skills/ship/SKILL.md",
               "kit/skills/git/SKILL.md",
               "kit/skills/code-review/SKILL.md",
-              "kit/workflows/safe-change-delivery.json"
+              "kit/workflows/safe-change-delivery.json",
+              "kit/workflows/bugfix-delivery.json"
             ]
           },
           {
@@ -374,8 +374,8 @@
               "kit/skills/code-review/SKILL.md",
               "kit/skills/test/SKILL.md",
               "kit/skills/ask/SKILL.md",
-              "kit/skills/cook/SKILL.md",
-              "kit/skills/fix/SKILL.md"
+              "kit/skills/fix/SKILL.md",
+              "kit/skills/cook/SKILL.md"
             ]
           },
           {
@@ -385,8 +385,8 @@
             "contextTokens": 540,
             "resultPaths": [
               "kit/skills/scout/SKILL.md",
-              "kit/skills/code-review/SKILL.md",
               "kit/skills/test/SKILL.md",
+              "kit/skills/code-review/SKILL.md",
               "kit/skills/fix/SKILL.md",
               "kit/agents/debugger.md",
               "kit/workflows/bugfix-delivery.json"
@@ -427,8 +427,8 @@
             "contextTokens": 540,
             "resultPaths": [
               "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
-              "kit/skills/plan/SKILL.md",
               "kit/skills/brainstorm/SKILL.md",
+              "kit/skills/plan/SKILL.md",
               "evals/scenarios/golden/root-cause-bugfix.json",
               "kit/workflows/bugfix-delivery.json",
               "kit/skills/fix/SKILL.md"
@@ -444,8 +444,8 @@
               "evals/scenarios/golden/current-docs-research.json",
               "kit/skills/docs-seeker/SKILL.md",
               "evals/scenarios/golden/safe-feature-delivery.json",
-              "evals/scenarios/golden/architecture-brainstorm-to-plan.json",
-              "kit/workflows/safe-change-delivery.json"
+              "kit/workflows/safe-change-delivery.json",
+              "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
             ]
           }
         ]
@@ -454,37 +454,37 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 3.013333,
-            "p95Ms": 3.381208,
-            "maxMs": 3.7695
+            "p50Ms": 3.109458,
+            "p95Ms": 3.531791,
+            "maxMs": 3.910834
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.955208,
-            "p95Ms": 1.072,
-            "maxMs": 1.653083
+            "p50Ms": 1.011083,
+            "p95Ms": 1.139458,
+            "maxMs": 1.733542
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.924583,
-            "p95Ms": 1.105917,
-            "maxMs": 4.639125
+            "p50Ms": 0.984625,
+            "p95Ms": 1.320084,
+            "maxMs": 14.050792
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 178509,
+        "indexBytes": 184588,
         "edges": 24
       },
       "externalDependencies": []
     }
   },
   "comparison": {
-    "retrievalQualityGainPoints": 20.7766,
+    "retrievalQualityGainPoints": 22.7801,
     "taskSuccessGainPoints": 30.7692,
     "meanContextTokenDelta": 0,
     "candidateIndexByteDelta": 2304,
