@@ -222,14 +222,51 @@ Measured, against the prediction above.
 5. Merge sequentially — `kit-embedded.generated.ts` regenerates per PR and
    conflicts across parallel branches.
 
-**Tier A is held** until one mixed calibration batch of 15 with a **100%**
-second read has been run and its defects counted by class (invented slug /
-wrong consumer claim / interchangeable section / double-stated section). The
-20% sample in the table above is a guess; the batch replaces it with a number.
-≤1 reader-caught defect in 15 makes 20% defensible; ≥4 means sampling is not a
-control and the rest of the phase is a maintainer job. Report context windows
-per skill and reader tokens as the cost proxy, since wall-clock is not
-recoverable.
+Tier A was held until one mixed calibration batch of 15 with a **100%**
+second read had been run and its defects counted by class. The 20% sample in
+the table above was a guess; the batch replaced it with a number.
+
+### Calibration result (2026-08-23) — the sample is 100%
+
+The batch (`vibe handover issue-to-plan ariadnev xia advise deploy graphify
+preview debug docs backend-development databases watzup ask`) merged as PR #48.
+A fresh agent that had read none of the authoring derived the tally from the
+reader transcripts alone, with per-finding provenance checked against
+`git show c888d2e:<path>`:
+[`reports/audit-260823-1440-tier-a-calibration-tally.md`](../reports/audit-260823-1440-tier-a-calibration-tally.md).
+
+- **Introduced 14 / 14** (denominator 14: `issue-to-plan` excluded — no reader
+  transcript targets it, which is zero measurement, not zero defects).
+  Inherited 6 / 14. 79 substantive findings, 0 disputed, 0 unverified.
+- **31 fix-pass regressions across 12 of 14 skills** — about 2 per skill. The
+  fix pass is a defect source at nearly the rate of the authoring pass. This is
+  the sharpest number in the data and it confirms the pilot's observation.
+- The lowest defensible count, demoting every borderline call, is 13. The
+  result is not sensitive to classification.
+
+**Policy, applied mechanically from the thresholds set before the count:**
+introduced ≥ 4 → **100% second reads for all 69 remaining Tier A skills**, plus
+the 9 remaining Tier B. This is not maintainer takeover: the loop catches its
+own regressions, and the number that would justify takeover is *escapes*
+(defects found after a completed loop), tracked separately — 2 so far, both
+`cti-expert`. Reads are batch-shaped (one reader per ≤15-skill batch diff) and
+every fix diff gets a fresh re-read, no exceptions, because the fix pass is
+the measured entry point for new defects and its diff is the cheapest read in
+the pipeline.
+
+**Two taxonomy gaps the tally exposed, closed from the next batch on:**
+- Readers are told to hunt for gates that restate text elsewhere, but the
+  frozen classes had no slot for them, so they vanished into nits. They are
+  now reported under a separate `redundant` class — listed, not counted in the
+  substantive total.
+- A reader could mark a `fabricated` finding "optional" because the fix was
+  large, which demoted ~18 non-existent skill names in `ariadnev` to a nit.
+  A `fabricated` finding is substantive regardless of fix size.
+
+**Unmeasured tail, being read now rather than assumed clean:** `issue-to-plan`
+(never read) and the batch's final fix pass (`88799ba`, `cc51476`, 13 files
+across seven skills, never re-read). Its finding count is the first test of
+whether the protocol's own last step is safe.
 
 Tier C order: `fable-thinking` → `frontend-development` → `review-pr` →
 `tech-graph` → `ui-ux-pro-max` → `plan` last (the kit's most-referenced skill:
@@ -278,7 +315,9 @@ the routing gate. Re-run the collision check after every batch.
    verb in one pass; drop from the ratchet; re-run the collision check; `pnpm test`.
 4. Tier B (10): sections plus trim to ≤300.
 5. Split the 6 over-cap reference files.
-6. Second-reader review: all of Tier C, random 20% of Tier A.
+6. Second-reader review: every skill in every tier (was "random 20% of Tier A"
+   until the calibration batch measured 14/14 introduced). One reader per
+   batch diff; a fresh re-read of every fix diff.
 7. Ratchet reaches zero.
 
 ## Success Criteria
@@ -290,8 +329,10 @@ the routing gate. Re-run the collision check after every batch.
 - [ ] No new `description-collision` allowlist entries were added during the
       burn-down. Collisions were resolved by differentiating.
 - [ ] Every `## Workflow position` names ≥1 `av:<slug>`.
-- [ ] Second-reader review completed for all Tier C and ≥20% of Tier A, by a
-      different model/agent with fresh context — never the authoring session.
+- [ ] Second-reader review completed for every skill in every tier, by a
+      different model/agent with fresh context — never the authoring session —
+      and every fix diff re-read the same way. (Raised from "≥20% of Tier A"
+      by the calibration result.)
 - [ ] `pnpm test` green at every merge, not only at the end.
 
 ## Risk Assessment
@@ -304,7 +345,9 @@ is the control and it is budgeted; a batch that fails review is rejected
 wholesale, not patched line by line.
 
 **Batch fatigue.** *Signal:* per-skill time drops well below 20 minutes.
-*Response:* the 20% sample exists for this.
+*Response:* every skill is second-read, so fatigue shows up as a rising
+finding count per batch rather than as shipped defects; a batch whose count
+rises is re-authored, not patched.
 
 **Collision-gate whack-a-mole.** *Signal:* the urge to add an allowlist entry.
 *Response:* named as a success criterion — zero new entries.
