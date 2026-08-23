@@ -85,31 +85,36 @@ When `--wiki` is present:
 
 ### Active Plan State Tracking
 
-See SKILL.md "Active Plan State" section for full rules. Key points:
+See SKILL.md "Plan files and the CLI" and Workflow Process step 1 for full
+rules. Key points:
 - Check `## Plan Context` injected by hooks for active/suggested/none state
-- After creating plan: use the active plan mechanism provided by the host project or dashboard
+- After creating a plan: `av plan use <plan-dir-name>` (the branch pointer)
 - Active plans use plan-specific reports path; suggested plans use default path
 
-## Plan Creation Via CLI
+## Plan Creation
 
 After determining phases from research/design:
 
-1. **Read live help:** Run `av plan --help`, then run the selected scaffolding
-   subcommand with `--help`. Live help owns syntax and flags.
+1. **Write the files yourself.** There is no scaffolding subcommand — `av plan`
+   inspects and tracks; it never creates a plan or a phase. Create the plan
+   directory, `plan.md`, and each `phase-XX-*.md` with file-write capability.
 
-2. **Scaffold via CLI:** Use the operations described by live help to create the
-   plan and required phases. Do not copy a command schema into the plan.
-
-3. **Fill content sections** in plan.md via edit-file capability:
+2. **Fill content sections** in plan.md via edit-file capability:
    - `## Overview` — brief description
    - `## Dependencies` — cross-plan dependencies
 
-4. **Fill each phase-XX.md** with:
+3. **Fill each phase-XX.md** with:
    - Architecture, implementation steps, success criteria
    - Requirements, risk assessment, security considerations
 
-5. **NEVER edit the Phases table directly** when it is CLI-owned. Use the
-   status and structure operations exposed by live help.
+4. **Point the branch at the finished plan:** `av plan use <plan-dir-name>`. Run
+   `av plan --help` and the subcommand's `--help` for live syntax rather than
+   copying a command schema into the plan.
+
+5. **Never hand-edit a status cell in the Phases table.** Use `av plan update
+   <phase> <status>` (or `check`/`uncheck`) so the phase file and the table
+   change together. Editing the table's structure — adding a row for a new
+   phase, renaming a phase — is a normal file edit.
 
 6. **If `--html`, generate `plan.html` after final plan gates:**
    - Re-read `plan.md` and every `phase-*.md` that exists.
@@ -128,12 +133,11 @@ After determining phases from research/design:
      are exposed in the active session.
    - Capture and report the returned URL, or report the exact skip reason.
 
-**MANDATORY:** Markdown plan creation goes through CLI. The `av` CLI is required
-for ariadnev users. If the selected scaffolding operation fails, report the error; do not fall
-back to direct Markdown file scaffolding. In `--html` mode, write the primary
-`plan.html` after planning gates finish so the HTML reflects the reviewed plan.
-If `--github` is also present, use CLI scaffolding or a concise Markdown index
-only for the requested repo-relative `plan.md` link.
+**MANDATORY:** the Markdown files are the plan and the agent writes them
+directly — never block plan creation on a CLI call. In `--html` mode, write the
+primary `plan.html` after planning gates finish so the HTML reflects the
+reviewed plan. If `--github` is also present, write a concise Markdown index at
+`plan.md` for the requested repo-relative link.
 
 ## File Structure
 
@@ -183,6 +187,11 @@ Brief description of what this plan accomplishes.
 <!-- IMPORTANT: Link text MUST be human-readable names (not filenames).
      Bad:  [phase-01-setup.md](./phase-01-setup.md)
      Good: [Setup Environment](./phase-01-setup.md) -->
+
+## Acceptance criteria
+
+- [ ] Observable evidence the whole plan is done — av:pm ticks these by evidence,
+      independent of phase status
 
 ## Dependencies
 
