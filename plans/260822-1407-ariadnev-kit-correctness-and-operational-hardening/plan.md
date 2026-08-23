@@ -162,7 +162,7 @@ path-shape are now two separate rules.
 | 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | **Completed** (merged to dev) |
 | 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | Pending |
 | 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (merged to dev; release cut pending) |
-| 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | Pending |
+| 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | Pending |
 | 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | Pending |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
@@ -273,8 +273,10 @@ split in phase 7. It converts ~25-40 hr of fragment-shuffling into ~3-6 hr.
 2. ~~Does `test-provider` (`resolver.ts:127-137`) get prefixed?~~ **Yes** — same
    `targetFor`, and a test provider that behaves unlike the real ones is worth
    less than one that does not.
-3. Hash strategy for directory-shaped backup entries. Phase 5 decides before
-   implementing `verify`.
+3. ~~Hash strategy for directory-shaped backup entries.~~ **A tree digest** —
+   every file below the target, sorted by relative path, folded in as
+   `relpath\0<sha256>`. Paths are part of the digest so a move without an edit
+   still changes it. Decided and shipped in phase 6.
 4. Strip `metadata.origin: ported` once a skill clears the bar? Phase 2's ADR.
 5. ~~Does `ariadnev-web` consume any `av --json` output?~~ **No.** Grepped the
    whole repo: every `--json` hit is documentation text or the web repo's own
