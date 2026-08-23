@@ -97,7 +97,7 @@ tests, code-review blockers, branch protections, or security policy.
    - Classify implementation route:
      - **Bugfix route** when the issue/request is a bug, regression, broken behavior, failing test/CI, production/staging incident, error log, or explicitly says fix/debug/repair.
      - **Feature route** for net-new capability, enhancement, refactor, or ambiguous product work.
-   - Detect an existing plan in this order, verifying the resolved `plan.md` exists on disk before treating it as reusable: (1) a user-provided plan path; (2) for an issue input, `av plan search "<issue-number>"` — a plain full-text search over every plan's files, so it only finds a plan whose text mentions the issue; there is **no** `--issue` flag and no index keyed by issue number; (3) `av plan resolve` for the branch's plan; (4) an issue body/comment linking a `plans/.../plan.md`, or a matching plan already in the current worktree. Detection runs before worktree creation, so `av plan resolve` is often unset here — that is expected, not a failure. If `av` is missing/errors, or `resolve` reports an ambiguity, present the candidates and fall through to the file/issue scan rather than treating it as "no plan". The issue-link/worktree scan stays first-class: plan state is files-first, so a teammate-created plan exists as repo files whether or not anything local knows about it.
+   - Detect an existing plan in this order, verifying the resolved `plan.md` exists on disk before treating it as reusable: (1) a user-provided plan path; (2) for an issue input, `av plan search "<issue-number>"` — a plain full-text search over every plan's files, so it only finds a plan whose text mentions the issue; there is **no** `--issue` flag and no index keyed by issue number; (3) `av plan resolve` for the branch's plan; (4) an issue body/comment linking a `plans/.../plan.md`, or a matching plan already in the current worktree. Detection runs before worktree creation, so `av plan resolve` is often unset here — that is expected, not a failure. If `av` is missing or errors, fall through to the file/issue scan rather than treating it as "no plan". `resolve` never reports an ambiguity — it has exactly two non-zero answers: "nothing selected for `<branch>`" (no pointer, expected here) and "`<branch>` points at `<name>`, which is not there" (a stale pointer worth reporting); `--json` distinguishes them as `plan: null` versus `found: false`. The issue-link/worktree scan stays first-class: plan state is files-first, so a teammate-created plan exists as repo files whether or not anything local knows about it.
    - If any of those are ambiguous enough to change implementation, ask before worktree creation. Otherwise proceed and carry the extracted requirements into planning and issue updates.
 
 2. **Create isolated worktree and branch**
@@ -144,7 +144,7 @@ tests, code-review blockers, branch protections, or security policy.
      - ship mode (`official`, `beta`, or `both`)
      - acceptance criteria from the plan
    - Add `ready to cook`; remove stale `ready to ship stable` and `ready to ship beta`.
-   - Record the linkage **in the plan files**, by writing the issue URL into `plan.md` (and the tracking comment's URL beside it, when one was posted). There is no CLI flag for this: `av plan update` takes `<phase> <status>` and only `--plan` / `--json`, with no `--issue`, `--root-comment-id`, or `--comment-id`. Writing it into the file is also what makes step 1's `av plan search "<issue-number>"` able to find the plan later. Follow the publish-safety protocol in the shared files-first plan-state reference for author-verification and idempotent projection.
+   - Record the linkage **in the plan files**, by writing the issue URL into `plan.md` (and the tracking comment's URL beside it, when one was posted). There is no CLI flag for this: `av plan update` takes `<phase> <status>` and only `--plan` / `--json`, with no `--issue`, `--root-comment-id`, or `--comment-id`. Writing it into the file is also what makes step 1's `av plan search "<issue-number>"` able to find the plan later. Follow the publish-safety protocol in `../av-cook/references/plan-state-files-first.md` for the comment marker, author-verification, rev-echo, and fail-safe rules. No `av plan` subcommand records an issue number, a comment id, or a PR number, so that marker is the only durable link between a plan and its projection.
 
 5. **Implement or fix**
    - Before activating `/av:cook` or `/av:fix`, update the pipeline GitHub issue:
@@ -189,7 +189,7 @@ tests, code-review blockers, branch protections, or security policy.
      /av:ship official
      ```
    - Capture PR URL/number from `/av:ship` output.
-   - The ship skill finalizes a plan-backed change as part of its pipeline: it sets the plan's phases to `completed` before committing, so the finalized files ride the ship commit. Recording which PR the plan produced is a file edit, not a command — no `--linked-pr` flag exists. Marking the plan itself closed is deferred to merge (step 10), so there is no extra action here.
+   - `/av:ship` finalizes a plan-backed change inside its own pipeline (its Step 9b), before its commit, so the finalized `plan.md` rides the ship commit onto the branch and reaches the target branch in the same merge as the code. Finalizing is one write, not two: the plan's status lives in `plan.md` and nowhere else, so once it is set there is nothing left to close later. Do not assume it happened — on a plan-backed run check with `av plan status --plan <name>`; if it does not read `completed`, run `av plan close --plan <name>` (exactly `status completed`) and get that one-line `plan.md` change onto the PR branch before the PR merges, so the finalized plan still lands in the same merge as the code. Recording which PR the plan produced is a file edit if you want it at all — the CLI stores no PR linkage and there is no `--linked-pr` flag.
 
 8. **Review/fix/reply PR**
    - Activate:
@@ -212,7 +212,7 @@ tests, code-review blockers, branch protections, or security policy.
     - Merge via GitHub using repository convention and branch protection. Prefer `gh pr merge --auto` when required checks are still pending; otherwise use the repo's allowed merge method.
     - Never force push. Never direct-push to protected target branches.
     - After merge, watch target-branch CI/deploy workflows for the merge commit.
-    - On merge success, close the plan: match the merged PR to its plan (the PR link recorded in `plan.md`, or plan branch == PR head branch) and run `av plan close --plan <name>` — `close` takes no positional id and marks the plan completed in its files. Optionally append a completion comment to a linked issue per the shared reference's "Delivery finalization" section. A resolve/match miss means already closed or no plan — skip silently. Never delete plan files.
+    - On merge success, the plan needs no closing step: step 7 already put `status: completed` into `plan.md`, and that file merged with the code. Marking it completed hid it from nothing, so there is nothing to reconcile. Two optional follow-ups: `av plan archive --plan <name>` moves the finished plan out of `av plan list` (it refuses unless the plan reads `completed` or `cancelled`, or you pass `--force`), and a completion comment can be **appended** to a linked issue under the marker rules in step 4. `av plan list` prints plan directory names, status, and phase counts — no branch or PR data — so match on the plan directory name, or on the branch name where the directory echoes it. No match means no plan; skip silently. Never delete plan files.
     - If CI fails with a deterministic repo-fixable error:
       1. Inspect the failed run/job logs with `gh run view`.
       2. Create a follow-up fix branch/worktree from the target branch.
@@ -275,7 +275,9 @@ stopped at a blocker fills the fields it reached and marks the rest
       its merge target, or these gates
 - [ ] Every `av plan` invocation used a real subcommand and flag — the surface
       is `use show list resolve update check uncheck status close phase search
-      reindex archive cleanup`, and `update` takes `<phase> <status>`
+      reindex archive cleanup`, `update` takes `<phase> <status>`, and
+      `--plan <name>` exists only on `update check uncheck status close phase
+      archive`
 
 ## Workflow position
 
