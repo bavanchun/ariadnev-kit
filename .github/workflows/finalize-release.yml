@@ -41,14 +41,6 @@ jobs:
     outputs:
       finalization_attestation: ${{ steps.finalize.outputs.finalization_attestation }}
     steps:
-      # Dispatched on the tag, so this is the tag's tree; the script below
-      # asserts that the tag resolves to `source_sha` before anything is
-      # published. Only `packages/cli/scripts/require-ci-verdict.mjs` is read
-      # from it.
-      - name: Checkout the tag
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
       - name: Finalize held draft release
         id: finalize
         env:
@@ -108,13 +100,17 @@ jobs:
           // instead, which is the outcome the setting only predicts.
           const candidateRun = api(`repos/${repo}/actions/runs/${runId}`);
           ok(candidateRun.path === ".github/workflows/release.yml" && candidateRun.event === "push" && candidateRun.head_sha === sha && String(candidateRun.run_attempt) === attempt && candidateRun.status === "completed" && candidateRun.conclusion === "success", "candidate run drift");
-          // The candidate build already waited for this verdict before building;
-          // asserting it again here is what makes "refuse to cut on red" hold at
-          // the moment of publication, not only at the moment of building. A
-          // re-run of CI after the candidate was built cannot turn it green
-          // retroactively, because the newest run per name is what is read.
-          const ciVerdict = spawnSync(process.execPath, ["packages/cli/scripts/require-ci-verdict.mjs", "--repo", repo, "--sha", sha], { encoding: "utf8" });
-          ok(ciVerdict.status === 0, `CI verdict refused: ${String(ciVerdict.stderr).trim()}`);
+          // The candidate build waited for CI's verdict on this SHA before it
+          // built (packages/cli/scripts/require-ci-verdict.mjs); asserting it
+          // again here is what makes "refuse to cut on red" hold at the moment
+          // of publication, not only at the moment of building. Newest run per
+          // name, the way a required status check is evaluated, so a re-run
+          // cannot turn an earlier red green and a later red is not ignored.
+          const ciCheck = "Lint · Build · Test";
+          const ciRuns = (api(`repos/${repo}/commits/${sha}/check-runs?check_name=${encodeURIComponent(ciCheck)}&per_page=100`).check_runs ?? [])
+            .filter((run) => run.name === ciCheck && run.head_sha === sha)
+            .sort((a, b) => String(b.started_at ?? "").localeCompare(String(a.started_at ?? "")));
+          ok(ciRuns[0]?.status === "completed" && ciRuns[0]?.conclusion === "success", `CI verdict refused: "${ciCheck}" on ${sha} is ${ciRuns[0] ? `${ciRuns[0].status}/${ciRuns[0].conclusion}` : "absent"}`);
           const artifact = api(`repos/${repo}/actions/artifacts/${artifactId}`);
           ok(String(artifact.id) === artifactId && artifact.name === artifactName && artifact.digest === artifactDigest && !artifact.expired && String(artifact.workflow_run?.id) === runId && artifact.workflow_run?.head_sha === sha, "artifact envelope drift");
           ok(artifact.size_in_bytes > 0 && artifact.size_in_bytes <= 536870912 && !Number.isNaN(Date.parse(artifact.created_at)) && Date.parse(artifact.expires_at) > Date.now(), "artifact bounds drift");

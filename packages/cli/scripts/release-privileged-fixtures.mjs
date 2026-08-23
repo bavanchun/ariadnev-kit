@@ -70,6 +70,7 @@ export function baseState(candidate) {
   return {
     requests: [], mutations: [], nextAssetId: 100, immutable: { enabled: true },
     run: { id: 99, path: ".github/workflows/release.yml", event: "push", head_sha: SHA, run_attempt: 2, status: "completed", conclusion: "success" },
+    checkRuns: { check_runs: [{ name: "Lint · Build · Test", head_sha: SHA, status: "completed", conclusion: "success", started_at: "2026-08-08T00:30:00Z", html_url: "https://example.invalid/ci" }] },
     artifact: { id: 7, name: ARTIFACT_NAME, digest: candidate.zipDigest, size_in_bytes: candidate.zip.length, expired: false,
       created_at: envelope.createdAt, expires_at: envelope.expiresAt, workflow_run: { id: 99, head_sha: SHA } },
     artifactHistory: [], artifactZip: candidate.zip.toString("base64"), sources: Object.fromEntries(Object.entries(candidate.source).map(([key, value]) => [key, value.toString("base64")])),
