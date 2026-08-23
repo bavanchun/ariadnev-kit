@@ -270,18 +270,19 @@ describe("runValidate", () => {
     expect(filtered.findings.some((f) => f.skill === "bar" && f.kind === "cross-shape")).toBe(false);
   });
 
-  it("flags an unprefixed cross-skill link as a warning even though the target exists", () => {
-    // Existence alone calls this fine. It breaks the moment installed
-    // directories carry the av- prefix, which is the whole reason shape is a
-    // separate rule.
+  it("fails an unprefixed cross-skill link even though the target exists in the kit", () => {
+    // Existence in the kit calls this fine, and it is not: installed directories
+    // carry the av- prefix, so this path resolves in the checkout the author is
+    // looking at and nowhere the reader will ever be. That gap is the whole
+    // reason shape is a rule separate from existence.
     writeSkillNamed(tmp, "bar", "See `../baz/references/thing.md`.\n");
     writeSkillNamed(tmp, "baz", "See references/thing.md.\n", { "thing.md": "# Thing\n" });
 
     const result = runValidate({ kitRoot: tmp });
     expect(result.findings).toContainEqual(
-      expect.objectContaining({ skill: "bar", kind: "cross-shape", level: "warn" }),
+      expect.objectContaining({ skill: "bar", kind: "cross-shape", level: "error" }),
     );
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
   });
 
   it("fails on a cross-skill link to a file that does not exist", () => {

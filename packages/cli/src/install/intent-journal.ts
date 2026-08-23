@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { atomicWrite } from "./fs-atomic.js";
 import { toPortablePath } from "./install-receipt.js";
 import type { InstallOp } from "./install-types.js";
+import type { HealRemoval } from "./install-heal.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 
 export const JOURNAL_SCHEMA_VERSION = 1;
@@ -36,6 +37,17 @@ export interface InstallJournal {
   timestamp: string;
   scope: "project" | "global";
   providers: JournalProvider[];
+  /**
+   * Files a heal is about to delete, written before the receipt and cleared
+   * after the deletions.
+   *
+   * Between the receipt write and the last unlink, the receipt no longer
+   * mentions these files and they are still on disk — the orphan state, reached
+   * by being killed instead of by skipping the heal. This is what the next
+   * install reads to finish the job. Absent in a journal from a run that healed
+   * nothing.
+   */
+  healRemovals?: HealRemoval[];
 }
 
 export function journalPath(baseRoot: string): string {
