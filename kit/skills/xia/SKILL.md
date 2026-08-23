@@ -139,8 +139,8 @@ Unless `--auto` or `--fast` was passed, get approval before continuing.
 ### 5. Plan
 
 `--compare` stops here: write the comparison report Output format defines and
-skip the delegation below. Under `--fast` its Head-to-Head rests on the phase-2
-map alone, since phase 3 was skipped; say so in the report.
+skip the delegation below. Under `--fast` its Head-to-Head rests on the recon
+and map phases alone, since phase 3 was skipped; say so in the report.
 
 For `--copy`, `--improve`, and `--port`, delegate to `/av:plan` with:
 - source manifest

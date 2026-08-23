@@ -240,5 +240,5 @@ capture, resume, and arbiter review, and is the right skill for a multi-job
 graph or parallel worktrees; this one is the single-job front door over it.
 `av:handoff` owns capture and redaction. `av:advise` (user-invoked) or
 `kongming` picks *which* agent to use — this skill dispatches the one already
-chosen. `av:watzup` owns human-facing status from branches, CI, repository
-history, and team state; never route that here.
+chosen. `av:watzup` owns human-facing status from branches, worktrees,
+unfinished plans, and roadmap docs; never route that here.
