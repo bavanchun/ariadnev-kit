@@ -52,7 +52,9 @@ and all of the service's API documentation), write a plan covering:
 - Plan error handling strategies
 
 **Input/output design**
-- Define input validation models (Pydantic for Python, Zod for TypeScript)
+- Define input validation from the current SDK contract: typed parameters or
+  Pydantic models for Python; a Standard Schema-compatible validator such as
+  Zod v4 for TypeScript
 - Design consistent response formats (JSON or Markdown) and configurable levels of detail (detailed or concise)
 - Plan for large-scale usage (thousands of users/resources)
 - Implement character limits and truncation strategies (e.g. a 25,000-character `CHARACTER_LIMIT`)

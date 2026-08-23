@@ -7,12 +7,12 @@ Standard patterns for spawning and using subagents in cook workflows.
 | Phase | Subagent | Requirement |
 |-------|----------|-------------|
 | Research | `researcher` | Optional in fast/code |
-| Scout | `av:scout` | Optional in code |
+| Scout | `scout` subagent or `av:scout` skill | Optional in code |
 | Plan | `planner` | Optional in code |
 | UI Work | `ui-ux-designer` | If frontend work |
-| Testing | `tester`, `debugger` | **MUST** spawn |
+| Testing | `tester`; `debugger` only after failure | **MUST** spawn tester |
 | Review | `code-reviewer` | **MUST** spawn |
-| Finalize | `av:pm` (skill activation); conditional `docs-manager`; `git-manager` | Project sync and docs-impact decision are mandatory |
+| Finalize | `av:pm` (skill activation); conditional `docs-manager`; authorized `git-manager` | Project sync and docs-impact decision are mandatory |
 
 ## Delegation Capability Pattern
 ```

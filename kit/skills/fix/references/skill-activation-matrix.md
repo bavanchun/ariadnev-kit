@@ -48,8 +48,8 @@ Skip progress orchestration for Quick workflow (< 3 steps).
 | Verification workers | Verify implementation: typecheck, lint, build, test (Step 5), only when delegation is explicitly requested/permitted |
 | `researcher` | External docs needed, latest best practices (Deep only) |
 | `planner` | Complex fix needs breakdown, multiple phases (Deep only) |
-| `tester` | After implementation, verify fix works (Step 5) |
-| `av:code-review` | After fix, verify quality and security (Step 5) |
+| `tester` | After implementation, when delegated verification is permitted (Step 5) |
+| `code-reviewer` | After fix, verify quality and security when delegation is permitted (Step 5) |
 | `git-manager` | After approval, commit changes (Step 6) |
 | `docs-manager` | API/behavior changes need doc updates (Step 6) |
 | `fullstack-developer` | Parallel independent issues (each gets own agent) |
@@ -70,7 +70,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 
 | Workflow | Skills Activated |
 |----------|------------------|
-| Quick | opening intent frame, `av:scout` (minimal), `av:debug`, `av:sequential-thinking`, `av:code-review`, `av:pm`, `run_shell` verification |
+| Quick | opening intent frame, `av:scout` (minimal), `av:debug`, `av:sequential-thinking`, independent review, `av:pm`, direct verification commands |
 | Standard | opening intent frame + Quick tools, optional live task management, `av:problem-solving` (auto), optional post-diagnosis `av:brainstorm`, optional delegated tester/Explore when permitted |
 | Deep | opening intent frame + all above, post-diagnosis `av:brainstorm`, `av:context-engineering`, `researcher`, `planner` |
 | Parallel | Per-issue plan trees + `av:pm` + delegated agents + live coordination when available |

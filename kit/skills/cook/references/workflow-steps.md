@@ -215,15 +215,14 @@ When ariadnev CLI is available, run `av plan --help`, then run the selected
 status subcommand with `--help` before changing plan state. Live help owns the
 syntax and effects; do not copy an argument schema into this workflow.
 
-**Fallback:** If `av` is not available, edit plan.md directly —
-only change the Status column cell, preserve table structure.
-   - Sweep all `phase-XX-*.md` files in the plan directory.
-   - Mark every completed item `[ ] → [x]` based on completed tasks (including earlier phases finished before current phase).
-   - Update `plan.md` status/progress (`pending`/`in-progress`/`completed`) from actual checkbox state.
-   - Return unresolved mappings if any completed task cannot be matched to a phase file.
+**Fallback:** If `av` is not available, do not guess at its state-transition
+semantics or hand-edit plan status. Report the completed work and unresolved
+sync-back mappings so the installed project-management workflow can reconcile
+the plan files.
 4. After sync-back confirmation, reflect completion in the live task-management surface when available.
 5. Onboarding check (API keys, env vars)
-6. **MUST** spawn git subagent: `delegate_agent capability(subagent_type="git-manager", prompt="Stage and commit changes", description="Commit")`
+6. Ask whether the user wants a commit. On approval, spawn the git subagent:
+   `delegate_agent capability(subagent_type="git-manager", prompt="Stage and commit changes", description="Commit")`.
 
 **CRITICAL:** Step 6 is incomplete without project-management sync-back, an
 explicit docs-impact decision, and the configured git approval flow.
@@ -231,7 +230,7 @@ explicit docs-impact decision, and the configured git approval flow.
 **Auto mode:** Continue to next phase automatically, start from **Step 3**.
 **Others:** Ask user before next phase
 
-**Output:** `✓ Step 6: Finalized - 3 subagents invoked - Full-plan sync-back completed - Committed`
+**Output:** `✓ Step 6: Finalized - sync-back <status> - docs <status> - commit <sha | declined>`
 
 ## Mode-Specific Flow Summary
 
@@ -251,10 +250,11 @@ code:        0 → skip → skip → 3 → [R] → 4 → [R] → 5(user) → 6
 ## Critical Rules
 
 - Never skip steps without mode justification
-- **MANDATORY DELEGATION:** Steps 4, 5, 6 MUST delegate via delegate_agent capability / skill activation. DO NOT implement directly.
+- **MANDATORY DELEGATION:** Steps 4 and 5 MUST delegate via delegate_agent;
+  Step 6 MUST activate `av:pm` and delegates git only after commit approval.
   - Step 4: `tester` (and `debugger` if failures)
   - Step 5: `code-reviewer`
-  - Step 6: `av:pm`, conditional `docs-manager`, `git-manager`
+   - Step 6: `av:pm`, conditional `docs-manager`, authorized `git-manager`
 - Discover the live task-management surface before using runtime tracking.
 - If available, mirror unchecked plan items and keep their status current.
 - If unavailable, update the active plan directly; plan files remain authoritative.

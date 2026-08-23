@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T08:37:06.055Z",
+  "generatedAt": "2026-08-23T13:26:09.185Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:4d4e0d7e707a215e2093e58c25896858557810aa8e3af61b3718ef88056bdd92",
+    "corpusDigest": "sha256:1f3f27015811870bc5773a18f23cf06078220a2efeadb6fa5adaa6c95ee7623e",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -37,7 +37,7 @@
       "name": "local lexical metadata index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.6353336772784114,
+        "retrievalQuality": 0.634580752243393,
         "taskSuccessRate": 0.6153846153846154,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -86,7 +86,7 @@
           },
           {
             "id": "direct.release-gate",
-            "retrievalQuality": 0.9359826917490579,
+            "retrievalQuality": 0.9261946662938199,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
@@ -94,8 +94,8 @@
               "kit/skills/git/SKILL.md",
               "kit/skills/code-review/SKILL.md",
               "kit/skills/fix/SKILL.md",
-              "evals/scenarios/golden/release-to-pr.json",
-              "kit/skills/cook/SKILL.md"
+              "kit/skills/cook/SKILL.md",
+              "evals/scenarios/golden/release-to-pr.json"
             ]
           },
           {
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 21.566958,
-            "p95Ms": 63.795667,
-            "maxMs": 220.392125
+            "p50Ms": 2.276625,
+            "p95Ms": 2.541791,
+            "maxMs": 2.933958
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.957375,
-            "p95Ms": 7.814792,
-            "maxMs": 2376.981458
+            "p50Ms": 0.19575,
+            "p95Ms": 0.257125,
+            "maxMs": 1.785125
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.801541,
-            "p95Ms": 7.665125,
-            "maxMs": 970.704042
+            "p50Ms": 0.177667,
+            "p95Ms": 0.2355,
+            "maxMs": 0.594291
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 176160
+        "indexBytes": 176205
       },
       "externalDependencies": []
     },
@@ -454,37 +454,37 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 12.527125,
-            "p95Ms": 38.70075,
-            "maxMs": 117.80975
+            "p50Ms": 3.013333,
+            "p95Ms": 3.381208,
+            "maxMs": 3.7695
           },
           "query": {
             "samples": 390,
-            "p50Ms": 2.419375,
-            "p95Ms": 5.280791,
-            "maxMs": 39.75175
+            "p50Ms": 0.955208,
+            "p95Ms": 1.072,
+            "maxMs": 1.653083
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 1.597417,
-            "p95Ms": 3.866334,
-            "maxMs": 14.513333
+            "p50Ms": 0.924583,
+            "p95Ms": 1.105917,
+            "maxMs": 4.639125
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 178464,
+        "indexBytes": 178509,
         "edges": 24
       },
       "externalDependencies": []
     }
   },
   "comparison": {
-    "retrievalQualityGainPoints": 20.7013,
+    "retrievalQualityGainPoints": 20.7766,
     "taskSuccessGainPoints": 30.7692,
     "meanContextTokenDelta": 0,
     "candidateIndexByteDelta": 2304,
