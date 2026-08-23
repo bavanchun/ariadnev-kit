@@ -1,6 +1,6 @@
 ---
 name: av:use-mcp
-description: "Discover and execute MCP server tools through runtime-native capabilities or deterministic direct scripts. Use for MCP integrations, controlled tool execution, capability discovery, and persistent tool catalogs."
+description: "Discover and execute MCP tools through runtime-native capabilities or direct scripts. Use for MCP integrations, controlled execution, capability discovery, and tool catalogs."
 user-invocable: true
 when_to_use: "Invoke for MCP tool discovery or controlled tool execution."
 category: dev-tools
@@ -75,3 +75,21 @@ argument shape is unknown.
 - [`references/configuration.md`](references/configuration.md) - `.mcp.json` schema, environment lookup, validation
 - [`references/mcp-protocol.md`](references/mcp-protocol.md) - JSON-RPC details, transports, error codes
 - [`references/gemini-cli-integration.md`](references/gemini-cli-integration.md) - retired path compatibility and migration note
+
+## Output format
+
+Return the selected server and tool, validated argument shape, execution result,
+and any capability or transport limitation. Redact credentials and sensitive
+tool output.
+
+## Quality gates
+
+- Prefer the live runtime catalog and verify tool schemas before invocation.
+- Keep mutations within user-authorized scope and do not copy secrets between runtimes.
+- Close direct-script connections and report partial failures accurately.
+
+## Workflow position
+
+Use to consume an existing MCP capability. Route server implementation to
+`av:mcp-builder`; route authenticated browser-profile setup to the dedicated
+Chrome profile workflow when needed.

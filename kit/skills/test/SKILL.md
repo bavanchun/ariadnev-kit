@@ -107,6 +107,18 @@ Reports        → report-format.md
 
 Use naming pattern from `## Naming` section injected by hooks.
 
+## Output format
+
+Return the exact commands run, pass/fail/skip counts, focused failure evidence,
+coverage only when measured, and any untested scope. Link generated reports or
+screenshots when present.
+
+## Quality gates
+
+- Use the project's own test commands and the narrowest useful scope first.
+- Never hide failures, invent coverage, or weaken assertions to make a run pass.
+- Clean up test data and long-running processes created by the test run.
+
 ## Team Mode
 
 When operating as teammate:
@@ -119,7 +131,7 @@ When operating as teammate:
 Plan files are the durable source of truth when runtime task tracking is absent
 or session-scoped.
 
-## Workflow Position
+## Workflow position
 
 **Typically follows:** `/av:cook` (test after implementation), `/av:fix` (test after bug fix)
 **Typically precedes:** `the installed code-review skill` (review after tests pass)

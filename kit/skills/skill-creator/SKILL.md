@@ -141,3 +141,21 @@ Full guide, including structure template and error-handling patterns: `reference
 - [Agent Skills Docs](https://docs.claude.com/en/docs/claude-code/skills.md)
 - [Best Practices](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices.md)
 - [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces.md)
+
+## Output format
+
+Return the skill path, trigger description, resource inventory, validation and
+eval results, and packaging status. Call out unresolved routing ambiguity or
+runtime-specific assumptions.
+
+## Quality gates
+
+- Keep the core instructions concise and move optional detail into referenced resources.
+- Validate metadata, links, scripts, trigger scenarios, and security boundaries.
+- Test both positive activation and nearby negative-routing cases before packaging.
+
+## Workflow position
+
+Use after the skill's intent and acceptance criteria are known. Follow creation
+with focused evals and `av:test`. No installation step is required (`none`)
+unless the user separately asks for one.

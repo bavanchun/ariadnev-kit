@@ -42,3 +42,21 @@ When a user provides a file or pattern argument:
 4. Output findings using the format specified in the guidelines
 
 If no files specified, ask the user which files to review.
+
+## Output format
+
+Return terse `file:line` findings grouped by severity or guideline, followed by
+a short scope and limitations note. Include no finding when the inspected code
+already complies.
+
+## Quality gates
+
+- Fetch the current source guidelines and distinguish them from project-specific conventions.
+- Inspect the cited line and surrounding code before reporting a violation.
+- Keep the review read-only unless the user separately asks for implementation.
+
+## Workflow position
+
+Use after UI code exists and before final frontend review or release. Route
+implementation work to `av:frontend-development` and accessibility execution
+to `av:web-testing`.

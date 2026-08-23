@@ -1,6 +1,6 @@
 ---
 name: av:security-scan
-description: "Scan codebase for security vulnerabilities, hardcoded secrets, dependency issues, and OWASP patterns. Use when asked to 'security scan', 'check for secrets', 'audit security', or before major releases."
+description: "Scan codebases for vulnerabilities, hardcoded secrets, dependency issues, and OWASP patterns. Use for security scans, secret checks, security audits, or release readiness."
 user-invocable: true
 when_to_use: "Invoke for secrets, dependency, and OWASP-style scans."
 category: utilities
@@ -144,3 +144,21 @@ This skill does NOT handle: Penetration testing, runtime security analysis, infr
 - NEVER execute secrets or credentials found during scanning
 - NEVER modify code automatically — only report findings with fix suggestions
 - If a real credential is found, recommend immediate rotation
+
+## Output format
+
+Return a redacted Markdown report with scope, checks run, severity counts,
+evidence-linked findings, false positives, and prioritized remediation. State
+which checks were unavailable or skipped.
+
+## Quality gates
+
+- Never expose a complete credential or claim a finding without inspecting its context.
+- Distinguish confirmed vulnerabilities from suspicious patterns and tool failures.
+- Record the scanned scope, exclusions, commands, and dependency-audit status.
+
+## Workflow position
+
+Use after the scan scope is known and before release or remediation planning.
+Route broader threat modeling to `av:security`; this skill reports findings and
+does not modify code.

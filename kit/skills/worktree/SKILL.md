@@ -136,7 +136,19 @@ When using `--json`, the command surfaces these high-signal fields:
 - `prune --dry-run` is the safe first pass when auditing stale metadata
 - Env templates (`.env*.example`) auto-copied with `.example` suffix removed
 
-## Workflow Position
+## Output format
+
+Return the absolute worktree path, branch, base branch and source, repository
+type, dirty-state warning, and commands performed. For cleanup, list the exact
+target and whether removal completed.
+
+## Quality gates
+
+- Resolve repository, branch, and worktree paths before creating or removing anything.
+- Never remove a dirty or actively used worktree without explicit authority.
+- Verify the resulting branch/path state and avoid duplicate dependency processes.
+
+## Workflow position
 
 **Typically precedes:** `/av:cook` (implement in worktree), `/av:fix` (fix in worktree)
 **Setup skill** — creates isolated environment before implementation.

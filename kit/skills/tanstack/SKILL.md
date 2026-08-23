@@ -1,6 +1,6 @@
 ---
 name: av:tanstack
-description: "Build with TanStack Start (full-stack React framework), TanStack Form (headless form management), and TanStack AI (AI streaming/chat). Use when creating TanStack projects, routes, server functions, forms, validation, or AI chat features."
+description: "Build with TanStack Start, Form, Router, and AI. Use for TanStack projects, routes, server functions, type-safe forms, validation, streaming, or chat features."
 user-invocable: true
 when_to_use: "Invoke for TanStack Start, Form, Router, or AI features."
 category: frameworks
@@ -147,3 +147,20 @@ This skill handles TanStack Start/Form/AI development. Does NOT handle: TanStack
 - [TanStack Start Docs](https://tanstack.com/start/latest/docs)
 - [TanStack Form Docs](https://tanstack.com/form/latest/docs)
 - [TanStack AI Docs](https://tanstack.com/ai/latest/docs)
+
+## Output format
+
+Return the changed project paths, relevant routes or server functions, commands
+run, and validation results. Note experimental APIs and version assumptions.
+
+## Quality gates
+
+- Check the installed TanStack package versions and current official APIs before coding.
+- Preserve generated route-tree ownership and framework-specific server/client boundaries.
+- Run focused type, build, and behavior checks for the changed feature.
+
+## Workflow position
+
+Use as the framework-specific implementation layer after requirements are
+clear. Pair with `av:frontend-development` or `av:backend-development` as
+needed, then hand off to `av:test` and code review.

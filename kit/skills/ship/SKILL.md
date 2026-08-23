@@ -143,7 +143,7 @@ User says `/av:ship` → run full pipeline → output PR URL.
 User says `/av:ship beta` → ship to dev branch with lighter pipeline.
 User says `/av:ship official` → ship to main with full docs + journal.
 
-## Output Format
+## Output format
 
 ```
 ✓ Pre-flight: branch feature/foo, 5 commits, +200/-50 lines (mode: official)
@@ -160,6 +160,12 @@ User says `/av:ship official` → ship to main with full docs + journal.
 ✓ PR: https://github.com/org/repo/pull/123 (linked: #42, #43)
 ```
 
+## Quality gates
+
+- Confirm the target branch, repository state, required checks, and release mode before mutation.
+- Do not report tests, reviews, commits, pushes, publications, or merges that did not occur.
+- Stop on failed required checks, unresolved critical review findings, or missing user authority.
+
 ## Important Rules
 
 - **Never skip tests** (unless `--skip-tests`). If tests fail, stop.
@@ -170,7 +176,7 @@ User says `/av:ship official` → ship to main with full docs + journal.
 - **Subagent delegation.** Use `tester` for tests, `code-reviewer` for review, `journal-writer` for journal, `docs-manager` for docs. Don't inline.
 - **Background tasks.** Journal and docs run in background to not block the pipeline.
 
-## Workflow Position
+## Workflow position
 
 **Typically follows:** `/av:code-review` (ship after review passes)
 **Typically precedes:** `/av:journal` (document after shipping)
