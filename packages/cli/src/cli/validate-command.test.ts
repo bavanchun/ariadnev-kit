@@ -460,3 +460,129 @@ describe("pending-port allowances", () => {
     expect(pendingPortNames(join(kitRoot, "does-not-exist"))).toEqual([]);
   });
 });
+
+/**
+ * The av-invocation gate. The 105 skills arrived from the upstream kit with a
+ * bare binary rename, and three human passes found prose (and one script) citing
+ * commands this CLI never registered. The fixtures below seed exactly the
+ * phantoms those passes found.
+ */
+describe("av-invocation findings", () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "ariadnev-invocation-"));
+  });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  function seed(
+    body: string,
+    extras: { refs?: Record<string, string>; scripts?: Record<string, string>; exempt?: boolean } = {},
+  ): void {
+    const dir = join(tmp, "skills", "foo");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "SKILL.md"), GOOD_FRONTMATTER.replace("# Foo\n", `# Foo\n\n${body}\n`));
+    for (const [name, content] of Object.entries(extras.refs ?? {})) {
+      mkdirSync(join(dir, "references"), { recursive: true });
+      writeFileSync(join(dir, "references", name), content);
+    }
+    for (const [name, content] of Object.entries(extras.scripts ?? {})) {
+      mkdirSync(join(dir, "scripts"), { recursive: true });
+      writeFileSync(join(dir, "scripts", name), content);
+    }
+    writeExemptList(tmp, extras.exempt ? ["foo"] : []);
+  }
+
+  const invocations = (strict = false) =>
+    runValidate({ kitRoot: tmp, strict }).findings.filter((f) => f.kind === "av-invocation");
+
+  it("errors on a phantom subcommand in SKILL.md, at the file's own line number", () => {
+    seed("Scaffold it with `av plan create`.");
+    const found = invocations();
+    expect(found).toHaveLength(1);
+    expect(found[0].level ?? "error").toBe("error");
+    expect(found[0].skill).toBe("foo");
+    expect(found[0].message).toContain("foo/SKILL.md:");
+    expect(found[0].message).toContain("av plan create");
+    // The line has to point into the file, frontmatter included — a body-relative
+    // number sends the reader fourteen lines short of the defect.
+    const line = Number(/SKILL\.md:(\d+)/.exec(found[0].message)![1]);
+    expect(readFileSync(join(tmp, "skills", "foo", "SKILL.md"), "utf8").split("\n")[line - 1]).toContain(
+      "av plan create",
+    );
+  });
+
+  it("warns, not errors, on a phantom flag", () => {
+    seed("Link it with `av plan update --linked-pr 42`.");
+    expect(invocations()).toMatchObject([{ level: "warn", skill: "foo" }]);
+    expect(invocations()[0].message).toContain("--linked-pr");
+  });
+
+  it("errors on a phantom the skill's script spawns at runtime", () => {
+    seed("Nothing here.", {
+      scripts: { "open.cjs": "const child = spawn(akBin(), ['config', 'start', '--port']);\n" },
+    });
+    expect(invocations()).toMatchObject([
+      { level: "error", skill: "foo", message: expect.stringContaining("foo/scripts/open.cjs:1") },
+    ]);
+  });
+
+  it("reads reference files too", () => {
+    seed("See [notes](references/notes.md).", { refs: { "notes.md": "Run `av plan add-phase 2`.\n" } });
+    expect(invocations()).toMatchObject([
+      { level: "error", message: expect.stringContaining("foo/references/notes.md:1") },
+    ]);
+  });
+
+  /**
+   * Exempt skills degrade to warnings unconditionally — `--strict` does not
+   * promote them the way it promotes an orphan. `plans-kanban` documents a
+   * dashboard the upstream kit had and this CLI does not; whether that skill should
+   * exist at all is a content decision, and blocking every unrelated change
+   * until someone makes it is how a gate gets switched off.
+   */
+  it("holds an exempt skill's findings at warn, even under --strict", () => {
+    seed("Start it with `av config start --port 3456`.", { exempt: true });
+    expect(invocations()).toMatchObject([{ level: "warn" }]);
+    expect(invocations(true)).toMatchObject([{ level: "warn" }]);
+    expect(runValidate({ kitRoot: tmp, strict: true }).ok).toBe(true);
+  });
+
+  it("says nothing about prose that names a command's absence", () => {
+    seed(
+      [
+        "There is no `av plan create` command.",
+        "Do not invent an `av plan create` or",
+        "`av plan translate` command; neither exists.",
+        "`av plan` stores no `--linked-pr` flag.",
+        "`av config start` does not exist.",
+      ].join("\n\n"),
+    );
+    expect(invocations()).toEqual([]);
+  });
+
+  it("says nothing about the registered surface", () => {
+    seed("Run `av plan use <name>`, then `av plan show --json`, then `av validate --strict`.");
+    expect(invocations()).toEqual([]);
+  });
+
+  /**
+   * The three files that already got this right are the ones a careless matcher
+   * punishes hardest: each spells out, in backticks, a command that does not
+   * exist. A finding here means the negation rules regressed.
+   */
+  it("leaves the kit's own correct denials alone", () => {
+    const clean = ["plan-i18n/SKILL.md", "plan/SKILL.md", "cook/references/plan-state-files-first.md"];
+    const found = runValidate({ kitRoot: resolveKitRoot(process.cwd()) })
+      .findings.filter((f) => f.kind === "av-invocation")
+      .map((f) => f.message);
+    for (const file of clean) expect(found.filter((m) => m.startsWith(file))).toEqual([]);
+  });
+
+  it("keeps the real kit clean under --strict", () => {
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
+    const errors = result.findings.filter((f) => f.kind === "av-invocation" && (f.level ?? "error") === "error");
+    expect(errors, "a new phantom invocation landed in a skill that is not exempt").toEqual([]);
+  });
+});
