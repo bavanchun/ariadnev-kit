@@ -3,12 +3,14 @@
 // runtime failure — `plans-kanban/scripts/open-dashboard.cjs` spawns
 // `av config start`, the upstream kit's dashboard, which has no counterpart here.
 //
-// This reads source text, not an AST, so it sees exactly three shapes: an argv
-// array handed to a process spawner, an argv array handed to a helper named for
-// the binary, and a command string that begins with the binary. Anything
-// assembled at runtime — `spawnSync(bin, args)` where `args` arrived as a
-// parameter — is invisible, and saying so is more useful than pretending
-// otherwise.
+// This reads source text, not an AST, so it sees exactly four shapes: an argv
+// array following the binary (`spawn(bin, [...])`), an argv array whose first
+// element *is* the binary (Python's `subprocess.run([...])`), an argv array
+// handed to a helper named for the binary, and a command line handed to a shell
+// runner. Comments and docstrings are blanked first, so an example written for a
+// reader is never read as a call. Anything assembled at runtime —
+// `spawnSync(bin, args)` where `args` arrived as a parameter — is invisible, and
+// saying so is more useful than pretending otherwise.
 
 import {
   checkInvocation,
@@ -18,8 +20,41 @@ import {
   type CommandSurface,
 } from "./av-invocation-lint.js";
 import { lineNumbers } from "./av-invocation-context.js";
+import { maskComments } from "./script-comment-mask.js";
 
-const SPAWNERS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
+/** Callees whose argv array follows the binary: `spawn(bin, [ … ])`. */
+const SPAWNERS = new Set([
+  "spawn",
+  "spawnSync",
+  "execFile",
+  "execFileSync",
+  "fork",
+  // execa takes the same (file, args) shape and is what newer scripts reach for.
+  "execa",
+  "execaSync",
+  "execaNode",
+]);
+
+/**
+ * Callees whose argv array *starts* with the binary — Python's `subprocess`
+ * family. `.py` was advertised as a supported extension while none of these were
+ * read, so a Python script could spawn anything and the gate stayed quiet.
+ *
+ * The first element must be a binary literal, which is also what keeps
+ * `run(['create', 'ariadnev', 'test-multi'])` — a real line in the worktree
+ * skill's tests — from being read as an invocation.
+ */
+const ARGV_FIRST_SPAWNERS = new Set(["run", "Popen", "call", "check_call", "check_output"]);
+
+/**
+ * Callees that take a whole command line as one string.
+ *
+ * Restricted to these rather than reading any string that starts with the
+ * binary: `throw new Error('av config start failed')` is a message about a
+ * command, not a command, and the unrestricted rule reported it as a runtime
+ * failure.
+ */
+const SHELL_RUNNERS = new Set(["exec", "execSync", "execaCommand", "execaCommandSync"]);
 /**
  * `spawn(<binary>, [ … ])`.
  *
@@ -33,9 +68,12 @@ const SPAWNERS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "for
  */
 const BINARY_POSITION = /'[^'\n]*'|"[^"\n]*"|`[^`\n]*`|[\w$.]+(?:\(\s*\))?/.source;
 const SPAWN_CALL = new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*\\(\\s*(${BINARY_POSITION})\\s*,\\s*\\[([\\s\\S]*?)\\]`, "g");
-/** `runAK([ … ])` — a wrapper that supplies the binary itself. */
-const WRAPPER_CALL = /\b([A-Za-z_$][\w$]*)\s*\(\s*\[([\s\S]*?)\]/g;
-const STRING_LITERAL = /'([^'\\\n]*(?:\\.[^'\\\n]*)*)'|"([^"\\\n]*(?:\\.[^"\\\n]*)*)"|`([^`\\]*(?:\\.[^`\\]*)*)`/g;
+/** An argv array as the first argument: `runAK([ … ])`, a wrapper that supplies
+ *  the binary, and `subprocess.run([ … ])`, whose array leads with it. One
+ *  pattern, two readings, told apart by the callee. */
+const ARGV_FIRST_CALL = /\b(?:[\w$]+\s*\.\s*)?([A-Za-z_$][\w$]*)\s*\(\s*\[([\s\S]*?)\]/g;
+/** `execSync("av config start --no-open")`. */
+const SHELL_RUNNER_CALL = /\b([A-Za-z_$][\w$]*)\s*\(\s*(['"`])([^'"`\n]*)\2/g;
 const QUOTED = /^(['"`])([\s\S]*)\1$/;
 
 const BINARY_NAMES = new Set(["av", "ak", "ariadnev"]); // brand-drift-allow: ported scripts still spawn the upstream name
@@ -97,7 +135,10 @@ export function lintScriptAvInvocations(
   surface: CommandSurface,
   fileName: string,
 ): AvInvocationFinding[] {
-  const lineOf = lineNumbers(text);
+  // Offsets survive masking (comments become spaces, newlines are kept), so a
+  // line number resolved against the masked text still points into the original.
+  const source = maskComments(text, fileName);
+  const lineOf = lineNumbers(source);
   const findings: AvInvocationFinding[] = [];
   const seen = new Set<string>();
 
@@ -113,30 +154,40 @@ export function lintScriptAvInvocations(
   };
 
   SPAWN_CALL.lastIndex = 0;
-  for (let m = SPAWN_CALL.exec(text); m !== null; m = SPAWN_CALL.exec(text)) {
+  for (let m = SPAWN_CALL.exec(source); m !== null; m = SPAWN_CALL.exec(source)) {
     if (SPAWNERS.has(m[1]) && isBinaryExpression(m[2])) report(m.index, literalArgv(m[3]));
   }
 
-  WRAPPER_CALL.lastIndex = 0;
-  for (let m = WRAPPER_CALL.exec(text); m !== null; m = WRAPPER_CALL.exec(text)) {
-    if (isBinaryWrapper(m[1])) report(m.index, literalArgv(m[2]));
+  ARGV_FIRST_CALL.lastIndex = 0;
+  for (let m = ARGV_FIRST_CALL.exec(source); m !== null; m = ARGV_FIRST_CALL.exec(source)) {
+    const argv = literalArgv(m[2]);
+    // A wrapper names the binary in its own name and its array is pure argv.
+    if (isBinaryWrapper(m[1])) {
+      report(m.index, argv);
+      continue;
+    }
+    // `subprocess.run([...])` puts the executable in the array instead, so the
+    // first element has to be the binary before the rest means anything.
+    if (ARGV_FIRST_SPAWNERS.has(m[1]) && argv.length > 0 && isBinaryExpression(JSON.stringify(argv[0]))) {
+      report(m.index, argv.slice(1));
+    }
   }
 
-  STRING_LITERAL.lastIndex = 0;
-  for (let m = STRING_LITERAL.exec(text); m !== null; m = STRING_LITERAL.exec(text)) {
-    const content = (m[1] ?? m[2] ?? m[3] ?? "").trim().replace(WRAPPER_PREFIX, "");
-    const command = COMMAND_STRING.exec(content);
-    // Only a string that *starts* with the binary is a command. A message that
-    // merely mentions it ("av not found; install the ariadnev CLI") is prose,
-    // and so is an argument list that happens to contain the project's name.
+  SHELL_RUNNER_CALL.lastIndex = 0;
+  for (let m = SHELL_RUNNER_CALL.exec(source); m !== null; m = SHELL_RUNNER_CALL.exec(source)) {
+    if (!SHELL_RUNNERS.has(m[1])) continue;
+    const command = COMMAND_STRING.exec(m[3].trim().replace(WRAPPER_PREFIX, ""));
     if (command) report(m.index, shellArgv(command[2]));
   }
 
   if (SHELL_FILE.test(fileName)) {
     let offset = 0;
-    for (const line of text.split("\n")) {
-      for (const segment of line.split("#")[0].split(/[|;&]/)) {
-        const command = COMMAND_STRING.exec(segment.trim().replace(WRAPPER_PREFIX, ""));
+    for (const line of source.split("\n")) {
+      for (const segment of line.split(/[|;&]/)) {
+        // `'av config start'` is still a command line: shell scripts quote one
+        // to protect it from the outer shell, and the quotes are not part of it.
+        const bare = segment.trim().replace(/^['"]/, "").replace(/['"]$/, "");
+        const command = COMMAND_STRING.exec(bare.replace(WRAPPER_PREFIX, ""));
         if (command) report(offset, shellArgv(command[2]));
       }
       offset += line.length + 1;
