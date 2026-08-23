@@ -1,4 +1,5 @@
 import { readdirSync, existsSync, readFileSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadKit, exemptSkillNames } from "../kit/load-kit.js";
@@ -70,6 +71,8 @@ export interface ValidateFinding {
   level?: "warn" | "error";
 }
 
+export const VALIDATE_SCHEMA_VERSION = 1;
+
 export interface ValidateResult {
   ok: boolean;
   findings: ValidateFinding[];
@@ -109,6 +112,8 @@ export interface ValidateOpts {
     * skill. (Dangling was always an error and is unaffected.)
     */
   strict?: boolean;
+  /** Emit the machine envelope instead of the text report. */
+  json?: boolean;
 }
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
@@ -173,6 +178,21 @@ function renderSummary(
 }
 
 /** Validate the kit source. Returns a structured result + rendered summary. */
+/**
+ * The machine form carries `heldFindings` in full, where the text report prints
+ * only the count. The exemption list's whole defence is that its cost stays
+ * countable, and a consumer that can only see the number cannot help shrink it.
+ */
+function envelopeFor(
+  ok: boolean,
+  findings: ValidateFinding[],
+  counts: ValidateResult["counts"],
+  heldFindings: string[],
+  warnings: string[],
+): string {
+  return jsonEnvelope(VALIDATE_SCHEMA_VERSION, "validate.kit", { ok, counts, findings, heldFindings, warnings });
+}
+
 export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const root = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
 
@@ -183,7 +203,16 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     const message = err instanceof Error ? err.message : String(err);
     const findings: ValidateFinding[] = [{ skill: "(kit)", kind: "lint", message }];
     const counts = { skills: 0, agents: 0, hooks: 0 };
-    return { ok: false, findings, counts, heldFindings: [], warnings: [], summary: renderSummary(findings, counts) };
+    return {
+      ok: false,
+      findings,
+      counts,
+      heldFindings: [],
+      warnings: [],
+      summary: opts.json
+        ? envelopeFor(false, findings, counts, [], [])
+        : renderSummary(findings, counts),
+    };
   }
 
   const findings: ValidateFinding[] = [];
@@ -333,6 +362,8 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     counts,
     heldFindings,
     warnings,
-    summary: renderSummary(findings, counts, heldFindings, warnings),
+    summary: opts.json
+      ? envelopeFor(ok, findings, counts, heldFindings, warnings)
+      : renderSummary(findings, counts, heldFindings, warnings),
   };
 }

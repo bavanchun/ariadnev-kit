@@ -2,6 +2,7 @@
 // injectable so the formatter is unit-testable without touching the filesystem.
 
 import { readEvents, historyPath, isDegraded } from "../history/store.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import type { HistoryEvent } from "../history/record.js";
 import { coral, amber, faint, symbols, type StyleOpts } from "../ui/style.js";
 
@@ -47,8 +48,11 @@ export function renderQuery(
   return lines.join("\n");
 }
 
+export const QUERY_SCHEMA_VERSION = 1;
+
 export interface QueryOpts {
   view: QueryView;
+  json?: boolean;
   home: string;
   color?: boolean;
   /** Test seam: supply events directly instead of reading the file. */
@@ -59,5 +63,8 @@ export interface QueryOpts {
 export function runQuery(opts: QueryOpts): string {
   const events = opts.events ?? readEvents(historyPath(opts.home));
   const degraded = opts.degraded ?? isDegraded(opts.home);
+  if (opts.json) {
+    return jsonEnvelope(QUERY_SCHEMA_VERSION, `query.${opts.view}`, { view: opts.view, degraded, events });
+  }
   return renderQuery(opts.view, events, degraded, { color: !!opts.color });
 }

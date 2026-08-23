@@ -16,7 +16,8 @@ export function registerInstallCommands(program: Command, context: CommandRegist
     .description("Install the kit to one or more providers")
     .option("--provider <list>", "comma-separated provider ids", splitProviders)
     .option("--global", "install to ~/ instead of ./", false)
-    .action(async (opts: { provider?: string[]; global?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (opts: { provider?: string[]; global?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       let providers = opts.provider ?? [];
@@ -39,6 +40,7 @@ export function registerInstallCommands(program: Command, context: CommandRegist
         timestamp: nowStamp(),
         applyHookSettings,
         ariadnevVersion: context.version,
+        json: !!opts.json,
       });
       emit(summary);
       if (!global.dryRun) {
@@ -51,7 +53,8 @@ export function registerInstallCommands(program: Command, context: CommandRegist
     .description("Remove a previously installed kit (receipt-based, preserves user-modified files)")
     .option("--provider <list>", "comma-separated provider ids (default: every provider in the receipt)", splitProviders)
     .option("--global", "uninstall from ~/ instead of ./", false)
-    .action((opts: { provider?: string[]; global?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((opts: { provider?: string[]; global?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       const { summary } = runUninstall({
@@ -61,6 +64,7 @@ export function registerInstallCommands(program: Command, context: CommandRegist
         home: global.home,
         cwd: global.cwd,
         timestamp: nowStamp(),
+        json: !!opts.json,
       });
       emit(summary);
       if (!global.dryRun) {

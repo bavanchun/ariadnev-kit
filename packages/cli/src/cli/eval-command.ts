@@ -3,6 +3,7 @@
 // is configured; the judge runner is injected so unit tests never spawn.
 
 import { spawnSync } from "node:child_process";
+import { jsonEnvelope } from "./json-envelope.js";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runValidate } from "./validate-command.js";
@@ -26,6 +27,7 @@ export interface EvalOpts {
   color?: boolean;
   /** Injected judge runner; required to actually run tier-3. */
   deps?: EvalDeps;
+  json?: boolean;
 }
 
 export interface EvalResult {
@@ -60,6 +62,17 @@ export function realEvalDeps(evalCmd: string): EvalDeps {
   };
 }
 
+export const EVAL_SCHEMA_VERSION = 1;
+
+/** One skill's tier-3 outcome. `scores` is absent when the judge could not be read. */
+export interface JudgedSkill {
+  skill: string;
+  status: "scored" | "unscored";
+  reason?: string;
+  overall?: number;
+  scores?: { clarity: number; specificity: number; completeness: number };
+}
+
 export function runEval(opts: EvalOpts): EvalResult {
   const style: StyleOpts = { color: !!opts.color };
   const filter = opts.skill ? [opts.skill] : undefined;
@@ -67,12 +80,22 @@ export function runEval(opts: EvalOpts): EvalResult {
   // Tier 1 — static, always.
   const v = runValidate({ kitRoot: opts.kitRoot, skillFilter: filter });
   const lines = [v.summary];
+  const judged: JudgedSkill[] = [];
   let ok = v.ok;
+
+  // The machine form is built from the same values the lines are, so the two
+  // cannot disagree about a score or about whether the run passed.
+  const envelope = (): string =>
+    jsonEnvelope(EVAL_SCHEMA_VERSION, "eval.score", {
+      ok,
+      tier1: { ok: v.ok, counts: v.counts, findings: v.findings },
+      tier3: opts.evalCmd && opts.deps ? { ran: true, skills: judged } : { ran: false },
+    });
 
   // Tier 3 — opt-in LLM judge.
   if (!opts.evalCmd || !opts.deps) {
     lines.push(faint("  tier-3 skipped — set ARIADNEV_EVAL_CMD to enable the LLM judge", style));
-    return { ok, summary: lines.join("\n") };
+    return { ok, summary: opts.json ? envelope() : lines.join("\n") };
   }
 
   const root = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
@@ -86,20 +109,23 @@ export function runEval(opts: EvalOpts): EvalResult {
       raw = opts.deps.runJudge(buildJudgePrompt(s.name, s.body));
     } catch {
       lines.push(`  ${amber(symbols.warn, style)} ${s.name}: judge error (unscored)`);
+      judged.push({ skill: s.name, status: "unscored", reason: "judge error" });
       continue;
     }
     const parsed = extractJudgeJson(raw);
     if (!parsed.ok) {
       lines.push(`  ${amber(symbols.warn, style)} ${s.name}: unscored (unparseable judge reply)`);
+      judged.push({ skill: s.name, status: "unscored", reason: "unparseable judge reply" });
       continue;
     }
     const o = overall(parsed.scores);
     const bad = flagged(o);
     if (bad) ok = false;
+    judged.push({ skill: s.name, status: "scored", overall: o, scores: parsed.scores });
     const glyph = bad ? coral(symbols.fail, style) : teal(symbols.ok, style);
     lines.push(
       `  ${glyph} ${s.name}: ${o}/10  (clarity ${parsed.scores.clarity}, specificity ${parsed.scores.specificity}, completeness ${parsed.scores.completeness})`,
     );
   }
-  return { ok, summary: lines.join("\n") };
+  return { ok, summary: opts.json ? envelope() : lines.join("\n") };
 }

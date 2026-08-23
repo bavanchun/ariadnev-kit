@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -28,7 +29,10 @@ export interface DoctorHandlerOpts {
   kitRoot?: string;
   /** Branded coloring; false (default) keeps output plain for pipes/tests. */
   color?: boolean;
+  json?: boolean;
 }
+
+export const DOCTOR_SCHEMA_VERSION = 1;
 
 export interface DoctorHandlerResult {
   status: DoctorStatus;
@@ -165,6 +169,13 @@ export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
   const allFindings = kitFinding ? [...findings, kitFinding] : findings;
   const status = deriveStatus(receipt, allFindings);
   const exitCode: 0 | 1 | 2 = status === "healthy" ? 0 : status === "degraded" ? 1 : 2;
+  if (opts.json) {
+    // `exitCode` is in the payload as well as the process status because
+    // doctor's 0/1/2 mapping predates the shared exit table and is its own
+    // contract — a machine reader should not have to know that.
+    const data = { status, exitCode, findings: allFindings, ...(opts.fix ? { fixed: fixLines } : {}) };
+    return { status, exitCode, summary: jsonEnvelope(DOCTOR_SCHEMA_VERSION, "doctor.diagnose", data) };
+  }
   const summary = [renderDoctorSummary(status, allFindings, { color: !!opts.color }), ...fixLines].join("\n");
   return { status, exitCode, summary };
 }
