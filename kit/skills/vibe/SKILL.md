@@ -285,8 +285,8 @@ stopped at a blocker fills the fields it reached and marks the rest
 entry point, not a step inside another workflow.
 **Typically precedes:** nothing — it terminates in a reviewed PR (a merged,
 CI-green one under `--ship` or `--both`), or in a named blocker.
-**Related:** `av:issue-to-plan` takes the same input but stops at a reviewed
-plan, which is the right choice when the plan needs human approval before
+**Related:** `av:issue-to-plan` takes the same input but stops at a validated,
+red-teamed plan, which is the right choice when the plan needs human approval before
 implementation; this skill runs straight through. Internally it orchestrates
 `av:worktree`, `av:plan`, `av:cook` or `av:fix`, `av:code-review`, `av:ship`,
 and `av:review-pr`, and never bypasses their gates.
