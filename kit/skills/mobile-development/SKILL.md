@@ -68,7 +68,8 @@ See: `references/mobile-mindset.md` for thinking patterns and decision framework
 
 **Best Practices & Development Mindset:**
 - `references/mobile-best-practices.md` - Mobile-first design, performance optimization, offline-first architecture, security, testing, accessibility, deployment, analytics
-- `references/mobile-debugging.md` - Debugging tools, performance profiling, crash analysis, network debugging, platform-specific debugging
+- `references/mobile-debugging.md` - Platform-specific debugging tools and mobile debugging mindset
+- `references/mobile-debugging-workflows.md` - UI, performance, network, crash, scenario, and production debugging workflows
 - `references/mobile-mindset.md` - Thinking patterns, decision frameworks, platform-specific thinking, common pitfalls, debugging strategies
 
 ## Key Best Practices (2024-2025)
