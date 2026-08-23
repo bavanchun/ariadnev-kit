@@ -155,9 +155,9 @@ pandoc "${MD_FILE}" -o "${DOCX_FILE}" --from markdown --to docx --standalone
 ### Naming Convention
 
 ```
-CTI-REPORT-[CASE-ID]-[YYYY-MM-DD].md        # Markdown source
-CTI-REPORT-[CASE-ID]-[YYYY-MM-DD].docx      # Word document (rich format)
-CTI-REPORT-[CASE-ID]-[YYYY-MM-DD].json      # Structured data (input to DOCX generator)
+OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].md        # Markdown source
+OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].docx      # Word document (rich format)
+OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].json      # Structured data (input to DOCX generator)
 ```
 
 ### What's Included in Rich DOCX
