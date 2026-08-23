@@ -154,16 +154,20 @@ exemption gets added quietly.
    all 5 prose references.
 6. Invoke `av:scout`'s delegation and confirm it reaches the intended agent.
    A grep is not proof.
-7. Delete the ported branch in `agent-lint.ts`; run `av validate`.
+7. Delete the ported branch in `agent-lint.ts`; run `av validate`. **Done**
+   (PR #50): the branch is gone, `explore.md` keeps `name: Explore` through a
+   one-file exception in the rule, and `av validate` loads all 16 agents
+   with every rule enforced. The heal case-collision the review found on
+   the way is filed in phase 4's risk list, not here.
 8. Confirm the ratchet is empty, then delete it, `isExempt()`, and both call sites.
 9. Full gate: `pnpm test`, `av validate`, `--strict`, `--check`.
 10. Update ADR 0013; journal; close the plan.
 
 ## Success Criteria
 
-- [ ] All 16 agents pass `agent-lint` with no exemption branch in the source.
-- [ ] No agent exceeds 120 lines or a 1200-char description.
-- [ ] Every agent has a `Behavioral Checklist` and an `<example>` pair.
+- [x] All 16 agents pass `agent-lint` with no exemption branch in the source (PR #50).
+- [x] No agent exceeds 120 lines or a 1200-char description (PR #43, enforced by #50).
+- [x] Every agent has a `Behavioral Checklist` and an `<example>` pair (PR #43, enforced by #50).
 - [x] ~~`grep -rn 'Task(Explore)' kit/` returns nothing.~~ **Withdrawn** — see
       "The rename is superseded, not deferred" below. The grant name is correct
       as it stands.

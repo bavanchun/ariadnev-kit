@@ -162,3 +162,23 @@ reinstalling at this scope when a recorded file is missing.
 the user ever opened in Finder survives the heal and gets reported. That is
 correct behavior, and it will read as a failure unless the rollout note says
 what the line means before anyone sees it.
+
+**A case-only rename makes the heal delete what it just installed** (latent
+defect, found by the phase 9 advisory review on 2026-08-23; fix before any
+release that renames an artifact by case alone). `claimed()` in
+`install-heal.ts` keys receipts by the exact absolute path string. If a prior
+receipt claims `agents/Explore.md` and the new one claims `agents/explore.md`,
+the planner sees a removal, because `after.has("…/Explore.md")` is false. On a
+case-insensitive filesystem — macOS by default, Windows — those are one file,
+which this run has just written. `executeHeal`'s sha256 guard compares the
+file's current bytes with the *previous* receipt's hash, so when the rename
+did not change content the guard passes and `unlinkSync` removes the fresh
+install. No trigger exists today: phase 9 kept `explore.md`'s name and the
+`av-` prefix rename added characters rather than changing case. *Signal:* a
+kit change whose only effect on a path is case. *Pre-decided response:* the
+planner must never emit a removal whose case-folded path equals one the new
+receipt claims when the two resolve to the same inode (probe the filesystem,
+do not assume); case-folding `claimed()` itself is wrong, because on Linux the
+two names are genuinely different files. Add the fixture — prior receipt with
+`Explore.md`, new receipt with `explore.md`, identical content — to
+`install-heal.test.ts` before changing the planner.

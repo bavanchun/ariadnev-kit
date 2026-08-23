@@ -165,7 +165,7 @@ path-shape are now two separate rules.
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
 | 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (Tier C complete, all 7; Tier B 1 of 10; Tier A calibration batch merged, 15 of 84; held 383 → 289. Sampling decided: 100% second reads — see the phase file's "Calibration result") |
-| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **In progress** (steps 1-4, 6 shipped: 15 of 16 agents at the bar. Step 5 withdrawn — the rename is superseded. Step 7 is filename-based and agent-side, so it does not wait on phase 8; step 8, deleting the ratchet file, does, and steps 9-10 follow it) |
+| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **In progress** (steps 1-4, 6, 7 shipped: 16 of 16 agents pass the lint with no exemption branch. Step 5 withdrawn — the rename is superseded. Step 8, deleting the ratchet file, waits on phase 8; steps 9-10 follow it) |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
 | 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (merged to dev; edge deploy + beta cut pending) |
 
