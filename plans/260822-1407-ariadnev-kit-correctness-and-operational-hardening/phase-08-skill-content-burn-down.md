@@ -78,6 +78,53 @@ This is the plan's one deliberate loosening; its justification lives in the plan
 index. It converts ~25-40 h of fragment-shuffling into ~3-6 h of splitting the
 files that genuinely defeat progressive disclosure.
 
+### The phantom-CLI class, and what it means for "done" (2026-08-23)
+
+`cook/references/plan-state-files-first.md` described **AgentKit's `ak plan`**
+after a bare `ak`→`av` rename: a SQLite `plans.db` index, `create` and
+`add-phase` subcommands, and `--linked-pr` / `--issue` / `--root-comment-id` /
+`--status` flags. None exist. `av plan reindex --help` says outright "there is
+no index to rebuild", and `close` is simply `runPlanStatus(plan, "completed")`
+writing the file. `av:ship`, `av:git` and `av:review-pr` routed their whole
+merge protocol through that fiction. A kit-wide sweep against the real command
+surface bounded it to **6 files** — the shared reference, `ship-workflow.md`,
+`ship/SKILL.md`, `review-pr/SKILL.md`, `vibe/SKILL.md`, `issue-to-plan/SKILL.md`
+— but the class is what matters, not the count.
+
+This phase was scoped as a **formatting** burn-down: sections, line caps,
+description caps. Nothing in it asks whether a skill describes software that
+exists. The corpus was ported from AgentKit, so that gap is systematic by
+construction. Widen the definition of done, narrowly — a *referential* truth
+gate, not an open-ended fact check:
+
+1. **Mechanize the CLI half.** Every backticked `av …` invocation in kit
+   markdown must resolve against the CLI's registered verbs and flags.
+   `cross-skill-references.ts` and `reference-integrity.ts` already implement
+   this shape of check for links. A phantom `--linked-pr` or `av plan create`
+   then fails lint, free per skill forever, and would have caught this entire
+   class mechanically across all 69 remaining Tier A skills.
+2. **One line on the reader checklist:** every named command, flag, file and
+   tool exists; spot-check any that drives a workflow decision. This covers the
+   behavioural residue a lint cannot see — the surviving example being a claim
+   that `av plan status` updates the phases table when only `update`, `check`
+   and `uncheck` do.
+
+Do **not** add a per-skill "verify every claim" pass. The lint plus that one
+checklist line covers both observed escape classes at a fraction of the cost.
+
+### Reference-file count correction
+
+The table above says 6 reference files exceed the 800-line cap. Measured on
+2026-08-23 the figure is **8**: `preview/references/html-css-patterns.md`
+(1717), `preview/references/html-slide-patterns.md` (1401),
+`mobile-development/references/mobile-debugging.md` (1089),
+`payment-integration/references/sepay/best-practices.md` (939),
+`backend-development/references/backend-debugging.md` (904),
+`payment-integration/references/polar/best-practices.md` (902),
+`mintlify/references/api-documentation-components-reference.md` (873),
+`payment-integration/references/multi-provider-order-management-patterns.md`
+(821).
+
 ### What a real section looks like
 
 `docs/av-skill-authoring-spec.md:143-176` states the bar; `pm/SKILL.md:39-75`
