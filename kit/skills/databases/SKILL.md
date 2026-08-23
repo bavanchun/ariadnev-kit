@@ -29,9 +29,13 @@ Use when:
 - Deciding a replication, sharding, or backup *strategy* — which data is
   partitioned on what key, what must survive a restore
 
-Not this skill: standing an instance up, operating it, or wiring it into an
-environment — provisioning, managed-service setup, connection routing, backup
-schedules, and user/permission administration belong to `av:devops`.
+This skill's centre of gravity is the data model and the queries over it.
+Standing an instance up and wiring it into an environment is platform work:
+`av:devops` covers that on the Cloudflare, Docker, and GCP side, and anything
+Atlas- or Postgres-specific is your provider's own tooling. The operational
+references bundled here (`mongodb-atlas.md`, `postgresql-administration.md`)
+exist for the parts that feed schema decisions — cluster tier, connection
+limits, restore mechanics — not as a mandate to run the fleet.
 
 ## Reference Navigation
 
@@ -89,7 +93,10 @@ against the tracking collection, so the migration is forgotten and re-applied on
 the next `apply` while its effects remain; `generate` emits no down-operations
 for MongoDB in the first place. On Postgres it executes `down_sql` only when the
 migration file carries one — otherwise it prints `✓ Rolled back` having changed
-nothing, including the tracking row. Write and run the inverse yourself. In the
+nothing, including the tracking row. Note that `generate` writes a Postgres
+`down_sql` stub containing only a comment, which is truthy: the stub therefore
+takes the executing branch, runs as a no-op, and *does* clear the tracking row,
+so an unfilled stub silently forgets the migration exactly as MongoDB does. Write and run the inverse yourself. In the
 same script, MongoDB `apply` handles only `createIndex` operations and skips any
 other operation type while still recording the migration as applied.
 
@@ -101,7 +108,7 @@ other operation type while still recording the migration as applied.
 - Index frequently queried fields
 - Use aggregation pipeline for complex transformations
 - Enable authentication and TLS in production
-- Prefer a managed deployment (Atlas) over self-hosting; `av:devops` sets it up
+- Prefer a managed deployment (Atlas) over self-hosting
 
 **PostgreSQL:**
 - Normalize schema to 3NF, denormalize for performance
@@ -150,9 +157,9 @@ a query or a missing index.
 **Interleaves with:** `av:backend-development` — the schema's shape drives the
 API's, and the API's access patterns drive which indexes are worth their cost,
 so these two usually alternate rather than run once each.
-**Related:** `av:devops` provisions and hosts the database — the instance, the
-backups schedule, the network path — where this skill designs what runs inside
-it; `av:security` reviews the access-control and exposure side of a schema.
+**Related:** `av:devops` owns the platform layer this runs on — containers,
+Cloudflare, GCP — where this skill designs what runs inside the database;
+`av:security` reviews the access-control and exposure side of a schema.
 
 ## Resources
 

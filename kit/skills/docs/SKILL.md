@@ -139,10 +139,11 @@ and common result:
 
 ## Quality gates
 
-- [ ] No product code was implemented; the only files written are under `docs/`,
-      the root `CLAUDE.md`/`AGENTS.md`, or the `llms.txt` output path
-- [ ] Every path, command, config key, and behavioral claim written was checked
-      against current source, tests, or live state — not against another document
+- [ ] The only files written are documentation surfaces the Discovery Contract
+      identified — this project's docs route, the root `CLAUDE.md`/`AGENTS.md`,
+      or the `llms.txt` output path — and no product code was implemented
+- [ ] No claim was verified against another document; every one traces to
+      source, tests, scripts, or live state
 - [ ] For `agent-context`: the diff was shown and confirmed before any write,
       and no secret was written into the file
 - [ ] No `settings.json` or hook file was edited — a deterministic control is
@@ -156,7 +157,8 @@ and common result:
 user-visible contract, and `av:scout` when the repository's docs layout is not
 yet known.
 **Typically precedes:** `av:ship`, which invokes `/av:docs update` as step 9 on
-official releases — docs land in the same change as the behavior they describe.
+official releases — as a background task, so confirm the docs landed before
+ship's commit at step 10 rather than assuming they rode along.
 **Related:** `av:docs-seeker` retrieves *other* projects' documentation, where
 this skill writes this project's own; `av:interview-docs` derives a document
 from the user's answers rather than from the codebase; `av:folder-context`
