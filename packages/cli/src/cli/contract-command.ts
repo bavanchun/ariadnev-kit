@@ -44,6 +44,10 @@ export const CAPABILITIES = [
   // a client that finds only `backups.restore.v1` is talking to a build whose
   // `verify` cannot answer.
   "backups.verify.v1",
+  // An advisory lock serializing mutating commands, and the command that clears
+  // a leaked one. A client that does not find this is talking to a build where
+  // two installs can interleave.
+  "lifecycle.lock.v1",
   "history.query.v1",
   "graph.run.v1",
   "telemetry.optout.v1",
@@ -66,6 +70,7 @@ export const KNOWN_COMMANDS = [
   "skill",
   "backups",
   "recover",
+  "unlock",
   "update",
   "validate",
   "contract",

@@ -95,6 +95,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev backups restore <timestamp\|--latest> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
 | `ariadnev backups prune [--older-than <days>] [--keep-last <n>] [--global] [--dry-run]` | Remove old backups by age, by count, or both — when both are given, a backup survives if either rule keeps it. Never removes a `heal-` backup, which is the only copy of a tree an upgrade deleted |
 | `ariadnev recover [<timestamp>] [--file <rel>] [--global]` | Alias for `backups restore`, defaulting to the newest backup |
+| `ariadnev unlock [--global]` | Clear a leaked lifecycle lock. Mutating commands take an advisory lock on the roots they write and exit **3** rather than interleave; a lock whose owner is still alive is reported, never broken, so clearing one is always a deliberate act |
 | `ariadnev update [--check] [--global] [--to <x.y.z>]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe), `--to` installs one exact release so a regression can be rolled back |
 | `ariadnev validate [--check] [--strict]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift, `--strict` counts orphan and dangling reference warnings as failures |
 | `ariadnev contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
