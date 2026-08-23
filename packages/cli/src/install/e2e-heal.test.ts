@@ -116,7 +116,7 @@ describe("installing over a pre-prefix layout", () => {
     const legacy = join(ctx.cwd, ".claude", "skills", "cook", "SKILL.md");
     expect(existsSync(legacy), "the seed must actually be unprefixed").toBe(true);
 
-    installKit(kit, ["claude-code"], ctx, { timestamp: "20260102-000000", applyHookSettings: true });
+    const { heal } = installKit(kit, ["claude-code"], ctx, { timestamp: "20260102-000000", applyHookSettings: true });
 
     const receipt = readReceipt();
     const recorded = receipt.installs["claude-code"]!.files.map((f) => f.path);
@@ -127,6 +127,10 @@ describe("installing over a pre-prefix layout", () => {
     }
     expect(existsSync(legacy), "the legacy tree must be gone").toBe(false);
     expect(existsSync(join(ctx.cwd, ".claude", "skills", "av-cook", "SKILL.md"))).toBe(true);
+    // Nothing survived, so nothing is reported. A survivor list that names every
+    // directory the heal touched would be noise the one real case hides in.
+    expect(heal.survivingDirs).toEqual([]);
+    expect(heal.preserved).toEqual([]);
   });
 
   it("is a no-op the second time", () => {
@@ -329,5 +333,94 @@ describe("a heal interrupted between the receipt write and the deletions", () =>
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260103-000000", applyHookSettings: true });
 
     expect(readFileSync(legacy, "utf8")).toBe("edited after the crash\n");
+  });
+});
+
+describe("a heal entry it cannot remove", () => {
+  /**
+   * The wedge. A removal that throws does so *after* the receipt write, so the
+   * install actually succeeded but reports failure — and `clearJournal` never
+   * runs. The next install re-executes the pending set before writing anything,
+   * throws in the same place, and aborts. If the cause is deterministic, every
+   * `av install` from then on fails at startup until the user finds and removes
+   * the offending path by hand.
+   *
+   * A recorded file replaced by a directory is the cheapest deterministic
+   * trigger; a chmod'd file or an open handle gets there the same way.
+   */
+  function wedge(): string {
+    seedPrePrefixInstall(["claude-code"]);
+    const legacy = join(ctx.cwd, ".claude", "skills", "cook", "SKILL.md");
+    rmSync(legacy);
+    mkdirSync(legacy, { recursive: true });
+    return legacy;
+  }
+
+  it("completes the install and reports the entry instead of aborting", () => {
+    const legacy = wedge();
+    const { heal } = installKit(kit, ["claude-code"], ctx, { timestamp: "20260102-000000", applyHookSettings: true });
+
+    expect(existsSync(join(ctx.cwd, ".claude", "skills", "av-cook", "SKILL.md"))).toBe(true);
+    expect(heal.preserved.map((p) => p.path)).toContain(legacy);
+    expect(readJournal(baseRoot()), "a completed run must clear its journal").toBeNull();
+  });
+
+  it("does not wedge the next install either", () => {
+    wedge();
+    installKit(kit, ["claude-code"], ctx, { timestamp: "20260102-000000", applyHookSettings: true });
+    expect(() =>
+      installKit(kit, ["claude-code"], ctx, { timestamp: "20260103-000000", applyHookSettings: true }),
+    ).not.toThrow();
+  });
+});
+
+/**
+ * The journal reaches `executeHeal` without passing `assertPriorReceiptSafe` —
+ * pending removals are recovered at the top of the run, before the receipt is
+ * even read. It lives in the same `.ariadnev/` directory as the receipt, so it
+ * is exactly as forgeable, and its own root check is the only thing standing
+ * between a hand-edited journal and an arbitrary unlink.
+ */
+describe("a journal naming a path outside the roots", () => {
+  it("refuses it, and does not fall back to deleting quietly", () => {
+    seedPrePrefixInstall(["claude-code"]);
+    writeJournal(baseRoot(), {
+      schemaVersion: JOURNAL_SCHEMA_VERSION,
+      timestamp: "20260102-000000",
+      scope: ctx.scope,
+      providers: [],
+      healRemovals: [{ path: "/etc/ariadnev-probe", sha256: "0".repeat(64) }],
+    });
+
+    expect(() =>
+      installKit(kit, ["claude-code"], ctx, { timestamp: "20260102-000000", applyHookSettings: true }),
+    ).toThrow(/outside allowed roots/);
+  });
+});
+
+describe("a dry run over a pre-prefix layout", () => {
+  /**
+   * "Run it with --dry-run first" is the natural advice for an upgrade that
+   * deletes from the user's home directory, and it was the one instruction the
+   * output could not honour: the whole heal sat behind the dry-run guard, so a
+   * user about to lose ~1500 recorded files saw the writes and no mention of
+   * the removals.
+   */
+  it("names what it would remove, and removes nothing", () => {
+    seedPrePrefixInstall(["claude-code"]);
+    const legacy = join(ctx.cwd, ".claude", "skills", "cook", "SKILL.md");
+    const before = readFileSync(receiptFile(), "utf8");
+
+    const { heal } = installKit(kit, ["claude-code"], ctx, {
+      dryRun: true,
+      timestamp: "20260102-000000",
+      applyHookSettings: true,
+    });
+
+    expect(heal.wouldRemove).toContain(legacy);
+    expect(heal.removed).toEqual([]);
+    expect(existsSync(legacy)).toBe(true);
+    expect(readFileSync(receiptFile(), "utf8")).toBe(before);
+    expect(existsSync(join(baseRoot(), ".ariadnev", "backups"))).toBe(false);
   });
 });

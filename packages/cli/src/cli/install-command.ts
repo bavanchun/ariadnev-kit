@@ -50,6 +50,9 @@ function renderHealSummary(heal: HealReport): string {
   if (heal.removed.length > 0) {
     lines.push(`  removed ${heal.removed.length} file(s) this build no longer installs (backed up)`);
   }
+  if (heal.wouldRemove.length > 0) {
+    lines.push(`  would remove ${heal.wouldRemove.length} file(s) this build no longer installs (a real run backs them up first)`);
+  }
   for (const entry of heal.preserved) {
     lines.push(`  kept ${entry.path} — ${entry.reason}`);
   }

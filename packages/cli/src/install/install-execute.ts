@@ -20,6 +20,7 @@ import {
   backupHeal,
   executeHeal,
   planHeal,
+  previewHeal,
   type HealReport,
 } from "./install-heal.js";
 
@@ -104,6 +105,8 @@ export interface InstallKitOpts {
 function mergeHeal(a: HealReport, b: HealReport): HealReport {
   return {
     removed: [...a.removed, ...b.removed],
+    // Only a dry run fills this, and a dry run never reaches a merge.
+    wouldRemove: [],
     preserved: [...a.preserved, ...b.preserved],
     survivingDirs: [...new Set([...a.survivingDirs, ...b.survivingDirs])].sort(),
   };
@@ -189,15 +192,20 @@ export function installKit(
     results.push(result);
     receiptEntries.push({ providerId: id, scope: ctx.scope, applyHookSettings, result, skillSelection });
   }
-  if (!opts.dryRun) {
-    const receiptJson = buildReceipt(prevJson, receiptEntries, {
-      ariadnevVersion: opts.ariadnevVersion ?? "0.0.0",
-      timestamp: opts.timestamp,
-      home: ctx.home,
-      cwd: ctx.cwd,
-    });
-    const removals = planHeal(prevReceipt, JSON.parse(receiptJson) as Receipt, ctx.home, ctx.cwd);
+  // Built in a dry run too. It writes nothing, and it is the only way the run
+  // can say which files the real one would delete — the advice for an upgrade
+  // that removes things from a home directory is to try it with `--dry-run`
+  // first, and that has to be worth doing.
+  const receiptJson = buildReceipt(prevJson, receiptEntries, {
+    ariadnevVersion: opts.ariadnevVersion ?? "0.0.0",
+    timestamp: opts.timestamp,
+    home: ctx.home,
+    cwd: ctx.cwd,
+  });
+  const removals = planHeal(prevReceipt, JSON.parse(receiptJson) as Receipt, ctx.home, ctx.cwd);
+  if (opts.dryRun) return { results, heal: previewHeal(removals, ctx.home, ctx.cwd) };
 
+  {
     // Before rotation, or the copy would be pruned by the very run that made it
     // the only copy.
     if (removals.length > 0) {
