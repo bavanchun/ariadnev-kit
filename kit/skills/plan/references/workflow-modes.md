@@ -211,5 +211,6 @@ Check `## Plan Context` in injected context:
 - **"Suggested: {path}"** → Branch hint only, ask if activate or create new
 - **"Plan: none"** → Create new using `Plan dir:` from `## Naming`
 
-After creating: `node .claude/scripts/set-active-plan.cjs {plan-dir}`
-Pass plan directory path to every subagent during the process.
+After creating: `av plan use {plan-dir-name}` (the branch pointer `av plan
+resolve` and `av:cook` read). Pass the plan directory path to every subagent
+during the process.

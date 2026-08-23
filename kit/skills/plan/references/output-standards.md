@@ -105,6 +105,20 @@ When creating plans, auto-populate these fields:
 - **blocks**: Detected during pre-creation scan (empty `[]` if none)
 - **created**: Today's date in YYYY-MM-DD format
 
+### Cross-Plan Dependency Detection
+
+During the pre-creation scan, detect and mark blocking relationships between plans:
+
+1. **Scan** — Read `plan.md` frontmatter of each unfinished plan (status != `completed`/`cancelled`)
+2. **Compare scope** — Check overlapping files, shared dependencies, same feature area
+3. **Classify relationship:**
+   - New plan needs output of existing plan → new plan `blockedBy: [existing-plan-dir]`
+   - New plan changes something existing plan depends on → existing plan `blockedBy: [new-plan-dir]`, new plan `blocks: [existing-plan-dir]`
+   - Cross-scope dependency → use `global:` or `project:` prefixes
+   - Mutual dependency → both plans reference each other in `blockedBy`/`blocks`
+4. **Bidirectional update** — When relationship detected, update BOTH `plan.md` files' frontmatter
+5. **Ambiguous?** → Use `ask_user capability` with header "Plan Dependency", present detected overlap, ask user to confirm relationship type (blocks/blockedBy/none)
+
 ### Cross-Scope Reference Syntax
 
 - Bare reference: `<timestamp>-auth-system`
