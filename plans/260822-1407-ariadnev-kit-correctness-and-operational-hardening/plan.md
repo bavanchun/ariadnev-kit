@@ -164,8 +164,8 @@ path-shape are now two separate rules.
 | 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (merged to dev; release cut pending) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
-| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (Tier C pilot `cti-expert` done; 100 skills / 383 held remain) |
-| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
+| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (Tier C complete, all 7; Tier B 1 of 10; held 383 → 346. Tier A calibration batch in flight) |
+| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (steps 7-10 only) | **In progress** (steps 1-4, 6 shipped: 15 of 16 agents at the bar. Step 5 withdrawn — the rename is superseded. Steps 7-10 still wait on phase 8) |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
 | 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (merged to dev; edge deploy + beta cut pending) |
 
