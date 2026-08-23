@@ -41,7 +41,8 @@ Default behavior:
 - Scan registered worktrees.
 - Scan unfinished plans from visible worktrees and tracked branch refs.
 - Count `- [ ]` / `- [x]` checkboxes in each plan directory (plan.md + phase-*.md) for progress %.
-- Scan `docs/*roadmap*.md` and `docs/*milestones*.md` for active milestones.
+- Scan each worktree's top-level `docs/` for files whose name ends in
+  `roadmap.md`, `milestone.md`, or `milestones.md`, for active milestones.
 - Build priority-ranked next steps via composite scoring (see below).
 - Do not run network operations.
 - Do not change branches or mutate the checkout.
@@ -69,11 +70,15 @@ output and call it the handoff. Prefer this structure:
 
 1. **Current State** - branch or detached HEAD, dirty/clean, active worktree.
 2. **Recent Work** - only the highest-signal branches/worktrees.
-3. **In-Flight Plans** - unfinished plans with the scanner's
-   `X/Y todos · NN% done` annotation where it supplied one. Progress is attached
-   only to plans found on the filesystem; a plan discovered on a git ref comes
-   back as `no checkbox data`. Report that verbatim and name the ref — never
-   compute a percentage yourself.
+3. **In-Flight Plans** - unfinished plans with the scanner's progress where it
+   supplied any. Progress is attached only to plans that have a filesystem
+   source; a plan found only on a git ref, and equally a plan directory
+   containing no checkboxes at all, comes back with none. Report what the
+   scanner returned and never compute a percentage yourself; name the ref when
+   the plan has no filesystem source, since that copy may be stale. Under
+   `--json` progress is an object — the rendered `X/Y todos · NN% done` and
+   `no checkbox data` strings appear only in text mode and inside a next step's
+   rationale.
 4. **Roadmaps** - active milestones from each worktree's top-level `docs/`
    files whose name ends in `roadmap.md`, `milestone.md`, or `milestones.md`.
 5. **Next Steps** - the scanner's ranked steps, at most six, each with its

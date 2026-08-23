@@ -45,7 +45,7 @@ See: `references/backend-technologies.md` for detailed comparisons
 - `references/backend-api-design.md` — REST, GraphQL, gRPC patterns and best practices.
 
 **Security & Authentication:**
-- `references/backend-security.md` — OWASP Top 10, security best practices, input validation.
+- `references/backend-security.md` — OWASP Top 10 (2025 RC1), security best practices, input validation.
 - `references/backend-authentication.md` — OAuth 2.1, JWT, RBAC, MFA, session management.
 
 **Performance & Architecture:**
@@ -62,16 +62,16 @@ See: `references/backend-technologies.md` for detailed comparisons
 ## Key Best Practices
 
 Defaults to apply unless the project has a reason not to. The reference files
-below quote benchmark figures that are undated and drawn from other systems —
-re-measure in this codebase before relying on one.
+above quote 2025-vintage benchmark figures with no cited source — re-measure in
+this codebase before relying on one.
 
 **Security:** Argon2id passwords, parameterized queries, OAuth 2.1 + PKCE, rate limiting, security headers
 
 **Performance:** Redis caching, database indexing, CDN for static assets, connection pooling
 
-**Testing:** 70-20-10 pyramid (unit-integration-E2E), contract testing for microservices, a test for every migration
+**Testing:** 70-20-10 pyramid (unit-integration-E2E), contract testing for microservices, a test for every migration, load tests for any endpoint with a throughput target
 
-**DevOps:** Blue-green/canary deployments, feature flags, container orchestration (Docker/Kubernetes), Prometheus/Grafana monitoring, OpenTelemetry tracing
+**DevOps:** Blue-green/canary deployments, feature flags, containerization and orchestration (Docker/Kubernetes), Prometheus/Grafana monitoring, OpenTelemetry tracing
 
 ## Quick Decision Matrix
 
