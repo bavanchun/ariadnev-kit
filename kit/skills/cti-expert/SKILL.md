@@ -176,10 +176,13 @@ OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.docx    rendered from both, zero content los
 ```
 
 The markdown report follows the INTSUM template in
-`handbook/report-template.md`, in this order. The heading names are
-load-bearing: the DOCX generator places each chart by matching keywords in the
-heading text (`scripts/cti_docx_postprocess.py`), so a section renamed to
-"Connections" loses its relationship diagram without any error.
+`handbook/report-template.md` — its section order and its table shapes (the
+subject profile is a Field / Value / Confidence table; each finding is its own
+`### Finding N` block). The heading names are load-bearing: the DOCX generator
+places each chart by matching keywords in the heading text
+(`scripts/cti_docx_postprocess.py`). A chart whose keyword appears in no
+heading is not lost, but pushed out of its section into a "Visual Analytics"
+appendix at the end of the document.
 
 ```markdown
 # <Case label> — <target>
@@ -189,10 +192,12 @@ Classification · analyst · date · exposure score (0–100)
 One paragraph. The most-read section; never a placeholder. (risk gauge)
 
 ## Subject profile
-| Subject | Type | Trust | Confidence | First seen |
+Field / Value / Confidence table, one row per attribute.
 
 ## Key findings
-| ID | Subject | Type | Weight | Finding | Source | Collected |  (charts)
+One `### Finding N` block per finding in the template's shape — confidence,
+summary, evidence, analyst note — with the source URL, method tag and trust
+score from the first quality gate carried in the evidence line. (charts)
 
 ## Entity relationship map
 ASCII map, plus the connection table behind it. (diagram)
@@ -225,15 +230,13 @@ the `.docx`. Mermaid only on an explicit `--mermaid` flag.
 - [ ] Intelligence gaps are stated explicitly, including tool failures and blocked collection — silence here reads as "nothing there"
 - [ ] The exposure score is derived from recorded findings, not asserted; the band and its action are both stated
 - [ ] `/validate` and `/coverage` have run and their gaps are either closed or listed as gaps
-- [ ] The DOCX JSON meets the contract in [report formats](references/report-formats.md) — integer confidences, flat `findings`, a `label` on every subject — and the report headings carry the keywords the generator places charts by; both fail silently otherwise
-- [ ] The subject is within the ethical boundary in section 7 — public data on a public matter, not a private individual being tracked
+- [ ] The DOCX JSON meets the contract in [report formats](references/report-formats.md) — flat `findings`, a `label` on every subject, integer confidences — and the report headings carry the keywords the generator places charts by, or those charts land in the appendix instead of their sections
 
 ## Workflow position
 
 **Typically follows:** nothing — a case usually starts here from a target
-supplied by the user. When the target came from other work, `av:scout` (an
-identifier surfaced while reading a codebase) or `av:advise` (the user was
-deciding whether an investigation is the right response at all).
+supplied by the user. When the target came from other work, `av:advise` — the
+user was deciding whether an investigation is the right response at all.
 
 **Typically precedes:** `av:journal` when the case is worth a durable record,
 and `av:preview` when the ASCII maps need rendering for someone who will not
