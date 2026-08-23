@@ -164,7 +164,7 @@ path-shape are now two separate rules.
 | 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (merged to dev; release cut pending) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
-| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | Pending |
+| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (Tier C pilot `cti-expert` done; 100 skills / 383 held remain) |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
 | 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (merged to dev; edge deploy + beta cut pending) |
