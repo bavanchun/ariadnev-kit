@@ -7,6 +7,7 @@ import { jsonEnvelope } from "./json-envelope.js";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runValidate } from "./validate-command.js";
+import type { CommandSurface } from "../kit/av-invocation-lint.js";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { matchesSkillFilter } from "../kit/skill-filter.js";
@@ -28,6 +29,9 @@ export interface EvalOpts {
   /** Injected judge runner; required to actually run tier-3. */
   deps?: EvalDeps;
   json?: boolean;
+  /** Live command tree for the av-invocation check, threaded to runValidate.
+   *  See ValidateOpts.surface for why it is passed rather than built. */
+  surface?: CommandSurface;
 }
 
 export interface EvalResult {
@@ -78,7 +82,7 @@ export function runEval(opts: EvalOpts): EvalResult {
   const filter = opts.skill ? [opts.skill] : undefined;
 
   // Tier 1 — static, always.
-  const v = runValidate({ kitRoot: opts.kitRoot, skillFilter: filter });
+  const v = runValidate({ kitRoot: opts.kitRoot, skillFilter: filter, surface: opts.surface });
   const lines = [v.summary];
   const judged: JudgedSkill[] = [];
   let ok = v.ok;

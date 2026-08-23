@@ -12,7 +12,7 @@ import { buildSkillIndex, checkCrossSkillReferences } from "../kit/cross-skill-r
 import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
-import { commandSurface } from "./command-surface.js";
+import type { CommandSurface } from "../kit/av-invocation-lint.js";
 import { readSkillScripts, scanInvocations } from "./validate-invocations.js";
 
 // `ariadnev validate` — lint the kit source without installing it. Wraps the
@@ -117,6 +117,19 @@ export interface ValidateOpts {
   strict?: boolean;
   /** Emit the machine envelope instead of the text report. */
   json?: boolean;
+  /**
+   * The live command tree, for the av-invocation check.
+   *
+   * Passed in rather than built here on purpose. `cli/command-surface.ts` reads
+   * the tree by calling the `register*` functions, and `register-quality-commands`
+   * imports this module — building it here closed
+   * command-surface → register-quality-commands → validate-command → command-surface.
+   * ESM tolerates that cycle; a bundler reordering the modules need not, and the
+   * failure would be a `buildProgram` that is undefined at import time. The
+   * registration layer owns both halves, so it supplies the surface. Omitted
+   * means the check does not run — for a unit test asking about something else.
+   */
+  surface?: CommandSurface;
 }
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
@@ -245,9 +258,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     kit.skills.map((skill) => ({ name: skill.name, files: skillFileNames(dirname(skill.sourcePath)) })),
   );
 
-  // Built once: it walks every Commander registration, and the answer is the
-  // same for all 105 skills.
-  const surface = commandSurface();
+  const surface = opts.surface;
 
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
@@ -316,7 +327,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       });
     }
 
-    for (const hit of scanInvocations(
+    for (const hit of surface === undefined ? [] : scanInvocations(
       [
         { name: `${skill.name}/SKILL.md`, content: skill.raw },
         ...referenceFiles.map((file) => ({ name: `${skill.name}/${file.name}`, content: file.content })),
@@ -343,7 +354,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
 
   // Agents cite the CLI too, and nothing exempts them — there is no ported-agent
   // backlog to hold. Skipped under --skill, which asks about one skill.
-  if (opts.skillFilter === undefined) {
+  if (opts.skillFilter === undefined && surface !== undefined) {
     for (const agent of kit.agents) {
       for (const hit of scanInvocations([{ name: `agents/${agent.name}.md`, content: agent.raw }], surface)) {
         findings.push({
