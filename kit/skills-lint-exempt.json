@@ -1,11 +1,9 @@
 {
   "comment": "Skills still held to the old lint severity. Shrink-only: a name here whose skill already passes every check fails the ratchet test. Delete entries as phase 8 clears them; when this list is empty, delete the file and the mechanism. ADR 0013.",
   "exempt": [
-    "advise",
     "agent-browser",
     "ai-artist",
     "ai-multimodal",
-    "ariadnev",
     "autoresearch",
     "backend-development",
     "better-auth",
@@ -35,7 +33,6 @@
     "goal-warmup",
     "google-adk-python",
     "handoff",
-    "handover",
     "help",
     "html-video",
     "hyperframes",
@@ -83,7 +80,6 @@
     "web-design-guidelines",
     "web-frameworks",
     "web-testing",
-    "worktree",
-    "xia"
+    "worktree"
   ]
 }
