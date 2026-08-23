@@ -172,10 +172,11 @@ README.
 
 Most of the corpus is **ported**: copied from the kit this project was built
 from, rebranded, and otherwise left alone. A ported skill carries
-`metadata.origin: ported`, and a ported agent is the one without the `av-`
-prefix. That distinction is not decoration — the authoring rules below apply to
-what this project writes, and cannot apply to content a port exists to preserve
-without rewriting it.
+`metadata.origin: ported`. That distinction is not decoration — the authoring
+rules below apply to what this project writes, and cannot apply to content a
+port exists to preserve without rewriting it. Agents are the exception: all
+sixteen have been brought to the authoring bar, so the lint holds every one of
+them to it regardless of origin.
 
 Skills this project authors meet one cook-grade bar: a real workflow, an
 `## Output format` contract, `## Quality gates` self-checks, and a

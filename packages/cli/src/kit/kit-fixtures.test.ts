@@ -306,24 +306,15 @@ describe("loadKit agent lint gates", () => {
     );
   }
 
-  it("loads an agent without the av- prefix as a ported one", () => {
-    // The prefix marks an agent this project wrote. A ported agent keeps the
-    // name upstream gave it — holding it to our house rules would mean
-    // rewriting the content the port exists to preserve.
+  it("rejects any agent that skips the house rules, whatever its filename", () => {
+    // The lint once exempted agents whose filename lacked an `av-` prefix. No
+    // agent file carried it, so the exemption covered all of them and the gate
+    // certified nothing. Every shipped agent meets the rules now, and loadKit
+    // is what keeps it that way.
     const root = tmpKit();
     writeFileSync(
       join(root, "agents", "demo.md"),
-      `---\nname: demo\ndescription: "${okDescription}"\n---\n\n# demo\n\nNo checklist, and that is allowed here.\n`,
-    );
-    expect(() => loadKit(root)).not.toThrow();
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  it("still rejects an authored agent that skips the house rules", () => {
-    const root = tmpKit();
-    writeFileSync(
-      join(root, "agents", "av-demo.md"),
-      `---\nname: av-demo\ndescription: "${okDescription}"\n---\n\n# av-demo\n\nNo checklist.\n`,
+      `---\nname: demo\ndescription: "${okDescription}"\n---\n\n# demo\n\nNo checklist.\n`,
     );
     expect(() => loadKit(root)).toThrow(/Behavioral Checklist/);
     rmSync(root, { recursive: true, force: true });
