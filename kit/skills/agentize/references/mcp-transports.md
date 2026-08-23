@@ -103,6 +103,14 @@ server.tool(
 );
 ```
 
+Registration rules:
+
+- The `description` states what the tool does, when to use it, what it returns, and how it fails — that string is the only thing an agent reads before deciding to call it.
+- Every schema field carries its own description; a bare type says nothing about admissible values.
+- Return structured content plus a short human-readable summary, so one result serves both an agent and a person reading the transcript.
+
+Naming, safe-vs-mutating semantics, and error shape live in `agent-centric-design.md`.
+
 ## Health & observability
 
 Expose on the HTTP transports:
