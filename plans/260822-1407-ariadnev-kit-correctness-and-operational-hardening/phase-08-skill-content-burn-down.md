@@ -145,11 +145,55 @@ Measured, against the prediction above.
   — the filler failure mode this phase names, on the first skill, under care.
   Reading `scripts/cti_docx_postprocess.py` showed the generator places charts
   by *keyword in the heading text*; the author's skeleton heading "Connections"
-  would have silently dropped the entity diagram. The reader judged order
-  load-bearing; the names were. Neither lint nor a prose-only reader catches
-  this. **Rule for the rest of the phase: when a skill ships a script that
-  consumes its output, check the Output format against the script, not against
-  the skill's prose.**
+  would have displaced the entity diagram into a trailing appendix. The reader
+  judged order load-bearing; the names were. Neither lint nor a prose-only
+  reader catches this. **Rule for the rest of the phase: when a skill ships a
+  script that consumes its output, check the Output format against the script
+  — including its fallback paths — not against the skill's prose.**
+- **The fix pass introduced a defect of its own.** The first wording of that
+  rule said the diagram was "lost without any error"; `_append_remaining_charts`
+  further down the same file says otherwise. The advisory review caught it;
+  nothing else would have. The fix that corrected it then introduced two more
+  overclaims of the same class (one about visitor charts, one about confidence
+  normalisation), caught only by the fix-diff re-read below. The unreviewed fix
+  pass is the hole in the loop, not the author or the reader — and a claim about
+  a script's runtime behaviour is only safe when it states what was traced, not
+  what was inferred.
+
+### Protocol from `fable-thinking` onward (advisory review, 2026-08-23)
+
+1. **Consumer inventory before authoring.** `ls scripts/`; grep the kit for
+   `av:<slug>` to find skills that parse this one's output; check whether CLI
+   code reads its artefacts. Hand the inventory to the reader.
+2. **Lint before the reader.** `validate --check --strict` on the author pass
+   first, so the reader never spends budget on what lint catches.
+3. **Re-read the fix diff.** A short fresh-agent pass on the fix commit's diff
+   only. The pilot's overclaim entered in exactly this step.
+4. The reader brief says: verify every claim about a script or template by
+   reading it, including fallback paths; flag any section whose removal would
+   change no behaviour.
+5. Merge sequentially — `kit-embedded.generated.ts` regenerates per PR and
+   conflicts across parallel branches.
+
+**Tier A is held** until one mixed calibration batch of 15 with a **100%**
+second read has been run and its defects counted by class (invented slug /
+wrong consumer claim / interchangeable section / double-stated section). The
+20% sample in the table above is a guess; the batch replaces it with a number.
+≤1 reader-caught defect in 15 makes 20% defensible; ≥4 means sampling is not a
+control and the rest of the phase is a maintainer job. Report context windows
+per skill and reader tokens as the cost proxy, since wall-clock is not
+recoverable.
+
+Tier C order: `fable-thinking` → `frontend-development` → `review-pr` →
+`tech-graph` → `ui-ux-pro-max` → `plan` last (the kit's most-referenced skill:
+17 other SKILL.md files name `av:plan`; `pm` and `plan-i18n` are required
+reading for its reader). Four of the six already have
+near-synonym sections (`plan` `## Workflow Position`, `review-pr`
+`## Final output`, `ui-ux-pro-max` `## Output Formats`, `tech-graph`
+`## Output`): rename and merge, never add a second heading alongside.
+`frontend-development` keeps depth in `resources/`, which lint never reads;
+extracted material goes to `references/`, and whether `resources/` migrates is
+a separate decision, recorded and not taken here.
 - Cost: wall-clock is not reconstructable from git (an amend rewrote the
   timestamps). In session terms the authoring pass consumed most of one context
   window; review plus fixes took ~20 min. The 2.5–5 h Tier C band is not
