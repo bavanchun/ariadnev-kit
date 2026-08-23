@@ -153,8 +153,10 @@ concrete artifact; where its prose section list differs, the template wins.
 
 ## Quality gates
 
-- [ ] Root cause is proven, not guessed — the evidence would convince someone
-      who disagreed, and correlation is distinguished from causation
+- [ ] A `Resolved` or `Mitigated` status rests on a proven root cause, not a
+      guess — the evidence would convince someone who disagreed, and
+      correlation is distinguished from causation; a cause not yet proven
+      leaves the Status at `Under investigation`
 - [ ] No production code was changed; the fix is described, not applied
 - [ ] Every item in Evidence is labelled `confirmed` or `hypothesis`, and the
       Status matches — an investigation carrying only hypotheses is not

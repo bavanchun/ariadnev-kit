@@ -18,7 +18,7 @@ opening contract.
 | investigate-explain | "why / how does / understand / compare / what happens if" | scout → analysis (debug or ask skill) → report findings; no mutation links; explorer roles in parallel when >2 areas |
 | review-audit | "review / audit / check quality / security posture" | review or audit skill → verified findings report; independent reviewer role for cross-module or security scope |
 | ship-release | "ship / open PR / release / publish the branch" | verify state (tests green, diff reviewed) → ship skill; reviewer role BEFORE this class starts, not during |
-| create-content | "write / draft / post / email / landing copy" | voice/brand input → writing skill → SEO link (if organic reach) → content-reviewer role → publish/schedule link |
+| create-content | "write / draft / post / email / landing copy" | voice/brand input → writing skill → SEO link (if organic reach) → reviewer role with a content brief → publish/schedule link |
 | plan-campaign | "campaign / launch / funnel / go-to-market" | research → persona/funnel → campaign brief → per-channel production → analytics setup (no owning routing reference ships; see chaining-patterns "Marketing Sequences") |
 | analyze-performance | "metrics / traffic / conversion / report on / trends" | analytics skill → analysis → recommendations report; analyst role for large data pulls |
 | design-visual | "mockup / logo / banner / diagram / UI design" | design or visual skill per artifact type; designer role for iteration batches; reviewer only when brand-critical |

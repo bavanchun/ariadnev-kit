@@ -1,6 +1,6 @@
 ---
 name: av:vibe
-description: "Run a GitHub issue or feature request end to end — worktree, plan, implement, review, ship, merge, CI to green — in one command. Use for autonomous runs that should finish at a merged PR."
+description: "Run a GitHub issue or feature request end to end — worktree, plan, implement, review, ship, and with --ship merge and CI to green — in one command. Use for autonomous runs from intake to PR."
 user-invocable: true
 when_to_use: "Invoke when a user wants one command to take a GitHub issue or feature request from planning through implementation, PR review, shipping, and optional merge."
 category: dev-tools
@@ -283,8 +283,8 @@ stopped at a blocker fills the fields it reached and marks the rest
 
 **Typically follows:** a GitHub issue or a feature request. This is a top-level
 entry point, not a step inside another workflow.
-**Typically precedes:** nothing — it terminates in a merged, CI-green PR, or in
-a named blocker.
+**Typically precedes:** nothing — it terminates in a reviewed PR (a merged,
+CI-green one under `--ship` or `--both`), or in a named blocker.
 **Related:** `av:issue-to-plan` takes the same input but stops at a reviewed
 plan, which is the right choice when the plan needs human approval before
 implementation; this skill runs straight through. Internally it orchestrates
