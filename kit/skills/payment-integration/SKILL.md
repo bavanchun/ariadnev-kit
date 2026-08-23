@@ -42,6 +42,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 - `references/sepay/sdk.md` - Node.js, PHP, Laravel
 - `references/sepay/qr-codes.md` - VietQR generation
 - `references/sepay/best-practices.md` - Production patterns
+- `references/sepay/payment-operations.md` - Currency, invoicing, errors, testing, and production operations
 
 ### Polar
 - `references/polar/overview.md` - Auth, MoR concept
@@ -52,6 +53,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 - `references/polar/benefits.md` - Automated delivery
 - `references/polar/sdk.md` - Multi-language SDKs
 - `references/polar/best-practices.md` - Production patterns
+- `references/polar/revenue-operations.md` - Fees, discounts, revenue, schemas, testing, and production operations
 
 ### Stripe
 - `references/stripe/stripe-best-practices.md` - Integration design
@@ -63,6 +65,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 
 ### Multi-Provider
 - `references/multi-provider-order-management-patterns.md` - Unified orders, currency conversion
+- `references/multi-provider-order-lifecycle-patterns.md` - Refunds, webhook idempotency, discount sync, and admin operations
 
 ### Scripts
 - `scripts/sepay-webhook-verify.js` - SePay webhook verification
