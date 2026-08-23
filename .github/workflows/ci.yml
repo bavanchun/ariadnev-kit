@@ -9,16 +9,29 @@ name: CI
 #   .claude/** — local agent working state. Nothing tracked lives there today
 #                and no gate reads it, but agents churn it constantly.
 #
+# TWO TIERS. A pull request into `dev` runs `Lint · Validate · Unit` (~5 min:
+# typecheck, kit validation, unit tests, script tests); a push to `dev` or
+# `main`, a pull request into `main`, and the Monday run execute
+# `Lint · Build · Test` (~14 min: everything above plus the binary build, the
+# end-to-end install, coverage thresholds, the docs-bundle and benchmark
+# determinism checks). `dev` is the integration branch: every merge into it is
+# a rebase, so the push run is the first time the merged tree exists, and it
+# is the run that carries the full verdict. `main` is the release branch and
+# the release chain reads its `Lint · Build · Test` verdict before cutting.
+# Required status checks: `Lint · Validate · Unit` on `dev`, `Lint · Build ·
+# Test` on `main`. The trade is explicit: a unit-green PR whose integration
+# gate fails is caught on `dev` after the merge, not before, and is fixed
+# forward there.
+#
 # THE FILTER IS A JOB CONDITION, NOT A TRIGGER FILTER — do not "simplify" it
-# back into `paths-ignore:` under `on:`. `Lint · Build · Test` is a required
-# status check on `dev` and `main`. A trigger-level `paths-ignore` makes the
-# whole workflow never start, and GitHub then leaves the required check
+# back into `paths-ignore:` under `on:`. A trigger-level `paths-ignore` makes
+# the whole workflow never start, and GitHub then leaves the required check
 # Pending forever: "If a workflow is skipped due to path filtering … checks
 # associated with that workflow will remain in a Pending state. A pull request
 # that requires those checks to be successful will be blocked from merging."
 # A docs-only PR would be unmergeable. A job skipped by `if:` instead reports
 # "skipped", which required status checks count as success — so the workflow
-# always starts, and `changes` decides whether `ci` does any work.
+# always starts, and `changes` decides whether either gate does any work.
 #
 # `changes` fails open in every direction: a new branch, a force-push whose
 # base is gone, an API error, an unrecognised event, or the job itself failing
@@ -128,14 +141,97 @@ jobs:
             echo "skipping: all $count changed files are under plans/ or .claude/"
           fi
 
+  unit:
+    name: Lint · Validate · Unit
+    needs: [changes]
+    # Pull requests into dev only. `!cancelled()` is what lets this run even
+    # when `changes` failed — without a status function here, a failed `needs`
+    # would silently skip the job, and a skipped required check counts as
+    # success. So: run unless the whole run was cancelled and `changes`
+    # positively said there is nothing to check.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.base_ref == 'dev' && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # docs-bundle-generator.test.ts (inside the unit run) clones this
+          # checkout and checks out a pre-rename release tag; see the full
+          # gate's note. A shallow tree fails it.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Brand drift gate
+        run: node packages/cli/scripts/check-brand-drift.mjs
+
+      - name: Typecheck
+        run: pnpm run lint
+
+      - name: Validate kit + provider-matrix drift
+        # Same check as the full gate, run from source under bun (the binary is
+        # bun-compiled, so this is the runtime it ships on) — no build needed.
+        run: bun packages/cli/src/index.ts validate --check --strict
+
+      - name: Installer syntax gate
+        run: |
+          bash -n install.sh
+          pwsh -NoProfile -Command '
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path ./install.ps1), [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | ForEach-Object { Write-Host $_ }; exit 1 }
+            Write-Host "install.ps1 parses clean"'
+
+      - name: Cross-skill link shape gate
+        # Mirrors the full gate; see its comment for why grep and why -o.
+        run: |
+          if grep -rnI 'kits/core/' kit/; then
+            echo "::error::stale pre-rename root — the tree is kit/, with hooks under kit/hooks/_lib/"
+            exit 1
+          fi
+          if grep -rIoE '(\.\./)+[a-z][a-z0-9-]*/references/' kit/ | grep -vE ':(\.\./)+av-'; then
+            echo "::error::cross-skill link missing the av- prefix"
+            exit 1
+          fi
+
+      - name: Unit tests
+        # No coverage here: the thresholds are enforced by the full gate on
+        # the merged tree, where a drop is attributable to one push.
+        run: pnpm exec vitest run
+
+      - name: Test scripts + hooks (node:test)
+        run: |
+          find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
+          find kit/hooks kit/statusline -name '*.test.cjs' -print0 | xargs -0 -r node --test
+
   ci:
     name: Lint · Build · Test
     needs: [changes]
-    # `!cancelled()` is what lets this run even when `changes` failed — without
-    # a status function here, a failed `needs` would silently skip the job, and
-    # a skipped required check counts as success. So: run unless the whole run
-    # was cancelled and `changes` positively said there is nothing to check.
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
+    # Everything except a pull request into dev: pushes to dev and main, the
+    # weekly run, and pull requests into main. Same `!cancelled()` reasoning
+    # as the unit job.
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.base_ref == 'main') && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
