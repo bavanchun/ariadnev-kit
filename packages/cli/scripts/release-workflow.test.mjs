@@ -44,9 +44,9 @@ test("workflow permissions and dispatch inputs are literal and minimal", () => {
   assert.deepEqual(releaseJobs["version-pr"].permissions, { contents: "write", "pull-requests": "write" });
   assert.deepEqual(releaseJobs["candidate-build"].permissions, { contents: "read" });
   assert.deepEqual(releaseJobs["candidate-publish"].permissions, { contents: "write", actions: "read" });
-  assert.deepEqual(buildJobs.build.permissions, { contents: "read" });
+  assert.deepEqual(buildJobs.build.permissions, { contents: "read", checks: "read" });
   assert.deepEqual(publishJobs.publish.permissions, { contents: "write", actions: "read" });
-  assert.deepEqual(finalizeData.jobs.finalize.permissions, { contents: "write", actions: "read" });
+  assert.deepEqual(finalizeData.jobs.finalize.permissions, { contents: "write", actions: "read", checks: "read" });
   // No deployment environment: it is a paid feature on a private repository, so
   // declaring one made finalize unschedulable. Serialization per tag is what
   // carries the weight, and that lives in the concurrency group.

@@ -63,7 +63,8 @@ if (method === "PATCH" && path.includes("/releases/")) {
   if (body.make_latest === "true" && !state.release.prerelease) state.latest = state.release;
   save(); json(state.release); process.exit(0);
 }
-if (path.includes("/actions/runs/")) json(state.run);
+if (path.includes("/check-runs")) json(state.checkRuns ?? { check_runs: [] });
+else if (path.includes("/actions/runs/")) json(state.run);
 else if (path.includes("/actions/artifacts?")) json({ artifacts: state.artifactHistory });
 else if (path.includes("/actions/artifacts/") && path.endsWith("/zip")) binary(state.artifactZip);
 else if (path.includes("/actions/artifacts/")) json(state.artifact);

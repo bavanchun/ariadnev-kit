@@ -65,6 +65,11 @@ test("finalizer completes every preflight before one typed PATCH and validates p
 
 for (const [name, mutate, overrides] of [
   ["candidate run incomplete", (state) => { state.run.status = "in_progress"; state.run.conclusion = null; }],
+  // CI's verdict on the exact source is read at publication, newest run per
+  // name: a later red run is not ignored, and a skipped one is not a pass.
+  ["CI red on the source", (state) => { state.checkRuns.check_runs.push({ ...state.checkRuns.check_runs[0], conclusion: "failure", started_at: "2026-08-08T00:45:00Z" }); }],
+  ["CI skipped on the source", (state) => { state.checkRuns.check_runs[0].conclusion = "skipped"; }],
+  ["CI absent on the source", (state) => { state.checkRuns.check_runs = []; }],
   ["artifact digest drift", (state) => { state.artifact.digest = `sha256:${"0".repeat(64)}`; }],
   ["lightweight tag", (state) => { state.tagRef.object.type = "commit"; }],
   ["tag target drift", (state) => { state.tagObject.object.sha = "d".repeat(40); }],
