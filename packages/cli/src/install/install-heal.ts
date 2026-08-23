@@ -36,6 +36,15 @@ export interface HealRemoval {
 
 export interface HealReport {
   removed: string[];
+  /**
+   * What a dry run *would* remove. Empty on a real run, where `removed` and
+   * `preserved` say what happened instead.
+   *
+   * "Try it with --dry-run first" is the natural advice for an upgrade that
+   * deletes from a home directory, and it was the one instruction the output
+   * could not honour while the whole heal sat behind the dry-run guard.
+   */
+  wouldRemove: string[];
   preserved: { path: string; reason: string }[];
   /**
    * Directories that still exist after their recorded files were removed.
@@ -47,7 +56,7 @@ export interface HealReport {
   survivingDirs: string[];
 }
 
-export const EMPTY_HEAL: HealReport = { removed: [], preserved: [], survivingDirs: [] };
+export const EMPTY_HEAL: HealReport = { removed: [], wouldRemove: [], preserved: [], survivingDirs: [] };
 
 /**
  * Reject a prior receipt this build must not act on, **before** the install
@@ -152,23 +161,44 @@ export interface ExecuteHealOpts {
   scopeRoot: string;
 }
 
+/** What a dry run would remove, without touching anything. */
+export function previewHeal(removals: HealRemoval[], home: string, cwd: string): HealReport {
+  return { ...EMPTY_HEAL, wouldRemove: removals.map((r) => fromPortablePath(r.path, home, cwd)) };
+}
+
 /** Delete the planned removals. Backups and the journal are the caller's job. */
 export function executeHeal(removals: HealRemoval[], opts: ExecuteHealOpts): HealReport {
-  const report: HealReport = { removed: [], preserved: [], survivingDirs: [] };
+  const report: HealReport = { removed: [], wouldRemove: [], preserved: [], survivingDirs: [] };
   const touchedDirs = new Set<string>();
 
   for (const removal of removals) {
     const abs = fromPortablePath(removal.path, opts.home, opts.cwd);
+    // Outside the try: a path outside the roots is a security boundary, and the
+    // only thing here that should still take the whole run down.
     assertWithinRoots(abs, opts.allowedRoots);
-    if (!existsSync(abs)) continue; // already gone — a re-run, or the user removed it
-    const current = createHash("sha256").update(readFileSync(abs)).digest("hex");
-    if (current !== removal.sha256) {
-      report.preserved.push({ path: abs, reason: "modified since install — not removed" });
-      continue;
+    try {
+      if (!existsSync(abs)) continue; // already gone — a re-run, or the user removed it
+      const current = createHash("sha256").update(readFileSync(abs)).digest("hex");
+      if (current !== removal.sha256) {
+        report.preserved.push({ path: abs, reason: "modified since install — not removed" });
+        continue;
+      }
+      unlinkSync(abs);
+      report.removed.push(abs);
+      touchedDirs.add(dirname(abs));
+    } catch (err) {
+      // One unreadable entry must not take the install with it. These run after
+      // the receipt is written, so throwing reports failure for an install that
+      // in fact succeeded — and leaves the journal uncleared, so the next run
+      // re-executes the same pending set *before* writing anything and dies in
+      // the same place. A deterministic cause (a recorded path replaced by a
+      // directory, a chmod, a held handle) then wedges every `av install` until
+      // the user finds the path by hand.
+      report.preserved.push({
+        path: abs,
+        reason: `could not be removed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
-    unlinkSync(abs);
-    report.removed.push(abs);
-    touchedDirs.add(dirname(abs));
   }
 
   for (const dir of touchedDirs) cleanEmptyDirsUpward(dir, opts.scopeRoot);

@@ -29,7 +29,15 @@ export function cleanEmptyDirsUpward(startDir: string, scopeRoot: string): void 
       return;
     }
     if (entries.length > 0) return;
-    rmdirSync(current);
+    try {
+      rmdirSync(current);
+    } catch {
+      // ENOTEMPTY if anything landed between the read and the remove — another
+      // session, a `.DS_Store` — or ENOTDIR if this is a symlink. Either way the
+      // directory stays, which is the safe outcome, and the caller reports it as
+      // a survivor.
+      return;
+    }
     current = dirname(current);
   }
 }
