@@ -18,6 +18,13 @@ const SKILL_CELLS = SKILL_SCENARIOS * 2;
 const runsFor = (skillRepeats: number, deepRepeats: number): number =>
   SKILL_CELLS * skillRepeats + DEEP_TASKS * deepRepeats;
 
+// These cases orchestrate one run per cell, so their wall time grows with the
+// scenario count on disk — the same staleness the comment above describes, but
+// in the budget rather than in an expectation. The slowest was measured at 8.7s
+// against a 15s ceiling, which fails on a loaded machine long before the code
+// is at fault. Assert correctness, not speed.
+const SUITE_BUDGET_MS = 45_000;
+
 describe("runBehavioralSuite", () => {
   it("covers every skill case and golden task without paid providers", async () => {
     const launch = vi.fn(async () => ({ kind: "completed" as const, output: "synthetic answer" }));
@@ -53,7 +60,7 @@ describe("runBehavioralSuite", () => {
     expect(result.runs.every((run) => !Object.hasOwn(run, "output"))).toBe(true);
     expect(launch.mock.calls.length).toBeGreaterThan(0);
     expect(launch.mock.calls.length).toBeLessThan(runs); // capability-preflight N/A cells never launch
-  }, 15_000);
+  }, SUITE_BUDGET_MS);
 
   it("retains all declared repeats instead of selecting a best run", async () => {
     const result = await runBehavioralSuite({
@@ -79,7 +86,7 @@ describe("runBehavioralSuite", () => {
     expect(result.population).toMatchObject({ skillCells: SKILL_CELLS, runs: SKILL_CELLS * 3 });
     expect(new Set(result.runs.filter((run) => run.cellId === "skill.ask.routing:positive").map((run) => run.repeat)))
       .toEqual(new Set([1, 2, 3]));
-  }, 15_000);
+  }, SUITE_BUDGET_MS);
 
   it("bounds parallel workers while preserving deterministic result order", async () => {
     // A gate rather than a sleep. The old version slept 5ms per launch and then
@@ -128,5 +135,5 @@ describe("runBehavioralSuite", () => {
       `skill.${firstScenario}.routing:positive`,
       `skill.${firstScenario}.routing:negative`,
     ]);
-  }, 15_000);
+  }, SUITE_BUDGET_MS);
 });
