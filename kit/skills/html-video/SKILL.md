@@ -1,6 +1,6 @@
 ---
 name: av:html-video
-description: "Create local MP4 videos from HTML/CSS/JS templates with nexu-io/html-video. Covers source checkout setup, template discovery, studio customization, preview, and render verification."
+description: "Use when creating local MP4 videos from HTML/CSS/JS with nexu-io/html-video, including templates, Studio customization, preview, and render verification."
 user-invocable: true
 when_to_use: "Invoke for HTML-first video generation, template-driven promos, explainers, data videos, or social clips that should render locally through Chromium and ffmpeg."
 category: frontend
@@ -184,3 +184,28 @@ If a first-party `html-video` agent skill package becomes available, prefer its 
 - The av-hyperframes skill for HeyGen HyperFrames CLI — a separate HTML-first
   video wrapper; use it specifically for HeyGen HyperFrames compositions
   rather than `nexu-io/html-video` templates.
+
+## Output format
+
+Return the brief, project/template ID, source and asset paths, preview path,
+render command, MP4 path, ffprobe duration/dimensions/codecs, and any setup or
+polish step still unresolved.
+
+## Quality gates
+
+- [ ] Installed/source CLI help confirms every command and option used.
+- [ ] Source checkout or dependency changes were explicitly authorized.
+- [ ] Assets are licensed/approved and no credential appears in project output.
+- [ ] Preview was inspected before render and browser errors were resolved.
+- [ ] ffprobe confirms nonzero duration, expected dimensions, and playable streams.
+- [ ] Large generated media is not committed without explicit user intent.
+
+## Workflow position
+
+**Typically follows:** an accepted video brief and prepared assets.
+
+**Typically precedes:** `av:media-processing` for final encode/package work or
+user review of the rendered proof.
+
+**Related:** `av:hyperframes` for HeyGen HTML compositions and `av:remotion` for
+React/frame-based video.

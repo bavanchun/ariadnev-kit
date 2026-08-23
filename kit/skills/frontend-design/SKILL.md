@@ -1,6 +1,6 @@
 ---
 name: av:frontend-design
-description: Create polished frontend interfaces from designs/screenshots/videos. Use for web components, 3D experiences, replicating UI designs, quick prototypes, immersive interfaces, avoiding AI slop.
+description: "Use when creating polished frontend interfaces from designs, screenshots, or video, including web components, 3D experiences, prototypes, and immersive UI."
 user-invocable: true
 when_to_use: "Invoke when visual fidelity and polished UI are primary."
 category: frontend
@@ -245,7 +245,13 @@ Deeper material behind the overview references above — read on demand, not by 
 - `references/technical-optimization.md` — model-selection cost/speed strategy and budget guidelines for asset generation.
 - `references/technical-workflows.md` — end-to-end pipeline examples for generating, analyzing, and optimizing assets.
 
-## Self-Review Gate (mandatory before delivering)
+## Output format
+
+Return the design read and aesthetic thesis, files/components changed, token and
+interaction decisions, responsive/accessibility behavior, visual evidence at
+representative viewports, checks run, and remaining fidelity gaps.
+
+## Quality gates
 
 Run this against your output. Each item is pass/fail — fix EVERY failure before presenting. Do not rationalize a failure as a stylistic choice.
 
@@ -274,6 +280,15 @@ Run this against your output. Each item is pass/fail — fix EVERY failure befor
 18. **The verdict**: would a stranger glance at this and say "AI made that"? If yes, it has failed regardless of how many rules passed.
 19. You can name the ONE memorable element in one sentence, and the output visibly matches the thesis you declared.
 
-If 3+ items fail on first pass, the direction was too timid — return to the Direction Menu, escalate one dimension, then fix individual items.
+If 3+ items fail on first pass, return to the Direction Menu, escalate one
+dimension, and re-run every failed check.
 
-Commit fully to distinctive visions. You are acting as a senior product designer with strong, specific taste — not a code generator with default styles. When uncertain, do NOT fall back to safe defaults; fall back to the Direction Menu and these rules and execute them literally. Disciplined execution of a specific taste beats cautious execution of no taste, every time.
+## Workflow position
+
+**Typically follows:** `av:brainstorm` or a supplied visual reference and brief.
+
+**Typically precedes:** `av:frontend-development`, `av:ui-styling`, browser
+verification, and `av:test`.
+
+**Related:** `av:ai-multimodal` for reference analysis and `av:tech-graph` for
+publish-grade technical diagrams rather than application UI.

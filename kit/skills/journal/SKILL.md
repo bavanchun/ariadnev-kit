@@ -1,6 +1,6 @@
 ---
 name: av:journal
-description: "Write chronological technical journals for session reflection and change analysis. Journals preserve work history; they do not replace current docs or ADRs."
+description: "Use when writing chronological technical journals for session reflection and change analysis without replacing current docs or ADR authority."
 user-invocable: true
 when_to_use: "Invoke for technical session reflection or chronological work records."
 category: utilities
@@ -55,7 +55,22 @@ av journal validate <slug-or-filename-stem>
 
 Created files use `YYYY-MM-DD-<slug>.md` with `-2`, `-3`, … collision suffixes.
 
-## Workflow Position
+## Output format
+
+Return the created journal path/slug, title and one-line summary, source events
+captured, validation result, and any social channel dry-run or publish results.
+Keep local journal creation distinct from external publishing.
+
+## Quality gates
+
+- [ ] Journal records observed chronology, decisions, failures, and next steps.
+- [ ] Durable product/architecture decisions also update their owning docs or ADR.
+- [ ] CLI commands and option flags match current `av journal --help`.
+- [ ] Secrets, private URLs, customer data, and raw hidden reasoning are excluded.
+- [ ] Social publishing runs dry first and requires explicit external-mutation authority.
+- [ ] Retry state prevents duplicate posts and failures are reported per channel.
+
+## Workflow position
 
 **Typically follows:** `av:ship` (journal after shipping), `/av:cook` (journal after implementation), `/av:fix` (journal after bug fix)
 **Terminal skill** — no typical successor.
