@@ -1,14 +1,45 @@
 name: CI
 
+# Two paths never reach any gate below, so a commit touching only them buys a
+# ~14-minute run that can only pass:
+#   plans/**   — dated plans and reports. Nothing in this job reads the real
+#                directory (the plan-command tests use in-memory fixtures), and
+#                check-brand-drift.mjs already allowlists the `plans/` prefix
+#                because those documents quote the old name on purpose.
+#   .claude/** — local agent working state. Nothing tracked lives there today
+#                and no gate reads it, but agents churn it constantly.
+# Unlike plans/, `.claude/` is NOT brand-drift-allowlisted, so text committed
+# there could carry drift past this filter. The Monday run is the backstop that
+# closes that hole: it re-scans the whole tree regardless of what changed.
 on:
   push:
     branches: [main, dev]
+    paths-ignore:
+      - "plans/**"
+      - ".claude/**"
   # dev is where work actually lands; without it here a PR into dev gets no
   # checks at all and the review gate is decorative.
   pull_request:
     branches: [main, dev]
+    paths-ignore:
+      - "plans/**"
+      - ".claude/**"
+  schedule:
+    # Weekly full run on the default branch: catches anything the path filter
+    # above deferred, and proves the pipeline still works on a quiet week.
+    - cron: "0 3 * * 1"
 
 permissions: {}
+
+concurrency:
+  # A PR that is pushed twice in a minute should not pay for the first run:
+  # 14 of 56 runs in the week of 2026-08-16 finished after being superseded.
+  # `main` is the exception — the release chain reads CI's verdict on the
+  # commit it is about to cut from, and a cancelled run has no verdict. On a
+  # pull_request event github.ref is refs/pull/N/merge, so PRs and dev pushes
+  # both cancel; only refs/heads/main does not.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   ci:
@@ -20,6 +51,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Full history AND tags, deliberately — two gates below need both and
+          # fail closed without them, so this is not the cheap win it looks like:
+          #   "Build-binaries integration gate" → build-binaries.test.mjs calls
+          #   resolvePreviousStable(), which reads `git tag --list ariadnev@*`
+          #   and throws "no previous stable release exists" on a shallow tree;
+          #   "Release bundle focused gates" → docs-bundle-generator.test.ts
+          #   clones this checkout and checks out a pre-rename release tag.
+          # Verified on a simulated depth-1 checkout (0 tags, 1 commit): both
+          # break. Only check-brand-drift.mjs is shallow-safe (git ls-files).
           fetch-depth: 0
           persist-credentials: false
 
