@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { jsonEnvelope } from "./json-envelope.js";
 import { dirname } from "node:path";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
@@ -23,7 +24,10 @@ export interface InstallHandlerOpts {
   applyHookSettings?: boolean;
   /** Installed ariadnev package version, recorded in the receipt. */
   ariadnevVersion?: string;
+  json?: boolean;
 }
+
+export const INSTALL_SCHEMA_VERSION = 1;
 
 export interface InstallHandlerResult {
   results: ProviderInstallResult[];
@@ -78,6 +82,22 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
       ariadnevVersion: opts.ariadnevVersion,
     },
   );
+  if (opts.json) {
+    return {
+      results,
+      summary: jsonEnvelope(INSTALL_SCHEMA_VERSION, "install.run", {
+        dryRun: opts.dryRun,
+        scope: opts.scope,
+        providers: results.map((r) => ({
+          provider: r.provider,
+          written: r.written,
+          backedUp: r.backedUp,
+          skipped: r.skipped.map((s) => ({ kind: s.kind, name: s.name, reason: s.reason })),
+        })),
+        heal,
+      }),
+    };
+  }
   let summary = renderSummary(results, opts.dryRun);
   summary += renderHealSummary(heal);
   if (!opts.applyHookSettings) {

@@ -112,7 +112,8 @@ export function registerMaintenanceCommands(
     .description("Health-check the installed kit against its receipt")
     .option("--global", "check ~/ scope", false)
     .option("--fix", "re-merge hook bindings that drifted out of settings.json (backs up first)", false)
-    .action((opts: { global?: boolean; fix?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((opts: { global?: boolean; fix?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       const { summary, exitCode, status } = runDoctor({
@@ -123,6 +124,7 @@ export function registerMaintenanceCommands(
         dryRun: !!global.dryRun,
         timestamp: nowStamp(),
         color: context.outColor(),
+        json: !!opts.json,
       });
       emit(summary);
       context.record("doctor", { scope, status });
@@ -147,9 +149,9 @@ export function registerMaintenanceCommands(
       finishBackups(runBackupsAction(action, timestamp, opts, base, !!global.dryRun));
     });
 
-  // `recover` is an alias, not a second implementation. AgentKit's own help
-  // describes it as one, and the only thing it really adds is `--latest`, which
-  // now lives on `restore` where the rest of the restore flags already are.
+  // `recover` is an alias, not a second implementation. The kit this was ported
+  // from documents it as one too, and the only thing it really adds is
+  // `--latest`, which now lives on `restore` beside the other restore flags.
   program
     .command("recover")
     .description("Alias for `backups restore --latest` (pass a timestamp to pick one)")
@@ -177,7 +179,8 @@ export function registerMaintenanceCommands(
     .option("--global", "check ~/ scope", false)
     .option("--check", "only report whether an update exists; don't install", false)
     .option("--to <version>", "install this exact release instead of latest (e.g. downgrade)")
-    .action(async (opts: { global?: boolean; check?: boolean; to?: string }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (opts: { global?: boolean; check?: boolean; to?: string; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const isBinary = !/^(node|bun)/i.test(basename(process.execPath));
       const { summary, exitCode } = await runUpdate(
@@ -192,6 +195,7 @@ export function registerMaintenanceCommands(
           to: opts.to ?? null,
           platform: process.platform,
           arch: process.arch,
+          json: !!opts.json,
         },
         realUpdateDeps(),
       );

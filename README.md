@@ -90,10 +90,22 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev audit [kit\|scripts] [--global] [--json] [--strict]` | Classify every installed file against the receipt (`ok`/`modified`/`missing`/`untracked`), or scan the scripts the kit ships for privilege escalation, remote code execution, and writes outside the skill. Exits 1 on drift; `--strict` also fails on untracked files and flagged scripts |
 | `ariadnev skill <install\|verify\|repair\|upgrade\|remove\|run> [name] [args…]` | Manage the Python environment a skill's scripts need, and run those scripts under the right interpreter. Most skills import only the standard library and need no environment; those that do get one built from a pinned, hash-verified lock. `verify` reads installed metadata only — `--deep` additionally imports the packages in a timed-out child process |
 | `ariadnev backups list [--global]` | List timestamped backups with file counts |
-| `ariadnev backups restore <timestamp> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
+| `ariadnev backups show <timestamp> [--global]` | Name every entry in one backup, with its kind and size |
+| `ariadnev backups verify <timestamp> [--global]` | Re-hash every copy against the manifest: `ok` / `corrupt` / `missing` / `unverifiable`. Exits 1 on anything but `ok`, including a backup written before manifests recorded digests — it is restorable, but not provable |
+| `ariadnev backups restore <timestamp\|--latest> [--file <rel>] [--global] [--dry-run]` | Restore file(s) from a backup, safety-backing up current state first |
+| `ariadnev backups prune [--older-than <days>] [--keep-last <n>] [--global] [--dry-run]` | Remove old backups by age, by count, or both — when both are given, a backup survives if either rule keeps it. Never removes a `heal-` backup, which is the only copy of a tree an upgrade deleted |
+| `ariadnev recover [<timestamp>] [--file <rel>] [--global]` | Alias for `backups restore`, defaulting to the newest backup |
 | `ariadnev update [--check] [--global] [--to <x.y.z>]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe), `--to` installs one exact release so a regression can be rolled back |
 | `ariadnev validate [--check] [--strict]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift, `--strict` counts orphan and dangling reference warnings as failures |
 | `ariadnev contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
+
+Every top-level command accepts `--json`, and a test asserts that against the
+real command tree rather than a list. Most emit
+`{ schema_version, kind, data }` with a dot-namespaced `kind` (`list.kit`,
+`backups.verify`, `doctor.diagnose`). Five predate that envelope and keep their
+own shape as their contract — `contract`, `audit`, `config`, `run` and `eval`
+— which `LEGACY_JSON_COMMANDS` records so adding a sixth takes a deliberate
+edit.
 | `ariadnev eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `ARIADNEV_EVAL_CMD` is set |
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
 | `ariadnev run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |

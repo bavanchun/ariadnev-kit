@@ -18,8 +18,9 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .description("Lint the kit source (frontmatter, sizes, references, cross-skill routing) without installing")
     .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
     .option("--strict", "count orphan and dangling reference warnings as failures", false)
-    .action((opts: { check?: boolean; strict?: boolean }) => {
-      const { summary, ok } = runValidate({ check: !!opts.check, strict: !!opts.strict });
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((opts: { check?: boolean; strict?: boolean; json?: boolean }) => {
+      const { summary, ok } = runValidate({ check: !!opts.check, strict: !!opts.strict, json: !!opts.json });
       emit(summary);
       if (!ok) process.exitCode = 1;
     });
@@ -109,8 +110,9 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .option("--skill-repeats <count>", "repeats for every skill routing cell", "3")
     .option("--deep-repeats <count>", "repeats for every golden task", "1")
     .option("--concurrency <count>", "maximum parallel isolated runs", "1")
+    .option("--json", "emit the machine envelope instead of the text report (--suite always emits JSON)", false)
     .action(async (opts: {
-      skill?: string; suite?: boolean; runner?: string; variant: string;
+      skill?: string; suite?: boolean; runner?: string; variant: string; json?: boolean;
       runtimeProvider?: string; runtimeVersion?: string; model?: string;
       timeoutMs: string; skillRepeats: string; deepRepeats: string; concurrency: string;
     }) => {
@@ -149,6 +151,7 @@ export function registerQualityCommands(program: Command, context: CommandRegist
         skill: opts.skill,
         evalCmd,
         color: context.outColor(),
+        json: !!opts.json,
         deps: evalCmd ? realEvalDeps(evalCmd) : undefined,
       });
       emit(summary);

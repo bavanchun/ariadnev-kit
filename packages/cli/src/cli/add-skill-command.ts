@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
@@ -13,6 +14,8 @@ export interface AddSkillOpts {
   /** Kit root to add into (defaults to the resolved bundled/dev kit). */
   kitRoot?: string;
 }
+
+export const ADD_SKILL_SCHEMA_VERSION = 1;
 
 export interface AddSkillResult {
   path: string;
@@ -46,7 +49,8 @@ export function registerAddSkill(program: Command): void {
     .command("add-skill <name>")
     .description("Scaffold a new canonical skill in the kit")
     .option("--description <text>", "skill description")
-    .action(async (name: string, opts: { description?: string }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (name: string, opts: { description?: string; json?: boolean }) => {
       let description = opts.description ?? "";
       if (!description && process.stdout.isTTY) {
         const { text, isCancel, cancel } = await import("@clack/prompts");
@@ -58,6 +62,10 @@ export function registerAddSkill(program: Command): void {
         description = answer as string;
       }
       const res = runAddSkill({ name, description });
-      emit(`created ${res.path} (name: av:${res.slug})`);
+      emit(
+        opts.json
+          ? jsonEnvelope(ADD_SKILL_SCHEMA_VERSION, "add-skill.create", res)
+          : `created ${res.path} (name: av:${res.slug})`,
+      );
     });
 }

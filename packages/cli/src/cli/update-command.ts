@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync, chmodSync, renameSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { receiptVersion, type Receipt } from "../install/install-receipt.js";
@@ -110,6 +111,7 @@ export interface UpdateHandlerOpts {
   to: string | null;
   platform: NodeJS.Platform;
   arch: string;
+  json?: boolean;
 }
 
 export interface UpdateDeps {
@@ -137,6 +139,8 @@ export interface UpdateDeps {
    */
   verifyRelease(tag: string, checksums: string, signature: string): boolean;
 }
+
+export const UPDATE_SCHEMA_VERSION = 1;
 
 export interface UpdateHandlerResult {
   exitCode: 0 | 1;
@@ -273,7 +277,21 @@ export async function runUpdate(opts: UpdateHandlerOpts, deps: UpdateDeps): Prom
   if (recordedVersion && recordedVersion !== opts.currentVersion) {
     lines.push(`  receipt was written by ${recordedVersion} — run \`ariadnev install\` to re-sync the kit`);
   }
-  const done = (exitCode: 0 | 1 = 0): UpdateHandlerResult => ({ exitCode, summary: lines.join("\n") });
+  // The machine form carries the same lines rather than a re-derived shape:
+  // this command's whole output is a narrative of what it decided and why, and
+  // dropping that in favour of a status code would make the JSON strictly less
+  // informative than the text.
+  const done = (exitCode: 0 | 1 = 0): UpdateHandlerResult => ({
+    exitCode,
+    summary: opts.json
+      ? jsonEnvelope(UPDATE_SCHEMA_VERSION, "update.run", {
+          ok: exitCode === 0,
+          check: opts.checkOnly,
+          to: opts.to,
+          lines,
+        })
+      : lines.join("\n"),
+  });
 
   // Strict version shape check happens before any network call — a bad value
   // is rejected here rather than producing an opaque edge 400.

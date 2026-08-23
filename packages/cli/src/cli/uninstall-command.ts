@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join } from "node:path";
 import { isProviderId, type ProviderId } from "../providers/index.js";
 import { uninstallKit, recoverFromJournal, type UninstallKitOutcome } from "../uninstall/uninstall-execute.js";
@@ -14,7 +15,10 @@ export interface UninstallHandlerOpts {
   home: string;
   cwd: string;
   timestamp: string;
+  json?: boolean;
 }
+
+export const UNINSTALL_SCHEMA_VERSION = 1;
 
 export interface UninstallHandlerResult {
   outcomes: UninstallKitOutcome[];
@@ -118,5 +122,11 @@ export function runUninstall(opts: UninstallHandlerOpts): UninstallHandlerResult
     }
   }
 
+  if (opts.json) {
+    return {
+      outcomes,
+      summary: jsonEnvelope(UNINSTALL_SCHEMA_VERSION, "uninstall.run", { dryRun: opts.dryRun, scope: opts.scope, outcomes }),
+    };
+  }
   return { outcomes, summary: renderUninstallSummary(outcomes, opts.dryRun) };
 }
