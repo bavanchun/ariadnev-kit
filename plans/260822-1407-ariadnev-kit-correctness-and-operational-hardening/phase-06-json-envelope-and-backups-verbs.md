@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "JSON envelope and backups verbs"
-status: todo
+status: completed
 priority: P2
 effort: "3-4d"
 dependencies: [5]
@@ -116,18 +116,68 @@ otherwise.
 
 ## Success Criteria
 
-- [ ] The five existing `--json` commands emit byte-identical output after
-      extraction.
-- [ ] All 10 missing surfaces support `--json`; new ones use the envelope.
-- [ ] `LEGACY_JSON_COMMANDS` pinned by test; `av audit --json` shape unchanged.
-- [ ] `backups verify` reports `ok` / `corrupt` / `unverifiable` — the tamper
-      test mutates a file **nested inside** a backed-up directory.
-- [ ] `backups prune` honours `--older-than` and `--keep-last`; most-protective
+- [x] The five existing `--json` commands emit byte-identical output after
+      extraction — their own tests pass unchanged, which is the proof.
+- [x] All missing surfaces support `--json`; new ones use the envelope.
+- [x] `LEGACY_JSON_COMMANDS` pinned by test; `av audit --json` shape unchanged.
+- [x] `backups verify` reports `ok` / `corrupt` / `missing` / `unverifiable` —
+      the tamper test mutates a file **nested inside** a backed-up directory.
+- [x] `backups prune` honours `--older-than` and `--keep-last`; most-protective
       wins when both are given.
-- [ ] `backups restore --latest` picks the newest of three backups.
-- [ ] `av recover` and `av backups restore` reach the same code path.
-- [ ] `contract-command.test.ts` passes with `recover` registered.
-- [ ] `pnpm test` green.
+- [x] `backups restore --latest` picks the newest.
+- [x] `av recover` and `av backups restore` reach the same dispatch.
+- [x] `contract-command.test.ts` passes with `recover` registered.
+- [x] `pnpm test` green — 1293 vitest, 153 node, lint and validate clean.
+
+## Corrections to this phase's own counts
+
+**Eleven surfaces were missing `--json`, not ten, and the legacy list is five,
+not six.** `validate` was named as a command whose JSON "genuinely differs" — it
+emitted no JSON at all, so it had nothing to grandfather, and listing it would
+have permanently exempted it from an envelope it had never used. Measured
+against the real Commander tree rather than the draft's prose:
+
+| | commands |
+|---|---|
+| legacy shape, preserved | `contract`, `audit`, `config`, `run`, `eval` |
+| gained the envelope | `install`, `uninstall`, `update`, `doctor`, `backups`, `list`, `query`, `telemetry`, `migrate`, `add-skill`, `validate` |
+
+`eval` is in both columns: `--suite` already emitted its own JSON document
+unconditionally, while the tier-1/tier-3 path had no machine form at all. It
+gained one.
+
+## What needed more than a flag
+
+Most handlers already returned structured results beside their summary. Two did
+not:
+
+- **`list`** built its strings directly. `listData()` now computes the answer
+  and `runList` renders it, so the two forms are the same values rather than two
+  computations of them. This was the only real refactor.
+- **`eval`**'s tier-3 loop now collects each skill's outcome as it prints it,
+  from the same values.
+
+Three payload decisions worth keeping: `doctor` carries its exit code *inside*
+the payload because 0/1/2 predates the shared exit table and a reader should not
+have to know that; `validate` carries `heldFindings` in full where the text
+prints only the count; `update` carries its lines, because its output is the
+reasoning and a status code would be strictly less informative.
+
+Coverage is asserted against the real command tree, so a new command without
+`--json` fails — a written-down list is what a command's own commit forgets.
+
+## Open question 3, answered
+
+**Directory-entry hash strategy: a tree digest.** Every file below the target,
+sorted by its path relative to it, folded in as `relpath\0<sha256 of bytes>`.
+Paths are part of the digest, so a file moved inside the tree without an edit
+still changes the answer — hashing contents alone would call a rearranged tree
+identical. Both that and the nested-tamper case are mutation-checked.
+
+`hashTarget` runs per `backupPath` call, and `backupPath` rewrites the whole
+manifest each time, so a full-tree backup is O(n²) in manifest writes. Measured
+at ~1500 entries it is under a second and pre-existing; noted rather than fixed,
+because fixing it means batching the writer and that is not this phase.
 
 ## Risk Assessment
 
