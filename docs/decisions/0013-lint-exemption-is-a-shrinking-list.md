@@ -144,3 +144,29 @@ are a floor. The actual control is second-reader review, budgeted in phase 8.
   and the two must not be re-coupled.
 - Ported content is now edited freely where it improves the skill. ADR 0011 is
   what permits this; ADR 0008's verbatim-copy promise expired with the fork.
+
+
+## Follow-up: a sibling shrink-only list for phantom-command citations
+
+`kit/av-invocation-allowlist.json` is the second list built on the same shape,
+introduced with the `av`-invocation lint. It is deliberately kept apart from
+`skills-lint-exempt.json`:
+
+- `skills-lint-exempt.json` covers *authoring-bar* findings — size, structure,
+  duplicate headings — and shrinks as skills are rewritten to the bar.
+- `av-invocation-allowlist.json` covers *citation* findings — a skill referring
+  to a subcommand or flag this CLI does not register — and shrinks as content
+  decisions land ("does a plans dashboard exist at all?").
+
+Sharing one list had two failures. First, a new phantom in any of the eighty
+authoring-bar entries would pass CI unnoticed. Second, the day a skill came off
+the authoring list its own citation errors would detonate inside whichever
+unrelated PR did the removing. The two must shrink independently.
+
+Every allowlist entry carries a `reason` that has to name what decision is
+outstanding — an entry without one is ignored on load, so nothing is silenced
+by accident. `--strict` refuses the list past its committed ceiling
+(`MAX_INVOCATION_ALLOWLIST_ENTRIES`, mirrored by a test), so adding an entry
+requires either removing one first or a deliberate ceiling bump reviewed in the
+same PR. The individual entries still downgrade their own hits to warnings
+either way; `--strict` only changes what happens at the list level.

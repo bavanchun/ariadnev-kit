@@ -3,6 +3,8 @@ import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pendingPortNames, runValidate } from "./validate-command.js";
+import { loadAvInvocationAllowlist, MAX_INVOCATION_ALLOWLIST_ENTRIES } from "./validate-invocations.js";
+import { commandSurface } from "./command-surface.js";
 import { resolveKitRoot, exemptSkillNames, readArtifact, readReferenceFiles } from "../kit/load-kit.js";
 import { lintSkill } from "../kit/skill-lint.js";
 
@@ -385,7 +387,7 @@ describe("kit-wide reference integrity", () => {
   // reached. It reads kit/skills at runtime, so a skill added later is covered
   // without touching this file.
   it("ships no orphan or dangling reference in any skill", () => {
-    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true, surface: commandSurface() });
     const referenceFindings = result.findings.filter(
       (f) => f.kind === "orphan" || f.kind === "dangling",
     );
@@ -492,10 +494,19 @@ describe("av-invocation findings", () => {
       writeFileSync(join(dir, "scripts", name), content);
     }
     writeExemptList(tmp, extras.exempt ? ["foo"] : []);
+    // The invocation allowlist is the list that actually holds invocation
+    // hits — the two lists shrink for unrelated reasons, see ADR 0013.
+    if (extras.exempt) {
+      writeFileSync(
+        join(tmp, "av-invocation-allowlist.json"),
+        JSON.stringify([{ skill: "foo", reason: "Fixture holding the seeded phantom for the exempt-stays-warn test." }]),
+      );
+    }
   }
 
   const invocations = (strict = false) =>
-    runValidate({ kitRoot: tmp, strict }).findings.filter((f) => f.kind === "av-invocation");
+    runValidate({ kitRoot: tmp, strict, surface: commandSurface() })
+      .findings.filter((f) => f.kind === "av-invocation");
 
   it("errors on a phantom subcommand in SKILL.md, at the file's own line number", () => {
     seed("Scaffold it with `av plan create`.");
@@ -574,7 +585,7 @@ describe("av-invocation findings", () => {
    */
   it("leaves the kit's own correct denials alone", () => {
     const clean = ["plan-i18n/SKILL.md", "plan/SKILL.md", "cook/references/plan-state-files-first.md"];
-    const found = runValidate({ kitRoot: resolveKitRoot(process.cwd()) })
+    const found = runValidate({ kitRoot: resolveKitRoot(process.cwd()), surface: commandSurface() })
       .findings.filter((f) => f.kind === "av-invocation")
       .map((f) => f.message);
     for (const file of clean) expect(found.filter((m) => m.startsWith(file))).toEqual([]);
@@ -584,5 +595,79 @@ describe("av-invocation findings", () => {
     const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
     const errors = result.findings.filter((f) => f.kind === "av-invocation" && (f.level ?? "error") === "error");
     expect(errors, "a new phantom invocation landed in a skill that is not exempt").toEqual([]);
+  });
+});
+
+describe("av-invocation allowlist ratchet", () => {
+  const kitRoot = resolveKitRoot(process.cwd());
+
+  /**
+   * The shrink-only rule on `kit/av-invocation-allowlist.json`. `plans-kanban`
+   * and one file in `coding-level` are the two entries the list ships with;
+   * adding a third quietly turns the quarantine into the old blanket exemption.
+   *
+   * Lower `MAX_INVOCATION_ALLOWLIST_ENTRIES` when an entry is removed. Do not
+   * raise it: a new phantom worth quarantining is worth a review comment naming
+   * the outstanding decision first, and if the file grew silently the reviewer
+   * has to see this test fail to know it happened.
+   */
+  it("never lets the allowlist grow past the committed ceiling", () => {
+    const entries = loadAvInvocationAllowlist(kitRoot);
+    expect(entries.length).toBeLessThanOrEqual(MAX_INVOCATION_ALLOWLIST_ENTRIES);
+  });
+
+  it("every entry names an outstanding decision in its reason", () => {
+    // A silent silencer defeats the whole point of the list. `loadAvInvocationAllowlist`
+    // already drops entries with an empty reason; this test also refuses one
+    // whose reason is too short to plausibly say what the decision is.
+    const short = loadAvInvocationAllowlist(kitRoot).filter((e) => (e.reason ?? "").trim().length < 40);
+    expect(short, "each av-invocation-allowlist entry must name the decision it is waiting on").toEqual([]);
+  });
+
+  it("--strict fails when a fixture kit exceeds the ceiling", async () => {
+    // A temp kit whose allowlist has one more entry than the ceiling permits.
+    const tmp = mkdtempSync(join(tmpdir(), "ariadnev-allowlist-"));
+    try {
+      const dir = join(tmp, "skills", "foo");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "SKILL.md"), GOOD_FRONTMATTER.replace("# Foo\n", "# Foo\n\nNothing here.\n"));
+      const bloated = Array.from({ length: MAX_INVOCATION_ALLOWLIST_ENTRIES + 1 }, (_, i) => ({
+        path: `foo/references/pad-${i}.md`,
+        reason: `Padding entry ${i} — outstanding decision this test asserts the strict gate rejects.`,
+      }));
+      writeFileSync(join(tmp, "av-invocation-allowlist.json"), JSON.stringify(bloated));
+      const result = runValidate({ kitRoot: tmp, strict: true, surface: commandSurface() });
+      expect(result.ok).toBe(false);
+      expect(result.findings).toContainEqual(
+        expect.objectContaining({
+          kind: "av-invocation",
+          skill: "(kit)",
+          message: expect.stringContaining("ceiling"),
+        }),
+      );
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("non-strict does not fail on a bloated allowlist — the ratchet is a strict-only gate", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "ariadnev-allowlist-lax-"));
+    try {
+      const dir = join(tmp, "skills", "foo");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "SKILL.md"), GOOD_FRONTMATTER.replace("# Foo\n", "# Foo\n\nNothing here.\n"));
+      const bloated = Array.from({ length: MAX_INVOCATION_ALLOWLIST_ENTRIES + 1 }, (_, i) => ({
+        path: `foo/references/pad-${i}.md`,
+        reason: `Padding entry ${i} — outstanding decision the strict gate would reject if enabled.`,
+      }));
+      writeFileSync(join(tmp, "av-invocation-allowlist.json"), JSON.stringify(bloated));
+      const result = runValidate({ kitRoot: tmp, surface: commandSurface() });
+      const ratchetHits = result.findings.filter(
+        (f) => f.kind === "av-invocation" && f.skill === "(kit)",
+      );
+      expect(ratchetHits).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

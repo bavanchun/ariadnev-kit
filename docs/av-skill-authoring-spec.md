@@ -225,6 +225,7 @@ that's intentional (codex has no per-agent model tiering), not a bug.
 - [ ] Exact `## Output format`, `## Quality gates`, and `## Workflow position` headings are present
 - [ ] `## Workflow position` names an `av:<slug>` or declares `none` as its whole answer
 - [ ] Every `av:<slug>` reference resolves to an existing kit skill
+- [ ] Every `av <sub>` and `av … --flag` in prose or a script resolves against the live command tree (`av validate` runs the `av`-invocation lint); a phantom that cannot be fixed now goes into `kit/av-invocation-allowlist.json` with a reason naming the outstanding decision, and the list is shrink-only under `--strict`
 - [ ] All four provenance fields are strings and match the pinned source; original skills use the all-`"none"` sentinel
 - [ ] Claim-tracked skills classify every claim and pass strict `ariadnev coverage --skill <name>`
 - [ ] No secrets, tokens, or machine-specific absolute paths
