@@ -1,6 +1,6 @@
 ---
 name: av:repomix
-description: Pack repositories into AI-friendly files with Repomix (XML, Markdown, plain text). Use for new-project onboarding, codebase snapshots, LLM context preparation, security audits, third-party library analysis.
+description: Pack repositories into AI-friendly XML, Markdown, or text with Repomix. Use for onboarding, codebase snapshots, LLM context, security audits, or third-party analysis.
 user-invocable: true
 when_to_use: "Invoke to pack repositories for LLM context or audits."
 category: dev-tools
@@ -256,3 +256,23 @@ For detailed information, see:
 - GitHub: https://github.com/yamadashy/repomix
 - Documentation: https://repomix.com/guide/
 - MCP Server: Available for AI assistant integration
+
+## Output format
+
+Report the source, include/exclude scope, output format and path, token/file
+counts, security-check status, and any omitted or flagged paths.
+
+## Quality gates
+
+- Inspect current Repomix help before using version-sensitive flags.
+- Exclude secrets, credentials, private keys, generated dependencies, and
+  unrelated large artifacts.
+- Review the packed output before sharing it outside the workspace.
+- Confirm the result fits the target model or consumer's context limit.
+
+## Workflow position
+
+**Typically follows:** repository scoping and a defined analysis consumer.
+**Typically precedes:** external review, onboarding, or LLM-assisted analysis.
+**Related:** `av:scout` locates relevant files without creating a packed corpus;
+`av:security` owns the actual security audit.

@@ -1,6 +1,6 @@
 ---
 name: av:project-management
-description: "Track progress, update plan statuses, coordinate runtime work, generate reports, and preserve cross-session continuity."
+description: "Use to track progress, update plan statuses, coordinate runtime work, generate reports, and preserve cross-session continuity."
 user-invocable: true
 when_to_use: "Invoke for progress tracking, plan status, or handoffs."
 category: utilities
@@ -136,3 +136,22 @@ Update `status` when plan state changes.
 - `av:plan` — Creates implementation plans (planning phase)
 - `av:cook` — Implements plans (execution phase, invokes project-manager at finalize)
 - `plans-kanban` — Visual dashboard for plan viewing
+
+## Output format
+
+Report the active plan, completed/remaining counts, current blockers and
+dependencies, files synchronized, runtime-tracking status, and report path.
+
+## Quality gates
+
+- Derive status from durable plan files and verified evidence.
+- Sweep every phase before changing plan-level completion.
+- Preserve unresolved mappings and blockers instead of guessing completion.
+- Keep runtime tracking a mirror; plan files remain authoritative.
+
+## Workflow position
+
+**Typically follows:** execution or a request for plan/progress status.
+**Typically precedes:** handoff, the next phase, or final delivery reporting.
+**Related:** `av:plan` authors plans; `av:cook` executes them; this skill keeps
+their durable and runtime state synchronized.

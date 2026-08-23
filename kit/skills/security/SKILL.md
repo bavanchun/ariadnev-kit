@@ -1,6 +1,6 @@
 ---
 name: av:security
-description: "STRIDE + OWASP-based security audit with optional red-team persona discovery loop and auto-fix. Scans code for vulnerabilities from multiple attacker perspectives (auth attacker, supply chain, insider, infrastructure), categorizes by severity, and can iteratively fix findings using av:autoresearch pattern."
+description: "Audit code with STRIDE and OWASP, optional red-team personas, and scoped fixes. Use for auth, supply-chain, insider, infrastructure, or release security risks."
 user-invocable: true
 when_to_use: "Invoke for threat-modeled security audit or auto-fix loops."
 category: utilities
@@ -195,3 +195,25 @@ See `references/red-team-personas.md` for the full persona catalog: threat model
 Faithful absorption (in scope) of upstream `/autoresearch:security` ([uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch), MIT). The local version supports both one-shot STRIDE + OWASP audit and the red-team-personas iterative discovery loop.
 
 See `/av:autoresearch` for the full family map.
+
+## Output format
+
+Report scope and threat model, evidence-backed findings by severity, affected
+paths, exploit conditions, remediation, verification, and any accepted or
+unresolved risk.
+
+## Quality gates
+
+- Tie every finding to reachable behavior and the data or capability at risk.
+- Redact credentials and never include exploit-ready secret values.
+- Separate confirmed vulnerabilities from hardening suggestions and hypotheses.
+- Apply fixes only when authorized, then run focused regression/security checks.
+
+## Workflow position
+
+**Typically follows:** architecture/context inspection or `av:predict` security
+concerns.
+**Typically precedes:** prioritized remediation, `av:plan`, release review, or
+risk acceptance.
+**Related:** `av:security-scan` runs automated vulnerability scanning; this
+skill performs threat-modelled analysis and optional scoped remediation.

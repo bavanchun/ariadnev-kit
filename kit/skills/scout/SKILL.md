@@ -119,3 +119,23 @@ Load appropriate reference based on decision tree:
 
 **Typically precedes:** `the engineer debug skill` (debug after scouting), `/av:fix` (fix after locating code), `the installed code-review skill` (scout edge cases before review)
 **Related:** `the engineer debug skill` (investigate after scouting), `/av:brainstorm` (explore after scouting)
+
+## Output format
+
+Return relevant files with one-line ownership notes, matching patterns, nearby
+tests/docs/plans, public contracts, unresolved questions, and delegated scopes
+or timeouts when delegation was used.
+
+## Quality gates
+
+- Search the smallest relevant scope first and cite exact repository paths.
+- Distinguish direct evidence from inferred ownership or blast radius.
+- Avoid duplicate agent scopes and continue locally when delegation is blocked.
+- Do not mutate implementation while performing a read-only scout.
+
+## Workflow position
+
+**Typically follows:** task framing or a request to locate/understand code.
+**Typically precedes:** `av:debug`, `av:fix`, `av:brainstorm`, planning, or review.
+**Related:** `av:research` gathers external evidence; this skill maps the local
+repository.
