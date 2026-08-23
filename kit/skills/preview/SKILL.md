@@ -121,13 +121,13 @@ Before generating, agent MUST read these references:
 
 | Mode | Always read | Mode-specific |
 |------|-------------|---------------|
-| All HTML modes | `references/html-design-guidelines.md` | — |
-| `--explain` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `architecture.html` |
-| `--diagram` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
-| `--slides` | `references/html-slide-patterns.md`, `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `slide-deck.html` |
-| `--diff` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
-| `--plan-review` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
-| `--recap` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| All HTML modes | `references/html-design-guidelines.md`, `references/html-css-patterns.md`, `references/html-css-layout-patterns.md`, `references/html-css-content-patterns.md` | — |
+| `--explain` | `references/html-libraries.md` | Template: `architecture.html` |
+| `--diagram` | `references/html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
+| `--slides` | `references/html-slide-patterns.md`, `references/html-slide-layout-patterns.md`, `references/html-slide-visual-patterns.md`, `references/html-libraries.md` | Template: `slide-deck.html` |
+| `--diff` | `references/html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
+| `--plan-review` | `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| `--recap` | `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
 
 Multi-section pages (`--explain`, `--diff`, `--plan-review`, `--recap`): also read `references/html-responsive-nav.md`.
 
