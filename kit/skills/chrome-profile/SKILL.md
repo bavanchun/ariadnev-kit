@@ -69,8 +69,8 @@ Install the local CLI shim from the shipped skill directory. Use the path that m
 
 ```bash
 # ariadnev / Claude Code native-skill layout
-bash ~/.claude/skills/chrome-profile/scripts/install.sh
-bash .claude/skills/chrome-profile/scripts/install.sh
+bash ~/.claude/skills/av-chrome-profile/scripts/install.sh
+bash .claude/skills/av-chrome-profile/scripts/install.sh
 
 # Current skill directory
 bash scripts/install.sh
@@ -79,11 +79,11 @@ bash scripts/install.sh
 bash ~/.claude/plugins/<plugin>/skills/av-chrome-profile/scripts/install.sh
 
 # ariadnev / Codex native-skill layout, global or project-local
-bash ~/.agents/skills/chrome-profile/scripts/install.sh
-bash .agents/skills/chrome-profile/scripts/install.sh
+bash ~/.agents/skills/av-chrome-profile/scripts/install.sh
+bash .agents/skills/av-chrome-profile/scripts/install.sh
 ```
 
-If none of those paths exists, find the installed `chrome-profile/scripts/install.sh` under the runtime skill directory and run that script. On Windows, run the sibling `install.cmd`.
+If none of those paths exists, find the installed `av-chrome-profile/scripts/install.sh` under the runtime skill directory and run that script. On Windows, run the sibling `install.cmd`.
 
 Then run the guided checks:
 

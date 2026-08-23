@@ -62,15 +62,27 @@ try {
 /**
  * One-time cleanup for orphaned .shadowed/ directories from the disabled skill-dedup hook.
  * The hook is disabled, but existing orphaned skills still need recovery on startup.
+ *
+ * Names in `.shadowed/` are bare, because they were shadowed before installed
+ * skill dirs carried the `av-` prefix. Restoring one whose prefixed twin is
+ * installed would put back a directory no install receipt covers — invisible to
+ * uninstall, doctor and audit, and shadowing the real skill in the provider's
+ * own lookup. Those are held, not restored and not deleted: the copy stays in
+ * `.shadowed/` where the user can still reach it.
+ *
+ * The bare name is never renamed to a prefixed one. Most entries here are
+ * third-party skills that were never ours, and adopting them into our namespace
+ * would be a worse mistake than leaving them shadowed.
  */
 function cleanupOrphanedShadowedSkills() {
   const shadowedDir = path.join(process.cwd(), '.claude', 'skills', '.shadowed');
-  if (!fs.existsSync(shadowedDir)) return { restored: [], skipped: [], kept: [] };
+  if (!fs.existsSync(shadowedDir)) return { restored: [], skipped: [], kept: [], held: [] };
 
   const skillsDir = path.join(process.cwd(), '.claude', 'skills');
   const restored = [];
   const skipped = [];
   const kept = [];
+  const held = [];
 
   try {
     const entries = fs.readdirSync(shadowedDir, { withFileTypes: true });
@@ -78,6 +90,11 @@ function cleanupOrphanedShadowedSkills() {
       if (!entry.isDirectory()) continue;
       const src = path.join(shadowedDir, entry.name);
       const dest = path.join(skillsDir, entry.name);
+
+      if (fs.existsSync(path.join(skillsDir, `av-${entry.name}`))) {
+        held.push(entry.name);
+        continue;
+      }
 
       try {
         if (!fs.existsSync(dest)) {
@@ -106,16 +123,25 @@ function cleanupOrphanedShadowedSkills() {
       }
     }
 
+    // The manifest is only removed once nothing is still waiting on it. A held
+    // entry is unfinished business, and deleting its record would make the
+    // leftover directory unexplainable.
     const manifestFile = path.join(shadowedDir, '.dedup-manifest.json');
-    if (fs.existsSync(manifestFile)) fs.unlinkSync(manifestFile);
+    if (held.length === 0 && fs.existsSync(manifestFile)) fs.unlinkSync(manifestFile);
     if (fs.existsSync(shadowedDir) && fs.readdirSync(shadowedDir).length === 0) {
       fs.rmdirSync(shadowedDir);
     }
 
-    return { restored, skipped, kept };
+    if (held.length > 0) {
+      process.stderr.write(
+        `[session-init] kept ${held.length} shadowed skill(s) whose av- twin is installed: ${held.join(', ')}\n`,
+      );
+    }
+
+    return { restored, skipped, kept, held };
   } catch (error) {
     process.stderr.write(`[session-init] Shadowed cleanup error: ${error.message}\n`);
-    return { restored, skipped, kept };
+    return { restored, skipped, kept, held };
   }
 }
 
@@ -323,7 +349,8 @@ async function main() {
     const hasCleanup =
       shadowedCleanup.restored.length > 0 ||
       shadowedCleanup.skipped.length > 0 ||
-      shadowedCleanup.kept.length > 0;
+      shadowedCleanup.kept.length > 0 ||
+      shadowedCleanup.held.length > 0;
     if (hasCleanup) {
       console.log(`\n[!] SKILL-DEDUP CLEANUP:`);
       console.log(`Recovered orphaned .shadowed/ directory from disabled skill-dedup hook.`);
@@ -336,6 +363,10 @@ async function main() {
       if (shadowedCleanup.kept.length > 0) {
         console.log(`[!] Kept ${shadowedCleanup.kept.length} skill(s) for manual review (content differs): ${shadowedCleanup.kept.join(', ')}`);
         console.log(`    Review .claude/skills/.shadowed/ and merge changes manually.`);
+      }
+      if (shadowedCleanup.held.length > 0) {
+        console.log(`[!] Held ${shadowedCleanup.held.length} skill(s) whose av- twin is installed: ${shadowedCleanup.held.join(', ')}`);
+        console.log(`    Restoring the unprefixed name would shadow the installed skill. The copy is still in .claude/skills/.shadowed/.`);
       }
     }
 
