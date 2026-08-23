@@ -17,6 +17,16 @@ export interface CommandNode {
   /** The subset that consumes the next token as a value. */
   readonly valueFlags: ReadonlySet<string>;
   readonly subcommands: ReadonlyMap<string, CommandNode>;
+  /**
+   * The command declares a positional of its own, so an unrecognized word after
+   * it is an argument rather than a mistake.
+   *
+   * `av run` is the case: it has `resume`, `status` and `cancel` beneath it *and*
+   * takes `[workflow]`, so `av run code-review` is correct and was reported as a
+   * phantom subcommand. Without this bit the lint cannot tell that apart from
+   * `av plan create`, where `plan` takes no positional at all.
+   */
+  readonly acceptsPositional: boolean;
 }
 
 /** The root: `av` itself, carrying the global options. */
@@ -103,7 +113,10 @@ export function checkInvocation(argv: string[], surface: CommandSurface): Mismat
       if (!scopes.some((scope) => scope.flags.has(flag))) {
         return { severity: "warning", command: path.join(" "), token: flag };
       }
-      if (scopes.some((scope) => scope.valueFlags.has(flag))) i++;
+      // `--to=1.0.0` carries its own value. Skipping the next token as well
+      // swallows a real argument, and after a group command that means the
+      // following subcommand goes unchecked.
+      if (!raw.includes("=") && scopes.some((scope) => scope.valueFlags.has(flag))) i++;
       continue;
     }
     if (node.subcommands.size === 0) continue;
@@ -112,6 +125,9 @@ export function checkInvocation(argv: string[], surface: CommandSurface): Mismat
     // stops and the example begins.
     if (!SUBCOMMAND.test(name)) break;
     const next = node.subcommands.get(name);
+    // A command taking its own positional cannot distinguish a wrong subcommand
+    // from a legitimate argument, so it reports neither.
+    if (next === undefined && node.acceptsPositional) break;
     if (next === undefined) return { severity: "error", command: path.join(" "), token: name };
     node = next;
     scopes.push(next);

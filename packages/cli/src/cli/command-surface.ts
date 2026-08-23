@@ -44,10 +44,19 @@ export function surfaceOf(command: Command): CommandNode {
   }
   // `av help <command>` is Commander's, on every command that has children.
   if (subcommands.size > 0) {
-    subcommands.set("help", { flags: new Set(UNIVERSAL_FLAGS), valueFlags: new Set(), subcommands: new Map() });
+    subcommands.set("help", {
+      flags: new Set(UNIVERSAL_FLAGS),
+      valueFlags: new Set(),
+      subcommands: new Map(),
+      acceptsPositional: true,
+    });
   }
 
-  return { flags, valueFlags, subcommands };
+  // `av run [workflow]` declares both children and a positional, so a word after
+  // it is a workflow ID. Read off Commander rather than listed here, so a command
+  // that gains an argument stops being misreported without anyone remembering
+  // this file.
+  return { flags, valueFlags, subcommands, acceptsPositional: command.registeredArguments.length > 0 };
 }
 
 /**
