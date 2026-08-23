@@ -112,6 +112,18 @@ describe("lintAvInvocations — flags", () => {
     expect(tokens("`av --cwd=/tmp plan use x`")).toEqual([]);
   });
 
+  /**
+   * `--to=1.0.0` carries its value with an `=`. `1.0.0` is the version
+   * string, not a subcommand or a flag; without the split-on-`=` rule the
+   * walker read it as the next token and reported it as unknown, which was
+   * misleading whenever the flag itself was unregistered too.
+   */
+  it("does not read an attached flag value as a token of its own", () => {
+    const found = lintAvInvocations("`av validate --to=1.0.0 --strict`", surface);
+    // The only finding is the flag itself. `1.0.0` is never inspected.
+    expect(found.map((f) => f.token)).toEqual(["--to"]);
+  });
+
   it("stops at a shell pipe so another program's flags are not attributed to av", () => {
     expect(tokens("`av config prefs resolve --json | jq -r '.prefs'`")).toEqual([]);
   });
@@ -163,6 +175,24 @@ describe("lintAvInvocations — explicit negation", () => {
 
   it("does not let a --no- flag read as the word 'no'", () => {
     expect(tokens("Start it with `av config start --no-open`.")).toEqual(["error:start"]);
+  });
+
+  /**
+   * The vacuous-`no` guard. A quantifier reading — "no arguments", "no output"
+   * — is not a denial of the command sitting next to it, and the earlier
+   * sentence-wide rule silenced every phantom that landed in the same sentence
+   * as one. `no` now has to sit right next to the code span it excuses.
+   */
+  it("does not let a bare 'no' elsewhere in the sentence excuse a phantom", () => {
+    expect(tokens("With no arguments the `av foo bar` command lists everything.")).toEqual(["error:foo"]);
+    expect(tokens("No output. Run `av foo bar` to see it.")).toEqual(["error:foo"]);
+    expect(tokens("The command takes no options and `av foo bar` runs it.")).toEqual(["error:foo"]);
+  });
+
+  it("still accepts 'no' when it sits directly before the code span", () => {
+    // The corpus form. Backtick-adjacent `no` is what "no such command" reads
+    // as in this vocabulary, and dropping it would report every one of those.
+    expect(tokens("There is no `av plan create` command.")).toEqual([]);
   });
 
   it("never excuses a fenced block on nearby prose", () => {

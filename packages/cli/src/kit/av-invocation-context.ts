@@ -109,8 +109,19 @@ function sentenceSpans(text: string): { start: number; end: number }[] {
  * ones a naive matcher punishes hardest — `plan-i18n`, `plan`, and `cook` all
  * spell out, in backticks, that `av plan create` does not exist — so the escape
  * is as broad as the corpus's actual vocabulary and no broader.
+ *
+ * Split into two shapes because bare `no` is over-broad. "No arguments." and
+ * "no output" are quantifier uses that describe the surrounding phrase, not the
+ * command in the same sentence; treating them as sentence-wide denials excused
+ * every phantom hiding next to one. Everything else keeps its sentence scope:
+ * "does not", "never", "neither", "nonexistent" are unambiguous absence.
  */
-const DENIAL = /\b(?:no|not|never|neither|none|nonexistent|non-existent|invent)\b|does ?n[o']t|is ?n[o']t/i;
+const STRONG_DENIAL =
+  /\b(?:not|never|neither|none|nonexistent|non-existent|invent)\b|does ?n[o']t|is ?n[o']t|\bno such\b/i;
+/** `no` followed by the code span it denies — "no `av plan create`",
+ *  "stores no `--linked-pr`". Anchored to a backtick or quote, so the words
+ *  "no arguments" three tokens up from a real invocation do not qualify. */
+const NO_ADJACENT = /\bno\s+(?:such\s+)?['"`]/i;
 
 /** Does the clause around `offset` say the thing at `offset` does not exist? */
 export function isDenied(text: string, offset: number): boolean {
@@ -122,7 +133,14 @@ export function isDenied(text: string, offset: number): boolean {
     // and `av config stop` both contain a word this rule looks for.
     .replace(/`+[^`]*`+/g, " ")
     .replace(/(^|\s)--?[A-Za-z][\w-]*/g, " ");
-  return DENIAL.test(prose);
+  if (STRONG_DENIAL.test(prose)) return true;
+  // Bare `no` only counts adjacent to the invocation clause, which in this
+  // corpus always means a backtick opens right after it. Bounded by the
+  // sentence: "There is no `av plan create`. Run `av plan scaffold` instead."
+  // must still report `scaffold`, and a raw 30-char window would reach the
+  // "no `" in the previous sentence.
+  const window = text.slice(Math.max(span.start, offset - 30), offset);
+  return NO_ADJACENT.test(window);
 }
 
 /** 1-based line number for a character offset. */

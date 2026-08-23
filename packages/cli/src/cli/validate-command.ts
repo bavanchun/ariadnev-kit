@@ -13,7 +13,13 @@ import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
 import type { CommandSurface } from "../kit/av-invocation-lint.js";
-import { readSkillScripts, scanInvocations } from "./validate-invocations.js";
+import {
+  isAllowlisted,
+  loadAvInvocationAllowlist,
+  MAX_INVOCATION_ALLOWLIST_ENTRIES,
+  readSkillScripts,
+  scanInvocations,
+} from "./validate-invocations.js";
 
 // `ariadnev validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -259,17 +265,40 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   );
 
   const surface = opts.surface;
+  const invocationAllowlist = loadAvInvocationAllowlist(kit.root);
+  // Shrink-only ratchet on the invocation allowlist. Under --strict, an entry
+  // beyond the committed count fails the gate; the entries themselves still
+  // downgrade their own hits to warnings either way. Same shape as the
+  // held-findings ceiling, and reported at the kit level so it survives a
+  // per-skill --skill filter.
+  if (opts.strict && invocationAllowlist.length > MAX_INVOCATION_ALLOWLIST_ENTRIES) {
+    findings.push({
+      skill: "(kit)",
+      kind: "av-invocation",
+      message: `kit/av-invocation-allowlist.json has ${invocationAllowlist.length} entries; ceiling is ${MAX_INVOCATION_ALLOWLIST_ENTRIES}. Lower the ceiling as entries are removed; do not raise it — every phantom worth quarantining is worth a review comment naming the outstanding decision.`,
+    });
+  }
 
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
-    const referenceFiles = existsSync(refsDir)
-      ? readdirSync(refsDir)
-          .filter((f) => f.endsWith(".md"))
-          .map((file) => ({
-            name: `references/${file}`,
-            content: readFileSync(join(refsDir, file), "utf8"),
-          }))
-      : [];
+    const referenceFiles: { name: string; content: string }[] = [];
+    if (existsSync(refsDir)) {
+      for (const file of readdirSync(refsDir).filter((f) => f.endsWith(".md"))) {
+        // An EACCES on one skill's reference used to abort the whole loop from
+        // inside a list comprehension. Reported like unreadable scripts: the
+        // installer copies the file either way, so silence would be a worse
+        // answer than a finding.
+        try {
+          referenceFiles.push({ name: `references/${file}`, content: readFileSync(join(refsDir, file), "utf8") });
+        } catch (error) {
+          findings.push({
+            skill: skill.name,
+            kind: "av-invocation",
+            message: `${skill.name}/references/${file} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }
+    }
     const names = referenceFiles.map((file) => file.name);
     const { dangling, orphans } = checkReferenceIntegrity(skill.body, names);
     for (const d of dangling) {
@@ -327,33 +356,41 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       });
     }
 
+    const scripts = readSkillScripts(dirname(skill.sourcePath));
+    for (const broken of scripts.unreadable) {
+      findings.push({
+        skill: skill.name,
+        kind: "av-invocation",
+        message: `${skill.name}/${broken.name} could not be read: ${broken.reason}`,
+      });
+    }
     for (const hit of surface === undefined ? [] : scanInvocations(
       [
         { name: `${skill.name}/SKILL.md`, content: skill.raw },
         ...referenceFiles.map((file) => ({ name: `${skill.name}/${file.name}`, content: file.content })),
-        ...readSkillScripts(dirname(skill.sourcePath)).map((script) => ({
-          ...script,
-          name: `${skill.name}/${script.name}`,
-        })),
+        ...scripts.sources.map((script) => ({ ...script, name: `${skill.name}/${script.name}` })),
       ],
       surface,
     )) {
       findings.push({
         skill: skill.name,
         kind: "av-invocation",
-        // An exempt skill degrades to a warning the way its lint findings do —
-        // unconditionally, not only when --strict is off. `plans-kanban` cites a
-        // dashboard the upstream kit had and this CLI does not; whether that skill
-        // should exist at all is a content decision, and --strict promoting the
-        // finding would block every unrelated change until someone made it.
-        level: hit.severity === "warning" || exemptNames.has(skill.name) ? "warn" : "error",
+        // Held only by this lint's own allowlist, never by the authoring-bar
+        // exemption: a skill can sit at the bar and still cite a command that
+        // does not exist, and the two lists shrink for unrelated reasons. A hit
+        // anywhere else is an error at every strictness, because a phantom
+        // command is wrong whether or not --strict is on.
+        level:
+          hit.severity === "warning" || isAllowlisted(invocationAllowlist, skill.name, hit.source)
+            ? "warn"
+            : "error",
         message: `${hit.source}:${hit.line} ${hit.message}`,
       });
     }
   }
 
-  // Agents cite the CLI too, and nothing exempts them — there is no ported-agent
-  // backlog to hold. Skipped under --skill, which asks about one skill.
+  // Agents cite the CLI too, and no allowlist entry covers one today. Skipped
+  // under --skill, which asks about a single skill.
   if (opts.skillFilter === undefined && surface !== undefined) {
     for (const agent of kit.agents) {
       for (const hit of scanInvocations([{ name: `agents/${agent.name}.md`, content: agent.raw }], surface)) {

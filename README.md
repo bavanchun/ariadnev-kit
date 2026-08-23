@@ -97,7 +97,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 | `ariadnev recover [<timestamp>] [--file <rel>] [--global]` | Alias for `backups restore`, defaulting to the newest backup |
 | `ariadnev unlock [--global]` | Clear a leaked lifecycle lock. Mutating commands take an advisory lock on the roots they write and exit **3** rather than interleave; a lock whose owner is still alive is reported, never broken, so clearing one is always a deliberate act |
 | `ariadnev update [--check] [--global] [--to <x.y.z>]` | Self-update the binary to the latest release (sha256-verified); `--check` only reports (offline-safe), `--to` installs one exact release so a regression can be rolled back |
-| `ariadnev validate [--check] [--strict]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects; `--check` also fails on README matrix drift, `--strict` counts orphan and dangling reference warnings as failures |
+| `ariadnev validate [--check] [--strict]` | Lint skills and compile workflow graphs for structural, authority, recovery, evidence, and capability defects, including `av`-invocation citations against the live command tree; `--check` also fails on README matrix drift, `--strict` counts orphan and dangling reference warnings as failures and refuses an `av-invocation-allowlist.json` grown past its committed ceiling |
 | `ariadnev contract [--json]` | Print the provider×artifact capability matrix (Markdown, or `--json` for machines) |
 
 Every top-level command accepts `--json`, and a test asserts that against the
@@ -187,6 +187,15 @@ rather than ignored. `ariadnev validate` enforces both, and every cross-skill
 `av:<slug>` reference, rather than leaving it to convention. See
 [`docs/av-skill-authoring-spec.md`](docs/av-skill-authoring-spec.md) for the
 machine-enforced authoring contract.
+
+Two shrink-only lists sit beside the enforcement so a decision that cannot
+land now stays visible: `kit/skills-lint-exempt.json` holds skills still below
+the authoring bar (see ADR 0013), and `kit/av-invocation-allowlist.json` holds
+individual phantom-command citations waiting on a content decision the linter
+cannot make. The two shrink for unrelated reasons — a skill can sit at the
+authoring bar and still name a subcommand this CLI never registered — and
+every entry in the invocation list carries a reason naming the outstanding
+decision. `--strict` refuses either list beyond its committed ceiling.
 
 - **Core loop skills**: `av:brainstorm`, `av:plan`, `av:cook` (embedded
   test/review gates + risk-lane routing), `av:fix` (root-cause loop),

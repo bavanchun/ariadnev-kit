@@ -1,0 +1,10 @@
+[
+  {
+    "skill": "plans-kanban",
+    "reason": "The whole skill drives a dashboard the upstream kit shipped as `ak config start` and this CLI never registered — `av config` has only `prefs`. Its SKILL.md and its launcher script both cite `config start`, `config status` and `config stop`. Rewriting the prose would leave a skill whose premise is void, so the content decision (does a plans dashboard exist at all?) belongs to its own authoring pass. Delete this entry with that pass."
+  },
+  {
+    "path": "coding-level/SKILL.md",
+    "reason": "Cites `av kit init --force`; `av kit` registers only `install-path` and `refresh`. The paragraph is describing how a selected-kit collision is resolved, and naming the command that actually does it needs someone who knows whether that path still exists. One file, so scoped to the file."
+  }
+]
