@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Installer av- prefix and heal"
-status: todo
+status: completed
 priority: P1
 effort: "3-4d"
 dependencies: [1]
@@ -171,22 +171,84 @@ installer git-clones into `vendor/sharetrace`, `excalidraw` builds a venv under
 
 ## Success Criteria
 
-- [ ] `av contract --json` and the README matrix still render bare skill roots.
-- [ ] `e2e-install.test.ts` passes without edits.
-- [ ] Brownfield e2e: install over an unprefixed layout leaves zero unprefixed
+- [x] `av contract --json` and the README matrix still render bare skill roots.
+- [x] `e2e-install.test.ts` passes without edits.
+- [x] Brownfield e2e: install over an unprefixed layout leaves zero unprefixed
       recorded files, zero duplicates, a correct receipt; a second run is a no-op.
-- [ ] Brownfield e2e: process killed between delete and receipt write recovers on
+- [x] Brownfield e2e: process killed between delete and receipt write recovers on
       the next run with no unowned tree.
-- [ ] Brownfield e2e: `--provider cursor` against a two-provider receipt does not
-      delete files the codex record still claims.
-- [ ] Heal refuses a receipt path outside the scope root, and preserves a file
+- [x] Brownfield e2e: reinstalling one provider against a two-provider receipt
+      does not delete files the other record still claims.
+- [x] Heal refuses a receipt path outside the scope root, and preserves a file
       whose hash drifted.
-- [ ] A surviving husk directory is reported, not silently left.
-- [ ] The heal backup still exists after **three** subsequent `av install` runs —
+- [x] A surviving husk directory is reported, not silently left.
+- [x] The heal backup still exists after **three** subsequent `av install` runs —
       proving it is outside the `keep = 3` rotation set.
-- [ ] No code path renames a directory ariadnev does not own.
-- [ ] A provider empirically loads a prefixed-dir skill by name.
-- [ ] `pnpm test` green.
+- [x] No code path renames a directory ariadnev does not own — `renameSync`
+      appears only in `fs-atomic.ts`, temp to destination.
+- [x] A provider empirically loads a prefixed-dir skill by name.
+- [x] `pnpm test` green — 1265 vitest, 153 node, typecheck and
+      `validate --check --strict` clean.
+
+## What landed
+
+The resolver change is `installedSkillDirName` in `adapt/paths.ts`, guarded on
+the empty name. The four "do not edit" test files passed unmodified, which is
+how the guard was checked rather than by reading it.
+
+**The heal is generic, not prefix-specific.** It removes what the previous
+receipt claimed and the new one does not, so the next path change is already
+covered. `installKit` returns `{ results, heal }` — the heal is a property of
+the run, not of any one provider.
+
+Every one of the five hard requirements has a test that fails when the guard is
+removed; each was mutation-checked. Two of those tests passed for the wrong
+reason first:
+
+- The rotation-exemption test passed even with the exemption deleted, because
+  `heal-` sorts after every digit and was simply the newest entry. It now also
+  asserts the ordinary backups rotated to exactly three.
+- The crash-recovery test hand-builds the post-crash state, so it exercised only
+  the journal *read*. Dropping `healRemovals` from the *write* left it green.
+  `install-heal-ordering.test.ts` kills the run at the receipt write and reads
+  what the journal actually holds at that instant.
+
+## Open questions, answered
+
+**Cursor's agent shim** (`resolver.ts:87`) takes the prefix too. It installs
+agents as skill-like dirs in the same shared `.agents/skills` root, so an
+unprefixed `advisor/` there is indistinguishable from a third-party skill.
+Zero of 105 skill names collide with an agent name, and a test holds that —
+if one ever did they would share a directory, as they would have before.
+
+**`test-provider`** takes the prefix like every other provider. It resolves
+through the same `targetFor`, and a test provider that behaves differently from
+the real ones is worth less than one that does not.
+
+**The session-init hook** holds rather than restores. A `.shadowed/` entry whose
+`av-` twin is installed is not restored (that would recreate the orphan) and not
+deleted (it may be the user's only copy) — it stays in `.shadowed/` and is
+reported. It is never renamed into our namespace; most entries there are
+third-party skills that were never ours.
+
+## Step 8: what the provider probe found
+
+Against **codex 0.147.0**, `codex debug prompt-input` under a sandbox HOME:
+
+- `~/.agents/skills` is declared as skill root `r0`.
+- **104 of 105** skills load from `av-`-prefixed directories.
+- Each is surfaced by its frontmatter name — `av:advise` from `av-advise/` —
+  with **zero** name/directory mismatches.
+
+The assumption held. The one skill that does not load,
+`obsidian-second-brain-note`, fails identically from an unprefixed directory:
+its frontmatter uses a folded scalar (`description: >-`) and `metadata: null`.
+That is a content defect, not a path one, and it is pre-existing — three kit
+skills use that shape. It belongs to phase 8's burn-down, not here.
+
+Claude Code was not probed with a paid call. It does not need one: this
+repository's own `~/.claude/skills` holds `ak-`-prefixed directories that the
+running session loads by frontmatter name, which is the same mechanism.
 
 ## Risk Assessment
 

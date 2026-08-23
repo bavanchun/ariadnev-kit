@@ -159,15 +159,15 @@ path-shape are now two separate rules.
 | 0 | [Installer checksum pin](./phase-00-installer-checksum-pin.md) | — | **Completed** (merged, live) |
 | 1 | [Link integrity](./phase-01-link-integrity.md) | — | **Completed** (merged to dev) |
 | 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | **Completed** (merged to dev) |
-| 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | Pending |
+| 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | **Completed** (merged to dev) |
 | 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | Pending |
-| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | Pending |
+| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (merged to dev; release cut pending) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | Pending |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | Pending |
 | 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | Pending |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
-| 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | Pending |
-| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | Pending |
+| 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
+| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (merged to dev; edge deploy + beta cut pending) |
 
 **Execution order: 0 ✓ → 1, 2, 5 in parallel → release(5) → 11 → 3 → 4 → 6 → 7 → 8 → 9.**
 **Phase 10 has no dependencies and blocks nothing — fit it into any gap.**
@@ -265,9 +265,14 @@ split in phase 7. It converts ~25-40 hr of fragment-shuffling into ~3-6 hr.
 
 ## Open questions
 
-1. Does the cursor agent-as-skill-dir shim (`resolver.ts:87`) take the `av-`
-   prefix? Phase 3 decides and records it. Now lower-stakes with no migration.
-2. Does `test-provider` (`resolver.ts:127-137`) get prefixed? Phase 3.
+1. ~~Does the cursor agent-as-skill-dir shim (`resolver.ts:87`) take the `av-`
+   prefix?~~ **Yes.** It writes into the same shared `.agents/skills` root the
+   skills use, so an unprefixed name there is indistinguishable from a
+   third-party skill. Zero of 105 skill names collide with an agent name and a
+   test holds that.
+2. ~~Does `test-provider` (`resolver.ts:127-137`) get prefixed?~~ **Yes** — same
+   `targetFor`, and a test provider that behaves unlike the real ones is worth
+   less than one that does not.
 3. Hash strategy for directory-shaped backup entries. Phase 5 decides before
    implementing `verify`.
 4. Strip `metadata.origin: ported` once a skill clears the bar? Phase 2's ADR.
