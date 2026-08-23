@@ -1,6 +1,6 @@
 ---
 name: av:ai-multimodal
-description: Analyze and generate image, audio, video, and document content through the pinned Multix CLI and live provider catalogs. Use for vision analysis, transcription, OCR, design extraction, and multimodal generation.
+description: Analyze and generate image, audio, video, and document content through the pinned Multix CLI. Use for Gemini vision analysis, transcription, OCR, design extraction, and multimodal generation.
 user-invocable: true
 when_to_use: "Invoke for Gemini vision, OCR, media generation, or transcription."
 category: ai-ml
@@ -212,17 +212,57 @@ retention, duration, context, and output limits before execution. When input or
 output exceeds the verified limit, split media with `ffmpeg` or the pinned
 Multix media command, process segments, then combine the results.
 
-Transcript output should be Markdown with metadata, chunk status, and timestamped
-lines:
+## Output format
+
+Every run returns the artifact the Multix command wrote plus this record:
+
+```markdown
+## Multimodal result
+- Operation: analyze | transcribe | extract | doc convert | generate | generate-video | minimax <op> | media optimize
+- Command: `npx -y -p @mrgoonie/multix@0.2.0 multix <provider> <op> ...` (as run, keys redacted)
+- Model: <explicit --model id> · resolved from: <catalog/--help consulted>
+- Input: <file(s)> · Output: <path from --output> (<format>)
+- Limits applied: <split/optimize step> — or "none"
+- Blockers: <missing key / ffmpeg / provider error, verbatim and redacted> — or "none"
+```
+
+Transcripts (`gemini transcribe --format markdown`) are Markdown with metadata,
+chunk status when the input was split, and timestamped lines:
 
 ```text
 [HH:MM:SS -> HH:MM:SS] transcript content
 ```
 
-## Outputs
+Structured extraction returns the `--format json` file; generation returns the
+image/video/audio path given to `--output`. When generated assets need grouping
+into a project, campaign, or deliverable folder, invoke `av:project-organization`.
 
-Invoke `av:project-organization` when generated assets need to be grouped into a
-project, campaign, report, or deliverable folder.
+## Quality gates
+
+- [ ] Every command used the exact `npx -y -p @mrgoonie/multix@0.2.0 multix`
+      prefix — no floating `multix`, no other version.
+- [ ] Every generate/generate-video call passed an explicit `--model` taken
+      from the live catalog or `--help`; none relied on a remembered default.
+- [ ] The reported output file exists and has the format `--format`/`--output`
+      asked for (`multix gemini *` defaults to `text` when `--format` is omitted).
+- [ ] A provider or key failure is reported as an environment blocker with the
+      redacted provider message, never as a kit-loader or skill failure.
+- [ ] The task needed a model (vision, transcription, OCR, generation); pure
+      re-encoding, thumbnails, or filters were routed to `av:media-processing`.
+
+Proof/risk: N/A — produces media and analysis artifacts; no code path changes.
+
+## Workflow position
+
+**Typically follows:** `av:agent-browser` or `av:chrome-profile` when the input
+is a captured screenshot, and `av:frontend-design` when a design must be
+extracted from an image or video before implementation.
+**Typically precedes:** `av:media-processing` for FFmpeg/ImageMagick
+post-processing of generated files, and `av:project-organization` when
+assets need a home.
+**Related:** `av:ai-artist` renders curated-prompt images through this same
+pinned Multix backend; `av:media-processing` owns model-free encoding and
+conversion.
 
 ## Resources
 

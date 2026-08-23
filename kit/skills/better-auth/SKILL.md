@@ -1,6 +1,6 @@
 ---
 name: av:better-auth
-description: Add authentication with Better Auth (TypeScript). Use for email/password, OAuth providers (Google, GitHub), 2FA/MFA, passkeys/WebAuthn, sessions, RBAC, rate limiting.
+description: Add authentication with Better Auth (TypeScript). Use for email/password, OAuth providers (Google, GitHub), 2FA/MFA, passkeys/WebAuthn, sessions, plugins, RBAC, rate limiting.
 user-invocable: true
 when_to_use: "Invoke for Better Auth setup, sessions, OAuth, MFA, or RBAC."
 category: backend
@@ -211,7 +211,65 @@ Recent Better Auth releases tightened several security-sensitive plugin paths. W
 
 ## Scripts
 
-- `scripts/better_auth_init.py` - Initialize Better Auth configuration with interactive setup
+- `scripts/better_auth_init.py` — interactive generator (stdin prompts, no
+  flags). Run with `av skill run better-auth -- scripts/better_auth_init.py`
+  or `python3` from the skill directory. It prints a proposed `auth.ts` and
+  `.env`, then asks before saving. On save it writes `auth.ts` to a chosen
+  location and **replaces** `.env` with only the Better Auth keys, moving the
+  previous file to `.env.backup` (overwriting any earlier backup). Its
+  `passkey` import is `better-auth/plugins`; check the installed version's
+  plugin packaging before trusting the scaffold.
+
+## Output format
+
+```markdown
+## Better Auth integration
+- Framework / adapter: <Next.js App Router | Hono | ...> / <drizzle | prisma | kysely | mongodb | direct>
+- Methods enabled: email-password · <providers> · <plugins: twoFactor, passkey, magicLink, organization, ...>
+
+| File | Change |
+|------|--------|
+| lib/auth.ts | server instance: database, emailAndPassword, socialProviders, plugins |
+| app/api/auth/[...all]/route.ts | handler mounted |
+| lib/auth-client.ts | client with plugins mirrored |
+| .env(.example) | BETTER_AUTH_SECRET, BETTER_AUTH_URL, <PROVIDER>_CLIENT_ID/SECRET placeholders |
+
+- Schema: `npx @better-auth/cli generate` run after the final plugin list → <migration path>
+- Verified: <sign-up, sign-in, session read, OAuth redirect — command or test name>
+- Security notes applied: <items from "Current Security Notes" relevant to the enabled plugins>
+- Unresolved: <email sender, production URL, provider callback URLs ...> — or "none"
+```
+
+## Quality gates
+
+- [ ] `npx @better-auth/cli generate` was run **after** the last plugin was
+      added — plugins extend the schema, and a missing table surfaces only at
+      runtime, not at build.
+- [ ] Every client-side plugin (`twoFactorClient`, `passkeyClient`, ...) is
+      mirrored on `createAuthClient`; a server-only plugin leaves the client
+      methods undefined.
+- [ ] No real `BETTER_AUTH_SECRET`, client secret, or database URL was written
+      to a tracked file; `.env` holds placeholders or is gitignored.
+- [ ] If `better_auth_init.py` saved `.env`, the values from `.env.backup`
+      that Better Auth does not own were merged back.
+- [ ] Each enabled plugin named in "Current Security Notes" keeps its safer
+      default (single-use magic links, `requireEmailVerificationOnInvitation`,
+      PKCE-complete OIDC) or the exception is recorded with its threat-model
+      reason.
+
+Proof/risk: `integration` — auth touches a trust boundary, so a sign-up →
+sign-in → session-read round trip against the real handler is the floor;
+`e2e` when OAuth redirects or passkeys are enabled.
+
+## Workflow position
+
+**Typically follows:** `av:backend-development` when the API skeleton exists
+and needs an auth layer, or `av:plan` when an accepted phase names Better Auth.
+**Typically precedes:** `av:databases` when the generated schema needs review or
+a migration strategy, and `av:test` for the integration round trip above.
+**Related:** `av:backend-development` owns generic JWT/OAuth/middleware work
+that does not adopt Better Auth; `av:security` audits the finished auth surface
+when the app's threat model warrants it.
 
 ## Resources
 

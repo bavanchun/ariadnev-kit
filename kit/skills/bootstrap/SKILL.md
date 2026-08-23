@@ -1,6 +1,6 @@
 ---
 name: av:bootstrap
-description: "Bootstrap new projects with research, tech stack, design, planning, and implementation. Modes: full (default interactive), auto (explicit autonomous), fast (skip research), parallel (multi-agent)."
+description: "Bootstrap a new project from requirements through research, tech stack, design, planning, and implementation. Use to start a project from scratch; modes --full, --auto, --fast, --parallel."
 user-invocable: true
 when_to_use: "Invoke to start a new project or full-stack setup from scratch."
 category: utilities
@@ -129,7 +129,7 @@ Elite software engineering expert specializing in system architecture and techni
 
 Skip the automatic `/av:journal` step when either applies:
 - The invocation includes the `--skip-journal` flag, OR
-- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal.
+- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal. Today the envelope's top-level key is `config` and `journal.auto` is not a config-schema field, so this branch always resolves `true`; only the flag skips.
 
 Precedence: flag > project config > user config > default (`true`).
 When skipped, print one line:
@@ -145,3 +145,69 @@ Explicit `/av:journal` and `av journal create` are unaffected.
 - `references/workflow-fast.md` - Fast workflow
 - `references/workflow-parallel.md` - Parallel workflow
 - `references/shared-phases.md` - Common phases (implementation → final report)
+
+## Output format
+
+The final report from `references/shared-phases.md` takes this shape:
+
+```markdown
+## Bootstrap: <project name> (--full | --auto | --fast | --parallel)
+
+### Contract
+Outcome / Constraints / Non-goals / Acceptance criteria — as accepted at the opening gate
+
+### Phases
+| Phase | Result | Artifact |
+|-------|--------|----------|
+| Git init | initialized on `main` / already present | — |
+| Research | <n> reports, ≤150 lines each / skipped (--fast) | ./docs/... |
+| Tech stack | <stack> (approved) | ./docs/<tech-stack doc> |
+| Design | wireframes + guidelines / skipped | ./docs/wireframe/ (HTML), ./docs/wireframes/ (screenshots) |
+| Plan | `/av:plan <flag>` | <plan dir>/plan.md |
+| Implement | `/av:cook <flag> <plan-path>` → phases done | <plan dir>/phase-XX-*.md |
+| Test / Review | tester + code-reviewer results | — |
+
+### Get started
+<install, run, first command>
+
+### Next steps
+1. ...
+
+### Commit?
+Offered: yes/no — `git-manager` subagent used / declined
+journal: written | skipped by --skip-journal | skipped by preference
+
+### Unresolved questions
+- ... or "none"
+```
+
+## Quality gates
+
+- [ ] The four contract fields were captured before `git init`, research, or
+      any scaffold — `--fast`, `--parallel`, and `--auto` change approvals, not
+      this gate.
+- [ ] The flags match the Skill Triggers table: plan gets `--hard` (for
+      `--full`), `--auto`, `--fast`, or `--parallel`; cook gets `--auto` or
+      `--parallel` only — `--full` and `--fast` run cook interactive. `--yagni`
+      was forwarded only if the user passed it.
+- [ ] No code was written by this skill directly: every implementation step
+      went through the plan path `/av:plan` returned and `/av:cook`.
+- [ ] Every research report is ≤150 lines and lives under `./docs`; plan files
+      use the `## Naming` pattern from the hook context.
+- [ ] The commit/push offer was a question, not an action — in every mode
+      including `--fast` and `--auto`.
+- [ ] The journal line matches what happened: written, or one of the two exact
+      skip messages.
+
+Proof/risk: set by `av:cook` per phase; this skill only verifies that the
+cook/test/review results it reports actually ran.
+
+## Workflow position
+
+**Typically follows:** `av:brainstorm` when the product outcome is not yet an
+accepted contract, or a user brief that already carries the four fields.
+**Typically precedes:** `av:plan` (mode-matched flag, receives the contract),
+then `av:cook` (receives the plan path), then `av:journal` unless skipped.
+**Related:** `av:cook` alone implements an already accepted plan inside an
+existing repository; `av:xia` ports a feature in from another repo rather than
+starting one.
