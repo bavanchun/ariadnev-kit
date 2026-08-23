@@ -1,6 +1,6 @@
 ---
 name: av:debug
-description: "Debug systematically with root cause analysis before fixes. Use for bugs, test failures, unexpected behavior, performance issues, call stack tracing, multi-layer validation, log analysis, CI/CD failures, database diagnostics, system investigation."
+description: "Debug systematically, proving root cause before any fix. Use for bugs, test failures, CI/CD and server incidents, performance degradation, and log analysis. Diagnoses; does not apply the fix."
 user-invocable: true
 when_to_use: "Invoke when root cause must be proven before a fix."
 category: utilities
@@ -75,7 +75,9 @@ Identify bottlenecks, analyze query performance, develop optimization strategies
 
 ### 8. Reporting Standards (`references/reporting-standards.md`)
 
-Structured diagnostic reports: Executive Summary → Technical Analysis → Recommendations → Evidence
+Structured diagnostic reports: Executive Summary → Technical Analysis →
+Recommendations → Supporting Evidence → Unresolved Questions, with a full
+template and the report file-naming pattern.
 
 **Load when:** Need to produce investigation report or diagnostic summary
 
@@ -130,8 +132,45 @@ Stop and follow process if thinking:
 
 **All mean:** Return to systematic process.
 
-## Workflow Position
+## Output format
 
-**Typically follows:** `/av:scout` (after locating relevant code)
-**Typically precedes:** `/av:fix` (fix the diagnosed issue), `/av:brainstorm` (explore solutions for complex problems)
-**Related:** `/av:scout` (discover before debugging), `/av:fix` (fix after diagnosing)
+Every investigation returns this, whatever its size:
+
+- **Symptom** — what was observed, and the exact command or request that shows it.
+- **Root cause** — one sentence, naming the `file:line` where the defect lives.
+- **Evidence** — the log excerpt, failing assertion, query plan, or trace that
+  proves it. Label each item `confirmed` or `hypothesis`; an investigation that
+  ends with only hypotheses says so in the Status.
+- **Status** — one of `Resolved` / `Mitigated` / `Under investigation`.
+- **Recommended fix** — what to change and where, banded `P0` / `P1` / `P2`.
+  This skill names the fix; it does not apply it.
+- **Unresolved questions** — or "none".
+
+For a system-level incident, expand this into the full report template in
+`references/reporting-standards.md`, which owns the section order, the
+priority bands, and the report file-naming pattern. Do not restate that
+template here.
+
+## Quality gates
+
+- [ ] Root cause is proven, not guessed — the evidence would convince someone
+      who disagreed, and correlation is distinguished from causation
+- [ ] No production code was changed; the fix is described, not applied
+- [ ] Every command reported as run was actually run and its real output read —
+      no completion claim rests on expected output
+- [ ] The root cause names the source of the defect, not the layer where it
+      surfaced
+- [ ] Anything still unexplained is listed rather than absorbed into a
+      confident-sounding summary
+
+## Workflow position
+
+**Typically follows:** `av:scout` once the relevant files are located, or a
+failing `av:test` run that produced the symptom.
+**Typically precedes:** `av:fix` to apply the diagnosed fix — this skill hands
+over a cause and a location, never an edit — or `av:brainstorm` when several
+viable fixes remain and the choice is a design decision.
+**Related:** `av:problem-solving` reframes an investigation that has stalled;
+`av:docs-seeker` and `av:repomix` supply external docs and codebase context
+during collection; `av:agent-browser` and `av:chrome-profile` provide the visual
+verification path for frontend defects.
