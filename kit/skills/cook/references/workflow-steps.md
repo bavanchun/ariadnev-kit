@@ -45,11 +45,11 @@ task tracking.
 - Create `plan.md` + `phase-XX-*.md` files
 
 **Fast:**
-- Use `the engineer plan skill --fast` with scout results only
+- Use `av:plan --fast` with scout results only
 - Minimal planning, focus on action
 
 **Parallel:**
-- Use `the engineer plan skill --parallel` for dependency graph + file ownership matrix
+- Use `av:plan --parallel` for dependency graph + file ownership matrix
 
 **Code:**
 - Skip - plan already exists
@@ -60,7 +60,7 @@ task tracking.
 ### [Review Gate 2] Post-Plan (skip if auto mode)
 - Present plan overview with phases
 - Use `ask_user capability` to ask: "Validate the plan or approve plan to start implementation?" - "Validate" / "Approve" / "Abort" / "Other" ("Request revisions")
-  - "Validate": run `the engineer plan skill validate` skill invocation
+  - "Validate": run `av:plan validate`
   - "Approve": continue to implementation
   - "Abort": stop the workflow
   - "Other": revise the plan based on user's feedback
@@ -135,9 +135,9 @@ maxFile=$(echo "$totals" | awk 'BEGIN{m=0} {if ($1>m) m=$1} END {print m+0}')
 modified=$(git diff --name-only HEAD)
 ```
 
-Read thresholds from `.ck.json` (`simplify.threshold.{locDelta,fileCount,singleFileLoc}`),
-defaulting to 400 / 8 / 200. If any threshold is breached, spawn the simplifier
-scoped to the modified files:
+Thresholds are 400 LOC delta / 8 files / 200 LOC in a single file — the same
+defaults the `simplify-gate` hook carries; no config key overrides them. If any
+threshold is breached, spawn the simplifier scoped to the modified files:
 
 ```
 delegate_agent capability(subagent_type="code-simplifier", prompt="Simplify these files while preserving behavior exactly: [file-list]", description="Simplify recent edits")
@@ -147,8 +147,9 @@ After the subagent returns, log only — never re-run or block:
 - `git diff --shortstat HEAD -- [file-list]` changed → "simplifier made scoped edits"
 - unchanged → "simplifier ran clean"
 
-Skip the step entirely when `CK_SIMPLIFY_DISABLED=1` or
-`.ck.json` `simplify.gate.enabled` is `false`.
+Skip the step entirely when `AV_SIMPLIFY_DISABLED=1` is set or the
+`hooks.simplify-gate` preference resolves to `false` — the two switches the
+`simplify-gate` hook itself honours.
 
 **Output:** `✓ Step 3.S: Simplify [ran|skipped] - [scoped changes|clean|under threshold]`
 
@@ -201,7 +202,7 @@ Skip the step entirely when `CK_SIMPLIFY_DISABLED=1` or
 ## Step 6: Finalize
 
 **All modes - finalize contract:**
-1. **MUST** activate `the engineer project-management skill` skill (MANDATORY) — run full sync-back for [plan-path]: reconcile completed runtime work with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do NOT only mark current phase.
+1. **MUST** activate `av:pm` (MANDATORY) — run full sync-back for [plan-path]: reconcile completed runtime work with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do NOT only mark current phase.
 2. Evaluate docs impact using the installed documentation-management routing.
    If an authority surface changed, delegate `docs-manager` with the changed
    contract, evidence, and exact routed docs in scope. Do not issue a generic
@@ -253,7 +254,7 @@ code:        0 → skip → skip → 3 → [R] → 4 → [R] → 5(user) → 6
 - **MANDATORY DELEGATION:** Steps 4, 5, 6 MUST delegate via delegate_agent capability / skill activation. DO NOT implement directly.
   - Step 4: `tester` (and `debugger` if failures)
   - Step 5: `code-reviewer`
-  - Step 6: `the engineer project-management skill`, conditional `docs-manager`, `git-manager`
+  - Step 6: `av:pm`, conditional `docs-manager`, `git-manager`
 - Discover the live task-management surface before using runtime tracking.
 - If available, mirror unchecked plan items and keep their status current.
 - If unavailable, update the active plan directly; plan files remain authoritative.

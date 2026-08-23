@@ -59,7 +59,7 @@ python3 scripts/poster/search.py --poster-brief --topic "AI Conference" --query 
 ```bash
 python3 scripts/poster/generate.py --topic "AI Conference"
 python3 scripts/poster/generate.py --topic "AI Conference" --query "swiss" --aspect a2
-python3 scripts/poster/generate.py --topic "AI Conference" --style style-03-swiss-editorial --seed 42
+python3 scripts/poster/generate.py --topic "AI Conference" --style modern-editorial-typographic --seed 42
 ```
 
 Pipe the prompt into the image model of choice (Gemini Nano Banana 2, GPT Image, Imagen, Midjourney, etc.). The skill is model-agnostic — it emits text only.

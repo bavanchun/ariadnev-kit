@@ -138,10 +138,10 @@ Record review as completed after accepted findings are resolved.
 ### Step 9: Finalize
 Record finalization as active.
 - Report summary: root cause, evidence chain, changes, prevention measures, confidence score
-- Activate `av:project-management` for task sync-back, plan status updates, and progress tracking
+- Activate `av:pm` for task sync-back, plan status updates, and progress tracking
 - Evaluate docs impact; use delegated docs-manager only for affected authority
   surfaces and git-manager only when explicitly requested/permitted
-- Run `/av:journal` — unless the shared "Journal step — opt-out" applies (see SKILL.md; skip when `--skip-journal` or `journal.auto=false`)
+- Run `/av:journal` — unless the invocation carries `--skip-journal` (see "Journal step — opt-out" in SKILL.md)
 
 Record finalization as completed in the live surface when available and in the active plan.
 **Output:** `✓ Step 9: Complete - [actions taken]`
@@ -158,7 +158,7 @@ Record finalization as completed in the live surface when available and in the a
 | 6 | `av:problem-solving`, `av:sequential-thinking`, `av:context-engineering` |
 | 7 | `run_shell` verification; optional delegated tester when permitted |
 | 8 | `code-reviewer` via `delegate_agent` when permitted, otherwise local review |
-| 9 | `av:project-management`; docs/git delegation only when permitted |
+| 9 | `av:pm`; docs/git delegation only when permitted |
 
 **Rules:** Don't skip steps. Validate before proceeding. One phase at a time.
 **Frontend:** Use `av:agent-browser`, Chrome MCP / `chrome-devtools-mcp`, or any relevant project-native browser tests to verify.
