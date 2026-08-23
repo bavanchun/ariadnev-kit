@@ -24,7 +24,9 @@ Turn any folder of code, docs, papers, or images into a queryable knowledge grap
 - Discovering cross-file relationships and dependency chains
 - Finding "god nodes" (most-connected concepts) in large projects
 - Navigating by structure instead of grepping every file
-- Preparing context-efficient codebase representation (71.5x fewer tokens vs raw files)
+- Preparing a context-efficient codebase representation — upstream reports 71.5x
+  fewer tokens than raw files; treat that as their benchmark, not a measurement
+  of your repository
 
 ## Installation
 
@@ -60,7 +62,9 @@ graphify /path/to/project
 graphify . --watch
 ```
 
-## Output Artifacts
+## Output format
+
+The build writes four artifacts:
 
 | File | Purpose |
 |------|---------|
@@ -68,6 +72,18 @@ graphify . --watch
 | `graphify-out/GRAPH_REPORT.md` | God nodes, surprising connections, suggested questions |
 | `graphify-out/graph.json` | Persistent graph for queries across sessions |
 | `graphify-out/cache/` | SHA256-based incremental updates (only reprocesses changed files) |
+
+Report back, rather than leaving the user to open the files:
+
+1. **Where the artifacts are** — the four paths above, and whether this was a
+   full or incremental build.
+2. **What the graph says** — the god nodes from `GRAPH_REPORT.md` and the
+   relationships that answer the question the build was run for.
+3. **Provenance of each claim** — carry the `EXTRACTED` / `INFERRED` /
+   `AMBIGUOUS` tag through into your summary. An `INFERRED` edge presented as
+   fact is the main way this skill misleads.
+4. **What was not covered** — file types skipped, extras not installed, or
+   passes that did not run.
 
 ## MCP Server Mode
 
@@ -155,7 +171,26 @@ Graph rebuilds are incremental — only changed files get reprocessed. Cache at 
 - Neo4j integration requires separate setup (`pip install 'graphifyy[neo4j]'`)
 - Leiden community detection requires `pip install 'graphifyy[leiden]'`
 
-## Workflow Position
+## Quality gates
 
-**Typically precedes:** `/av:plan` (understand architecture before planning)
-**Related:** `/av:scout` (quick file search), `/av:repomix` (full context dump), `/av:gkg` (semantic symbol navigation)
+- [ ] `pip install graphifyy` (double-y) was used — a `graphify` package on
+      PyPI is someone else's
+- [ ] Every relationship reported carries its `EXTRACTED` / `INFERRED` /
+      `AMBIGUOUS` tag; inferred edges are never stated as established fact
+- [ ] Before running on a private repository, the user knows that docs and
+      images — unlike code and audio — are sent to the configured model provider
+- [ ] Conclusions cite the node or edge in `graph.json` that supports them,
+      not a general impression of the visualization
+- [ ] A feature that needs an extra (`[mcp]`, `[neo4j]`, `[leiden]`) is not
+      described as available until that extra is installed
+
+## Workflow position
+
+**Typically follows:** nothing — this is usually the first pass over an
+unfamiliar repository, before any file is chosen to read.
+**Typically precedes:** `av:plan` (understand the architecture before planning)
+and `av:scout`, which the graph tells you where to point.
+**Related:** `av:scout` searches for specific files where this builds the whole
+structure; `av:repomix` packs the raw corpus into one file for an LLM instead of
+extracting a graph from it; `av:gkg` navigates symbols semantically over a
+narrower language set.

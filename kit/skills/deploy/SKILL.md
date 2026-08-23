@@ -1,6 +1,6 @@
 ---
 name: av:deploy
-description: Deploy projects to any platform with auto-detection. Use when user says "deploy", "publish", "ship", "go live", "push to production", "host this app", or mentions any hosting platform (Vercel, Netlify, Cloudflare, Railway, Fly.io, Render, Heroku, TOSE, Github Pages, AWS, GCP, Digital Ocean, Vultr, Coolify, Dokploy). Auto-detects deployment target from config files and docs/deployment.md.
+description: Deploy an app live to its hosting platform, auto-detected from config files or docs/deployment.md across 15 providers. Use for deploy, publish, ship, or go live — not for provisioning infrastructure.
 user-invocable: true
 when_to_use: "Invoke when the goal is hosting or publishing an app."
 category: infrastructure
@@ -160,3 +160,48 @@ Load ONLY the platform reference needed — do NOT load all files:
 - Never expose env vars, file paths, or internal configs
 - Check `.env` files and `.gitignore` before deploying
 - Operate only within defined skill scope
+
+## Output format
+
+```markdown
+## Deployed
+- **Platform:** <name> — detected from <file>, or chosen by the user
+- **Environment:** production | preview | staging
+- **URL:** <live url> — and the status code it returned when checked
+- **Command:** the exact deploy command that ran
+
+## Verification
+What was checked against the live URL, and the result.
+
+## docs/deployment.md
+Created | Updated | Unchanged — and what changed.
+
+## Follow-ups
+Env vars still to set, custom domain steps, rollback command. Or "none".
+```
+
+If the deploy failed, return the same block with **URL** omitted, the error
+output, and what was attempted — not a partial success.
+
+## Quality gates
+
+- [ ] The live URL was actually requested and its response reported; a deploy
+      command exiting 0 is not proof the site is up
+- [ ] No API key, token, or env-var *value* appears anywhere in the output —
+      names only
+- [ ] `.env` files are covered by `.gitignore` and were not uploaded
+- [ ] The platform was detected or confirmed, never guessed — say which of the
+      four detection steps decided it
+- [ ] The rollback path is stated before production is overwritten
+- [ ] Work outside this skill's scope (provisioning, DNS, SSL, migrations, CI)
+      is handed to `av:devops` rather than improvised here
+
+## Workflow position
+
+**Typically follows:** `av:ship` or `av:test` — deploy what has already been
+merged and verified, not the working tree.
+**Typically precedes:** `av:docs` when a deployment contract changed enough that
+project documentation beyond `docs/deployment.md` is now wrong.
+**Related:** `av:devops` owns the surfaces this skill explicitly refuses —
+infrastructure provisioning, Kubernetes, DNS, SSL, CI/CD pipelines — and is the
+escalation target when a deploy fails for an infrastructure reason.

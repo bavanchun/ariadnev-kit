@@ -155,3 +155,52 @@ Output: project identity, architecture snapshot (Mermaid), recent activity, deci
 - Default: static anti-slop rules from `references/html-design-guidelines.md` (6 curated presets)
 - For `--slides`: consider invoking `/av:ui-ux-pro-max` for richer style selection
 - Agent must vary aesthetics between consecutive HTML outputs (different font pair, palette)
+
+## Output format
+
+**View mode** returns the server URL and what is being served — a file or a
+directory listing — and nothing else. It does not summarize the file's contents
+unless asked.
+
+**Generation mode** writes one file and reports:
+
+1. **Path** — `{plan_dir}/visuals/{slug}.md` when a plan is active, otherwise
+   `plans/visuals/{slug}.md`; the same two locations with `.html` under
+   `--html`. Give the actual path, not the pattern.
+2. **Mode** — which generation flag produced it, and whether `--html` was set
+   explicitly or implied by `--diff` / `--plan-review` / `--recap`.
+3. **What it shows** — two or three lines on the content, so the user can decide
+   whether to open it.
+4. **Browser** — for HTML, whether the file was opened and with which command.
+
+An existing file at the output path is overwritten without prompting; say so
+when it happened.
+
+## Quality gates
+
+- [ ] Every HTML page carries the light/dark theme toggle from
+      `references/html-css-patterns.md` as the first child of `<body>`, with CSS
+      and JS inlined — a page without it is incomplete, not merely unstyled
+- [ ] The HTML file is genuinely self-contained: no external CSS, JS, or font
+      request, so it opens from disk with no server and no network
+- [ ] Every Mermaid block was validated before writing — an unparseable diagram
+      renders as an error box, which is worse than no diagram
+- [ ] The aesthetic differs from the previous HTML output in this session
+      (different font pairing and palette), rather than repeating one house style
+- [ ] Claims in a `--diff`, `--plan-review`, or `--recap` page come from the
+      git or plan data actually read, not from recollection of the session
+- [ ] Only the references this mode's row requires were loaded — the reference
+      table exists to keep the large pattern files out of context
+
+## Workflow position
+
+**Typically follows:** `av:cook` or `av:fix` when finished work needs a
+walkthrough, and `av:plan` when a plan should be reviewed against the codebase
+via `--plan-review`.
+**Typically precedes:** nothing — this skill terminates in an artifact for a
+human to read.
+**Related:** `av:tech-graph` produces publish-grade SVG and PNG diagrams where
+this skill produces quick ASCII, Mermaid, and self-contained HTML;
+`av:mermaidjs-v11` validates the Mermaid syntax embedded here;
+`av:markdown-novel-viewer` is the reader UI view mode serves markdown into;
+`av:ui-ux-pro-max` supplies richer style selection for `--slides`.

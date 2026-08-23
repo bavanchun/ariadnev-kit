@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T06:57:37.962Z",
+  "generatedAt": "2026-08-23T07:37:13.045Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:5d25acb5686632f792fde42ae2fab65a35c4c0a79975980cc08197a3c56ef3e7",
+    "corpusDigest": "sha256:37ae1f538020b7813faaeaf0aa797ee4dfb8caee54e7b5efba7fd177a7187363",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -37,7 +37,7 @@
       "name": "local lexical metadata index",
       "evaluation": {
         "queryCount": 13,
-        "retrievalQuality": 0.6232993141054438,
+        "retrievalQuality": 0.6226188359387427,
         "taskSuccessRate": 0.6153846153846154,
         "provenanceRate": 1,
         "meanContextTokens": 540,
@@ -100,16 +100,16 @@
           },
           {
             "id": "direct.current-docs-research",
-            "retrievalQuality": 0.9673387413348702,
+            "retrievalQuality": 0.9584925251677545,
             "taskSucceeded": true,
             "contextTokens": 540,
             "resultPaths": [
               "kit/skills/research/SKILL.md",
               "evals/scenarios/golden/current-docs-research.json",
+              "kit/skills/ask/SKILL.md",
               "kit/skills/plan/SKILL.md",
               "kit/skills/cook/SKILL.md",
-              "kit/skills/docs-seeker/SKILL.md",
-              "kit/agents/debugger.md"
+              "kit/skills/docs-seeker/SKILL.md"
             ]
           },
           {
@@ -207,7 +207,7 @@
               "kit/skills/brainstorm/SKILL.md",
               "kit/skills/fix/SKILL.md",
               "kit/skills/cook/SKILL.md",
-              "kit/skills/scout/SKILL.md"
+              "kit/skills/ask/SKILL.md"
             ]
           },
           {
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.324666,
-            "p95Ms": 2.815708,
-            "maxMs": 2.994833
+            "p50Ms": 2.304375,
+            "p95Ms": 2.633667,
+            "maxMs": 2.73075
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.194917,
-            "p95Ms": 0.25325,
-            "maxMs": 0.616125
+            "p50Ms": 0.191917,
+            "p95Ms": 0.250292,
+            "maxMs": 2.147917
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.176667,
-            "p95Ms": 0.232,
-            "maxMs": 0.693
+            "p50Ms": 0.174375,
+            "p95Ms": 0.231792,
+            "maxMs": 0.632125
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 176012
+        "indexBytes": 177122
       },
       "externalDependencies": []
     },
@@ -331,9 +331,9 @@
               "kit/skills/research/SKILL.md",
               "evals/scenarios/golden/current-docs-research.json",
               "kit/skills/docs-seeker/SKILL.md",
+              "kit/skills/ask/SKILL.md",
               "kit/skills/plan/SKILL.md",
-              "kit/skills/cook/SKILL.md",
-              "evals/scenarios/golden/architecture-brainstorm-to-plan.json"
+              "kit/skills/cook/SKILL.md"
             ]
           },
           {
@@ -454,37 +454,37 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.998541,
-            "p95Ms": 3.810958,
-            "maxMs": 11.577333
+            "p50Ms": 2.913541,
+            "p95Ms": 3.234917,
+            "maxMs": 3.91475
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.940042,
-            "p95Ms": 1.293125,
-            "maxMs": 2.1065
+            "p50Ms": 0.937875,
+            "p95Ms": 1.064833,
+            "maxMs": 1.608916
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.88775,
-            "p95Ms": 1.014125,
-            "maxMs": 2.751917
+            "p50Ms": 0.895,
+            "p95Ms": 0.994,
+            "maxMs": 1.311542
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 178316,
+        "indexBytes": 179426,
         "edges": 24
       },
       "externalDependencies": []
     }
   },
   "comparison": {
-    "retrievalQualityGainPoints": 22.7121,
+    "retrievalQualityGainPoints": 22.7801,
     "taskSuccessGainPoints": 30.7692,
     "meanContextTokenDelta": 0,
     "candidateIndexByteDelta": 2304,
