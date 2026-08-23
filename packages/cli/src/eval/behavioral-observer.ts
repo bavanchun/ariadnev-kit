@@ -40,17 +40,32 @@ function fileDigest(path: string, bytes: number): string {
   }
 }
 
+function isGone(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException)?.code === "ENOENT";
+}
+
 function snapshot(root: string, directory = root, out: Snapshot = new Map()): Snapshot {
   for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const path = join(directory, entry.name);
     const key = relative(root, path).split(sep).join("/");
-    const stat = lstatSync(path);
-    if (stat.isSymbolicLink()) out.set(key, `link:${readlinkSync(path)}`);
-    else if (stat.isDirectory()) {
-      out.set(key, "directory");
-      snapshot(root, path, out);
-    } else if (stat.isFile()) out.set(key, fileDigest(path, stat.size));
-    else out.set(key, "special");
+    // An entry listed by readdir can be gone by the time it is stat'ed or
+    // opened: git runs `maintenance --auto` in the background after commits
+    // inside the copied workspace, and its `.git/objects/maintenance.lock`
+    // exists for milliseconds. A snapshot taken an instant later would not
+    // have seen it, so that is what this one records. The watcher, not the
+    // snapshot, is what catches writes that come and go mid-run.
+    try {
+      const stat = lstatSync(path);
+      if (stat.isSymbolicLink()) out.set(key, `link:${readlinkSync(path)}`);
+      else if (stat.isDirectory()) {
+        out.set(key, "directory");
+        snapshot(root, path, out);
+      } else if (stat.isFile()) out.set(key, fileDigest(path, stat.size));
+      else out.set(key, "special");
+    } catch (error) {
+      if (!isGone(error)) throw error;
+      out.delete(key);
+    }
   }
   return out;
 }
