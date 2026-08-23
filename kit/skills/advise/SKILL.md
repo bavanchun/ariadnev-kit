@@ -116,7 +116,7 @@ Apply **KISS** and **DRY**. Advise on the full requested scope — never recomme
 
 ### 6. Emit outputs per flags
 
-Write the canonical advice report first (needed as subagent input), using the naming pattern from the `## Naming` section in the injected context with type `advise`. Then spawn flag subagents — subagents that don't depend on each other run in parallel. Each subagent prompt must include: the task, the report path to read, files it may write, acceptance criteria, and "DO NOT COMMIT OR PUSH".
+Write the canonical advice report first whenever a flag will consume it (`--html`, `--md`, `--wiki`, `--github`), using the naming pattern from the `## Naming` section in the injected context with type `advise`. A flagless run delivers the advice in conversation and writes nothing. Then spawn flag subagents — subagents that don't depend on each other run in parallel. Each subagent prompt must include: the task, the report path to read, files it may write, acceptance criteria, and "DO NOT COMMIT OR PUSH".
 
 **`--html`** — spawn `ui-ux-designer`:
 - Input: the advice report. Output: a self-contained HTML file beside it (inline CSS/JS, no network assets, responsive, reduced-motion handling).
@@ -192,7 +192,7 @@ user to hunt for:
 
 | Artifact | When | Path or URL |
 |---|---|---|
-| Advice report | `--html` / `--md` / `--wiki` / `--github` / `--agent` | the canonical report — written before the flag subagents run, or by the advisor under `--agent` |
+| Advice report | `--html` / `--md` / `--wiki` / `--github` / `--agent` | the canonical report's path (this session writes it before the flag subagents run; under `--agent` the advisor wrote it) |
 | HTML report | `--html` | the self-contained HTML file |
 | Markdown report | `--md` | the standalone report, or the canonical report's path when that already met the bar |
 | AgentWiki | `--wiki` | the share URL, or the `AgentWiki publish skipped: <missing capability>` line |
@@ -220,7 +220,7 @@ state file path instead of presenting incomplete advice as final.
       state, with its target value where one exists
 - [ ] No project code was written or edited and no credential, token, or
       personal datum reached a report, the wiki, or GitHub — the only files
-      created are the report and the artifacts the flags asked for
+      created are the ones the flags asked for
 
 ## Workflow position
 

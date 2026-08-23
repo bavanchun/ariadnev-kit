@@ -19,8 +19,8 @@ Auto-detect deployment target and deploy the current project. 15 platform
 playbooks live under `references/platforms/`, with cost-optimized
 recommendations. Fourteen of them have a config-file signal; Vultr has a
 playbook but no detection signal and no project-type recommendation, so it is
-reached only from the Enterprise/Scale options in step 4, or by the user
-naming it.
+reached from `docs/deployment.md` (detection step 1), from the Enterprise/Scale
+options in step 4, or by the user naming it.
 
 ## Scope
 

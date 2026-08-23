@@ -31,8 +31,8 @@ Turn any folder of code, docs, papers, or images into a queryable knowledge grap
 ## Installation
 
 **Note:** The PyPI package is `graphifyy` (double-y); the CLI command is
-`graphify`. Do not `pip install graphify` — any `graphify*` package on PyPI is
-unaffiliated with this skill.
+`graphify`. Do not `pip install graphify` — every `graphify*` package on PyPI other than
+`graphifyy` is unaffiliated with this skill.
 
 ariadnev already bundles this skill in the installed plugin. Do not run
 `graphify install` for ariadnev setup: upstream uses that command to install a

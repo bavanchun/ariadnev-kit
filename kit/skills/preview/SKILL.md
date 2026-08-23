@@ -110,7 +110,7 @@ When processing arguments, follow this priority order:
 
 Adding `--html` to any generation flag switches output from Markdown to a self-contained HTML file.
 
-**Output:** Single `.html` file with all CSS/JS inline. Opens directly in browser — no server needed.
+**Output:** Single `.html` file with all authored CSS/JS inline. Opens directly in browser — no server needed.
 **Location:** `{plan_dir}/visuals/{topic-slug}.html` (same plan-aware logic as markdown mode)
 **Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start` (Windows)
 **MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `references/html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
@@ -184,6 +184,9 @@ when it happened.
 - [ ] The page is one file with every authored style and script inline; the
       only external requests are the CDN libraries named in
       `references/html-libraries.md` (Google Fonts, Mermaid, Chart.js, anime.js)
+- [ ] The light/dark theme toggle from `references/html-css-patterns.md` is the
+      first child of `<body>` — a page without it is incomplete, not merely
+      unstyled
 - [ ] Claims in a `--diff`, `--plan-review`, or `--recap` page come from the
       git or plan data actually read, not from recollection of the session
 - [ ] Only the references this mode requires were loaded — its row in the

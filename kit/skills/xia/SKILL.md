@@ -139,7 +139,8 @@ Unless `--auto` or `--fast` was passed, get approval before continuing.
 ### 5. Plan
 
 `--compare` stops here: write the comparison report Output format defines and
-skip the delegation below.
+skip the delegation below. Under `--fast` its Head-to-Head rests on the phase-2
+map alone, since phase 3 was skipped; say so in the report.
 
 For `--copy`, `--improve`, and `--port`, delegate to `/av:plan` with:
 - source manifest
@@ -158,8 +159,9 @@ Rules:
 
 ### 6. Deliver
 
-This skill does not implement code. It produces the analysis and plan, then
-hands off in the shape `## Output format` defines below.
+This skill does not implement code. It produces the analysis, and outside
+`--compare` a plan, then hands off in the shape `## Output format` defines
+below.
 
 ## Output format
 
