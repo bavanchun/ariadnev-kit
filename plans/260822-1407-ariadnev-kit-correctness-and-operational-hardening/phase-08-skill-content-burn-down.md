@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "Skill content burn-down"
-status: todo
+status: in-progress
 priority: P1
 effort: "65-118h (8-15d)"
 dependencies: [2, 3]
@@ -122,6 +122,41 @@ Split by disclosure level: common-case workflow stays, deep detail moves.
 
 **`cti-expert` (903) is the Tier C pilot, not the template.** ~470 lines extract
 into three references, leaving ~430 — still needing one more trim to clear 300.
+
+### Pilot result: `cti-expert` (2026-08-23)
+
+Measured, against the prediction above.
+
+- 903 → **246** lines in one pass, via **seven** references (59–178 lines each),
+  not three leaving ~430. The prediction undercounted extractable material by
+  about 2×: command tables, the 55-row activation matrix, the DOCX JSON
+  contract, the install table and the directory map all belonged in Tier 2.
+- Description 271 → 199 chars with every trigger term a technique file still
+  backs. Exempt list 101 → 100; `validate --strict` clean at 383 held.
+- **Three passes were needed, not one.** Author; second reader (fresh
+  general-purpose agent on opus, ~113k tokens, 5 min); fix. The reader returned
+  ACCEPT WITH FIXES, six items, **three of which decided whether the Output
+  format could be followed at all**: section order contradicted the INTSUM
+  template `/report` produces, one INTSUM section was dropped, and a
+  pre-existing `CTI-`/`OSINT-` filename contradiction became load-bearing once
+  SKILL.md pointed at the file carrying it. It found no filler in the gates.
+- **Two defects escaped both author and reader** and were caught by something
+  else. `validate` caught an invented `av:security-audit` in Workflow position
+  — the filler failure mode this phase names, on the first skill, under care.
+  Reading `scripts/cti_docx_postprocess.py` showed the generator places charts
+  by *keyword in the heading text*; the author's skeleton heading "Connections"
+  would have silently dropped the entity diagram. The reader judged order
+  load-bearing; the names were. Neither lint nor a prose-only reader catches
+  this. **Rule for the rest of the phase: when a skill ships a script that
+  consumes its output, check the Output format against the script, not against
+  the skill's prose.**
+- Cost: wall-clock is not reconstructable from git (an amend rewrote the
+  timestamps). In session terms the authoring pass consumed most of one context
+  window; review plus fixes took ~20 min. The 2.5–5 h Tier C band is not
+  contradicted. The reader-plus-fix loop adds roughly a fifth on top and is not
+  optional: without it, three contract defects ship.
+- Tripwire status: the Tier A tripwire (first mixed batch of 15 over 8 h) has
+  not been exercised. Next is Tier C #2.
 
 ### Interaction with the description-collision gate
 
