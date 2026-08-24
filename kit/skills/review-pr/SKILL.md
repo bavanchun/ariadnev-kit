@@ -1,6 +1,6 @@
 ---
 name: av:review-pr
-description: "Review a GitHub pull request thoroughly — analyze diff for correctness, security, breaking changes, code quality, and AI-slop patterns. Supports --fix to auto-remediate findings, --reply to post the review back to GitHub via the gh CLI as a formal review, and --merge to merge a ready PR and watch post-merge CI to green."
+description: "Use to review a GitHub PR by number or URL with gh: correctness, security, breaking changes, AI slop. --fix loops fixes in, --reply posts a formal review, --merge merges and watches CI to green."
 user-invocable: true
 when_to_use: "Invoke to review a GitHub PR by number/URL, optionally fix findings, optionally post the review back to GitHub, optionally merge when ready and watch CI."
 category: utilities
@@ -46,7 +46,10 @@ metadata:
 
 # Review Pull Request
 
-Review PR `$ARGUMENTS` in this repository.
+Review PR `$ARGUMENTS` in this repository: read the whole diff with its surrounding
+files, check correctness, security, breaking changes, AI-slop patterns and project
+rules, and deliver a severity-graded verdict; with flags, also fix, post to GitHub,
+and merge. Uncommitted local changes or a commit outside a PR are `av:code-review`'s.
 
 ## Modes
 
@@ -54,9 +57,9 @@ Review PR `$ARGUMENTS` in this repository.
 - **Fix loop** (`--fix`): review, fix all actionable findings, commit+push, then re-review. Repeat until no actionable findings remain.
 - **Reply** (`--reply`): after the review (or after the fix loop converges), post the review back to the PR via `gh pr review`.
 - **Merge** (`--merge`): after all other modes complete, if the PR is ready to merge, activate `av:git merge-pr` to merge it, watch post-merge CI until green, and verify follow-up before stopping.
-- **Advice** (`--advice`): run under `kongming` advisory supervision (see Advisory supervision).
+- **Advice** (`--advice`): run under `kongming` advisory supervision — read `references/advisory-supervision.md` for the five checkpoints, the empty-counsel fallback, and forward-carry through the fix loop.
 
-Flags compose: `review-pr 123 --fix --reply` runs the fix loop and posts the final re-review at the end. `review-pr 123 --fix --reply --merge` additionally merges once the loop converges on Approve. `--advice` layers on top of any combination. Flag order does not matter.
+Flags compose: `review-pr 123 --fix --reply` runs the fix loop and posts the final re-review at the end. `review-pr 123 --fix --reply --merge` additionally merges once the loop converges on Approve. `--advice` layers on top of any combination.
 
 ## Argument parsing
 
@@ -66,98 +69,21 @@ Derive `PR_REF` from `$ARGUMENTS` by stripping all mode flags (`--fix`, `--reply
 !`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && printf 'PR_REF=%s\n' "$PR_REF"`
 ```
 
-Detect flags (the substring match below is intentional — flags may appear in any order):
-
-- `--fix` present → fix-loop mode active
-- `--reply` present → reply mode active
-- `--merge` present → merge mode active
-- `--advice` present → advisory supervision active
-
-## Advisory supervision (`--advice`)
-
-When `--advice` is present, run this skill under `kongming` supervision.
-`kongming` is an advisory-only supervisor: it returns counsel, never code, and
-the main agent stays responsible for every decision, edit, and gate.
-
-Spawn `kongming` at these checkpoints:
-
-- **After the initial review completes** — pass the PR reference, the diff
-  summary, the findings list with severities, and the tentative verdict; ask
-  for a go/no-go on the verdict, missed findings, and — when `--fix` is set —
-  which findings are actually worth fixing versus over-reach.
-- **When the `--fix` loop is stuck** — same finding survives 3 attempts,
-  `av:fix` is blocked, or CI keeps reding for the same reason; pass every
-  approach already tried, the exact failure, and ask for a new angle or a
-  legitimate stop condition.
-- **Before posting `--reply`** — pass the final review body (summary, risk
-  level, findings, verdict) and ask kongming to sanity-check tone, evidence,
-  and severity assignments before the review lands on GitHub. If kongming
-  flags a Critical/Important issue with the body, revise before posting; do
-  not treat kongming counsel as a veto on the verdict itself.
-- **Before triggering `--merge`** — pass the merge-readiness evidence
-  (verdict, `reviewDecision`, `mergeable`, CI status, blockers) and ask for a
-  risk sanity check before authorizing the merge. Do not weaken the
-  merge-readiness gate documented under Merge mode.
-- **MANDATORY after the PR is open AND CI is terminal-green** — spawn
-  `kongming` to review the whole implementation (diff + PR body + linked
-  issue when one exists), then post its assessment plus concrete next steps
-  as a comment directly on the PR via `gh pr comment "$PR_REF" --body-file -`.
-  Append the same-style traceability footer used by `--reply` so the source
-  is obvious. This gate fires once per invocation, after the CI-green
-  transition; it does not run per fix-loop iteration. When `--merge` is
-  present, the transition happens inside Merge mode step 2. When `--merge`
-  is absent, fire this gate at the end of the run if `gh pr checks "$PR_REF"`
-  is terminal-green; otherwise skip it and note the reason (CI red, pending,
-  or unavailable) in the Final output.
-
-Invoke with
-`delegate_agent capability(subagent_type="kongming", prompt="<task, evidence, approaches tried, the exact question>", description="advice: <checkpoint>")`.
-Give it enough context to answer in one reply; it does not interview.
-
-**Empty-counsel fallback**: if `kongming` returns an empty final message,
-errors, or is otherwise unreachable, record the failure in chat and continue
-with the review/fix/reply/merge flow. Never fail the whole skill on a missing
-advisory step.
-
-**Forward-carry in the fix loop**: when `--advice` was originally set, the
-`--fix` re-invocation of this skill must carry `--advice` forward alongside
-`--reply` and `--merge` so supervision persists across iterations.
-
-`--advice` adds supervision; it never bypasses this skill's approval gates,
-tests, code-review blockers, branch protections, or security policy. When the
-review verdict is authoritative under Modes/Findings rules, kongming counsel
-informs the write-up and the decision; it does not override the verdict.
+Detect flags by substring match, in any order: `--fix` → fix loop, `--reply` → reply, `--merge` → merge, `--advice` → advisory supervision.
 
 ## Context
 
-PR metadata:
+PR metadata, full diff, CI check status, and the changed-file list (use the last to gauge scope against the description's claims):
 ```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && gh pr view "$PR_REF" --json title,body,author,baseRefName,headRefName,files,additions,deletions,changedFiles`
-```
-
-PR diff:
-```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && gh pr diff "$PR_REF"`
-```
-
-CI check status:
-```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && gh pr checks "$PR_REF" 2>/dev/null || echo "No checks found"`
-```
-
-Diff stat (use to gauge scope vs description claims):
-```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && gh pr diff "$PR_REF" --name-only 2>/dev/null | head -50`
+!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"; echo "== metadata =="; gh pr view "$PR_REF" --json title,body,author,baseRefName,headRefName,files,additions,deletions,changedFiles; echo "== diff =="; gh pr diff "$PR_REF"; echo "== checks =="; gh pr checks "$PR_REF" 2>/dev/null || echo "No checks found"; echo "== changed files =="; gh pr diff "$PR_REF" --name-only 2>/dev/null | head -50`
 ```
 
 ## Instructions
 
-Perform a thorough code review of this PR. Follow these steps:
-
 ### 0. Resolve writing language
 ```bash
-WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json
 ```
 Load `references/writing-language.md`. Author Summary, Risk level, Findings,
@@ -166,14 +92,24 @@ labels and GitHub review mechanics (`--approve` / `--request-changes` /
 `--comment`) independent of language. If `fallbackReason` is set, note the
 fallback in the review body.
 
-Also load `references/pr-body-contract.md` and validate the PR description:
+Also load `references/pr-body-contract.md` and validate the PR description. The
+contract is `av:ship`'s template: run the validator bare when the body carries
+a `Ship Mode` (or localized `Chế độ ship`) section — ship wrote it — and with
+`--loose` for any other PR:
 ```bash
-PR_BIN=.claude/hooks/lib/pr-body-contract.cjs
-test -f "$PR_BIN" || PR_BIN=kits/core/hooks/lib/pr-body-contract.cjs
-gh pr view "$PR_REF" --json body -q .body | node "$PR_BIN"
+PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
+test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
+gh pr view "$PR_REF" --json body -q .body | node "$PR_BIN"           # ship-authored PR
+gh pr view "$PR_REF" --json body -q .body | node "$PR_BIN" --loose   # any other PR
 ```
-Missing required evidence sections or unsupported claims → **Important**
-findings. Do not encourage content padding; prefer honest gaps.
+It always prints a JSON object (`ok`, `missingRequired`, `missingTraceability`,
+`findings`) and exits 1 exactly when `findings` is non-empty; every entry it
+returns is **Important**. On a ship-authored PR each entry is a finding as
+returned. On any other PR, downgrade its missing-section entries to
+**Suggestion** yourself — that body was never bound to the template.
+Unsupported claims in sections that are present are **Important** either way.
+Do not encourage content padding; prefer honest gaps.
 
 ### 1. Understand the PR
 - Read the PR title, description, and linked issues
@@ -206,7 +142,7 @@ findings. Do not encourage content padding; prefer honest gaps.
 - Removed or renamed exports/public interfaces
 
 **Code quality (anti-slop — terse checklist)**
-LLM-assisted PRs commonly introduce code that *runs fine* but pollutes the codebase. Scan the diff for these high-signal patterns:
+Scan the diff for these high-signal patterns:
 
 - New file in dumping-ground dirs (`utils/`, `helpers/`, `lib/common/`, `*manager.ts`) without a clear domain anchor
 - Parallel reimplementation of a utility that already exists in the repo (grep for prior art)
@@ -231,7 +167,7 @@ LLM-assisted PRs commonly introduce code that *runs fine* but pollutes the codeb
 - PR creates >2 new files in `utils/`/`helpers/`/`lib/common/`, OR
 - you cannot confidently judge whether a pattern is genuine YAGNI vs slop
 
-The reference covers: structural slop, micro slop, process slop, how to phrase the finding without becoming an AI-witch-hunt, when NOT to flag, and stack-specific appendix (Go, React/TS, Tailwind).
+The reference covers structural, micro, and process slop, how to phrase a finding without an AI witch-hunt, when NOT to flag, and a Go / React-TS / Tailwind appendix.
 
 **Project-specific compliance**
 - Read the project's loaded instruction surfaces and follow its documentation navigation to locate current architecture, coding, data, UI, and review standards
@@ -247,107 +183,31 @@ The reference covers: structural slop, micro slop, process slop, how to phrase t
 
 ### 4. Summarize findings
 
-Present your review as:
-
-**Summary**: 1-2 sentence overview of what the PR does.
-
-**Risk level**: Low / Medium / High — based on scope, complexity, and breakage potential.
-
-**Findings**: List issues found, categorized by severity:
-- **Critical**: Must fix before merge (bugs, security, data loss)
-- **Important**: Should fix (logic issues, missing validation, *structural* AI slop)
-- **Suggestion**: Nice to have (style, minor improvements, *micro* AI slop)
-
-> Anti-slop severity rule: **structural** slop (new dumping-ground file, parallel reimpl, abstraction with one caller, schema change without migration, large file growth) → **Important**. **Micro** slop (over-comments, defensive paranoia, one-line wrappers) → **Suggestion**. This keeps `--fix` from churning the diff with cosmetic rewrites the original author won't recognize.
-
-**Verdict**: One of:
-- **Approve** — No critical or important issues found
-- **Request changes** — Critical or important issues need addressing
-- **Comment** — Minor suggestions only, safe to merge as-is
+Write the review block in the shape under Output format. Severity follows the
+anti-slop rule: **structural** slop (new dumping-ground file, parallel reimpl,
+abstraction with one caller, schema change without migration, large file
+growth) → **Important**; **micro** slop (over-comments, defensive paranoia,
+one-line wrappers) → **Suggestion**. This keeps `--fix` from churning the diff
+with cosmetic rewrites the original author won't recognize.
 
 ## Fix loop mode (`--fix`)
 
 If `$ARGUMENTS` contains `--fix`, follow this loop after the review steps above:
 
-### 1. Decide whether fixing is needed
+1. **Decide whether fixing is needed.** No actionable findings → stop and report **Approve**. Actionable = all **Critical** + **Important** findings, plus **Suggestion** findings that are concrete, low-risk, and tied to PR scope. Do not invent new style-only suggestions to keep the loop running.
+2. **Fix all findings.** Activate `av:fix --auto "Fix all actionable findings from review-pr <PR_REF>: <finding summary>"` with the exact evidence: PR reference, base and head branch, changed files, and for each finding its severity, file path, line/function, expected behavior, actual behavior, and why it matters. Constraints: preserve PR scope, avoid unrelated refactors, keep public contracts backward compatible unless the finding requires a contract change. `av:fix` performs its own scout, diagnose, implementation, verification, and prevention flow — do not bypass its hard gates.
+3. **Commit and push.** After `av:fix` verifies the fixes, activate `av:git cp` to stage, commit, and push to the PR head branch. Do not run it if verification failed, secrets are detected, or the working tree contains unrelated user changes.
+4. **Re-review.** After the push succeeds, activate `review-pr <PR_REF> --fix` again (carrying `--reply`, `--merge`, and `--advice` forward if they were originally set) and repeat.
 
-- If no actionable findings, stop and report **Approve**.
-- Actionable = all **Critical** + **Important** findings, plus **Suggestion** findings that are concrete, low-risk, and tied to PR scope.
-- Do not invent new style-only suggestions to keep the loop running.
-
-### 2. Fix all findings
-
-Activate `av:fix --auto` with the full findings list and PR context:
-
-```
-av:fix --auto "Fix all actionable findings from review-pr <PR_REF>: <finding summary>"
-```
-
-Pass the exact evidence:
-- PR reference, base branch, head branch
-- changed files
-- each finding: severity, file path, line/function, expected behavior, actual behavior, why it matters
-- constraints: preserve PR scope, avoid unrelated refactors, keep public contracts backward compatible unless the finding requires a contract change
-
-`av:fix` performs its own scout, diagnose, implementation, verification, and prevention flow. Do not bypass its hard gates.
-
-### 3. Commit and push
-
-After `av:fix` verifies the fixes, activate:
-
-```
-av:git cp
-```
-
-This stages, commits, and pushes the fixes to the PR head branch. Do not run `av:git cp` if verification failed, secrets are detected, or the working tree contains unrelated user changes.
-
-### 4. Re-review
-
-After the push succeeds, activate `review-pr <PR_REF> --fix` again (carrying `--reply`, `--merge`, and `--advice` forward if they were originally set) and repeat the loop.
-
-When `--advice` is originally set and the loop stalls (same finding survives 3 attempts, `av:fix` blocked, CI unresolvable), spawn `kongming` at the "loop is stuck" checkpoint before declaring the stop condition — see Advisory supervision.
-
-Stop only when one of:
-- the re-review finds no actionable findings
-- `av:fix` is blocked by a missing user/business decision
-- the same finding survives 3 consecutive fix attempts (loop not converging)
-- CI or local verification fails in a way `av:fix` cannot resolve without user input
-
-Final output for `--fix` mode:
-- iteration count
-- final verdict
-- commits pushed
-- remaining findings, if any
-- blockers or unresolved questions
+Stop only when one of: the re-review finds no actionable findings; `av:fix` is blocked by a missing user/business decision; the same finding survives 3 consecutive fix attempts; CI or local verification fails in a way `av:fix` cannot resolve without user input. With `--advice`, spawn the "loop is stuck" checkpoint before declaring a stop condition.
 
 ## Reply mode (`--reply`)
 
-If `$ARGUMENTS` contains `--reply`, post the review back to GitHub as a formal review after the review (review-only) or after the fix loop converges (`--fix`).
+Post the review as a formal GitHub review after the review, or after the fix loop converges.
 
-### 1. Pre-flight checks
-
-Run these checks. On any failure, **fall back to printing the review locally** and warn the user — never fail the whole skill:
-
-```bash
-command -v gh >/dev/null 2>&1 || { echo "gh CLI not installed — printing review locally"; exit 0; }
-gh auth status >/dev/null 2>&1 || { echo "gh not authenticated — printing review locally"; exit 0; }
-```
-
-### 2. Build the review body
-
-Construct the full markdown body containing the summary, risk level, findings (by severity), and verdict. Append a single-line footer for traceability:
-
-```
-*Posted by the installed review-pr skill at <ISO-8601 UTC timestamp>*
-```
-
-Use `date -u +"%Y-%m-%dT%H:%M:%SZ"` for the timestamp.
-
-**Length cap**: GitHub limits comment bodies to ~65,536 chars. If the body exceeds 60,000 chars, truncate the *Findings* section and append `[truncated — N findings omitted; see local output]` so the reviewer knows to consult the full chat output.
-
-### 3. Map verdict to gh flag
-
-When `--advice` is originally set, run the "before posting `--reply`" checkpoint from Advisory supervision now: pass the final review body to `kongming`, apply any Critical/Important body revisions it flags (tone, missed evidence, mis-scoped severities), and only then run the `gh pr review` command below. Skip the checkpoint silently on the empty-counsel fallback.
+1. **Pre-flight.** `gh` must be installed and authenticated (`command -v gh`, `gh auth status`). On any failure, print the review locally and warn — never fail the whole skill.
+2. **Body.** The review block from Output format plus one footer line: `*Posted by the installed review-pr skill at <ISO-8601 UTC timestamp>*` (`date -u +"%Y-%m-%dT%H:%M:%SZ"`).
+3. **Post.** Map the verdict to the flag and pipe the body via stdin to avoid shell-quoting issues:
 
 | Verdict | gh command |
 |---|---|
@@ -355,37 +215,11 @@ When `--advice` is originally set, run the "before posting `--reply`" checkpoint
 | Request changes | `gh pr review "$PR_REF" --request-changes --body-file -` |
 | Comment | `gh pr review "$PR_REF" --comment --body-file -` |
 
-Pipe the body via stdin to avoid shell-quoting issues with backticks and code blocks.
-
-### 4. Self-PR fallback
-
-GitHub blocks approving your own PR. If `gh pr review --approve` exits non-zero with a self-review error (HTTP 422, message matching "Can not approve your own pull request"), retry as a neutral formal review:
-
-```bash
-gh pr review "$PR_REF" --comment --body-file -
-```
-
-The review still lands in the timeline; the verdict text inside the body still reads "Approve". Note the downgrade in the chat output.
-
-### 5. Composition with `--fix`
-
-In `--fix --reply` mode, post **only the final re-review** when the loop converges. Iteration history lives in the commit log; the PR conversation stays clean.
-
-If the loop terminates due to a blocker (non-converging, `av:fix` blocked, CI unresolvable), still post the final review — but the verdict will reflect remaining findings (likely **Request changes** or **Comment**), and the body should include the blocker so the human reviewer knows where to take over.
-
-### 6. Idempotency
-
-V1 does not dedupe. Re-running `review-pr 123 --reply` posts a fresh review each time. The traceability footer (step 2) is the seed for future dedup work but is not consumed here.
+In `--fix --reply` mode post only the final re-review; if the loop stopped on a blocker, still post, with the blocker in the body. For the self-PR fallback (GitHub refuses `--approve` on your own PR), the 60,000-char length cap, idempotency, and the `--advice` pre-post checkpoint, read `references/reply-and-merge.md`.
 
 ## Merge mode (`--merge`)
 
-If `$ARGUMENTS` contains `--merge`, run this stage LAST — after the review, after the fix loop converges (`--fix`), and after the review is posted (`--reply`).
-
-When `--advice` is originally set, run the "before triggering `--merge`" checkpoint from Advisory supervision now — pass verdict, `reviewDecision`, `mergeable`, CI status, and any known blockers to `kongming`, treat its output as a risk sanity check, and proceed to the readiness gate below regardless of counsel presence (the gate is authoritative).
-
-### 1. Merge-readiness gate
-
-Merge ONLY when ALL of these hold:
+Runs LAST — after the review, after the fix loop converges, and after the review is posted. Merge ONLY when ALL of these hold:
 
 - Verdict is **Approve** (no Critical or Important findings; in `--fix` mode the loop converged with no actionable findings).
 - The fix loop (if run) did not terminate on a blocker.
@@ -393,48 +227,67 @@ Merge ONLY when ALL of these hold:
 - `reviewDecision` is not `CHANGES_REQUESTED` from another reviewer.
 - CI checks are all passing, or only pending (pending is acceptable — the merge step uses auto-merge).
 
-If any condition fails, do NOT merge. Report the PR as not-ready with the exact failed condition, and stop. `--merge` is an authorization to merge a ready PR, never an instruction to force an unready one through.
+If any condition fails, do NOT merge: report the PR as not-ready with the exact failed condition, and stop. `--merge` authorizes merging a ready PR, never forcing an unready one through. When the gate passes, activate `av:git merge-pr <PR_REF>` — it owns the merge method, auto-merge on pending checks, the post-merge CI watch, up to 3 follow-up fixes, and confirming that a plan-backed change's `status: completed` reached the target branch. Do not stop this skill while post-merge CI is still pending. For the `--advice` checkpoints around the merge, the mandatory post-CI-green PR comment, and failure handling, read `references/reply-and-merge.md`.
 
-### 2. Merge and watch CI
+## Output format
 
-Activate `av:git merge-pr` with the PR reference:
+The review block, printed to chat in every mode and posted verbatim by `--reply`:
 
-```
-av:git merge-pr <PR_REF>
-```
+```markdown
+**Summary**: <1–2 sentences — what the PR does>
 
-`av:git merge-pr` (documented in the `av:git` skill) owns the mechanics:
+**Risk level**: Low | Medium | High — <scope, complexity, breakage potential>
 
-- re-checks readiness, picks the repo's merge method, merges via `gh pr merge` (with `--auto` when required checks are still pending)
-- watches post-merge CI on the target branch until every run for the merge commit concludes
-- on deterministic CI failure, drives a follow-up fix (`av:fix --auto` on a new branch) and repeats, up to 3 attempts
-- verifies follow-up: PR state `MERGED`, merge commit on the target branch, all watched runs green
-- closes the index row of a plan-backed change (matches the merged PR to its plan via `--linked-pr` or head branch, then `av plan close`; skips silently when there is no plan) per the shared "Delivery finalization" protocol
+**Findings**:
+- **Critical** — `<file>:<line>` — <what is wrong> · <why it matters> · <what to change>
+- **Important** — `<file>:<line>` — …
+- **Suggestion** — `<file>:<line>` — …
+(or "none" under a severity)
 
-Do not bypass its readiness gate or stop conditions. Do not stop this skill while post-merge CI is still pending — the run is complete only when target-branch CI is green, an external blocker remains, or the fix attempts are exhausted.
-
-When `--advice` is originally set AND post-merge target-branch CI reaches terminal-green, run the MANDATORY post-CI-green checkpoint from Advisory supervision: spawn `kongming` to review the whole implementation, then post its assessment plus concrete next steps as a comment on the PR:
-
-```bash
-gh pr comment "$PR_REF" --body-file -
+**Verdict**: Approve | Request changes | Comment
 ```
 
-Pipe kongming's body via stdin. Append the same-style traceability footer used by `--reply` (`*Posted by the installed review-pr skill at <ISO-8601 UTC timestamp>*`) so the source is obvious. The comment fires once per invocation; do not repost per fix-loop iteration. Apply the empty-counsel fallback and honor the writing-language resolution from step 0.
+Critical = must fix before merge (bugs, security, data loss); Important = should fix
+(logic issues, missing validation, structural slop); Suggestion = nice to have (style,
+micro slop). Approve = no Critical or Important; Request changes = either present;
+Comment = minor suggestions only, safe to merge as-is.
 
-### 3. Failure handling
+After all modes complete, the run report follows the block, one line per item
+and only for the modes that ran:
 
-- If `av:git merge-pr` refuses (gate failure, branch protection, conflicts): report the blocker; do not retry with different flags to force the merge.
-- If post-merge CI ends red after exhausted fix attempts or an external blocker: report the failing runs, the fixes attempted, and hand off to the user.
+```markdown
+Verdict: <Approve | Request changes | Comment>
+Fix loop: <N> iteration(s) · commits pushed: <sha…> · remaining findings: <list or none>
+Reply: posted as <approve | request-changes | comment> | downgraded to comment (self-PR) | printed locally (<reason>)
+Merge: merged <sha>, post-merge CI <conclusions>, follow-up fixes <list or none> | not-ready (<failed condition>) | blocked (<reason>)
+Advice: <N> checkpoint(s) fired · post-CI-green comment posted | skipped (<CI not green | empty counsel | unavailable>) · advice-flagged risks that shaped the verdict or fix scope: <list or none>
+Blockers: <list or none>
+Unresolved questions: <list or none>
+```
 
-## Final output
+## Quality gates
 
-After all modes complete, report to the chat:
+- [ ] Every finding names `file:line` (or the function), why it matters, and what to change — the fix loop hands findings to `av:fix` as they are written, so a vague finding becomes a vague fix
+- [ ] Severity follows the anti-slop rule — structural slop is Important, micro slop is Suggestion — and no Suggestion was invented to keep `--fix` looping
+- [ ] The verdict follows from the findings: Approve only with zero Critical and zero Important, and the `--reply` flag and `--merge` gate both agree with it
+- [ ] The PR body went through `pr-body-contract.cjs` in the mode its author earns, and each section it reported missing is a finding — Important as returned on a ship-authored PR, downgraded to Suggestion on any other — not a request to pad the description
+- [ ] Summary, findings, and verdict prose are in the resolved writing language; severity labels and `gh pr review` flags were not translated
+- [ ] A failed pre-flight or readiness gate ended in printing locally or not merging, with the exact failed condition named — never in a forced post or merge
 
-- Verdict (Approve / Request changes / Comment)
-- Iteration count if `--fix` ran
-- Commits pushed if `--fix` ran
-- Whether `--reply` succeeded, fell back, or printed-locally
-- Merge result if `--merge` ran: merged / not-ready (with failed condition) / blocked — plus merge commit SHA, post-merge CI conclusions, and follow-up fixes shipped
-- Advisory summary if `--advice` ran: number of `kongming` checkpoints that fired, whether the MANDATORY post-CI-green PR comment was posted / skipped (with reason: CI not green, empty counsel, unavailable), and any advice-flagged risks that shaped the verdict or fix scope
-- Remaining findings or blockers
-- Unresolved questions, if any
+## Workflow position
+
+**Typically follows:** `av:ship`, which opens the PR this skill usually takes as
+its subject, or `av:github`, which routes any PR review, fix loop, or
+merge-with-CI-watch here. `av:vibe` invokes it with `--fix --reply` as the
+review stage of its pipeline.
+
+**Typically precedes:** `av:fix --auto`, which each `--fix` iteration hands the
+findings to, and `av:git` — `cp` pushes the fixes, `merge-pr` executes the merge
+this skill has judged ready and watches post-merge CI.
+
+**Related:** `av:code-review` reviews the same kind of diff without the GitHub
+lifecycle — pending changes, a commit, a codebase scan, or a PR number — and
+prints findings; this skill is the one that loops fixes in, posts a formal
+review, and merges. `av:ship` reads `references/writing-language.md` and
+`references/pr-body-contract.md` from this skill when it writes the PR body
+that step 0 later validates.

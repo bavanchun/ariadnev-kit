@@ -1,6 +1,6 @@
 ---
 name: av:deep-swe
-description: Benchmark a coding model on DeepSWE through Pier and OpenRouter. Use when users ask to run DeepSWE, score a model, or verify coding-agent benchmark results.
+description: "Use when benchmarking a coding model on DeepSWE through Pier and OpenRouter, scoring a model, or verifying coding-agent benchmark results."
 user-invocable: true
 when_to_use: Invoke for a costed external coding-agent evaluation, not repository-local optimization.
 category: dev-tools
@@ -81,3 +81,28 @@ or contact a leaderboard without the user's request.
 - For unknown flags, do not retry a guessed syntax; inspect help first.
 - Use av-loop for iterative optimization of a metric in the user’s own
   repository rather than an external model benchmark.
+
+## Output format
+
+Return Pier and benchmark versions, model slug, exact task selection and seed,
+command, elapsed time, score/reward, reported cost, failed tasks, artifact paths,
+and whether the run is comparable with the claimed baseline.
+
+## Quality gates
+
+- [ ] Tool versions, task path, model slug, and flags were verified live.
+- [ ] No key or credential value appears in commands, logs, or artifacts.
+- [ ] A one-task smoke run passed before any subset or full run.
+- [ ] User approved the stated cost exposure before a full corpus run.
+- [ ] Score claims include task count, seed, failures, and comparison limits.
+- [ ] Nothing was submitted or published without explicit authorization.
+
+## Workflow position
+
+**Typically follows:** `av:research` when choosing models or benchmark versions.
+
+**Typically precedes:** a model-selection decision or `av:loop` when the next
+step is repository-local optimization.
+
+**Related:** `av:test` for project tests; DeepSWE is an external benchmark, not
+a replacement for repository verification.

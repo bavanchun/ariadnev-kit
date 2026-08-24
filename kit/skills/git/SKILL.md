@@ -1,6 +1,6 @@
 ---
 name: av:git
-description: "Git operations with conventional commits. Use for staging, committing, pushing, PRs, merges, stacked PRs. Auto-splits commits by type/scope. Security scans for secrets."
+description: "Use when staging, committing, pushing, creating PRs, merging, managing stacked PRs, or applying conventional-commit and branch-hygiene rules."
 user-invocable: true
 when_to_use: "Invoke for commits, PRs, stacked PRs, branch hygiene, or release git steps."
 category: dev-tools
@@ -103,7 +103,7 @@ git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"
 git commit -m "type(scope): description"
 ```
 
-## Output Format
+## Output format
 ```
 ✓ staged: N files (+X/-Y lines)
 ✓ security: passed
@@ -120,6 +120,16 @@ git commit -m "type(scope): description"
 | Push rejected | Suggest `git pull --rebase` |
 | Merge conflicts | Suggest manual resolution |
 
+## Quality gates
+
+- [ ] Repository, branch, upstream, base, and dirty state were inspected live.
+- [ ] Only intended files and hunks are staged; unrelated user changes remain.
+- [ ] Secret checks report file/line categories without printing raw values.
+- [ ] Commit boundaries are coherent and messages follow repository convention.
+- [ ] Destructive history edits, force pushes, merges, and remote mutations have
+      the required user authority and protected-branch checks.
+- [ ] Final SHA, remote/PR state, and CI result are verified before reporting.
+
 ## References
 
 - `references/workflow-commit.md` - Commit workflow with split logic
@@ -132,3 +142,12 @@ git commit -m "type(scope): description"
 - `references/safety-protocols.md` - Secret detection, branch protection
 - `references/branch-management.md` - Naming, lifecycle, strategies
 - `references/gh-cli-guide.md` - GitHub CLI commands reference
+
+## Workflow position
+
+**Typically follows:** implemented and tested changes plus `av:code-review`.
+
+**Typically precedes:** `av:review-pr`, CI watch, or an authorized release flow.
+
+**Related:** `av:github` for broader issue/repository administration and
+`av:ship` for the complete delivery pipeline.

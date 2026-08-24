@@ -89,7 +89,7 @@ Do not:
 
 Raise scope concerns ONCE in Step 0. After that, commit to chosen scope and optimize within it.
 
-## Output Format
+## Scope challenge output
 
 After scope challenge, output brief summary before proceeding:
 

@@ -67,11 +67,60 @@ Review the final diff before merging.
 
 ## Boundaries
 
-- Before multi-hour or high-dependency goals, prefer engineer-kit
-  `av:goal-warmup` to lock an outcome contract and preflight blockers; it does
-  not start `/goal` for you.
-- Use av-loop, available in the engineer kit, for local metric-driven iteration.
-- Use av-orchestrate, available in the engineer kit, for dispatch across
-  multiple coding-agent CLIs.
+- Before multi-hour or high-dependency goals, prefer `av:goal-warmup` to lock
+  an outcome contract and preflight blockers; it does not start `/goal` for you.
+- Use `av:loop` for local metric-driven iteration.
+- Use `av:orchestrate` for dispatch across multiple coding-agent CLIs.
 - Do not claim undocumented versions, authentication restrictions, or internal
   lifecycle states. Treat the official documentation as the source of truth.
+
+## Output format
+
+The deliverable is a goal draft the user pastes into Codex, with the use-test
+verdict that justifies it:
+
+```markdown
+## Codex /goal draft
+- Use test: mechanical=<yes/no> · verifiable stop=<yes/no: via <tests|eval|build|artifact>> · decision-free scope=<yes/no>
+- Verdict: GOAL | NOT A GOAL (<which test failed> → <av:goal-warmup | av:loop | av:orchestrate | normal turn>)
+- Availability: /goal listed | enable `[features] goals = true` (or `codex features enable goals`) first
+
+/goal Complete <objective>.
+Read first: <plan, issue, files>.
+Constraints: <unchanged contracts and scope boundary>. Do not weaken, narrow, skip, or delete tests.
+Validate after each checkpoint: <command>.
+Keep a brief progress log.
+Stop when <verifiable end state>, or when further work needs human input.
+
+Controls: /goal (check) · /goal pause · /goal resume · /goal clear
+After: review the final diff before merging.
+```
+
+## Quality gates
+
+- [ ] All three use-test answers are `yes`; a `no` produces NOT A GOAL and a
+      route, never a weakened goal.
+- [ ] The stop condition names an artifact Codex can check itself (test suite,
+      eval score, build, file state) — "when it looks done" is not verifiable.
+- [ ] The validation command is one Codex can run at every checkpoint without
+      a human (no interactive prompts, no credentials it does not have).
+- [ ] The test-weakening prohibition is inside the draft text, not only in this
+      file.
+- [ ] No `/goal` behavior beyond set / check / pause / resume / clear is
+      asserted; anything else points at the official guide URL above.
+- [ ] The objective is not exploratory, a credential change, or shared-infra
+      destruction — those are excluded by the use test, whatever the user
+      called them.
+
+Proof/risk: N/A — drafts an instruction; the validation command in the draft
+sets the proof the run must produce.
+
+## Workflow position
+
+**Typically follows:** `av:goal-warmup` when the outcome needed locking and
+preflight first, or `av:plan` when an accepted plan phase is mechanical enough
+to hand to Codex whole.
+**Typically precedes:** the user starting `/goal` in Codex, then `av:code-review`
+or `av:review-pr` on the resulting diff.
+**Related:** `av:loop` is the local metric loop; `av:orchestrate` dispatches
+across coding-agent CLIs; `av:autoresearch` routes generic bounded iteration.

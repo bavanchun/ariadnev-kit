@@ -1,6 +1,6 @@
 ---
 name: av:brainstorm
-description: "Turn unclear intent into an accepted outcome and compare viable approaches before delivery."
+description: "Turn unclear intent into an accepted outcome and explore viable approaches before delivery. Use at the opening of multi-step work or when a diagnosed problem has real solution choices."
 user-invocable: true
 when_to_use: "Use at the opening of multi-step delivery or when a diagnosed problem has meaningful solution choices."
 category: utilities
@@ -190,9 +190,68 @@ tests, review blockers, branch protections, or security policy.
 - Never expose secrets or unrelated private files during inspection.
 - List unresolved questions last when any remain.
 
+## Output format
+
+The contract block is the deliverable; the options table appears only when
+there was a real design choice.
+
+```markdown
+## Brainstorm contract
+- Outcome: <end state>
+- Constraints: <safety, compatibility, time, technology, ownership>
+- Non-goals: <nearby work excluded>
+- Acceptance criteria: <observable evidence>
+- Source: captured now | reused from <plan/design path> (gaps: <...> or none)
+
+## Options (when a material choice exists)
+| Approach | Load-bearing assumption | Fails first when | Worst plausible case |
+|----------|-------------------------|------------------|----------------------|
+| A ...    | ...                     | ...              | ...                  |
+
+**Recommendation:** <smallest approach that satisfies the contract> — because <evidence>.
+**Evidence gaps:** <what could not be discovered> — or "none".
+
+## Handoff
+→ `/av:plan` | `/av:cook` | `/av:fix` | stop (exploration only), with `--yagni` / `--advice` forwarded if passed.
+Report: <path under the configured report location> — only when the decision must outlive the session.
+
+## Unresolved questions
+- ... or "none"
+```
+
+With `--html`, `brainstorm.html` sits beside the report and carries the same
+fields plus the required delivery diagram (and annotated mockups for UI topics).
+
+## Quality gates
+
+- [ ] All four contract fields are filled from the request, the repo, or the
+      user — none reads "TBD", and none repeats a decision an accepted plan
+      already records.
+- [ ] Every approach in the table names the assumption it depends on most and
+      the condition under which it fails first; an option without a failure
+      condition is a pitch, not a comparison.
+- [ ] Each feasibility claim points at the source, test, doc, or live state
+      that was actually inspected — intent alone never establishes behavior.
+- [ ] For a bug, the root cause was proven before any option was compared.
+- [ ] The recommendation is the smallest approach that meets the contract; the
+      full requested scope is intact unless `--yagni` was passed.
+- [ ] No workspace file changed during this skill except the report or
+      `brainstorm.html`.
+
+Proof/risk: N/A — decides direction; the downstream plan or fix sets the proof
+level for the change.
+
 ## Workflow position
 
-**Typically precedes:** the installed plan skill or `/av:cook`.
+**Typically follows:** `av:ask` or `av:scout` when an answer or an orientation
+pass turned into delivery work, and `av:debug` on the bug path once the cause
+is proven.
+**Typically precedes:** `av:plan` for feature or documentation delivery,
+`av:cook` when the accepted direction needs no plan, `av:fix` for a diagnosed
+bug, and `av:bootstrap` when the outcome is a new project.
+**Related:** `av:advise` answers a question that is already well posed;
+`av:predict` runs persona debate on a chosen change; `av:issue-to-plan` wraps
+this gate for GitHub issues.
 
-**Bug path:** opening intent frame -> scout and debug -> solution brainstorm when
-needed -> `/av:fix`.
+**Bug path:** opening intent frame -> `av:scout` and `av:debug` -> solution
+brainstorm when needed -> `/av:fix`.

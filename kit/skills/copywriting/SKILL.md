@@ -1,6 +1,6 @@
 ---
 name: av:copywriting
-description: Conversion copywriting formulas, headline templates, email copy patterns, landing page structures, CTA optimization, and writing style extraction. Activate for writing high-converting copy, crafting headlines, email campaigns, landing pages, or applying custom writing styles from assets/writing-styles/ directory.
+description: "Use when writing conversion copy, headlines, email campaigns, landing pages, CTAs, A/B variants, or applying a custom writing style."
 user-invocable: true
 when_to_use: "Invoke for conversion copy, headlines, emails, or style transfer."
 category: utilities
@@ -92,6 +92,28 @@ CTAs: "Start [verb]ing" • "Get [benefit]" • "Yes, I want [benefit]"
 3. Specificity > vague claims | 4. Read aloud—if awkward, rewrite
 5. Test headlines first | 6. Match copy to awareness level
 
-## Outputs
+## Output format
 
-**IMPORTANT:** Invoke "the engineer project-organization skill" skill to organize the outputs.
+Return the audience, awareness stage, offer, proof, objections, selected formula,
+and final copy in the requested channel format. Label variants and the hypothesis
+each tests. When a source style is used, name the source without copying long
+passages from it.
+
+## Quality gates
+
+- [ ] Claims are supported by supplied evidence; placeholders are explicit.
+- [ ] Voice, reading level, channel length, and required legal terms are followed.
+- [ ] One primary action is clear and CTA language matches the destination.
+- [ ] Variants change one meaningful hypothesis rather than random wording.
+- [ ] No fabricated testimonials, metrics, urgency, scarcity, or guarantees.
+- [ ] Final copy is proofread and preserves requested product terminology.
+
+## Workflow position
+
+**Typically follows:** `av:brainstorm` for positioning or an accepted creative brief.
+
+**Typically precedes:** `av:document-skills` when copy must be laid out in an
+Office file, or the user's publishing workflow.
+
+**Related:** `av:design` for visual identity and `av:interview-docs` for
+extracting source material and stakeholder decisions.

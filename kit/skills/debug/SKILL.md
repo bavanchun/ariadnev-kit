@@ -1,6 +1,6 @@
 ---
 name: av:debug
-description: "Debug systematically with root cause analysis before fixes. Use for bugs, test failures, unexpected behavior, performance issues, call stack tracing, multi-layer validation, log analysis, CI/CD failures, database diagnostics, system investigation."
+description: "Debug systematically, proving root cause before any fix. Use for bugs, test failures, CI/CD and server incidents, performance degradation, and log analysis. Diagnoses; does not apply the fix."
 user-invocable: true
 when_to_use: "Invoke when root cause must be proven before a fix."
 category: utilities
@@ -33,7 +33,7 @@ Random fixes waste time and create new bugs. Find root cause, fix at source, val
 
 ### 1. Systematic Debugging (`references/systematic-debugging.md`)
 
-Four-phase framework: Root Cause Investigation → Pattern Analysis → Hypothesis Testing → Implementation. Complete each phase before proceeding. No fixes without Phase 1.
+Four-phase framework: Root Cause Investigation → Pattern Analysis → Hypothesis Testing → Implementation. Complete each phase before proceeding. Run phases 1-2 here and form the phase-3 hypothesis; the phase-3 minimal test and phase 4 Implementation both change code, so both belong to `av:fix`, and this skill hands it the diagnosis.
 
 **Load when:** Any bug/issue requiring investigation and fix
 
@@ -45,7 +45,7 @@ Trace bugs backward through call stack to find original trigger. Fix at source, 
 
 ### 3. Defense-in-Depth (`references/defense-in-depth.md`)
 
-Validate at every layer: Entry validation → Business logic → Environment guards → Debug instrumentation
+Specify the validation layers the fix should add: Entry validation → Business logic → Environment guards → Debug instrumentation. This skill names the layers; `av:fix` writes them.
 
 **Load when:** After finding root cause, need comprehensive validation
 
@@ -75,7 +75,8 @@ Identify bottlenecks, analyze query performance, develop optimization strategies
 
 ### 8. Reporting Standards (`references/reporting-standards.md`)
 
-Structured diagnostic reports: Executive Summary → Technical Analysis → Recommendations → Evidence
+Structured diagnostic reports: a full template, the P0/P1/P2 recommendation
+bands, and a report file-naming example.
 
 **Load when:** Need to produce investigation report or diagnostic summary
 
@@ -97,9 +98,9 @@ Visual verification of frontend implementations via `av:agent-browser`, `av:chro
 ## Quick Reference
 
 ```
-Code bug       → systematic-debugging.md (Phase 1-4)
+Code bug       → systematic-debugging.md (Phases 1-2 + the hypothesis; testing it and phase 4 are av:fix)
   Deep in stack  → root-cause-tracing.md (trace backward)
-  Found cause    → defense-in-depth.md (add layers)
+  Found cause    → defense-in-depth.md (specify layers)
   Claiming done  → verification.md (verify first)
 
 System issue   → investigation-methodology.md (5 steps)
@@ -130,8 +131,53 @@ Stop and follow process if thinking:
 
 **All mean:** Return to systematic process.
 
-## Workflow Position
+## Output format
 
-**Typically follows:** `/av:scout` (after locating relevant code)
-**Typically precedes:** `/av:fix` (fix the diagnosed issue), `/av:brainstorm` (explore solutions for complex problems)
-**Related:** `/av:scout` (discover before debugging), `/av:fix` (fix after diagnosing)
+Every investigation returns this, whatever its size:
+
+- **Symptom** — what was observed, and the exact command or request that shows it.
+- **Root cause** — one sentence, naming the `file:line` where the defect lives,
+  or the narrowest boundary reached when Status is `Under investigation`.
+- **Evidence** — the log excerpt, failing assertion, query plan, or trace that
+  proves it. Label each item `confirmed` or `hypothesis`; an investigation that
+  ends with only hypotheses says so in the Status.
+- **Status** — one of `Resolved` / `Mitigated` / `Under investigation`.
+- **Recommended fix** — what to change and where, banded `P0` / `P1` / `P2`.
+  This skill names the fix; it does not apply it.
+- **Unresolved questions** — or "none".
+
+For a system-level incident, expand this into the report template in
+`references/reporting-standards.md`, which owns the priority bands and the
+report file-naming example. Follow its `## Template` block, which is the
+concrete artifact; where its prose section list differs, the template wins.
+
+## Quality gates
+
+- [ ] A `Resolved` or `Mitigated` status rests on a proven root cause, not a
+      guess — the evidence would convince someone who disagreed, and
+      correlation is distinguished from causation
+- [ ] No production code was changed; the fix is described, not applied
+- [ ] Every item in Evidence is labelled `confirmed` or `hypothesis`, and the
+      Status matches — an investigation carrying only hypotheses is not
+      `Resolved`
+- [ ] The symptom was reproduced and the reproducing command is in the report —
+      or the report states it is not reproducible and says what evidence was
+      gathered instead
+- [ ] Anything still unexplained is listed rather than absorbed into a
+      confident-sounding summary
+- [ ] For a frontend defect, the browser check ran and its console output was
+      read — or the "visual verification skipped" line from
+      `references/frontend-verification.md` is in the report; the UI was never
+      judged from source alone
+
+## Workflow position
+
+**Typically follows:** `av:scout` once the relevant files are located, or a
+failing `av:test` run that produced the symptom.
+**Typically precedes:** `av:fix` to apply the diagnosed fix — this skill hands
+over a cause and a location, never an edit — or `av:brainstorm` when several
+viable fixes remain and the choice is a design decision.
+**Related:** `av:problem-solving` reframes an investigation that has stalled;
+`av:docs-seeker` and `av:repomix` supply external docs and codebase context
+during collection; `av:agent-browser` and `av:chrome-profile` provide the visual
+verification path for frontend defects.

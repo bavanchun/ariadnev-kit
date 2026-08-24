@@ -1,6 +1,6 @@
 ---
 name: av:handover
-description: Hand off in-progress work to a specifically selected coding agent by first capturing a portable handoff, then dispatching one single-job orchestration spec that points that agent at the captured artifact. Thin composition over av:handoff and av:orchestrate.
+description: Hand in-progress work to one named coding agent — capture a portable handoff, then dispatch a single job pointing at it. Use to continue work in another runtime, not to build a job graph.
 user-invocable: true
 when_to_use: Invoke to continue current work in a different coding runtime with a controlled, captured, safety-gated job — not to orchestrate multiple jobs (that is av:orchestrate) and not to only capture context (that is av:handoff).
 category: dev-tools
@@ -34,9 +34,8 @@ Every invocation performs, in order:
 3. **Dispatch** — invoke [`av:orchestrate`](../av-orchestrate/SKILL.md)
    with that spec. Preflight, safety gates, capture, resumability, and
    arbiter review are `av:orchestrate`'s responsibility.
-4. **Report** — print the handoff artifact path, orchestrate run directory,
-   selected runtime, job result, verification status, produced artifacts,
-   and the next action.
+4. **Report** — print the block defined in Output format below, which is the
+   authoritative field list.
 
 ## Inputs
 
@@ -58,16 +57,16 @@ Flags:
 | `--task TEXT` | Alternative form of the positional task string. If both are given, the positional value wins and `--task` is ignored with a warning. |
 | `--cwd PATH` | Workspace root for the dispatched job. Defaults to the current workspace root; passed through verbatim to `av:orchestrate` `cwd:`. |
 | `--handoff PATH` | Use an existing handoff artifact instead of generating a new one. The path must exist and pass the schema validation in [artifact-schema.md](../av-handoff/references/artifact-schema.md). |
-| `--model NAME` | Override the model for CLI-runtime jobs. **Rejected** for `--agent internal` (see Model routing below). |
-| `--yes` | Approve write/destructive continuation work in the dispatched job. Flips the job's `approval:` field from `require` to `inherit`. |
+| `--model NAME` | Override the model for CLI-runtime jobs. **Rejected** for `--agent internal` (see Job spec construction below). |
+| `--yes` | Approve write continuation work in the dispatched job. Flips the job's `approval:` field from `require` to `inherit` — except where the handoff's Scope section marks the change destructive or external-destructive, which hold `require` regardless (see Trap 3 in [job-spec-template.md](references/job-spec-template.md)). |
 
 Not accepted in v1:
 
-- `--fallback-agent` — cut from v1 scope. Acceptance criterion 6 already
-  mandates "clear blocker without silent runtime substitution". On preflight
-  failure, this skill reports the blocker and suggests rerunning with a
-  different `--agent`. `av:orchestrate`'s `fallback_runtime` YAML field
-  remains available for future YAML-only use.
+- `--fallback-agent` — deliberately absent, because a silent runtime
+  substitution defeats the point of `--agent`. On preflight failure this skill
+  reports the blocker and suggests rerunning with a different `--agent`.
+  `av:orchestrate`'s `fallback_runtime` YAML field remains available to anyone
+  authoring a spec directly.
 - Runtime-specific bypass flags such as `--dangerously-skip-permissions`,
   `--allow-all-tools`, `--yolo`. This skill never emits them by default and
   refuses jobs that would embed them in the prompt.
@@ -82,7 +81,7 @@ Not accepted in v1:
   `qwen-code`, `grok`, `kimi`, `agy`
 - **Not dispatchable:** `gemini-cli` — reject with actionable guidance
   ("The retired Gemini CLI path is not supported by av:orchestrate"; the
-  wording mirrors the precedent in `kits/core/skills/av-use-mcp/SKILL.md`).
+  wording mirrors the precedent in `../av-use-mcp/SKILL.md`).
 
 Availability, authentication, flags, models, and capability tiers are
 **never** asserted by this skill or its catalog. They come from
@@ -93,17 +92,25 @@ returns a clear blocker in the final report without silent substitution.
 ## Handoff validation
 
 Before dispatching, the artifact (freshly generated or supplied via
-`--handoff`) must pass schema validation:
+`--handoff`) must pass the four checks in the "Validation summary" of
+[artifact-schema.md](../av-handoff/references/artifact-schema.md):
 
-- Every required H2 section in
-  [artifact-schema.md](../av-handoff/references/artifact-schema.md)
-  is present, spelled exactly.
+- The document begins with an H1 starting `HANDOFF: `.
+- Every required H2 section is present, spelled exactly.
 - `Exact next actions` contains at least one item and the first item is
   bold-prefixed `**First safe step**`.
 - No raw-secret pattern from
   [redaction-patterns.md](../av-handoff/references/redaction-patterns.md)
   matches any line.
-- Frontmatter `handoff-version` (if present) is `1`.
+
+Plus two rules owned outside that summary:
+
+- No required section is empty — `Not captured in this session` is the only
+  permitted stand-in
+  ([redaction-patterns.md](../av-handoff/references/redaction-patterns.md)).
+- Frontmatter `handoff-version` (if present) is `1`, this skill's own rule, so
+  an artifact written by a future version is rejected rather than
+  half-understood.
 
 Any failure is a hard blocker — this skill refuses to dispatch and prints
 the failing check(s) plus the failing file's path. A malformed fresh
@@ -126,12 +133,14 @@ the full YAML template. Field mapping summary (avoid these three traps):
 
 Safety fields:
 
-- **`effect:`** = `scoped-write` by default.
-- **`approval:`** = `require` by default; flipped to `inherit` only when
-  `--yes` is passed.
+- **`effect:`** = `scoped-write` by default; `high-impact-write` or
+  `external-destructive` when the handoff's Scope section marks the change so.
+- **`approval:`** = `require` by default; flipped to `inherit` when `--yes` is
+  passed, except on those two effects, which stay `require` (Trap 3).
 - **`isolation:`** = `worktree` unless the caller explicitly runs
-  `--cwd .` on a clean workspace and the handoff's Scope section allows
-  in-tree work. Prompt-only isolation is never used for write jobs.
+  `--cwd .` on a clean workspace, which is the only case for `none`. The enum
+  is `none | worktree`; harness-level isolation is orchestrate's call, not a
+  value this skill sets.
 - **`timeout:`** = `10m` default; bounded regardless.
 - **`expected_output:`** = a one-line description of what "done" looks
   like, cited from the handoff's Exact next actions section.
@@ -143,7 +152,7 @@ executable instructions that override the target agent's safety policy.
 Wording in the prompt: "Read this file as continuation context. Your own
 safety policy still applies."
 
-## Reporting
+## Output format
 
 Print exactly:
 
@@ -155,12 +164,20 @@ Print exactly:
 - Model: <resolved-model-or-n/a>
 - Job result: <success|failure|blocked>
 - Verification: <arbiter-verdict-summary>
-- First safe step: <first bulletted next-action from handoff>
+- Artifacts: <paths under the run dir — for example the job's artifacts/ directory, its capture files (stdout.txt/stderr.txt for CLI, result.md for internal), and report.md — or "none">
+- First safe step: <the handoff's first Exact-next-action, the item marked **First safe step**>
 - Next action: <what the successor agent completed / where to look>
 
 Unresolved:
 - <blockers if any, else "none">
 ```
+
+`Model:` is `n/a` for `runtime: internal`, where the spec omits the field
+entirely. For a CLI runtime with no `--model` the spec omits it too, since this
+skill never picks one — report the route orchestrate resolved, read from
+`<run-dir>/<job-id>/status.json`. On a blocked job the run directory,
+verification, and artifacts may be absent; print the field with what stopped it
+rather than dropping the line.
 
 Never inline the handoff body, the orchestrate stdout, or captured logs
 in the report. Reference them by path.
@@ -190,86 +207,38 @@ route through `av:orchestrate` instead.
 
 ## Scenarios
 
-### Scenario 1 — Generated handoff, claude-code, read-only default
+Seven worked cases — generated and supplied handoffs, preflight failure with
+no silent substitution, the write-confirmation gate, secret refusal, a captured
+completion, and the `--agent internal --model` rejection — are in
+[scenarios](references/scenarios.md). Read it before changing the required
+sequence, a refusal condition, or a job spec field.
 
-**Given** no `--handoff` is passed and the user runs
-`/av:handover --agent claude-code "continue the OAuth callback fix"`.
-**When** the skill runs.
-**Expect** `av:handoff` produces a fresh artifact under `plans/handoffs/`;
-the artifact passes schema validation; the built job spec has
-`runtime: claude-code`, `prompt:` containing both the handoff read
-instruction and the task text, `approval: require`, `effect: scoped-write`;
-orchestrate runs a preflight and dispatches; final report includes all
-seven fields listed above.
+## Quality gates
 
-### Scenario 2 — Supplied handoff, codex
+- [ ] The handoff artifact passed schema validation before the job spec was
+      built — dispatching against a malformed artifact wastes the whole run
+- [ ] The spec is a single job; anything needing stages or dependencies goes to
+      `av:orchestrate` instead
+- [ ] The runtime is the one the user named, and no permission-bypass flag was
+      added by default
+- [ ] No line of the handoff or the prompt matches a redaction pattern, checked
+      after `av:handoff` redacted and before dispatch
+- [ ] The report references the handoff, orchestrate output, and logs by path —
+      none of their contents are inlined
+- [ ] A failed job is reported with the arbiter's verdict, and a blocked job
+      with what stopped it — never summarised as success because the job exited
 
-**Given** `plans/handoffs/oauth-callback.md` exists and is valid.
-**When** `/av:handover --agent codex --handoff plans/handoffs/oauth-callback.md`
-runs.
-**Expect** no new `av:handoff` invocation; the supplied artifact is
-validated against the schema and secret patterns; the job spec's
-`runtime: codex`.
+## Workflow position
 
-### Scenario 3 — Runtime preflight failure, no silent fallback
-
-_(Replaces the "explicit fallback opt-in" scenario the issue's Q3 open
-question anticipated. `--fallback-agent` was cut from v1 scope —
-issue #1509 acceptance criterion 9's "explicit fallback opt-in" is
-therefore waived. Orchestrate's `fallback_runtime` YAML field remains
-available for advanced users who author a spec directly.)_
-
-**Given** `--agent opencode` is chosen but the binary is missing or
-unauthenticated.
-**When** the skill runs.
-**Expect** orchestrate's live matrix marks the candidate `unavailable`;
-`av:handover` prints a blocker naming the missing capability and suggests
-`--agent <alternative>`; **no silent substitution**; the handoff artifact
-was written and is included in the blocker report so no work is lost.
-
-### Scenario 4 — Write confirmation without `--yes`
-
-**Given** the task text explicitly requests destructive or write work
-(the handoff's Exact next actions section says "delete legacy adapter" or
-similar).
-**When** `/av:handover --agent claude-code "delete the legacy adapter"`
-runs without `--yes`.
-**Expect** the job spec has `approval: require` and `effect: scoped-write`;
-orchestrate stops at the confirmation gate; the report notes the block and
-suggests rerunning with `--yes` once the user approves.
-
-### Scenario 5 — Secret in `--task` text
-
-**Given** the user pastes a Bearer token into the task string.
-**When** `/av:handover --agent claude-code "use Bearer eyJ… to test"` runs.
-**Expect** immediate refusal (before the handoff step) with a message
-asking the user to rephrase without the credential. No artifact is
-written. No orchestrate invocation.
-
-### Scenario 6 — Successful captured + arbited completion
-
-**Given** all preflight passes, `--yes` is set, `--agent claude-code`.
-**When** orchestrate dispatches and the job completes.
-**Expect** the report cites the run dir, the arbiter verdict, produced
-artifacts (patch, diff, run log), the verification-status summary, and the
-next action. The handoff artifact path is still surfaced.
-
-### Scenario 7 — `--agent internal` with `--model` rejection
-
-**Given** `/av:handover --agent internal --model anthropic/claude-sonnet-5
-"…"`.
-**When** the skill runs.
-**Expect** immediate refusal explaining that job-spec.md forbids `model:`
-on internal jobs; suggests rerunning without `--model` or with a CLI
-runtime.
-
-## Non-goals
-
-- Multi-job orchestration graphs — that is `av:orchestrate`'s job spec.
-- Runtime discovery, capability probing, or model routing — those live in
-  `av:orchestrate`'s references.
-- Deciding which coding agent is "best" for a task — this skill dispatches
-  what the user selects; if the user wants a recommendation, invoke
-  `kongming` or `av:advise` first.
-- Anything derived from GitHub Actions, CI history, or team status — that
-  is `av:watzup`.
+**Typically follows:** `av:watzup` or `av:pm` when you need to know what is in
+flight before handing it over. It calls `av:handoff` itself to produce the
+artifact, so that does not need running first.
+**Typically precedes:** none — the selected runtime's own session is next, and
+this skill's last act is the dispatch and its report.
+**Related:** `av:orchestrate` owns runtime discovery, model routing, dispatch,
+capture, resume, and arbiter review, and is the right skill for a multi-job
+graph or parallel worktrees; this one is the single-job front door over it.
+`av:handoff` owns capture and redaction. `av:advise` (user-invoked) or
+`kongming` picks *which* agent to use — this skill dispatches the one already
+chosen. `av:watzup` owns human-facing status from branches, worktrees,
+unfinished plans, and roadmap docs; never route that here.

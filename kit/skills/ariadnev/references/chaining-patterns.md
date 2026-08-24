@@ -4,9 +4,8 @@ How to compose installed skills into a workflow: the skeleton, the link
 contract, context passing, when to collapse, and how to recover. Sequences for
 engineer development work are owned by
 `../../av-cook/references/workflow-routing.md` — load that file for them; this
-file never re-lists its tables. Marketing sequences live here because no
-installed reference owns them today; if a marketing routing reference ships
-later, this section slims to a pointer.
+file never re-lists its tables. No installed reference owns marketing
+sequences; see Marketing Sequences below for what that means for routing.
 
 ## The Skeleton
 
@@ -80,41 +79,13 @@ descriptions.
 
 ## Marketing Sequences
 
-For marketing installs. Names below are skill names (`ak-<name>`) to invoke on
-installs that ship them; guard each link with the Step 2 inventory:
-
-**Campaign** (class plan-campaign):
-
-```
-av-marketing-research → av-persona → av-funnel → av-campaign (brief)
-  → per-channel production: av-write | av-social | av-email | av-paid-ads
-  → av-analytics (tracking setup)
-```
-
-Researcher roles run the research links in parallel; content roles produce
-channels in parallel once the brief exists; content-reviewer role gates every
-channel before publish (mass-audience send = high risk).
-
-**Single content piece** (class create-content):
-
-```
-brand voice input (av-brand if installed) → av-write → av-seo (organic reach
-only) → content-reviewer role → publish or schedule (av-social)
-```
-
-**Launch** (class plan-campaign, launch flavor):
-
-```
-av-launch-strategy → av-campaign → assets (av-banner-design, av-video as
-needed) → distribution channels → av-analytics
-```
-
-**Funnel diagnosis** (class analyze-performance):
-
-```
-av-analyze → av-funnel (bottleneck) → av-form-cro or av-onboarding-cro (fix)
-  → av-ab-test-setup (prove it)
-```
+This kit ships no marketing *routing reference* — no owning file defines
+campaign, funnel, or channel sequences. It does ship marketing-adjacent
+execution skills: `av:copywriting` for conversion copy, emails and landing
+pages, `av:design` for campaign and poster assets, `av:ai-artist` for marketing
+imagery. Build the chain from what Step 2 actually found, and report the gap
+for anything those three do not cover rather than inventing a skill name that
+looks plausible.
 
 ## Failure and Detours
 

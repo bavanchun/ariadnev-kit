@@ -102,3 +102,21 @@ Load when deeper understanding needed:
 - `references/worked-examples.md` - Compact worked examples calibrating revision, hypothesis testing, and convergence
 - `references/advanced-techniques.md` - Spiral refinement, hypothesis testing, convergence
 - `references/advanced-strategies.md` - Uncertainty, revision cascades, meta-thinking
+
+## Output format
+
+Return a concise conclusion with assumptions, decisive evidence, revisions, and
+remaining uncertainty. Show numbered thought checkpoints only when visible
+reasoning materially helps the user.
+
+## Quality gates
+
+- Revise claims when evidence contradicts an earlier hypothesis.
+- Separate observations, assumptions, hypotheses, and verified conclusions.
+- Stop when the decision is supported; do not manufacture extra steps.
+
+## Workflow position
+
+Use inside complex investigation, planning, or debugging when ordinary linear
+analysis is insufficient. Hand the verified conclusion back to
+`av:problem-solving`, `av:debug`, or the owning workflow.

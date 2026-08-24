@@ -8,41 +8,92 @@ divergent copy in another skill; link here instead.
 ## Canonical state = repo files
 
 - `plans/<timestamp>-<slug>/plan.md` plus `phase-NN-*.md` in the repo ARE the
-  plan. Hand-editable Markdown, legacy-ariadnev style. They are the
-  deliverable of planning skills and the only thing implementation skills read
-  to know what to build.
+  plan. Hand-editable Markdown. They are the deliverable of planning skills and
+  the only thing implementation skills read to know what to build.
+- A directory is a plan directory when it contains `plan.md`. Nothing else
+  qualifies: `list` passes over one without it, and any command asked to act on
+  it refuses rather than guessing.
 - A project with no GitHub remote, no `gh` auth, and no network still has a
   fully working plan — because the files are the plan.
 
-## `av plan` / `plans.db` = a rebuildable index, not canonical
+## `av plan` = a reader and a frontmatter editor, not an index
 
-- The `av plan` CLI (backed by a local SQLite `plans.db`) is a cache/index
-  built FROM the files: fast lookup, search, kanban, cross-repo listing,
-  current-plan resolution.
-- If the index and the files ever disagree, the files win. `av plan reindex`
-  rebuilds the index from disk when they drift (e.g. after a hand-edit or a
-  pull that changed plan files without going through the CLI).
-- File-writing commands (`create`, `add-phase`, `check`, `uncheck`, and
-  `update --status`) write the Markdown files and re-sync the index in the same
-  operation — use them for status changes instead of hand-editing a phases
-  table, and the write target is always the files. `status` is read-only;
-  `close` and `archive` are index-only lifecycle transitions that never touch
-  the files (the files already carry their terminal `status:` from the ship
-  commit). Because `close` is index-only, closing an unmerged or abandoned plan
-  whose file still reads `in-progress` will reindex as active on another machine
-  or after a rebuild — pair such a close with `av plan update <id> --status
-  cancelled` so the terminal state lives in the files.
+There is **no database and no index**. Nothing is cached, nothing can drift out
+of sync, and nothing needs rebuilding. `av plan reindex` re-reads every plan and
+reports what is malformed; its own help says "there is no index to rebuild".
+When this file says *index*, it means `plan.md` — the human-readable plan index
+and its phases table — never a machine one.
+
+The whole surface, from `av plan --help`:
+
+| Command | What it does | Writes? |
+|---|---|---|
+| `use <name>` | Points the current branch at a plan directory | pointer file |
+| `show` | Prints the branch's plan and its phases | no |
+| `list` | Every plan directory: status, completed/total phases | no |
+| `resolve` | Prints the branch's plan directory path | no |
+| `update <phase> <status>` | Sets one phase's status | phase file + `plan.md` table |
+| `check <phase>` / `uncheck <phase>` | `update <phase> completed` / `… pending` | same |
+| `status [status]` | Reads the plan's own status, or sets it | `plan.md` when setting |
+| `close` | Exactly `status completed` | `plan.md` |
+| `phase <phase>` | Prints one phase file in full | no |
+| `search <query>` | Case-insensitive substring across every plan's files | no |
+| `reindex` | Re-reads every plan, reports what is malformed | no |
+| `archive` | Moves a finished plan under `<plans>/archive/` | moves the directory |
+| `cleanup` | Lists finished plans still in the root; `--archive` moves them | only with `--archive` |
+
+Notes that decide whether a call works:
+
+- **There is no `create` and no `add-phase`.** No CLI command scaffolds a plan
+  directory, a `plan.md`, or a phase file. The agent writes plan content
+  directly as files. Do not invent `av plan create`, `av plan add-phase`, or
+  `av plan publish`; none exists.
+- `<phase>` is always a **phase number**, never a file name. `check 3`, not
+  `check phase-03-schema.md`.
+- `update` takes two **positional** arguments, `<phase> <status>`. There is no
+  `--status` flag. Valid statuses: `pending`, `in-progress`, `completed`,
+  `cancelled`.
+- `status` sets the **plan's** status; `update` sets a **phase's**. They are
+  different files.
+- `close` is an alias for `status completed` — it rewrites `plan.md`'s
+  frontmatter like any other edit. It is not a separate lifecycle state, it is
+  not "index-only", and there is nothing it does that `status completed` does
+  not.
+- `--json` is on every subcommand. `--plan <name>` (act on a plan other than the
+  branch's) is only on the ones that act on a single plan: `update`, `check`,
+  `uncheck`, `status`, `close`, `phase`, `archive`. `use`, `show`, `list`,
+  `resolve`, `search`, `reindex` and `cleanup` do not take it. `archive` also
+  takes `--force`; `cleanup` takes `--archive`; the global `--dry-run` is
+  honoured by `archive`.
+- An edit rewrites only the one frontmatter line it is changing. Key order,
+  spacing, unknown keys and the body are left alone, so a hand-written key
+  survives every CLI write — the CLI simply never reads it back. The only
+  frontmatter it reads at all is `status`, `phase` and `title`.
+- `update` also rewrites the matching `| N | … | status |` row in `plan.md` when
+  there is one, and says `(no row for it in the index table)` when there is not.
+  A missing row is not an error; the phase file is the record.
 
 ## Current-plan resolution
 
-- `av plan use <plan-dir>` sets the current-plan pointer for this worktree so
-  downstream tooling (`av:cook`, dashboards, other agents) can resolve the
-  active plan without re-scanning or requiring a GitHub link.
-- `av plan resolve` finds the plan matching the current repo remote + branch
-  (worktree path as tiebreaker) when no explicit pointer is set.
-- `av plan show <plan-dir>` reads plan/phase content (frontmatter, checklists,
-  body) for a skill to consume — read plan state this way, not from GitHub
-  issue comments.
+- The pointer lives at `.ariadnev/current-plan.json` and is **keyed by branch
+  name**. Detached HEAD and non-git directories share the key `(no branch)`.
+- `av plan use <name>` sets it for the current branch. It refuses a name that is
+  not a plan directory rather than pointing at nothing.
+- `av plan resolve` prints the plan directory path for that branch. It **exits
+  non-zero** when the branch has no pointer, and again when the pointer names a
+  directory that is no longer there. It does not search by git remote, by
+  worktree path, or by anything else — no pointer means no answer.
+- Because the pointer is per-branch, a plan selected on a feature branch is not
+  visible from the target branch after a merge. Use `av plan list` or
+  `--plan <name>` there; `resolve` will correctly report nothing.
+- `av plan show` reads the branch's plan and its phases. It takes no argument —
+  not a plan directory, not `--plan`. A stray positional is **silently ignored,
+  not rejected**: `av plan show <other-plan>` prints the branch's plan and exits
+  0, and `resolve` behaves the same way, so a skill that passes a name gets a
+  confident answer about the wrong plan. (`--plan` does error out.) For a
+  specific plan, read the files, or use `av plan phase <n> --plan <name>`.
+- Nothing hides a plan from `list` or `resolve` except `archive`, which moves
+  the directory. A `completed` plan still resolves and still lists.
 
 ## GitHub issue = optional visibility projection, never canonical
 
@@ -57,8 +108,8 @@ divergent copy in another skill; link here instead.
 - Publishing never overwrites the body of a pre-existing issue a plan was
   created from (e.g. via `av:issue-to-plan`); it only adds links, comments, or
   labels.
-- If the index and a linked issue ever disagree on status, the local files
-  (and the index rebuilt from them) win. The issue is a mirror, not a lock.
+- If the files and a linked issue ever disagree on status, the files win. The
+  issue is a mirror, not a lock.
 
 ### Publish-safety protocol
 
@@ -73,24 +124,21 @@ safe, idempotent, and recoverable. Run `av plan --help` and each subcommand's
    tokens, credentials, or local absolute paths. If the rendered body would
    exceed GitHub's comment limit (65,536 chars), truncate to a repo-relative
    plan-path link — do not split across comments.
-2. **Provenance lives in the index, not the files.** Persist the linkage with the
-   shipped commands (a hand-written `issue:` front-matter key is inert — the
-   parser ignores unknown front matter):
-   - `av plan update --issue <n> --root-comment-id <id>` for the plan's issue and
-     root tracking comment;
-   - `av plan phase update --comment-id <id>` for a per-phase tracking comment.
-   Persist the ids **immediately** after creating the comment, before any further
-   writes; if the persist fails, print the ids in the report for manual recovery.
-   A human-readable `Tracking: #<n>` line in the plan *body* is a fine
-   non-authoritative breadcrumb.
-3. **Adopt before you create (bootstrap).** The index is per-machine and
-   rebuildable, so a fresh clone, a teammate's machine, or a lost `plans.db` has
-   no recorded ids even when the issue already carries the projection. Embed a
-   stable marker in every bot-authored projected comment:
+2. **The CLI cannot record provenance — the issue itself has to carry it.**
+   There is no store for an issue number, a comment id, or a PR number: no
+   `--issue`, no `--root-comment-id`, no `--linked-pr`, no `av plan phase
+   update`. A `Tracking: #<n>` line in the plan body, or an extra frontmatter
+   key, is preserved across CLI edits and is a fine breadcrumb for a human, but
+   no command reads it back. So the marker in step 3 is not an optimisation —
+   it is the only durable link between a plan and its projection.
+3. **Adopt before you create.** Because nothing is recorded anywhere, *every*
+   run starts with no knowledge of an existing projection — not just a fresh
+   clone or a teammate's machine. Embed a stable marker in every bot-authored
+   projected comment:
    `<!-- ariadnev-plan <plan-dir-basename> hash=<12-hex> branch=<branch> -->`.
    Before creating a new root comment, scan the issue's existing comments for that
-   marker; on a unique authored-by-self match, **adopt** it (persist its id via
-   step 2) instead of posting a duplicate.
+   marker; on a unique authored-by-self match, **adopt** it instead of posting a
+   duplicate.
 4. **Author-verify before editing.** Only edit a comment the current `gh`
    identity authored (`gh api .../comments/<id> -q .user.login` equals the
    authenticated login). Identities differ across machines and CI (a
@@ -106,62 +154,58 @@ safe, idempotent, and recoverable. Run `av plan --help` and each subcommand's
    always win, and GitHub's comment API has no atomic swap. Last-writer-wins among
    your own verified projections is acceptable.
 6. **Fail safe on missing or rate-limited issues.** A 404/410 (issue transferred,
-   deleted, or locked) → report and stop; never auto-create a replacement issue,
-   and never clear recorded ids without user confirmation (a transfer only
-   changes the repo-scoped API path, so 404 ≠ deleted). On rate limits or a
-   partial write, back off, skip, and report — never retry-loop; create-then-
-   record ordering plus the adoption marker keeps a lost write self-healing.
+   deleted, or locked) → report and stop; never auto-create a replacement issue
+   (a transfer only changes the repo-scoped API path, so 404 ≠ deleted). On rate
+   limits or a partial write, back off, skip, and report — never retry-loop.
+   Nothing is recorded anywhere between runs, so recovery rests entirely on the
+   marker plus author-verify: the next run re-scans the issue, finds its own
+   marked comment, and adopts it.
 
-## Delivery finalization (close on ship)
+## Delivery finalization (on ship)
 
 When a plan-backed change ships, finalize the plan so its files stop reading as
-active work — the core "stale plan read as false context" mitigation. The file
-write and the index close are **two different commands at two different moments**,
-because the CLI splits them:
+active work — the core "stale plan read as false context" mitigation. This is
+**one write, at one moment**: the plan's status lives in `plan.md` and nowhere
+else, so there is no second, post-merge step to perform.
 
-**On ship success, before the ship commit — finalize the FILES:**
+**On ship success, before the ship commit:**
 
-1. Resolve the active plan (`av plan resolve`). A resolve-miss means no active
-   plan for this repo + branch — **skip finalization silently**; most ships carry
-   no plan. Only an ambiguity error, or a failure partway through the steps
-   below, warrants a warning plus the exact plan-dir path.
-2. Verify the phase checkboxes reflect reality (`av plan status` prints the
-   progress summary). If the diff proves a phase's boxes done, `av plan check
-   <phase-file>` them. If the work is genuinely partial, `av plan update <id>
-   --status in-progress` and stop — never blind-complete a half-done plan.
-3. When the plan is actually complete, `av plan update <id> --status completed`.
-   `--status` is file-owned: it rewrites the `plan.md` front-matter `status:`
-   (the canonical state) and updates the index in one operation. The ship's own
-   `git add -A` + commit then carries the finalized plan files onto the branch,
-   so `status: completed` reaches the target branch in the **same merge** as the
-   code it describes — the files can never claim completion for code that did not
-   land. Make this a synchronous/foreground step; do not fold it into a
-   background writer.
+1. `av plan resolve`. It exits non-zero for two different reasons, and they are
+   not the same event. "nothing selected for `<branch>`" means this branch has
+   no plan — **skip finalization silently**, because most ships carry no plan.
+   "`<branch>` points at `<name>`, which is not there" means the pointer is
+   stale: **warn and print the plan-dir path**. Swallowing the second one hides
+   exactly the stale-plan state this step exists to catch. `--json`
+   distinguishes them as `found: false` versus `plan: null`.
+2. Check the phases against the diff. `av plan show` prints each phase and its
+   status. Where the diff proves a phase done, `av plan check <n>` it.
+3. If the work is genuinely partial, `av plan status in-progress` and stop —
+   never blind-complete a half-done plan.
+4. When the plan is actually complete, `av plan status completed` (`av plan
+   close` is the same write). This rewrites `plan.md`'s frontmatter `status:`.
+   The ship's own `git add -A` + commit then carries the finalized plan files
+   onto the branch, so `status: completed` reaches the target branch in the
+   **same merge** as the code it describes — the files can never claim
+   completion for code that did not land. Make this a synchronous/foreground
+   step; do not fold it into a background writer.
 
-Do **not** run `av plan close` here. During the review window the correct
-intermediate state is `status: completed` (file) + `state: active` (index):
-`av plan resolve` only returns `state='active'` plans, so an early close would
-blind cook/vibe during review-fix cycles, and the index close is a one-way
-transition with no CLI reopen — a rejected PR must not leave a stuck-closed plan.
-`av plan reindex` preserves `state`.
+**After the merge:** nothing is required. Marking the plan completed did not
+hide it from anything — `resolve` and `list` still return a completed plan — so
+there is no separate close to perform and no linkage to record. Two optional
+steps, in the merge flow:
 
-**After PR creation — record the linkage:** `av plan update <id> --linked-pr <n>`
-(index-only) so the merge flow can match this plan to its PR unambiguously.
+- `av plan archive --plan <name>` moves a finished plan under `<plans>/archive/`
+  once you want it out of `list`. It refuses unless the plan reads `completed`
+  or `cancelled` (or you pass `--force`), so it cannot quietly bury live work.
+  Note that archiving a plan a branch still points at leaves a stale pointer:
+  `resolve` then reports the directory is not there, and exits non-zero.
+- If the plan records an issue, **append** (never edit) a marked completion
+  comment per the publish-safety protocol above.
 
-**On merge success — close the INDEX and optionally project:**
-
-1. Match the merged PR to its plan via the recorded `--linked-pr` (or plan branch
-   == PR head branch). A match-miss means already closed or unrelated — skip
-   silently; on ambiguity, skip and report rather than guessing.
-2. `av plan close <id>` — an index-only transition to `state=closed`. The files
-   already carry `status: completed` from the ship commit, so this changes index
-   visibility only.
-3. Optional projection: if the plan records an issue / root-comment id, **append**
-   a new marked comment (e.g. "plan completed, PR #N merged" with the
-   `<!-- ariadnev-plan … -->` marker) — never edit the root comment, so a
-   close-time projection cannot clobber anyone. Still apply the publish gates from
-   the publish-safety protocol above (visibility check, secret scan of the
-   rendered text, 65,536-char truncation).
+Matching a merged PR back to its plan has to be done from the branch name or the
+plan directory name — the CLI stores no PR linkage. Post-merge you are on the
+target branch, whose pointer is a different key, so use `av plan list` rather
+than `resolve`, and skip silently when nothing matches.
 
 Degrade honestly: if `av` is unavailable or any step fails, report the exact
 plan-dir path and reason and complete the delivery with a warning — never
@@ -169,14 +213,19 @@ hand-edit a status line and never delete plan files.
 
 ## Rules for skills consuming this model
 
-1. Resolve the current plan via the current-plan pointer (`av plan use`) first,
-   falling back to `av plan resolve` — never assume a GitHub issue must exist.
-2. Read phase content via `av plan show` (or the files directly), not via
+1. Read the current plan with `av plan resolve` (the path) or `av plan show`
+   (the phases). Both answer for the current branch only, and both exit non-zero
+   when it has no pointer — treat that as "no plan", not as an error. Set the
+   pointer with `av plan use <name>` when a skill selects a plan.
+2. Read phase content via `av plan phase <n>` or the files directly, never from
    issue comments.
-3. Mutate status via `av plan` file-mutating commands so the files and index
-   stay in sync; do not hand-edit a phases table or a status cell.
-4. Treat `--github` (the agent publishing via `gh` / the GitHub API) as an
-   additive, opt-in visibility step that runs after the plan is already valid as
-   files — never as a prerequisite for planning or implementation to proceed.
-5. Before invoking any subcommand, run `av plan --help` and the subcommand's
+3. Change status through `av plan status` (the plan) and `av plan update` /
+   `check` / `uncheck` (a phase) rather than hand-editing frontmatter. Only the
+   three phase commands touch the phases table in `plan.md`; `status` and
+   `close` rewrite the plan's own `status:` line and nothing else.
+4. Write plan and phase *content* as files. No CLI command creates them.
+5. Treat GitHub publishing as an additive, opt-in visibility step that runs
+   after the plan is already valid as files — never as a prerequisite for
+   planning or implementation to proceed.
+6. Before invoking any subcommand, run `av plan --help` and the subcommand's
    own `--help`; those live surfaces own exact flags, not this file.

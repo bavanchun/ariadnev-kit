@@ -45,7 +45,7 @@ See: `references/backend-technologies.md` for detailed comparisons
 - `references/backend-api-design.md` — REST, GraphQL, gRPC patterns and best practices.
 
 **Security & Authentication:**
-- `references/backend-security.md` — OWASP Top 10 2025, security best practices, input validation.
+- `references/backend-security.md` — OWASP Top 10 (2025 RC1), security best practices, input validation.
 - `references/backend-authentication.md` — OAuth 2.1, JWT, RBAC, MFA, session management.
 
 **Performance & Architecture:**
@@ -56,18 +56,23 @@ See: `references/backend-technologies.md` for detailed comparisons
 - `references/backend-testing.md` — testing strategies, frameworks, tools, CI/CD testing.
 - `references/backend-code-quality.md` — SOLID principles, design patterns, clean code.
 - `references/backend-devops.md` — Docker, Kubernetes, deployment strategies, monitoring.
-- `references/backend-debugging.md` — debugging strategies, profiling, logging, production debugging.
+- `references/backend-debugging.md` — debugging mindset, logging, language tools, databases, and APIs.
+- `references/backend-production-debugging.md` — performance, memory, production tracing, common scenarios, and checklists.
 - `references/backend-mindset.md` — problem-solving, architectural thinking, collaboration.
 
-## Key Best Practices (2025)
+## Key Best Practices
 
-**Security:** Argon2id passwords, parameterized queries (98% SQL injection reduction), OAuth 2.1 + PKCE, rate limiting, security headers
+Defaults to apply unless the project has a reason not to. The reference files
+above quote 2025-vintage benchmark figures with no cited source — re-measure in
+this codebase before relying on one.
 
-**Performance:** Redis caching (90% DB load reduction), database indexing (30% I/O reduction), CDN (50%+ latency cut), connection pooling
+**Security:** Argon2id passwords, parameterized queries, OAuth 2.1 + PKCE, rate limiting, security headers
 
-**Testing:** 70-20-10 pyramid (unit-integration-E2E), Vitest 50% faster than Jest, contract testing for microservices, 83% migrations fail without tests
+**Performance:** Redis caching, database indexing, CDN for static assets, connection pooling
 
-**DevOps:** Blue-green/canary deployments, feature flags (90% fewer failures), Kubernetes 84% adoption, Prometheus/Grafana monitoring, OpenTelemetry tracing
+**Testing:** 70-20-10 pyramid (unit-integration-E2E), contract testing for microservices, a test for every migration, load tests for any endpoint with a throughput target
+
+**DevOps:** Blue-green/canary deployments, feature flags, containerization and orchestration (Docker/Kubernetes), Prometheus/Grafana monitoring, OpenTelemetry tracing
 
 ## Quick Decision Matrix
 
@@ -90,11 +95,46 @@ See: `references/backend-technologies.md` for detailed comparisons
 
 **Database:** Choose DB → Design schema → Create indexes → Connection pooling → Migration strategy → Backup/restore → Test performance
 
-**Security:** OWASP Top 10 → Parameterized queries → OAuth 2.1 + JWT → Security headers → Rate limiting → Input validation → Argon2id passwords
-
-**Testing:** Unit 70% → Integration 20% → E2E 10% → Load tests → Migration tests → Contract tests (microservices)
-
 **Deployment:** Docker → CI/CD → Blue-green/canary → Feature flags → Monitoring → Logging → Health checks
+
+## Output format
+
+Return working code, plus what a reviewer would otherwise have to ask for:
+
+1. **The change** — files created or modified, each with its role in one line.
+2. **The API surface**, when endpoints changed: a table of
+   `Method | Path | Auth | Request | Response | Error codes`. An endpoint whose
+   failure responses are undocumented is not finished.
+3. **How it was verified** — the commands run and their result. Name the proof
+   layer the change reached: `unit`, `integration`, `e2e`, or `platform`, and
+   say why that is far enough for this change's risk.
+4. **Follow-ups** — anything deliberately left, or "none".
+
+## Quality gates
+
+- [ ] Every new endpoint validates its input at the boundary and returns typed
+      errors, not raw exception text
+- [ ] No secret, connection string, or key is hardcoded or logged
+- [ ] Every query touching user input is parameterized
+- [ ] Auth is enforced on the server for each new route — a client-side check
+      is not an access control
+- [ ] Tests were run and their output is reported; a change described as
+      "should work" has not been verified
+- [ ] Anything the change makes slower or more expensive is named, not left for
+      the reviewer to notice
+
+## Workflow position
+
+**Typically follows:** `av:plan` for a multi-endpoint feature, or `av:databases`
+when the schema behind the API is designed first.
+**Typically precedes:** `av:test` for the suite around the new surface,
+`av:security` for a threat-modeled review before it ships, and `av:deploy` to
+put it live.
+**Related:** `av:better-auth` owns Better Auth integration specifically — reach
+for it instead when the task is wiring that library's providers, sessions, or
+plugins, rather than building auth on the existing stack; `av:frontend-development`
+consumes the API this skill produces; `av:devops` owns the cluster and pipeline
+this runs on.
 
 ## Resources
 

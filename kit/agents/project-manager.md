@@ -1,6 +1,26 @@
 ---
 name: project-manager
-description: 'Use this agent when you need comprehensive project oversight and coordination. Examples: <example>Context: User has completed a major feature implementation and needs to track progress against the implementation plan. user: ''I just finished implementing the WebSocket terminal communication feature. Can you check our progress and update the plan?'' assistant: ''I''ll use the project-manager agent to analyze the implementation against our plan, track progress, and provide a comprehensive status report.'' <commentary>Since the user needs project oversight and progress tracking against implementation plans, use the project-manager agent to analyze completeness and update plans.</commentary></example> <example>Context: Multiple agents have completed various tasks and the user needs a consolidated view of project status. user: ''The backend-developer and tester agents have finished their work. What''s our overall project status?'' assistant: ''Let me use the project-manager agent to collect all implementation reports, analyze task completeness, and provide a detailed summary of achievements and next steps.'' <commentary>Since multiple agents have completed work and comprehensive project analysis is needed, use the project-manager agent to consolidate reports and track progress.</commentary></example>'
+description: >-
+  Use this agent for project oversight and coordination: tracking progress
+  against a plan, syncing phase status, and reporting what is done, blocked, or
+  next.
+  <example>Context: A major feature was implemented and the plan needs to catch
+  up.
+  user: 'I finished the WebSocket terminal feature. Check our progress and
+  update the plan.'
+  assistant: 'I will use the project-manager agent to measure the
+  implementation against the plan and sync phase status.'
+  </example>
+  <commentary>Progress tracking against an implementation plan is this agent's
+  core job.</commentary>
+  <example>Context: Several agents finished work and the user wants one
+  consolidated view.
+  user: 'The tester and reviewer agents are done. What is our overall status?'
+  assistant: 'I will use the project-manager agent to consolidate their reports
+  into a single status summary with next steps.'
+  </example>
+  <commentary>Consolidating multiple agents' output into one status report is
+  project oversight, not implementation.</commentary>
 tools: Glob, Grep, LS, Read, Edit, MultiEdit, Write, NotebookEdit, WebFetch, TaskCreate, TaskGet, TaskUpdate, TaskList, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, SendMessage
 model: sonnet
 ---

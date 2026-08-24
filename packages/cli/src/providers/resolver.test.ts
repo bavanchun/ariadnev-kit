@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getResolver, PROVIDER_IDS } from "./index.js";
 import { CODEX_COMMANDS_DIR } from "../adapt/paths.js";
 import type { Artifact } from "../kit/kit-types.js";
+import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
 
 const ctx = { home: "/home/u", cwd: "/proj", scope: "project" as const };
 const art = (type: Artifact["type"], name: string): Artifact => ({
@@ -11,7 +12,7 @@ const art = (type: Artifact["type"], name: string): Artifact => ({
 describe("resolver target matrix", () => {
   it("claude-code project paths", () => {
     const r = getResolver("claude-code");
-    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.claude/skills/x");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.claude/skills/av-x");
     expect(r.targetFor(art("agent", "a"), ctx)).toBe("/proj/.claude/agents/a.md");
     expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.claude/commands/c.md");
   });
@@ -20,7 +21,7 @@ describe("resolver target matrix", () => {
     const r = getResolver("codex");
     // Both paths were confirmed by running `codex debug prompt-input` and
     // seeing the installed artifacts in the prompt codex builds.
-    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/home/u/.agents/skills/x");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/home/u/.agents/skills/av-x");
     expect(r.targetFor(art("agent", "a"), ctx)).toBe("/home/u/.codex/agents/a.toml");
   });
 
@@ -34,7 +35,7 @@ describe("resolver target matrix", () => {
 
   it("opencode uses plural dirs", () => {
     const r = getResolver("opencode");
-    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.opencode/skills/x");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.opencode/skills/av-x");
     expect(r.targetFor(art("agent", "a"), ctx)).toBe("/proj/.opencode/agents/a.md");
     expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.opencode/commands/c.md");
   });
@@ -50,16 +51,45 @@ describe("resolver target matrix", () => {
 
   it("global scope roots at home", () => {
     const r = getResolver("claude-code");
-    expect(r.targetFor(art("skill", "x"), { ...ctx, scope: "global" })).toBe("/home/u/.claude/skills/x");
+    expect(r.targetFor(art("skill", "x"), { ...ctx, scope: "global" })).toBe("/home/u/.claude/skills/av-x");
+  });
+
+  /**
+   * `targetPathFor` asks for the skills *root* by resolving the empty name, and
+   * the README matrix, `av contract --json` and `av kit install-path` all read
+   * that answer. Prefixing it unguarded renders every one of them as
+   * `…/skills/av-`, which is a directory that never exists.
+   */
+  it("resolves the empty name to the bare skills root, not a prefixed one", () => {
+    for (const id of PROVIDER_IDS) {
+      const target = getResolver(id).targetFor(art("skill", ""), ctx);
+      if (target === null) continue;
+      expect(target.endsWith("skills")).toBe(true);
+    }
   });
 
   it("every provider id resolves", () => {
     for (const id of PROVIDER_IDS) expect(getResolver(id).id).toBe(id);
   });
 
+  /**
+   * Cursor installs agents as skill-like dirs in the same `.agents/skills` root
+   * the skills use, so both take the prefix. That is only unambiguous while no
+   * agent shares a name with a skill — if one ever does, they collide on one
+   * directory, and they would have collided before the prefix too.
+   */
+  it("prefixes cursor's agent shim, which shares the skills root", () => {
+    const r = getResolver("cursor");
+    expect(r.targetFor(art("agent", "advisor"), ctx)).toBe("/proj/.agents/skills/av-advisor");
+    const kit = loadKit(resolveKitRoot(process.cwd()));
+    const skills = new Set(kit.skills.map((s) => s.name));
+    const collide = kit.agents.map((a) => a.name).filter((n) => skills.has(n));
+    expect(collide, "an agent and a skill share a name — they now share a directory").toEqual([]);
+  });
+
   it("test-provider project paths (skills, commands, rules)", () => {
     const r = getResolver("test-provider");
-    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.test-provider/skills/x");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.test-provider/skills/av-x");
     expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.test-provider/commands/c.md");
     expect(r.targetFor(art("rule", "r"), ctx)).toBe("/proj/.test-provider/rules/r.md");
     expect(r.scriptsTarget(ctx)).toBe("/proj/.test-provider/scripts");
@@ -75,6 +105,6 @@ describe("resolver target matrix", () => {
   it("test-provider global scope roots at home", () => {
     const r = getResolver("test-provider");
     expect(r.targetFor(art("skill", "x"), { ...ctx, scope: "global" }))
-      .toBe("/home/u/.test-provider/skills/x");
+      .toBe("/home/u/.test-provider/skills/av-x");
   });
 });

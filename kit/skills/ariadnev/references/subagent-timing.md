@@ -19,26 +19,24 @@ Do NOT spawn when:
   start blank; the contract below is ALL they know.
 - The user is mid-dialogue on the same question (interactive loops stay in
   the controller).
-- On Codex, the work is smaller than the per-dispatch subprocess cost (each
-  call is a fresh `codex exec`, roughly 1-3s before first token).
 
 ## Trigger Table
 
 | Stage | Condition | Role (examples) |
 |---|---|---|
-| understand | More than two areas/files to map | explorer, read-only, in parallel (`Explore`, `scout`) |
+| understand | More than two areas/files to map | explorer, read-only, in parallel (`Explore`) |
 | understand | External tech or unknown API involved | researcher (`researcher`) |
 | decide | size epic, multi-file build ahead | planner (`planner`) — prefer the planning skill instead when the user should review the plan |
 | decide | Approach contested or high-stakes | second-opinion role (`brainstormer`) with an adversarial prompt |
 | execute | Independent file sets across phases | implementer per phase (`fullstack-developer`), disjoint ownership, parallel only when files do not overlap |
-| execute | Marketing: multiple channels from one brief | one content role per channel (`content-creator`, `copywriter`, `email-wizard`, `social-media-manager`) |
+| execute | Content for multiple channels from one brief | one role per channel, resolved against the live inventory; this kit ships no content agents, so the work runs inline under `av:copywriting` |
 | verify | Implementation or fix just finished | tester (`tester`) before claiming done |
-| verify | Ship/publish/public-contract ahead, or risk high | independent reviewer (`code-reviewer`, `content-reviewer`) |
-| any | Same failure twice despite fixes | debugger with all evidence so far (`debugger`, `campaign-debugger`) |
+| verify | Ship/publish/public-contract ahead, or risk high | independent reviewer (`code-reviewer`; for content, the same role with a content brief — no content reviewer agent ships) |
+| any | Same failure twice despite fixes | debugger with all evidence so far (`debugger`) |
 | any | Hard problem on a model below `fable` (stuck after retries, high-stakes fork) | strategist (`kongming`) — autonomous counsel from the strongest model in one reply; no user round-trips |
 | deliver | Behavior, setup, or commands changed | docs role (`docs-manager`) |
 | deliver | Durable lesson, incident, or hard failure worth recording | journal role (`journal-writer`) |
-| any | Data pull or analysis too large for the main context | analyst (`analytics-analyst`, `database-admin`) |
+| any | Data pull or analysis too large for the main context | analyst role — `Explore` for read-only in-repo pulls; this kit ships no analytics or database agent, so anything else runs inline |
 
 Timing beats selection: the most common failure is the right agent spawned
 late (explorers after you are lost, reviewer after the PR is open). Spawn at
@@ -87,21 +85,19 @@ retry.
 
 **Codex**
 
-- Spawn: call the `agent_<slug>` MCP tool with a `prompt` argument when the
-  `av-codex-agent-runtime` MCP server is registered; each call runs a fresh
-  `codex exec` subprocess with the agent's instructions.
-- Not registered? Run `av codex-agent-runtime register`, restart Codex, or do
-  the work inline this session. Discover installed agents by listing
-  `~/.codex/agents/` or the project's `.codex/agents/`.
-- Semantics: subprocess per call (~1-3s start), sandbox derived from the
-  agent's tool allow-list, result returned as tool output.
+- No in-session spawn tool is verified for Codex. Installed agents are `.toml`
+  files av writes under `~/.codex/agents/`; read the matching one and do the
+  work inline under its instructions, or ask the user to run a separate
+  `codex exec`.
+- Discover installed agents by listing `~/.codex/agents/`, and the project's
+  `.codex/agents/` in case another tool wrote there.
 
 **Neither available** — do the work inline and name the gap in the final
 report; never fake a delegation.
 
 ## Reporting Back
 
-The controller reports outcome-first after agents return: what each role
-produced, what was verified, which reports exist where, and any
-`DONE_WITH_CONCERNS` items verbatim — concerns from fresh-context agents are
-signal, not noise.
+Agent results feed the controller's single outcome-first report (`## Output
+format` in ../SKILL.md). Carry `DONE_WITH_CONCERNS` items through verbatim —
+concerns from fresh-context agents are signal, not noise — and name where each
+role's report file landed.

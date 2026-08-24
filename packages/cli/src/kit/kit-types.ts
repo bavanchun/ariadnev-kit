@@ -79,6 +79,8 @@ export interface Kit {
   scriptsDir: string | null;
   /** Absolute path to `kit/.env.example` if present. */
   envExample: string | null;
-  /** Non-fatal lint findings (e.g. duplicate-heading heuristic). */
+  /** Non-fatal lint findings that hold for every skill (duplicate-heading heuristic). */
   warnings: string[];
+  /** Reserved for compatibility with older validate JSON consumers; always empty. */
+  held: string[];
 }

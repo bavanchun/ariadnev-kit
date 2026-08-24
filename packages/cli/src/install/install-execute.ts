@@ -13,7 +13,16 @@ import { mergeHookSettings, mergeStatusLine } from "./hook-settings-merge.js";
 import { buildReceipt, type ProviderResultForReceipt, type Receipt, type ReceiptSkillSelection } from "./install-receipt.js";
 import { writeAdapterArtifactsSafe } from "../adapters/write-adapter-artifacts.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
-import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, writeJournal } from "./intent-journal.js";
+import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, readJournal, writeJournal } from "./intent-journal.js";
+import {
+  EMPTY_HEAL,
+  assertPriorReceiptSafe,
+  backupHeal,
+  executeHeal,
+  planHeal,
+  previewHeal,
+  type HealReport,
+} from "./install-heal.js";
 
 export interface ExecuteOpts {
   dryRun: boolean;
@@ -92,8 +101,25 @@ export interface InstallKitOpts {
   ariadnevVersion?: string;
 }
 
+/** Two heal reports from one run: the recovered pending set, then this run's. */
+function mergeHeal(a: HealReport, b: HealReport): HealReport {
+  return {
+    removed: [...a.removed, ...b.removed],
+    // Only a dry run fills this, and a dry run never reaches a merge.
+    wouldRemove: [],
+    preserved: [...a.preserved, ...b.preserved],
+    survivingDirs: [...new Set([...a.survivingDirs, ...b.survivingDirs])].sort(),
+  };
+}
+
 function receiptPath(root: string): string {
   return join(root, ".ariadnev", "receipt.json");
+}
+
+export interface InstallKitResult {
+  results: ProviderInstallResult[];
+  /** What the install removed because this build no longer writes it there. */
+  heal: HealReport;
 }
 
 /** Install the kit to every requested provider; returns per-provider results. */
@@ -102,7 +128,7 @@ export function installKit(
   providers: ProviderId[],
   ctx: ResolverCtx,
   opts: InstallKitOpts,
-): ProviderInstallResult[] {
+): InstallKitResult {
   const baseRoot = ctx.scope === "global" ? ctx.home : ctx.cwd;
   const backupsParent = join(baseRoot, ".ariadnev", "backups");
   const backupRoot = join(backupsParent, opts.timestamp);
@@ -110,6 +136,26 @@ export function installKit(
   const applyHookSettings = opts.applyHookSettings ?? false;
   const results: ProviderInstallResult[] = [];
   const receiptEntries: ProviderResultForReceipt[] = [];
+
+  // Read and vet the prior receipt before a single byte is written. It is what
+  // drives the deletions below, and for project scope it lives inside whatever
+  // repository was cloned — refusing it after the install has run would leave a
+  // half-applied upgrade with no record tying the two halves together.
+  const rPath = receiptPath(baseRoot);
+  const prevJson = existsSync(rPath) ? readFileSync(rPath, "utf8") : "";
+  const prevReceipt: Receipt | null = prevJson.trim().length ? (JSON.parse(prevJson) as Receipt) : null;
+  if (prevReceipt !== null) assertPriorReceiptSafe(prevReceipt, ctx.home, ctx.cwd, allowedRoots);
+
+  // Finish a heal a previous run was killed partway through, before the journal
+  // below overwrites the record of it. Those files were already backed up by
+  // the run that journalled them.
+  let heal: HealReport = EMPTY_HEAL;
+  if (!opts.dryRun) {
+    const pending = readJournal(baseRoot)?.healRemovals ?? [];
+    if (pending.length > 0) {
+      heal = executeHeal(pending, { home: ctx.home, cwd: ctx.cwd, allowedRoots, scopeRoot: baseRoot });
+    }
+  }
 
   // Plan every provider before writing anything, so the journal can name all
   // planned destinations up front. Planning is pure, so a planning error here
@@ -122,15 +168,16 @@ export function installKit(
     selectedCount: kit.skills.length,
     totalCount: kit.skills.length,
   };
+  const journalProviders = planned.map(({ id, ops }) => ({
+    provider: id,
+    planned: plannedEntries(ops, ctx.home, ctx.cwd),
+  }));
   if (!opts.dryRun) {
     writeJournal(baseRoot, {
       schemaVersion: JOURNAL_SCHEMA_VERSION,
       timestamp: opts.timestamp,
       scope: ctx.scope,
-      providers: planned.map(({ id, ops }) => ({
-        provider: id,
-        planned: plannedEntries(ops, ctx.home, ctx.cwd),
-      })),
+      providers: journalProviders,
     });
   }
 
@@ -145,17 +192,46 @@ export function installKit(
     results.push(result);
     receiptEntries.push({ providerId: id, scope: ctx.scope, applyHookSettings, result, skillSelection });
   }
-  if (!opts.dryRun) {
+  // Built in a dry run too. It writes nothing, and it is the only way the run
+  // can say which files the real one would delete — the advice for an upgrade
+  // that removes things from a home directory is to try it with `--dry-run`
+  // first, and that has to be worth doing.
+  const receiptJson = buildReceipt(prevJson, receiptEntries, {
+    ariadnevVersion: opts.ariadnevVersion ?? "0.0.0",
+    timestamp: opts.timestamp,
+    home: ctx.home,
+    cwd: ctx.cwd,
+  });
+  const removals = planHeal(prevReceipt, JSON.parse(receiptJson) as Receipt, ctx.home, ctx.cwd);
+  if (opts.dryRun) return { results, heal: previewHeal(removals, ctx.home, ctx.cwd) };
+
+  {
+    // Before rotation, or the copy would be pruned by the very run that made it
+    // the only copy.
+    if (removals.length > 0) {
+      backupHeal(removals, join(backupsParent, `heal-${opts.timestamp}`), baseRoot, ctx.home, ctx.cwd);
+    }
     rotateBackups(backupsParent, 3);
-    const rPath = receiptPath(baseRoot);
-    const prevJson = existsSync(rPath) ? readFileSync(rPath, "utf8") : "";
-    const receiptJson = buildReceipt(prevJson, receiptEntries, {
-      ariadnevVersion: opts.ariadnevVersion ?? "0.0.0",
-      timestamp: opts.timestamp,
-      home: ctx.home,
-      cwd: ctx.cwd,
-    });
+
+    // Journal the intent, write the receipt, then delete. Deleting first would
+    // leave the on-disk receipt describing files that no longer exist; the
+    // journal covers the window where the reverse is true.
+    if (removals.length > 0) {
+      writeJournal(baseRoot, {
+        schemaVersion: JOURNAL_SCHEMA_VERSION,
+        timestamp: opts.timestamp,
+        scope: ctx.scope,
+        providers: journalProviders,
+        healRemovals: removals,
+      });
+    }
     atomicWrite(rPath, receiptJson);
+    if (removals.length > 0) {
+      heal = mergeHeal(
+        heal,
+        executeHeal(removals, { home: ctx.home, cwd: ctx.cwd, allowedRoots, scopeRoot: baseRoot }),
+      );
+    }
     // The receipt is now the ownership record; the crash-window journal has
     // nothing left to describe.
     clearJournal(baseRoot);
@@ -174,7 +250,7 @@ export function installKit(
       });
     }
   }
-  return results;
+  return { results, heal };
 }
 
 export { planInstall } from "./install-plan.js";

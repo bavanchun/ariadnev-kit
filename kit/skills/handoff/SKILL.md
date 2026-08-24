@@ -1,6 +1,6 @@
 ---
 name: av:handoff
-description: Create a portable, redacted Markdown continuation contract that a fresh coding agent can consume to resume in-progress work safely. Use when switching sessions, models, or runtimes, or when preserving decisions, verification state, and blockers.
+description: "Use when creating a portable redacted Markdown continuation contract for switching sessions, models, or runtimes while preserving decisions, verification, and blockers."
 user-invocable: true
 when_to_use: Invoke to capture a session's continuation contract for a successor agent. For a human-facing status report derived from branches, worktrees, plans, and repository history, use av-watzup instead.
 category: utilities
@@ -169,7 +169,7 @@ credential-looking value, refuse the invocation and ask the user to rephrase.
   implied by `--output`.
 - Never rename or delete an existing artifact silently.
 
-## Return Value
+## Output format
 
 After successful write, print:
 
@@ -180,7 +180,7 @@ After successful write, print:
 
 Do not print the artifact body inline.
 
-## Security & Boundaries
+## Quality gates
 
 - Never launch a coding runtime, subagent, or CLI as a side effect. This
   skill only reads workspace state and writes one Markdown file.
@@ -257,3 +257,14 @@ with `--force` overwrites the file.
 - No human-facing project status derived from branches or history — use
   `av:watzup`.
 - No plan authoring or ADR minting — use `av:plan` or the docs skills.
+
+## Workflow position
+
+**Typically follows:** an interrupted or intentionally paused implementation,
+after live workspace state and verification have been captured.
+
+**Typically precedes:** a successor session, or `av:handover` when dispatch to
+another runtime is explicitly requested.
+
+**Related:** `av:watzup` for a human status report and `av:journal` for
+chronological reflection rather than executable continuation state.

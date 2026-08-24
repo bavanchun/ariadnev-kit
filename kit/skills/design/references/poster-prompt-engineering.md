@@ -4,7 +4,7 @@ How the poster generator assembles prompts and how to tune them for specific ima
 
 ## Anatomy of a Prompt
 
-Every generated prompt has 5 blocks:
+Every generated prompt has 7 blocks:
 
 1. **Aspect declaration** — `--aspect a2|a3|square|landscape`
 2. **STYLE (locked)** — name, category, description, mood, era, hints
@@ -14,22 +14,32 @@ Every generated prompt has 5 blocks:
 6. **COPY SLOTS** — headline (derived from topic), sub, meta
 7. **CONSTRAINTS** — explicit "lock these / vary only these" instructions
 
-The locked vs varied split is the whole point: locked axes preserve style identity, varied axes guarantee per-call variety.
+The locked vs varied split is the whole point: explicit axes preserve the
+selected identity while seeded composition choices provide controlled variety.
 
-## Axis Lock Semantics
+## Axis Selection Semantics
 
-`--lock-axis style,texture` (CLI flag) is for series generation. When passed, you can call `generate.py` repeatedly with different `--seed` values and the locked axes stay fixed while the unlocked axes randomize.
+The parser accepts `--lock-axis`, but the current generator does not apply its
+value. Do not rely on it. Lock an axis across separate calls by passing the
+same explicit `--style`, `--palette`, `--layout`, or `--texture` value each
+time; use different `--seed` values only for the remaining randomized details.
 
 Use cases:
-- **Brand series**: lock `style,palette,texture` → vary only layout. All 5 posters feel like one campaign.
-- **Texture study**: lock `texture` only → explore many styles with the same material.
-- **Free exploration**: lock nothing.
+- **Brand series**: repeat explicit style, palette, and texture values; omit
+  layout to vary it.
+- **Texture study**: repeat an explicit texture while varying style and palette.
+- **Free exploration**: omit explicit axis values.
 
 ## Variation Pools
 
-The Shape Pool per style is aggregated from all member-image `shape_primitives` during clustering. Each style has 4-8 primitives. Per call, 2-4 are sampled. Five calls × 4 shapes from a pool of 6 = `C(6,4) = 15` distinct subsets — enough to keep a 5-poster series visually distinct.
+The Shape Pool per style is aggregated from member-image `shape_primitives`
+during clustering. Per call, the generator samples between 2 and 4 available
+primitives; different seeds may produce different sets but do not guarantee
+unique results.
 
-Position randomization draws from a 9-cell grid (3×3). Density picks from `sparse|medium|dense`. Rotation jitter from `[-8°, +8°]`. Combined entropy: 9 × 3 × 17 × shape_set_combos × hierarchy_perms = thousands of distinct compositions per locked style.
+When the selected layout has no focal anchor, the fallback position comes from
+a 9-cell grid (3×3). Density picks from `sparse|medium|dense`, rotation jitter
+from `[-8°, +8°]`, and hierarchy order is shuffled.
 
 ## Model-Specific Tweaks
 

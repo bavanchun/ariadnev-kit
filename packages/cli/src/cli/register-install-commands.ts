@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { lifecycleRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
 import { PROVIDER_IDS } from "../providers/index.js";
 import { emit } from "./emit.js";
 import { runInstall } from "./install-command.js";
@@ -16,7 +17,8 @@ export function registerInstallCommands(program: Command, context: CommandRegist
     .description("Install the kit to one or more providers")
     .option("--provider <list>", "comma-separated provider ids", splitProviders)
     .option("--global", "install to ~/ instead of ./", false)
-    .action(async (opts: { provider?: string[]; global?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (opts: { provider?: string[]; global?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       let providers = opts.provider ?? [];
@@ -30,16 +32,25 @@ export function registerInstallCommands(program: Command, context: CommandRegist
         const { confirmHookSettingsMerge } = await import("./prompt-providers.js");
         applyHookSettings = await confirmHookSettingsMerge();
       }
-      const { summary, results } = runInstall({
-        providers,
-        scope,
-        dryRun: !!global.dryRun,
-        home: global.home,
-        cwd: global.cwd,
-        timestamp: nowStamp(),
-        applyHookSettings,
-        ariadnevVersion: context.version,
-      });
+      // Taken here, not at the top of the action: everything above is an
+      // interactive prompt, and holding a lock across an unbounded human wait
+      // is how a lock starts blocking work it was never protecting.
+      const { summary, results } = await withLifecycleLock(
+        global.dryRun ? [] : lifecycleRoots(global),
+        "install",
+        () =>
+          runInstall({
+            providers,
+            scope,
+            dryRun: !!global.dryRun,
+            home: global.home,
+            cwd: global.cwd,
+            timestamp: nowStamp(),
+            applyHookSettings,
+            ariadnevVersion: context.version,
+            json: !!opts.json,
+          }),
+      );
       emit(summary);
       if (!global.dryRun) {
         context.record("install", { provider: providers.join(","), scope, count: results.length });
@@ -51,17 +62,24 @@ export function registerInstallCommands(program: Command, context: CommandRegist
     .description("Remove a previously installed kit (receipt-based, preserves user-modified files)")
     .option("--provider <list>", "comma-separated provider ids (default: every provider in the receipt)", splitProviders)
     .option("--global", "uninstall from ~/ instead of ./", false)
-    .action((opts: { provider?: string[]; global?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (opts: { provider?: string[]; global?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
-      const { summary } = runUninstall({
-        providers: opts.provider ?? [],
-        scope,
-        dryRun: !!global.dryRun,
-        home: global.home,
-        cwd: global.cwd,
-        timestamp: nowStamp(),
-      });
+      const { summary } = await withLifecycleLock(
+        global.dryRun ? [] : lifecycleRoots(global),
+        "uninstall",
+        () =>
+          runUninstall({
+            providers: opts.provider ?? [],
+            scope,
+            dryRun: !!global.dryRun,
+            home: global.home,
+            cwd: global.cwd,
+            timestamp: nowStamp(),
+            json: !!opts.json,
+          }),
+      );
       emit(summary);
       if (!global.dryRun) {
         context.record("uninstall", { provider: (opts.provider ?? []).join(","), scope });

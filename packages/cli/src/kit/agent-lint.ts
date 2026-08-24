@@ -22,10 +22,16 @@ function countLines(text: string): number {
   return text.split("\n").length;
 }
 
+// Claude Code ships a built-in `Explore` subagent type, and ten kit agents
+// grant `Task(Explore)` against that spelling. `explore.md` declares the same
+// name so one grant reaches both; lowercasing it would orphan the grants.
+// One file, one spelling — not a case-insensitive rule.
+const NAME_CASE_EXCEPTIONS: Readonly<Record<string, string>> = { explore: "Explore" };
+
 /**
  * Lint one agent against the av authoring spec. `fileStem` is the filename
- * without extension — the file itself is named `av-<slug>.md`, so fileStem
- * already carries the `av-` prefix and is the enforced identity anchor.
+ * without extension and is the enforced identity anchor: a provider addresses
+ * the agent by its declared name, so the two must agree.
  */
 export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult {
   const errors: string[] = [];
@@ -37,32 +43,21 @@ export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult
     model?: unknown;
   };
 
-  // The `av-` prefix is the marker, not a separate flag: an agent we wrote
-  // carries it, a ported one keeps the name upstream gave it. House rules — the
-  // example pair, the checklist heading, the length budget — describe how we
-  // write an agent, and 7 of the 16 ported agents have no example pair, 8 no
-  // checklist, 9 exceed the budget. Enforcing them on copied content means
-  // rewriting it, which is not what a port is.
-  const ported = !fileStem.startsWith("av-");
-
   // The name is what a provider addresses the agent by, so a mismatch makes it
-  // unreachable. Case is the exception, and only for ported agents: upstream
-  // ships `explore.md` declaring `name: Explore`, and the provider addresses it
-  // by the declared name — renaming either side would change how it is invoked.
-  const nameMatches =
-    typeof name === "string" && (ported ? name.toLowerCase() === fileStem.toLowerCase() : name === fileStem);
-  if (!nameMatches) {
-    errors.push(`${label}: frontmatter name must equal "${fileStem}" (got ${String(name)})`);
+  // unreachable under one spelling and granted under the other.
+  const expectedName = NAME_CASE_EXCEPTIONS[fileStem] ?? fileStem;
+  if (name !== expectedName) {
+    errors.push(`${label}: frontmatter name must equal "${expectedName}" (got ${String(name)})`);
   }
 
   if (typeof description === "string") {
     const len = description.trim().length;
     if (len < DESCRIPTION_MIN) {
       errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
-    } else if (len > DESCRIPTION_MAX && !ported) {
+    } else if (len > DESCRIPTION_MAX) {
       errors.push(`${label}: description must be ${DESCRIPTION_MIN}-${DESCRIPTION_MAX} chars (got ${len})`);
     }
-    if (!EXAMPLE_PAIR.test(description) && !ported) {
+    if (!EXAMPLE_PAIR.test(description)) {
       errors.push(`${label}: description needs at least one <example>...</example><commentary>...</commentary> pair for auto-delegation`);
     }
   } else {
@@ -78,11 +73,11 @@ export function lintAgent(artifact: Artifact, fileStem: string): AgentLintResult
   }
 
   const lines = countLines(artifact.raw);
-  if (lines > AGENT_MAX_LINES && !ported) {
+  if (lines > AGENT_MAX_LINES) {
     errors.push(`${label}: agent file is ${lines} lines, limit ${AGENT_MAX_LINES}`);
   }
 
-  if (!/^#{1,6}\s+Behavioral Checklist\s*$/im.test(artifact.body) && !ported) {
+  if (!/^#{1,6}\s+Behavioral Checklist\s*$/im.test(artifact.body)) {
     errors.push(`${label}: missing a "Behavioral Checklist" heading`);
   }
 

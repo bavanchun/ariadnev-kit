@@ -876,8 +876,8 @@ Before finalizing your Node/TypeScript MCP server implementation, ensure:
 - [ ] All tools registered using `registerTool` with complete configuration
 - [ ] All tools include `title`, `description`, `inputSchema`, and `annotations`
 - [ ] Annotations correctly set (readOnlyHint, destructiveHint, idempotentHint, openWorldHint)
-- [ ] All tools use Zod schemas for runtime input validation with `.strict()` enforcement
-- [ ] All Zod schemas have proper constraints and descriptive error messages
+- [ ] All tools use current Standard Schema-compatible input validation; Zod schemas use `.strict()` when Zod is selected
+- [ ] Input schemas have proper constraints and descriptive error messages
 - [ ] All tools have comprehensive descriptions with explicit input/output types
 - [ ] Descriptions include return value examples and complete schema documentation
 - [ ] Error messages are clear, actionable, and educational

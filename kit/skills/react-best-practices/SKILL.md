@@ -128,3 +128,23 @@ Each rule file contains:
 ## Full Compiled Document
 
 For the complete guide with all rules expanded: `AGENTS.md`
+
+## Output format
+
+Report each applicable rule, the affected component or route, the measured or
+expected performance effect, changed files, and focused verification results.
+
+## Quality gates
+
+- Apply only rules relevant to the project's React/Next.js version and runtime.
+- Preserve behavior, accessibility, and server/client component boundaries.
+- Measure material performance claims when a reproducible metric is available.
+- Run focused lint, type, and tests for every changed rendering path.
+
+## Workflow position
+
+**Typically follows:** React/Next.js implementation or a measured performance
+problem.
+**Typically precedes:** focused tests, profiling, and code review.
+**Related:** `av:frontend-development` owns feature implementation; this skill
+supplies targeted React rendering and bundle guidance.

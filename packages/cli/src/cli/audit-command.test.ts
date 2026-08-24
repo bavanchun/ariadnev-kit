@@ -55,7 +55,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
-const ALPHA = join(".claude", "skills", "alpha", "SKILL.md");
+const ALPHA = join(".claude", "skills", "av-alpha", "SKILL.md");
 
 describe("runAudit kit", () => {
   it("exits 0 on a clean install, in strict mode too", () => {
@@ -79,7 +79,7 @@ describe("runAudit kit", () => {
   });
 
   it("reports a stray file as untracked without failing, until --strict", () => {
-    writeFileSync(join(ctx.cwd, ".claude", "skills", "alpha", "notes.md"), "mine\n");
+    writeFileSync(join(ctx.cwd, ".claude", "skills", "av-alpha", "notes.md"), "mine\n");
     const relaxed = runAudit(auditOpts());
     expect(relaxed.exitCode).toBe(0);
     expect(relaxed.output).toContain("untracked");

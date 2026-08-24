@@ -232,3 +232,21 @@ Same chain runs again after `scrollIntoView()` per section, so reveal-on-scroll 
 This skill handles HTML generation and screenshot capture only. 
 Does NOT handle: authentication, database access, server deployment, or sensitive data processing. 
 Never include API keys or credentials in generated HTML files.
+
+## Output format
+
+Return the generated HTML path, resolved language/theme preferences, screenshot
+paths by ratio when enabled, and publication status. Report skipped or failed
+capture targets explicitly.
+
+## Quality gates
+
+- Keep every section responsive, unclipped, and readable in the requested ratios.
+- Preserve user opt-outs and never publish or overwrite remote content without authority.
+- Keep credentials out of generated files, logs, commands, and reports.
+
+## Workflow position
+
+Use after the source material is ready. It may invoke `av:frontend-design` for
+the presentation and `av:preview` for visual verification; publishing is an
+explicit final step governed by the resolved preferences and user authority.

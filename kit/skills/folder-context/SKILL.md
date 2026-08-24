@@ -1,6 +1,6 @@
 ---
 name: av:folder-context
-description: Create a compact subfolder CLAUDE.md and linked AGENTS.md for durable local conventions. Use when a folder needs agent context beyond the project root.
+description: "Use when creating compact subfolder CLAUDE.md and linked AGENTS.md files for durable local conventions beyond project-root instructions."
 user-invocable: true
 when_to_use: Invoke for subfolder-scoped agent context, not root project instructions or general docs.
 category: utilities
@@ -54,3 +54,28 @@ tree or generic project documentation.
 - Do not duplicate root instructions, invent constraints, write credentials, or
   create context files outside the confirmed target.
 - Respect the user’s existing local instructions before adding new context.
+
+## Output format
+
+Return the target folder, evidence inspected, sections added or updated, the
+CLAUDE.md path, AGENTS.md link/fallback status, and any contradiction or decision
+that still needs the user.
+
+## Quality gates
+
+- [ ] Target is a subfolder with durable context that cannot be inferred cheaply.
+- [ ] Existing root and local instructions were read and not duplicated.
+- [ ] Every stated convention is supported by code, config, or a user decision.
+- [ ] Content is compact, local, free of secrets, and omits empty sections.
+- [ ] AGENTS.md resolves to CLAUDE.md or the fallback is reported accurately.
+- [ ] User edits and contradictions are preserved and surfaced, not overwritten.
+
+## Workflow position
+
+**Typically follows:** `av:scout` of the target folder and user confirmation of
+the proposed outline.
+
+**Typically precedes:** implementation work in that folder.
+
+**Related:** `av:docs` for project documentation and root agent-context work;
+`av:handoff` for session state rather than durable folder conventions.

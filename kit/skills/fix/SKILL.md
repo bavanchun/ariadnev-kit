@@ -1,6 +1,6 @@
 ---
 name: av:fix
-description: "Fix bugs, errors, test failures, and CI/CD issues with intelligent routing. Use for type errors, lint issues, log errors, UI bugs, code problems."
+description: "Fix a concrete bug, error, test failure, or CI/CD failure: prove the root cause before choosing the repair, then verify no regressions. Use for type errors, lint issues, log errors, UI bugs."
 user-invocable: true
 when_to_use: "Invoke when there is a concrete bug, error, or CI failure."
 category: utilities
@@ -14,58 +14,32 @@ metadata:
 
 # Fixing
 
-Unified skill for fixing issues of any complexity with intelligent routing.
+Repair a concrete, reproducible failure of any complexity: frame the intended
+outcome, scout the affected code, prove the root cause with evidence, route by
+complexity to a quick, standard, deep, or parallel workflow, implement the
+cause-aligned fix, then verify it against the captured pre-fix state and add
+the regression guard. Does not handle new feature scope (`av:cook`) or a
+diagnosis-only request with no repair (`av:debug`).
 
 ## Arguments
 
-- `--auto` - Activate autonomous mode (**default**)
-- `--review` - Activate human-in-the-loop review mode
-- `--quick` - Activate quick mode
-- `--parallel` - Activate parallel mode: route to parallel `fullstack-developer` agents per issue
-- `--advice` - Run under `kongming` advisory supervision (see Advisory supervision)
-
-## Advisory supervision (`--advice`)
-
-When `--advice` is present, run this skill under `kongming` supervision.
-`kongming` is an advisory-only supervisor: it returns counsel, never code, and
-the main agent stays responsible for every decision, edit, and gate.
-
-Spawn `kongming` at these checkpoints:
-
-- **After each phase or step completes** (Steps 1-6) — pass the goal, what
-  changed, and the evidence; ask for a go/no-go and the next risk to watch.
-- **When stuck** — the 3+ failed-attempt gate, a blocked step, or contradictory
-  evidence; pass everything already tried and the exact obstacle before
-  questioning the architecture.
-- **Before a high-stakes decision** — a design fork, a public-contract or
-  security-sensitive change, or an irreversible action; get counsel first.
-
-Invoke with
-`delegate_agent capability(subagent_type="kongming", prompt="<task, evidence, approaches tried, the exact question>", description="advice: <checkpoint>")`.
-Give it enough context to answer in one reply; it does not interview.
-
-**When the workflow reaches a PR** (e.g. a CI-failure fix shipped for review):
-when handing off to a downstream skill, pass `--advice` along so supervision
-persists. Watch and fix CI until every required check is green, then spawn
-`kongming` to review the whole implementation and post its assessment plus
-concrete next steps as a comment directly on the PR and the source issue (when
-one exists).
-
-`--advice` adds supervision; it never bypasses this skill's approval gates,
-tests, review blockers, branch protections, or security policy.
+| Flag | Effect |
+| --- | --- |
+| `--auto` *(default)* | Autonomous: auto-approve when the review score is ≥ 9.5 with 0 critical findings |
+| `--review` | Human-in-the-loop: pause for approval at each major step |
+| `--quick` | Fast scout → diagnose → fix → verify cycle for trivial issues (lint, type errors) |
+| `--parallel` | Route 2+ independent issues to parallel `fullstack-developer` agents, one scope each |
+| `--advice` | Run under `kongming` advisory supervision — read `references/advisory-supervision.md` |
+| `--skip-journal` | Skip the automatic journal entry at finalize |
 
 <HARD-GATE-BRAINSTORM-FIRST>
-Begin with a bounded intent frame before mode selection or diagnosis:
-
-- **Outcome:** the expected repaired behavior.
-- **Constraints:** safety, compatibility, ownership, and time boundaries.
-- **Non-goals:** adjacent behavior this fix must not absorb.
-- **Acceptance criteria:** the reproduction and broader evidence that will prove
-  the repair complete.
-
-Reuse these fields from an accepted plan when available. This opening gate does
-not choose a fix. Scout and diagnose the root cause before comparing solution
-options.
+Begin with a bounded intent frame before mode selection or diagnosis —
+**Outcome** (the expected repaired behavior), **Constraints** (safety,
+compatibility, ownership, time), **Non-goals** (adjacent behavior this fix must
+not absorb), **Acceptance criteria** (the reproduction and broader evidence that
+will prove the repair complete). Reuse these fields from an accepted plan when
+available. This gate does not choose a fix: scout and diagnose the root cause
+before comparing solution options.
 </HARD-GATE-BRAINSTORM-FIRST>
 
 <HARD-GATE>
@@ -113,30 +87,10 @@ The fix is NOT done until verified to be side-effect-free. Step 5 MUST prove:
 4. No new lint/type/build errors introduced anywhere.
 5. Public API contracts (function signatures, exported types, response shapes, DB schemas, env vars) unchanged — OR change is intentional and called out.
 
-If verification reveals a side effect, regression, or broken workflow, STOP. Do NOT silently patch around it. Use `ask_user capability` to present:
-- What broke (file, test, workflow)
-- Why the fix caused it (1-line cause)
-- 2-4 concrete options to choose from, e.g.:
-  - "Revert the fix and try a different root-cause angle"
-  - "Keep the fix and update the dependent code at <files> to match the new contract"
-  - "Narrow the fix scope to <subset> so the regression goes away"
-  - "Accept the regression — it was buggy behavior the test was locking in"
-
-Let the user decide. Do not assume.
+If verification reveals a side effect, regression, or broken workflow, STOP. Do NOT silently patch around it. Use `ask_user capability` to present what broke (file, test, workflow), why the fix caused it (1-line cause), and 2-4 concrete options, e.g. "Revert the fix and try a different root-cause angle" / "Keep the fix and update the dependent code at <files> to match the new contract" / "Narrow the fix scope to <subset> so the regression goes away" / "Accept the regression — it was buggy behavior the test was locking in". Let the user decide. Do not assume.
 </HARD-GATE-NO-SIDE-EFFECTS>
 
-## Anti-Rationalization
-
-| Thought | Reality |
-|---------|---------|
-| "I can see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. Scout first. |
-| "Quick fix for now, investigate later" | "Later" never comes. Fix properly now. |
-| "Just try changing X" | Random fixes waste time and create new bugs. Diagnose first. |
-| "It's probably X" | "Probably" = guessing. Use structured diagnosis. Verify first. |
-| "One more fix attempt" (after 2+) | 3+ failures = wrong approach. Question architecture. |
-| "Emergency, no time for process" | Systematic diagnosis is FASTER than guess-and-check. |
-| "I already know the codebase" | Knowledge decays. Scout to verify assumptions before acting. |
-| "The fix is done, tests pass" | Without prevention, same bug class will recur. Add guards. |
+When tempted to skip Steps 1-2 or try "one more" patch, read `references/anti-rationalization.md` first.
 
 ## Process Flow (Authoritative)
 
@@ -163,53 +117,36 @@ flowchart TD
     L --> O[Report + Docs + Journal]
 ```
 
-**This diagram is the authoritative workflow.** If prose conflicts with this flow, follow the diagram.
-
+**This diagram is the authoritative workflow.** If prose conflicts with it, follow the diagram.
 ## Workflow
 
 ### Step 0: Intent Frame & Mode Selection
 
 First capture or reuse the opening outcome, constraints, non-goals, and
 acceptance criteria. If the mode is neither explicit nor safely inferable, use
-`ask_user capability` to choose it:
-
-| Option | Recommend When | Behavior |
-|--------|----------------|----------|
-| **Autonomous** (default) | Simple/moderate issues | Auto-approve if score >= 9.5 & 0 critical |
-| **Human-in-the-loop Review** | Critical/production code | Pause for approval at each step |
-| **Quick** | Type errors, lint, trivial bugs | Fast scout → diagnose → fix → review cycle |
-
-See `references/mode-selection.md` for ask_user capability format.
+`ask_user capability` to choose between Autonomous (simple/moderate issues),
+Human-in-the-loop (critical or production code), and Quick (type errors, lint,
+trivial bugs) — the question format, the per-issue recommendation, and when to
+skip the question are in `references/mode-selection.md`.
 
 ### Step 1: Scout (MANDATORY — never skip)
 
-**Purpose:** Understand the affected codebase BEFORE forming any hypotheses.
-
-**Mandatory skill chain:**
-1. Activate `av:scout` skill OR launch 2-3 parallel `Explore` subagents
-2. Discover: affected files, dependencies, related tests, recent changes (`git log`)
-3. Read `./docs` for project context if unfamiliar
-
-**Quick mode:** Minimal scout — locate affected file(s) and their direct dependencies only.
-**Standard/Deep mode:** Full scout — map module boundaries, test coverage, call chains.
-
-**Output:** `✓ Step 1: Scouted - [N] files mapped, [M] dependencies, [K] tests found`
+Understand the affected codebase BEFORE forming hypotheses: activate `av:scout`
+or, when delegation was requested and permitted, 2-3 parallel `Explore`
+subagents. Collect the five HARD-GATE-SCOUT-FIRST outputs; read unfamiliar `docs/`.
+Quick mode scouts only the affected file(s) and their direct dependencies;
+Standard/Deep map module boundaries, test coverage, and call chains.
 
 ### Step 2: Diagnose (MANDATORY — never skip)
 
-**Purpose:** Structured root cause analysis. NO guessing. Evidence-based only.
-
-**Mandatory skill chain:**
-1. **Capture pre-fix state:** Record exact error messages, failing test output, stack traces, log snippets. This becomes the baseline for Step 5 verification.
-2. Activate `av:debug` skill (systematic-debugging + root-cause-tracing techniques).
-3. Activate `av:sequential-thinking` skill — form hypotheses through structured reasoning, NOT guessing.
-4. Spawn parallel `Explore` subagents to test each hypothesis against codebase evidence.
-5. If 2+ hypotheses fail → auto-activate `av:problem-solving` skill for alternative approaches.
-6. Create diagnosis report: confirmed root cause, evidence chain, affected scope.
-
-Use the root-cause checklist above as the authoritative diagnosis protocol.
-
-**Output:** `✓ Step 2: Diagnosed - Root cause: [summary], Evidence: [brief], Scope: [N files]`
+Structured root cause analysis, evidence-based only — HARD-GATE-EXACT-ROOT-CAUSE
+is the protocol:
+1. **Capture pre-fix state:** exact error messages, failing test output, stack traces, log snippets — the baseline Step 5 re-runs.
+2. Activate `av:debug` (systematic-debugging + root-cause-tracing), then `av:sequential-thinking` to form hypotheses through structured reasoning.
+3. Test each hypothesis against codebase evidence; use parallel `Explore`
+   subagents only when delegation was explicitly requested and permitted. If
+   2+ hypotheses fail, auto-activate `av:problem-solving`.
+4. Write the diagnosis report: confirmed root cause, evidence chain, affected scope.
 
 ### Step 3: Complexity Assessment & Progress Orchestration
 
@@ -222,129 +159,141 @@ Classify before routing. See `references/complexity-assessment.md`.
 | **Complex** | System-wide, architecture impact | `references/workflow-deep.md` |
 | **Parallel** | 2+ independent issues OR `--parallel` flag | Parallel `fullstack-developer` agents |
 
-**Progress orchestration (Moderate+ only):** After classifying, record all phases and their dependencies upfront.
-- Skip for Quick workflow (< 3 steps, overhead exceeds benefit)
-- Discover the live task-management surface and use it when available
-- Otherwise, update the active plan as each phase starts or completes
-- For Parallel: keep separate dependency trees and ownership per independent issue
-- Plan files are the durable source of truth; runtime tracking must never be required for the fix to proceed
+**Progress orchestration (Moderate+ only):** record all phases and their
+dependencies upfront — in the live task-management surface when available,
+otherwise in the active plan; one dependency tree and ownership scope per
+issue in Parallel. Skip for Quick. Plan files are the durable source of truth;
+runtime tracking is never required for the fix to proceed.
 
-Select a solution only from the confirmed diagnosis:
-
-- For one safe, direct repair, record why it satisfies the opening contract.
-- For multiple viable repairs or an architecture decision, activate
-  `av:brainstorm`, compare trade-offs, and resolve the direction before
-  implementation.
-- Deep workflow always includes this post-diagnosis solution brainstorm and a
-  plan. Quick and Standard escalate to Deep when the choice is not direct.
+Select a solution only from the confirmed diagnosis: for one safe, direct
+repair, record why it satisfies the opening contract; for multiple viable
+repairs or an architecture decision, activate `av:brainstorm`, compare
+trade-offs, and resolve the direction before implementing. Deep always
+includes this brainstorm and a plan; Quick and Standard escalate to Deep when
+the choice is not direct.
 
 ### Step 4: Fix Implementation
 
-- Implement the fix per selected workflow, updating progress as phases complete.
-- Follow diagnosis findings — fix the ROOT CAUSE, not symptoms.
-- Minimal changes only. Follow existing patterns.
-- Preserve the opening non-goals and constraints; do not widen the fix while
-  addressing nearby symptoms.
+Implement per the selected workflow, updating progress as phases complete. Fix
+the ROOT CAUSE the diagnosis named, not the symptom; minimal changes that
+follow existing patterns; preserve the opening non-goals and constraints — do
+not widen the fix while addressing nearby symptoms.
 
 ### Step 5: Verify + Prevent (MANDATORY — never skip)
 
 **Purpose:** Prove the fix works, has NO side effects, and prevents the same bug class from recurring. See HARD-GATE-NO-SIDE-EFFECTS.
 
-**Mandatory skill chain:**
 1. **Verify (iron-law):** Run the EXACT commands from pre-fix state capture. Compare output. NO claims without fresh evidence.
 2. **Regression test:** Add or update test(s) that specifically cover the fixed issue. The test MUST fail without the fix and pass with it.
-3. **Side-effect sweep (NEW):** Run tests across the full **blast radius** identified in Step 2 (not just the modified file). Walk each dependent code path. Confirm public contracts unchanged (signatures, response shapes, DB schemas, env vars).
-4. **Code review (delegate):** Spawn `code-reviewer` subagent with explicit instructions to check: (a) root cause actually addressed (not symptom-patched), (b) no broken business logic in blast radius, (c) no new failure modes, (d) follows existing patterns from scout. Pass scout summary + diagnosis report as context.
+3. **Side-effect sweep:** Run tests across the full **blast radius** identified in Step 2 (not just the modified file). Walk each dependent code path. Confirm public contracts unchanged (signatures, response shapes, DB schemas, env vars).
+4. **Code review:** When delegation was requested and permitted, spawn
+   `code-reviewer`; otherwise review locally. Check root cause, blast radius,
+   failure modes, and scouted patterns, then follow `references/review-cycle.md`.
 5. **Prevention gate:** Apply defense-in-depth validation where applicable.
-6. **Parallel verification:** Launch `run_shell capability` agents for typecheck + lint + build + test.
+6. **Parallel verification:** Run typecheck + lint + build + test with `run_shell`; split across delegated workers only when delegation is permitted (`references/parallel-exploration.md`).
 
-**If verification fails OR a side effect is detected:** Use `ask_user capability` per HARD-GATE-NO-SIDE-EFFECTS — present what broke, why, and 2-4 concrete options (revert, narrow scope, update dependents, accept). Never silently patch.
-
-**If verification fails:** Loop back to Step 2 (re-diagnose). After 3 failures → question architecture, discuss with user.
-
-Use the verification checklist above for prevention requirements.
-
-**Output:** `✓ Step 5: Verified + Prevented - [before/after comparison], [N] tests added, [M] guards added`
+**On a side effect:** `ask_user capability` per HARD-GATE-NO-SIDE-EFFECTS — what broke, why, 2-4 options (revert, narrow scope, update dependents, accept); never silently patch. **On a failed verification:** loop back to Step 2 and re-diagnose; after 3 failures, question the architecture with the user.
 
 ### Step 6: Finalize (MANDATORY — never skip)
 
-1. Report summary: confidence score, root cause, changes, files, prevention measures, side-effect sweep results
-2. **Activate `the engineer project-management skill` skill (MANDATORY)** → sync plan status (if the fix is part of a plan), update progress, refresh runtime tracking when available, generate status report
+1. Print the closing report (shape under **Output format**)
+2. **Activate `av:pm` (MANDATORY)** → sync plan status (if the fix is part of a plan), update progress, refresh runtime tracking when available, generate status report
 3. Evaluate docs impact; use `docs-manager` only when a routed authority surface changed
 4. Reflect completion in the live task-management surface when available
 5. Ask user if they want to commit via `git-manager` subagent
-6. Run `/av:journal` to write a concise technical journal entry upon completion — unless the shared "Journal step — opt-out" below applies.
+6. Run `av:journal` to write a concise technical journal entry upon completion — unless the journal opt-out below applies.
 
 ### Journal step — opt-out
 
-Skip the automatic `/av:journal` step when either applies:
-- The invocation includes the `--skip-journal` flag, OR
-- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal.
+Skip the automatic `av:journal` step only when the invocation includes the
+`--skip-journal` flag, and print one line: `journal skipped by --skip-journal`.
+There is no config switch for it: `av config prefs resolve --json` has no
+`journal` key, and an unknown key in either config file is warned about and
+ignored, so no setting can suppress the step. Explicit `av:journal` and
+`av journal create` are unaffected. The rest of the Finalize block above stays
+MANDATORY.
 
-Precedence: flag > project config > user config > default (`true`).
-When skipped, print one line:
-- `journal skipped by --skip-journal` (flag), or
-- `journal skipped by preference` (config).
+## Skill and subagent activation
 
-Explicit `/av:journal` and `av journal create` are unaffected. The rest of the Finalize block above stays MANDATORY.
+`references/skill-activation-matrix.md` is the complete matrix. The
+non-negotiables in every workflow: `av:scout` (Step 1), `av:debug` and
+`av:sequential-thinking` (Step 2), independent review in Step 5 (delegated when permitted), and `av:pm` (Step 6);
+`av:problem-solving` when 2+ hypotheses fail; `av:brainstorm` when more than
+one cause-aligned repair remains.
 
----
+## Output format
 
-## IMPORTANT: Skill/Subagent Activation Matrix
-
-See `references/skill-activation-matrix.md` for complete matrix.
-
-**Always activate (ALL workflows):**
-- `av:scout` (Step 1) — understand before diagnosing
-- `av:debug` (Step 2) — systematic root cause investigation
-- `av:sequential-thinking` (Step 2) — structured hypothesis formation
-
-**Always activate (Step 6 Finalize):**
-- `av:project-management` — MANDATORY for sync-back and progress tracking, every fix
-
-**Conditional:**
-- `av:problem-solving` — auto-triggers when 2+ hypotheses fail in Step 2
-- `av:brainstorm` — after diagnosis when multiple valid approaches or an architecture decision remain
-- `av:context-engineering` — fixing AI/LLM/agent code
-
-**Subagents:** `debugger`, `researcher`, `planner`, `code-reviewer`, `tester`, `run_shell capability`
-**Parallel:** Multiple `Explore` agents for scouting, `run_shell capability` agents for verification
-
-## Output Format
-
-Unified step markers:
+Steps 0-3 print one unified marker each as they complete:
 ```
 ✓ Step 0: Intent framed; [Mode] selected
-✓ Step 1: Scouted - [N] files, [M] deps
-✓ Step 2: Diagnosed - Root cause: [summary]
+✓ Step 1: Scouted - [N] files, [M] deps, [K] tests found
+✓ Step 2: Diagnosed - Root cause: [summary], Evidence: [brief], Scope: [N files]
 ✓ Step 3: [Complexity] detected - [workflow] selected
-✓ Step 4: Fixed - [N] files changed
-✓ Step 5: Verified + Prevented - [tests added], [guards added]
-✓ Step 6: Complete - [action taken]
 ```
+From Step 4 on, the routed workflow file owns the markers and prints its own
+numbering as written there (Quick 1-6, Standard 1-6, Deep 1-9; in Parallel,
+each `fullstack-developer` agent reports its own issue's markers). After the
+routed file's Finalize step, print the closing report in chat:
+```
+Fix complete: <issue>
+  Mode / workflow:  <autonomous|review|quick> / <quick|standard|deep|parallel>
+  Root cause:       <one sentence, file:line> — why now: <introducing change>
+  Changes:          <N files> — <paths>
+  Verified:         <exact pre-fix command> → before: <output> / after: <output>
+  Regression test:  <test path | type system is the test (quick, type/lint only)>
+  Blast radius:     <N dependent paths walked, tests run | clean>
+  Review:           <score>/10 - <auto-approved|user approved|approved with noted issues>
+  Prevention:       <guards added | none needed — reason>
+  Plan sync:        <plan-dir> status <…> (or "not part of a plan")
+  Commit:           <sha | not committed (user declined)>
+  Journal:          <entry path | skipped by --skip-journal>
+```
+Every field is filled from a step that ran; "Verified" always shows both runs of the same command, never a paraphrase.
+
+## Quality gates
+
+- [ ] The six root-cause answers (verbatim symptom, repro, expected vs actual,
+      cause at file:line, why now, blast radius) were written before the first
+      edit, and none contains "probably", "I think", or "something with"
+- [ ] Pre-fix state was captured as an exact command plus its output, and the
+      same command was re-run after the fix — the report shows both outputs
+- [ ] A regression test fails without the fix and passes with it, except in a
+      Quick type/lint-only fix, where the report says the type system is the test
+- [ ] Tests ran across the Step 2 blast radius, not only the modified file, and
+      public contracts are unchanged or the change is called out in the report
+- [ ] Failed attempts were counted: after the third, the workflow stopped and
+      put the architecture question to the user instead of trying a fourth
+- [ ] `code-reviewer` received the diagnosis report and scout summary; any side
+      effect it flagged went to the user with 2-4 options, never patched around
+
+## Workflow position
+
+**Typically follows:** `av:debug`, which hands over a proven diagnosis and
+names the validation layers this skill writes; `av:scout`, when the failing
+code was located first; `av:cook`, which routes concrete bugs here instead of
+cooking a patch; `av:review-pr --fix` and `av:git` merge recovery, which hand
+review findings or a CI failure to `av:fix --auto`.
+
+**Typically precedes:** `av:git` or the `git-manager` subagent for the commit,
+`av:ship` when the fix is its own branch, and `av:journal` at finalize.
+
+**Invokes directly:** `av:scout` (Step 1); `av:debug`, `av:sequential-thinking`,
+`av:problem-solving` (Step 2); `av:brainstorm` (Step 3); `av:pm` (Step 6).
+
+**Related:** `av:test` and `av:code-review` run standalone after a fix; here
+verification and review are Step 5. `av:vibe` wraps this skill for its bugfix
+route. `av:ui-ux-pro-max` backs the UI workflow's style searches.
 
 ## References
 
-Load as needed:
-- `references/mode-selection.md` - ask_user capability format for mode
-- `references/complexity-assessment.md` - Classification criteria
-- `references/workflow-quick.md` - Quick: scout → diagnose → fix → verify+prevent → review
-- `references/workflow-standard.md` - Standard: full pipeline with Tasks
-- `references/workflow-deep.md` - Deep: research + brainstorm + plan with Tasks
-- `references/review-cycle.md` - Review logic (autonomous vs HITL)
-- `references/skill-activation-matrix.md` - When to activate each skill
-- `references/parallel-exploration.md` - Parallel Explore/run_shell capability/Task coordination patterns
-
-**Specialized Workflows:**
-- `references/workflow-ci.md` - GitHub Actions/CI failures
-- `references/workflow-logs.md` - Application log analysis
-- `references/workflow-test.md` - Test suite failures
-- `references/workflow-types.md` - TypeScript type errors
-- `references/workflow-ui.md` - Visual/UI issues (requires design skills)
-
-## Workflow Position
-
-**Typically starts from:** a concrete bug or failure; it captures intent before
-scouting and diagnosis.
-**Typically precedes:** `the installed code-review skill` (review the fix), `the installed test skill` (validate the fix)
-**Related:** `/av:cook` (alternative for feature work), `the engineer debug skill` (diagnose before fixing)
+| Read when | File |
+| --- | --- |
+| Step 0 needs the mode question | `references/mode-selection.md` |
+| Step 3 classifies the issue | `references/complexity-assessment.md` |
+| Routed Simple / Moderate / Complex | `references/workflow-quick.md` / `references/workflow-standard.md` / `references/workflow-deep.md` |
+| Handling the `code-reviewer` result | `references/review-cycle.md` |
+| Deciding which skill or subagent a step activates | `references/skill-activation-matrix.md` |
+| Delegating scout, hypothesis, or verification work | `references/parallel-exploration.md` |
+| `--advice` was passed | `references/advisory-supervision.md` |
+| Tempted to patch a symptom | `references/anti-rationalization.md` |
+| The failure is in CI / logs / a test suite / TS types / the UI | `references/workflow-ci.md` / `references/workflow-logs.md` / `references/workflow-test.md` / `references/workflow-types.md` / `references/workflow-ui.md` |

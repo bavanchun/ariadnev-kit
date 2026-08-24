@@ -29,19 +29,33 @@ function makeAgent(overrides: Partial<Artifact> & { frontmatter?: Record<string,
 }
 
 describe("lintAgent: name contract", () => {
-  it("treats a name without the av- prefix as a ported agent, not an error", () => {
-    // The prefix is how an agent we wrote is told from one we copied. A ported
-    // agent keeps the name upstream gave it, and holding it to our house rules
-    // would mean rewriting the content a port exists to preserve.
-    const res = lintAgent(makeAgent({ frontmatter: { name: "demo", description: okDescription } }), "demo");
-    expect(res.errors).toEqual([]);
+  it("holds an agent without the av- prefix to every house rule", () => {
+    // No agent file carries the prefix, so a prefix-keyed exemption would
+    // exempt all of them and the gate would certify nothing. Every shipped
+    // agent meets the rules now; the lint must be able to say so.
+    const body = "# Demo\n\nJust a persona, no checklist.\n";
+    const res = lintAgent(
+      makeAgent({ frontmatter: { name: "demo", description: okDescription }, body, raw: `---\nname: demo\n---\n${body}` }),
+      "demo",
+    );
+    expect(res.errors.some((e) => e.includes("Behavioral Checklist"))).toBe(true);
   });
 
-  it("still requires a description on a ported agent", () => {
-    // Structural validity applies to everything: an agent with no description
-    // is one the model can never decide to use.
-    const res = lintAgent(makeAgent({ frontmatter: { name: "demo", description: undefined } }), "demo");
-    expect(res.errors.some((e) => e.includes("description"))).toBe(true);
+  it("rejects a name that differs from the file stem only by case", () => {
+    // A provider addresses the agent by the declared name, so `Demo` in a
+    // file called demo.md is reachable under one spelling and granted under
+    // the other.
+    const res = lintAgent(makeAgent({ frontmatter: { name: "Demo", description: okDescription } }), "demo");
+    expect(res.errors.some((e) => e.includes("demo"))).toBe(true);
+  });
+
+  it("accepts `name: Explore` on explore.md, and nothing else", () => {
+    // Claude Code ships a built-in `Explore` subagent type and ten agents grant
+    // `Task(Explore)` against it; lowercasing the name would orphan those
+    // grants. The exception is the one file, not a case-insensitive rule.
+    expect(lintAgent(makeAgent({ frontmatter: { name: "Explore", description: okDescription } }), "explore").errors).toEqual([]);
+    expect(lintAgent(makeAgent({ frontmatter: { name: "Explore", description: okDescription } }), "scout").errors.length).toBeGreaterThan(0);
+    expect(lintAgent(makeAgent({ frontmatter: { name: "EXPLORE", description: okDescription } }), "explore").errors.length).toBeGreaterThan(0);
   });
 
   it("rejects name/file-stem mismatch", () => {

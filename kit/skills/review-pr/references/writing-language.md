@@ -5,8 +5,8 @@ Shared by `av:ship` and `av:review-pr` (#1195).
 ## Resolve before authoring
 
 ```bash
-WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json
 ```
 

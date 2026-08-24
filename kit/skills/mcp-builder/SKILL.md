@@ -1,6 +1,6 @@
 ---
 name: av:mcp-builder
-description: Build MCP servers for LLM-external service integration. Use for FastMCP (Python), MCP SDK (Node/TypeScript), tool design, API integration, resource providers.
+description: "Build an MCP server that wraps an external service or API. Use for FastMCP (Python) or MCP SDK (Node/TypeScript) servers, tool design with clear schemas and error messages, and tool evaluations."
 user-invocable: true
 when_to_use: "Invoke when building an MCP server or tool surface."
 category: dev-tools
@@ -15,323 +15,195 @@ metadata:
 
 # MCP Server Development Guide
 
-## Overview
+Build a high-quality MCP (Model Context Protocol) server that lets an LLM
+accomplish real tasks against an external service: research the service and
+the protocol, plan the tool surface, implement it in Python (FastMCP) or
+TypeScript (MCP SDK), review it against the language checklist, then prove
+it with an evaluation set the bundled harness can score. Quality is measured
+by how well an agent completes realistic tasks with the tools, not by how
+many endpoints are wrapped. Does not handle using a server that already
+exists (`av:use-mcp`) or wrapping local code that is already written
+(`av:agentize`).
+
+## Workflow
+
+```text
+[1. Research and plan] → [2. Implement] → [3. Review and build] → [4. Evaluate]
+```
+
+### Phase 1: Research and plan
+
+1. **Design principles.** Read `references/agent-centric-design.md` before
+   naming a single tool: workflows over endpoints, context budget, actionable
+   errors, natural task subdivisions, evaluation-driven development.
+2. **MCP protocol.** Fetch `https://modelcontextprotocol.io/llms-full.txt`
+   with `web_fetch capability` — the current MCP documentation corpus. Locate
+   the current dated specification within it when protocol details matter.
+3. **Framework guidance.** Read `reference/mcp-best-practices.md` (naming,
+   response formats, pagination, character limits, transports, security).
+   Then, for Python, fetch
+   `https://raw.githubusercontent.com/modelcontextprotocol/python-sdk/main/README.md`
+   and read `reference/python-mcp-server.md`; for Node/TypeScript, fetch
+   `https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/main/README.md`
+   and read `reference/node-mcp-server.md`.
+4. **The service's API.** Read the authoritative documentation relevant to the
+   selected workflows: the reference,
+   authentication and authorization, rate limiting and pagination, error
+   responses and status codes, endpoints and parameters, data models. Use `web_search capability`
+   and `web_fetch capability` as needed.
+5. **Implementation plan.** Write it in the shape under **Output format**,
+   following the checklist in `references/agent-centric-design.md`: tool
+   selection, shared utilities, input/output design, error strategy,
+   annotations.
+
+### Phase 2: Implement
+
+1. **Project structure.** Python: a single `.py` file, or modules when complex,
+   with typed tool parameters and Pydantic models for grouped or complex input.
+   Node/TypeScript: the layout in `reference/node-mcp-server.md`, `package.json`
+   + `tsconfig.json`, and a current Standard Schema-compatible validator such
+   as Zod v4.
+2. **Core infrastructure first.** Shared API request helpers, error handling
+   utilities, response formatters (JSON and Markdown), pagination helpers,
+   authentication/token management — before any tool.
+3. **Tools, one at a time.** For each tool in the plan: an input schema with
+   constraints (min/max, regex, ranges), descriptive fields, and examples; a
+   docstring/description with a one-line summary, purpose, parameter types
+   with examples, the return schema, when to use and when not to, and how to
+   proceed on each error; logic that uses the shared utilities, `async`/`await`
+   for all I/O, both response formats, pagination, and the character limit;
+   and the four annotations (`readOnlyHint`, `destructiveHint`,
+   `idempotentHint`, `openWorldHint`).
+4. **Language checks.** Python: MCP SDK registration via `@mcp.tool`, type
+   hints throughout, Pydantic v2 for structured models, async I/O, module-level
+   `CHARACTER_LIMIT` and `API_BASE_URL`. Node/TypeScript:
+   `server.registerTool`, Standard Schema-compatible input schemas (use
+   `.strict()` when using Zod), strict mode, no `any`, explicit `Promise<T>`
+   return types, and `npm run build` configured. Current fetched SDK guidance
+   wins if a bundled language guide shows an older API.
+
+### Phase 3: Review and build
+
+1. **Code quality.** DRY across tools; shared logic extracted; similar
+   operations return similar shapes; every external call handled; full type
+   coverage; every tool documented.
+2. **Build without hanging.** An MCP server is a long-running process that
+   waits on stdio or HTTP — running `python server.py` or `node dist/index.js`
+   directly blocks the session. Python: `python -m py_compile server.py`,
+   then review imports by reading. Node: `npm run build` must succeed and
+   produce `dist/index.js`. To exercise the server, use the Phase 4 harness
+   (it launches and manages a stdio server itself), run it in tmux, or wrap
+   it in `timeout 5s …`.
+3. **Checklist.** Walk the "Quality Checklist" at the end of
+   `reference/python-mcp-server.md` or `reference/node-mcp-server.md`.
+
+### Phase 4: Evaluate
+
+Read `reference/evaluation.md` for the full guide. Then:
+
+1. **Inspect** the tools and, with READ-ONLY calls, the data they expose.
+2. **Write 10 questions**, each independent, read-only, complex (several
+   tool calls, real exploration), realistic, verifiable by string
+   comparison, and stable over time.
+3. **Solve each one yourself** and record the answer.
+4. **Run the harness.** `scripts/evaluation.py` needs `pip install -r
+   scripts/requirements.txt` (`mcp`, `anthropic`) and `ANTHROPIC_API_KEY`.
+   For stdio it launches the server; for `sse`/`http` the server must already
+   be running at `-u <url>`:
+
+   ```bash
+   python scripts/evaluation.py -t stdio -c python -a my_server.py [-e KEY=VALUE …] [-o report.md] evaluation.xml
+   python scripts/evaluation.py -t http -u https://host/mcp [-H "Authorization: Bearer …"] evaluation.xml
+   ```
+
+   `-m` picks the Claude model. A task scores 1 only when the text inside the
+   agent's `<response>` tags equals the `<answer>` exactly after trimming, so
+   answers must be single exact values: a number, an ID, or the precise text.
 
-To create high-quality MCP (Model Context Protocol) servers that enable LLMs to effectively interact with external services, use this skill. An MCP server provides tools that allow LLMs to access external services and APIs. The quality of an MCP server is measured by how well it enables LLMs to accomplish real-world tasks using the tools provided.
+## Output format
 
----
+**1. Implementation plan** — Phase 1, before any code, as a markdown file in
+the target repo:
 
-# Process
+```markdown
+# MCP server plan: <service>
 
-## 🚀 High-Level Workflow
+Language: python (FastMCP) | typescript (MCP SDK) · Transport: stdio | http | sse
+Auth: <scheme and where the credential comes from>
 
-Creating a high-quality MCP server involves four main phases:
+| Tool | Workflow it completes | Inputs | Output format(s) | Annotations | Why not a raw endpoint |
+| --- | --- | --- | --- | --- | --- |
 
-### Phase 1: Deep Research and Planning
+Shared utilities: <request helper, pagination, formatting, errors, auth>
+Limits: CHARACTER_LIMIT=<n> · pagination <strategy> · rate-limit handling <strategy>
+Error strategy: <how each error class is worded for the agent>
+```
 
-#### 1.1 Understand Agent-Centric Design Principles
+**2. The server** — source tree, build passing, every tool carrying its
+schema, description, and annotations.
 
-Before diving into implementation, understand how to design tools for AI agents by reviewing these principles:
-
-**Build for Workflows, Not Just API Endpoints:**
-- Don't simply wrap existing API endpoints - build thoughtful, high-impact workflow tools
-- Consolidate related operations (e.g., `schedule_event` that both checks availability and creates event)
-- Focus on tools that enable complete tasks, not just individual API calls
-- Consider what workflows agents actually need to accomplish
-
-**Optimize for Limited Context:**
-- Agents have constrained context windows - make every token count
-- Return high-signal information, not exhaustive data dumps
-- Provide "concise" vs "detailed" response format options
-- Default to human-readable identifiers over technical codes (names over IDs)
-- Consider the agent's context budget as a scarce resource
-
-**Design Actionable Error Messages:**
-- Error messages should guide agents toward correct usage patterns
-- Suggest specific next steps: "Try using filter='active_only' to reduce results"
-- Make errors educational, not just diagnostic
-- Help agents learn proper tool usage through clear feedback
-
-**Follow Natural Task Subdivisions:**
-- Tool names should reflect how humans think about tasks
-- Group related tools with consistent prefixes for discoverability
-- Design tools around natural workflows, not just API structure
-
-**Use Evaluation-Driven Development:**
-- Create realistic evaluation scenarios early
-- Let agent feedback drive tool improvements
-- Prototype quickly and iterate based on actual agent performance
-
-#### 1.3 Study MCP Protocol Documentation
-
-**Fetch the latest MCP protocol documentation:**
-
-Use web_search capability to load: `https://modelcontextprotocol.io/llms-full.txt`
-
-This comprehensive document contains the complete MCP specification and guidelines.
-
-#### 1.4 Study Framework Documentation
-
-**Load and read the following reference files:**
-
-- **MCP Best Practices**: [📋 View Best Practices](./reference/mcp-best-practices.md) - Core guidelines for all MCP servers
-
-**For Python implementations, also load:**
-- **Python SDK Documentation**: Use web_search capability to load `https://raw.githubusercontent.com/modelcontextprotocol/python-sdk/main/README.md`
-- [🐍 Python Implementation Guide](./reference/python-mcp-server.md) - Python-specific best practices and examples
-
-**For Node/TypeScript implementations, also load:**
-- **TypeScript SDK Documentation**: Use web_search capability to load `https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/main/README.md`
-- [⚡ TypeScript Implementation Guide](./reference/node-mcp-server.md) - Node/TypeScript-specific best practices and examples
-
-#### 1.5 Exhaustively Study API Documentation
-
-To integrate a service, read through **ALL** available API documentation:
-- Official API reference documentation
-- Authentication and authorization requirements
-- Rate limiting and pagination patterns
-- Error responses and status codes
-- Available endpoints and their parameters
-- Data models and schemas
-
-**To gather comprehensive information, use web search and the web_search capability tool as needed.**
-
-#### 1.6 Create a Comprehensive Implementation Plan
-
-Based on your research, create a detailed plan that includes:
-
-**Tool Selection:**
-- List the most valuable endpoints/operations to implement
-- Prioritize tools that enable the most common and important use cases
-- Consider which tools work together to enable complex workflows
-
-**Shared Utilities and Helpers:**
-- Identify common API request patterns
-- Plan pagination helpers
-- Design filtering and formatting utilities
-- Plan error handling strategies
-
-**Input/Output Design:**
-- Define input validation models (Pydantic for Python, Zod for TypeScript)
-- Design consistent response formats (e.g., JSON or Markdown), and configurable levels of detail (e.g., Detailed or Concise)
-- Plan for large-scale usage (thousands of users/resources)
-- Implement character limits and truncation strategies (e.g., 25,000 tokens)
-
-**Error Handling Strategy:**
-- Plan graceful failure modes
-- Design clear, actionable, LLM-friendly, natural language error messages which prompt further action
-- Consider rate limiting and timeout scenarios
-- Handle authentication and authorization errors
-
----
-
-### Phase 2: Implementation
-
-Now that you have a comprehensive plan, begin implementation following language-specific best practices.
-
-#### 2.1 Set Up Project Structure
-
-**For Python:**
-- Create a single `.py` file or organize into modules if complex (see [🐍 Python Guide](./reference/python-mcp-server.md))
-- Use the MCP Python SDK for tool registration
-- Define Pydantic models for input validation
-
-**For Node/TypeScript:**
-- Create proper project structure (see [⚡ TypeScript Guide](./reference/node-mcp-server.md))
-- Set up `package.json` and `tsconfig.json`
-- Use MCP TypeScript SDK
-- Define Zod schemas for input validation
-
-#### 2.2 Implement Core Infrastructure First
-
-**To begin implementation, create shared utilities before implementing tools:**
-- API request helper functions
-- Error handling utilities
-- Response formatting functions (JSON and Markdown)
-- Pagination helpers
-- Authentication/token management
-
-#### 2.3 Implement Tools Systematically
-
-For each tool in the plan:
-
-**Define Input Schema:**
-- Use Pydantic (Python) or Zod (TypeScript) for validation
-- Include proper constraints (min/max length, regex patterns, min/max values, ranges)
-- Provide clear, descriptive field descriptions
-- Include diverse examples in field descriptions
-
-**Write Comprehensive Docstrings/Descriptions:**
-- One-line summary of what the tool does
-- Detailed explanation of purpose and functionality
-- Explicit parameter types with examples
-- Complete return type schema
-- Usage examples (when to use, when not to use)
-- Error handling documentation, which outlines how to proceed given specific errors
-
-**Implement Tool Logic:**
-- Use shared utilities to avoid code duplication
-- Follow async/await patterns for all I/O
-- Implement proper error handling
-- Support multiple response formats (JSON and Markdown)
-- Respect pagination parameters
-- Check character limits and truncate appropriately
-
-**Add Tool Annotations:**
-- `readOnlyHint`: true (for read-only operations)
-- `destructiveHint`: false (for non-destructive operations)
-- `idempotentHint`: true (if repeated calls have same effect)
-- `openWorldHint`: true (if interacting with external systems)
-
-#### 2.4 Follow Language-Specific Best Practices
-
-**At this point, load the appropriate language guide:**
-
-**For Python: Load [🐍 Python Implementation Guide](./reference/python-mcp-server.md) and ensure the following:**
-- Using MCP Python SDK with proper tool registration
-- Pydantic v2 models with `model_config`
-- Type hints throughout
-- Async/await for all I/O operations
-- Proper imports organization
-- Module-level constants (CHARACTER_LIMIT, API_BASE_URL)
-
-**For Node/TypeScript: Load [⚡ TypeScript Implementation Guide](./reference/node-mcp-server.md) and ensure the following:**
-- Using `server.registerTool` properly
-- Zod schemas with `.strict()`
-- TypeScript strict mode enabled
-- No `any` types - use proper types
-- Explicit Promise<T> return types
-- Build process configured (`npm run build`)
-
----
-
-### Phase 3: Review and Refine
-
-After initial implementation:
-
-#### 3.1 Code Quality Review
-
-To ensure quality, review the code for:
-- **DRY Principle**: No duplicated code between tools
-- **Composability**: Shared logic extracted into functions
-- **Consistency**: Similar operations return similar formats
-- **Error Handling**: All external calls have error handling
-- **Type Safety**: Full type coverage (Python type hints, TypeScript types)
-- **Documentation**: Every tool has comprehensive docstrings/descriptions
-
-#### 3.2 Test and Build
-
-**Important:** MCP servers are long-running processes that wait for requests over stdio/stdin or sse/http. Running them directly in your main process (e.g., `python server.py` or `node dist/index.js`) will cause your process to hang indefinitely.
-
-**Safe ways to test the server:**
-- Use the evaluation harness (see Phase 4) - recommended approach
-- Run the server in tmux to keep it outside your main process
-- Use a timeout when testing: `timeout 5s python server.py`
-
-**For Python:**
-- Verify Python syntax: `python -m py_compile your_server.py`
-- Check imports work correctly by reviewing the file
-- To manually test: Run server in tmux, then test with evaluation harness in main process
-- Or use the evaluation harness directly (it manages the server for stdio transport)
-
-**For Node/TypeScript:**
-- Run `npm run build` and ensure it completes without errors
-- Verify dist/index.js is created
-- To manually test: Run server in tmux, then test with evaluation harness in main process
-- Or use the evaluation harness directly (it manages the server for stdio transport)
-
-#### 3.3 Use Quality Checklist
-
-To verify implementation quality, load the appropriate checklist from the language-specific guide:
-- Python: see "Quality Checklist" in [🐍 Python Guide](./reference/python-mcp-server.md)
-- Node/TypeScript: see "Quality Checklist" in [⚡ TypeScript Guide](./reference/node-mcp-server.md)
-
----
-
-### Phase 4: Create Evaluations
-
-After implementing your MCP server, create comprehensive evaluations to test its effectiveness.
-
-**Load [✅ Evaluation Guide](./reference/evaluation.md) for complete evaluation guidelines.**
-
-#### 4.1 Understand Evaluation Purpose
-
-Evaluations test whether LLMs can effectively use your MCP server to answer realistic, complex questions.
-
-#### 4.2 Create 10 Evaluation Questions
-
-To create effective evaluations, follow the process outlined in the evaluation guide:
-
-1. **Tool Inspection**: List available tools and understand their capabilities
-2. **Content Exploration**: Use READ-ONLY operations to explore available data
-3. **Question Generation**: Create 10 complex, realistic questions
-4. **Answer Verification**: Solve each question yourself to verify answers
-
-#### 4.3 Evaluation Requirements
-
-Each question must be:
-- **Independent**: Not dependent on other questions
-- **Read-only**: Only non-destructive operations required
-- **Complex**: Requiring multiple tool calls and deep exploration
-- **Realistic**: Based on real use cases humans would care about
-- **Verifiable**: Single, clear answer that can be verified by string comparison
-- **Stable**: Answer won't change over time
-
-#### 4.4 Output Format
-
-Create an XML file with this structure:
+**3. `evaluation.xml`** — exactly the harness's shape, 10 `qa_pair`s:
 
 ```xml
 <evaluation>
   <qa_pair>
-    <question>Find discussions about AI model launches with animal codenames. One model needed a specific safety designation that uses the format ASL-X. What number X was being determined for the model named after a spotted wild cat?</question>
-    <answer>3</answer>
+    <question>…</question>
+    <answer>…</answer>
   </qa_pair>
-<!-- More qa_pairs... -->
 </evaluation>
 ```
 
----
+**4. Evaluation report** — what `scripts/evaluation.py` prints (or writes
+with `-o`): `# Evaluation Report` with `Accuracy: <correct>/<total> (<pct>%)`,
+average task duration, average and total tool calls, then per task the
+question, ground truth, actual answer, ✅/❌, duration, tool calls, the
+agent's summary, and its feedback on the tools. Report the accuracy line and
+every ❌ task with the feedback it produced.
 
-# Reference Files
+## Quality gates
 
-## 📚 Documentation Library
+- [ ] Every tool in the plan completes a workflow an agent would actually
+      run; a "first X then Y" sequence in the service's own docs became one
+      tool, and no tool exists only because an endpoint does
+- [ ] Every tool has an input schema with constraints, a description that
+      says when not to use it and what to do on each error, both response
+      formats where output can be large, and all four annotations set
+- [ ] Responses are bounded by `CHARACTER_LIMIT` with a truncation message
+      that tells the agent how to narrow the query; large lists paginate
+- [ ] The server was never started directly in the session — compile/build
+      checks ran, and execution went through the harness, tmux, or `timeout`
+- [ ] The 10 evaluation questions were solved by hand first; every `<answer>`
+      is a single exact value the harness's string comparison can match, and
+      every question needs only read-only tools
+- [ ] The harness ran and its accuracy line is in the report; each ❌ task's
+      feedback was turned into a tool change or an explicit decision not to
 
-Load these resources as needed during development:
+## Workflow position
 
-### Core MCP Documentation (Load First)
-- **MCP Protocol**: Fetch from `https://modelcontextprotocol.io/llms-full.txt` - Complete MCP specification
-- [📋 MCP Best Practices](./reference/mcp-best-practices.md) - Universal MCP guidelines including:
-  - Server and tool naming conventions
-  - Response format guidelines (JSON vs Markdown)
-  - Pagination best practices
-  - Character limits and truncation strategies
-  - Tool development guidelines
-  - Security and error handling standards
+**Typically follows:** `av:brainstorm`, when whether to build a server at all
+(versus calling the API directly) is still open; `av:research` or
+`av:docs-seeker`, when the service's API documentation had to be gathered
+first.
 
-### SDK Documentation (Load During Phase 1/2)
-- **Python SDK**: Fetch from `https://raw.githubusercontent.com/modelcontextprotocol/python-sdk/main/README.md`
-- **TypeScript SDK**: Fetch from `https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/main/README.md`
+**Typically precedes:** `av:use-mcp`, which discovers and calls the finished
+server's tools from a runtime; `av:test` for unit and integration tests
+beyond the evaluation harness; `av:deploy` or `av:devops` when the server
+ships over HTTP rather than stdio.
 
-### Language-Specific Implementation Guides (Load During Phase 2)
-- [🐍 Python Implementation Guide](./reference/python-mcp-server.md) - Complete Python/FastMCP guide with:
-  - Server initialization patterns
-  - Pydantic model examples
-  - Tool registration with `@mcp.tool`
-  - Complete working examples
-  - Quality checklist
+**Related:** `av:agentize` wraps code that already exists into a CLI and MCP
+surface — reach for it when there is a local `core/` to extract rather than a
+remote service to integrate. `av:use-mcp` is the consumer side; a request to
+discover, validate, or invoke an existing server's tools goes there.
 
-- [⚡ TypeScript Implementation Guide](./reference/node-mcp-server.md) - Complete TypeScript guide with:
-  - Project structure
-  - Zod schema patterns
-  - Tool registration with `server.registerTool`
-  - Complete working examples
-  - Quality checklist
+## References
 
-### Evaluation Guide (Load During Phase 4)
-- [✅ Evaluation Guide](./reference/evaluation.md) - Complete evaluation creation guide with:
-  - Question creation guidelines
-  - Answer verification strategies
-  - XML format specifications
-  - Example questions and answers
-  - Running an evaluation with the provided scripts
+| Read when | File |
+| --- | --- |
+| Before naming a tool or writing the plan (Phase 1) | `references/agent-centric-design.md` |
+| Any server, first (Phase 1) — naming, formats, pagination, limits, transports, security | `reference/mcp-best-practices.md` |
+| Python implementation and its quality checklist (Phases 2-3) | `reference/python-mcp-server.md` |
+| TypeScript implementation and its quality checklist (Phases 2-3) | `reference/node-mcp-server.md` |
+| Writing questions and running the harness (Phase 4) | `reference/evaluation.md`, `scripts/evaluation.py`, `scripts/example_evaluation.xml` |
+
+The four files under `reference/` (singular) predate this kit's `references/`
+convention; whether they migrate is a separate decision and not taken here.

@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Agent lint and close-out"
-status: todo
+status: completed
 priority: P2
 effort: "3-5d"
 dependencies: [8]
@@ -80,6 +80,48 @@ Affected agents: `advisor`, `code-simplifier`, `debugger`, `docs-manager`,
 The runtime also exposes a built-in `Explore`. Verify after the rename that
 `av:scout`'s delegation reaches the intended agent — by invoking it.
 
+### The rename is superseded, not deferred (2026-08-23)
+
+Steps 1-4 and 6 shipped as PR #43: 15 of 16 agents now meet the bar. **Step 5
+was not performed, and should not be.** Both paths this file pre-decided are
+unsafe, and a third path already exists.
+
+**Why the lowercase rename is wrong.** The `Task(Explore)` count was exactly as
+predicted — 9 files, 10 occurrences — but the prose ripple is ~40 references,
+not 5, and they are not the same symbol. Three are `subagent_type: "Explore"`
+(this kit's agent). Eight are `agent_type: "Explore"` for Codex's
+`multi_agent_v1` — a runtime role this repository does not own. A blanket
+lowercase rename breaks Codex delegation.
+
+**Why the pre-decided fallback is worse.** Renaming the file to `Explore.md` to
+match `name: Explore` collides with the heal path. `claimed()`
+(`install-heal.ts:87-97`) keys a Map by resolved absolute path, compared as an
+exact string with no case folding, and `executeHeal` runs *after* the writes. On
+a case-insensitive filesystem the old spelling sits in `before`, goes unmatched
+in `after`, and removal is planned for the same inode the installer just wrote.
+The hash guard (`install-heal.ts:181-184`) forks the outcome on content: a pure
+case rename is **deleted**, while a rename-plus-rewrite survives with a spurious
+"modified since install" warning and a receipt whose spelling disagrees with
+disk. Both are wrong.
+
+**The path taken instead.** `agent-lint.ts:49-53` accepts a case-insensitive
+name match for ported agents only, with `explore.md`/`name: Explore` named in
+the comment. Zero runtime ripple; Codex's `agent_type` and this kit's
+`subagent_type` are both untouched. The name rule only ever bit because of the
+ported branch, so this closes it at the source.
+
+**Consequence for step 7.** `ported` now gates two unrelated things: the house
+rules (examples, checklist, length, description cap) and this case exception.
+Deleting the branch wholesale re-breaks `explore` and walks straight back into
+the rename trap. Delete the house-rule exemptions; **keep the case exception**,
+with the comment explaining why it is not dead code.
+
+**A latent defect this uncovered, out of scope here.** Any future case-only
+rename of any artifact hits the same heal deletion, not just `explore`. The fix
+is independent of filesystem: before unlinking, if the removal path case-folds
+equal to a path the next receipt claims, compare `st_dev`/`st_ino` and preserve
+on a match. Backlog item, not part of this plan.
+
 ### Close-out
 
 Once the ratchet is empty and agents are clean, delete
@@ -112,21 +154,28 @@ exemption gets added quietly.
    all 5 prose references.
 6. Invoke `av:scout`'s delegation and confirm it reaches the intended agent.
    A grep is not proof.
-7. Delete the ported branch in `agent-lint.ts`; run `av validate`.
+7. Delete the ported branch in `agent-lint.ts`; run `av validate`. **Done**
+   (PR #50): the branch is gone, `explore.md` keeps `name: Explore` through a
+   one-file exception in the rule, and `av validate` loads all 16 agents
+   with every rule enforced. The heal case-collision the review found on
+   the way is filed in phase 4's risk list, not here.
 8. Confirm the ratchet is empty, then delete it, `isExempt()`, and both call sites.
 9. Full gate: `pnpm test`, `av validate`, `--strict`, `--check`.
 10. Update ADR 0013; journal; close the plan.
 
 ## Success Criteria
 
-- [ ] All 16 agents pass `agent-lint` with no exemption branch in the source.
-- [ ] No agent exceeds 120 lines or a 1200-char description.
-- [ ] Every agent has a `Behavioral Checklist` and an `<example>` pair.
-- [ ] `grep -rn 'Task(Explore)' kit/` returns nothing.
-- [ ] `explore` is invocable after the rename — verified by invoking it.
-- [ ] `kit/skills-lint-exempt.json` deleted; `isExempt()`/`isPorted()` absent.
-- [ ] `av validate`, `--strict`, `--check` all clean.
-- [ ] `pnpm test` green.
+- [x] All 16 agents pass `agent-lint` with no exemption branch in the source (PR #50).
+- [x] No agent exceeds 120 lines or a 1200-char description (PR #43, enforced by #50).
+- [x] Every agent has a `Behavioral Checklist` and an `<example>` pair (PR #43, enforced by #50).
+- [x] ~~`grep -rn 'Task(Explore)' kit/` returns nothing.~~ **Withdrawn** — see
+      "The rename is superseded, not deferred" below. The grant name is correct
+      as it stands.
+- [x] ~~`explore` is invocable after the rename — verified by invoking it.~~
+      **Withdrawn** with the rename.
+- [x] `kit/skills-lint-exempt.json` deleted; `isExempt()`/`isPorted()` absent.
+- [x] `av validate`, `--strict`, `--check` all clean.
+- [x] `pnpm test` green.
 
 ## Risk Assessment
 

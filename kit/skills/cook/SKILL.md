@@ -1,6 +1,6 @@
 ---
 name: av:cook
-description: "Implement features, plans, and fixes with structured workflow. Use for feature development, plan execution, code implementation pipelines."
+description: "Implement features and accepted plans through a gated workflow: contract, scout, plan, code, tests, review, finalize. Use for feature development, plan execution, and implementation pipelines."
 user-invocable: true
 when_to_use: "Invoke to implement known scope after requirements are clear."
 category: utilities
@@ -14,68 +14,40 @@ metadata:
 
 # Cook - Smart Feature Implementation
 
-End-to-end implementation with automatic workflow detection.
+End-to-end implementation of known scope: a natural-language feature or an
+accepted plan goes through a brainstorm contract, a mandatory scout, a reviewed
+plan, implementation, delegated testing and review, and a finalize step that
+syncs the plan, evaluates docs, commits, and journals. Does not handle concrete
+bugs, failing tests, or CI failures — those go to `av:fix`, which proves the
+root cause before choosing a solution.
 
 **Principles:** KISS, DRY | Full requested scope, nothing extra (`--yagni` to opt into scope-cutting) | Token efficiency | Concise reports
 
 ## Usage
 
 ```
-/av:cook <natural language task OR plan path>
+/av:cook <natural language task OR plan path> [mode flag] [composable flags]
 ```
 
-**IMPORTANT:** If no flag is provided, the skill will use the `interactive` mode by default for the workflow.
+| Flag | Effect |
+| --- | --- |
+| `--interactive` *(default when no flag)* | Full workflow; stops at every review gate for the user |
+| `--fast` | Skip research: scout → plan → code; a plan step still runs |
+| `--parallel` | Multi-agent execution with file ownership per agent |
+| `--auto` | Skip the human review gates; implement every phase continuously |
+| `--no-test` | Skip Step 4; the unverified-tests risk is put to the user at finalize |
+| `--tdd` | Tests-first per phase: write tests for current behavior, implement, verify they still pass |
+| `--advice` | Run under `kongming` advisory supervision — read `references/advisory-supervision.md` for the checkpoints and the PR handoff |
+| `--yagni` | Opt into YAGNI: challenge and cut scope not needed for the stated outcome. Default is the full requested scope |
+| `--skip-journal` | Skip the automatic journal entry at finalize |
 
-**Optional flags to select the workflow mode:** 
-- `--interactive`: Full workflow with user input (**default**)
-- `--fast`: Skip research, scout→plan→code
-- `--parallel`: Multi-agent execution
-- `--no-test`: Skip testing step
-- `--auto`: Auto-approve all steps
-
-**Composable flags** (combine with any mode):
-- `--tdd`: Tests-first per phase — write tests for current behavior before
-  refactoring, then verify they still pass after the implementation step
-- `--advice`: Run under `kongming` advisory supervision (see Advisory
-  supervision)
-- `--yagni`: Opt into YAGNI — challenge and cut scope not needed for the stated
-  outcome. Default is to implement the full requested scope
-
-**Example:**
+The first five select a mode; the rest compose with any mode. A plan path
+(`plan.md` or `phase-*.md`) selects `code` mode, which executes the plan as is.
 ```
 /av:cook "Add user authentication to the app" --fast
 /av:cook path/to/plan.md --auto
 /av:cook "Refactor auth middleware" --tdd
 ```
-
-## Advisory supervision (`--advice`)
-
-When `--advice` is present, run this skill under `kongming` supervision.
-`kongming` is an advisory-only supervisor: it returns counsel, never code, and
-the main agent stays responsible for every decision, edit, and gate.
-
-Spawn `kongming` at these checkpoints:
-
-- **After each phase completes** — pass the phase goal, what changed, and the
-  evidence; ask for a go/no-go and the next risk to watch before the next phase.
-- **When stuck** — repeated failures, a blocked step, or contradictory evidence;
-  pass everything already tried and the exact obstacle.
-- **Before a high-stakes decision** — a design fork, a public-contract or
-  security-sensitive change, or an irreversible action; get counsel first.
-
-Invoke with
-`delegate_agent capability(subagent_type="kongming", prompt="<task, evidence, approaches tried, the exact question>", description="advice: <checkpoint>")`.
-Give it enough context to answer in one reply; it does not interview.
-
-**When the workflow reaches a PR** (e.g. handed off to the installed ship
-skill): pass `--advice` to the downstream skill so supervision persists across
-the handoff. Watch and fix CI until every required check is green, then spawn
-`kongming` to review the whole implementation and post its assessment plus
-concrete next steps as a comment directly on the PR and the source issue (when
-one exists).
-
-`--advice` adds supervision; it never bypasses this skill's approval gates,
-tests, review blockers, branch protections, or security policy.
 
 <HARD-GATE-BRAINSTORM-FIRST>
 Before planning or implementation, capture the opening brainstorm contract:
@@ -86,7 +58,7 @@ outcome, constraints, non-goals, and observable acceptance criteria.
 - If the input is a natural-language task, state the fields from the request and
   ask only about a missing decision that would change the result or safety.
 - `--fast`, `--parallel`, and `--auto` change execution shape, not this gate.
-- Route concrete bugs to `/av:fix`; it frames intent first, then proves the root
+- Route concrete bugs to `av:fix`; it frames intent first, then proves the root
   cause before selecting a solution.
 </HARD-GATE-BRAINSTORM-FIRST>
 
@@ -140,32 +112,16 @@ If review/testing reveals a side effect, regression, or broken workflow, STOP. U
 Let the user decide. Do not silently patch around regressions.
 </HARD-GATE-NO-SIDE-EFFECTS>
 
-## Anti-Rationalization
+## Intent detection
 
-| Thought | Reality |
-|---------|---------|
-| "This is too simple to plan" | Simple tasks have hidden complexity. Plan takes 30 seconds. |
-| "I already know how to do this" | Knowing ≠ planning. Write it down. |
-| "Let me just start coding" | Undisciplined action wastes tokens. Plan first. |
-| "The user wants speed" | Fastest path = plan → implement → done. Not: implement → debug → rewrite. |
-| "I'll plan as I go" | That's not planning, that's hoping. |
-| "Just this once" | Every skip is "just this once." No exceptions. |
-
-## Smart Intent Detection
-
-| Input Pattern | Detected Mode | Behavior |
-|---------------|---------------|----------|
-| Path to `plan.md` or `phase-*.md` | code | Execute existing plan |
-| Contains "fast", "quick" | fast | Skip research, scout→plan→code |
-| Contains "trust me", "auto" | auto | Auto-approve all steps |
-| Lists 3+ features OR "parallel" | parallel | Multi-agent execution |
-| Contains "no test", "skip test" | no-test | Skip testing step |
-| Default | interactive | Full workflow with user input |
-
-See `references/intent-detection.md` for detection logic.
-
-If the task needs a cross-skill workflow sequence decision after intent
-detection, load `references/workflow-routing.md`.
+Without an explicit flag, the mode comes from the input: a plan path → `code`;
+"fast"/"quick" → `fast`; "trust me"/"auto" → `auto`; three or more listed
+features or "parallel" → `parallel`; "no test"/"skip test" → `no-test`;
+otherwise `interactive`. `references/intent-detection.md` carries the
+priority order, feature extraction, and the per-mode behavior table. When the
+task needs a cross-skill sequence decision after detection, load
+`references/workflow-routing.md`. When tempted to skip the plan step, read
+`references/anti-rationalization.md` first.
 
 ## Process Flow (Authoritative)
 
@@ -197,102 +153,139 @@ flowchart TD
     L --> M[Report + Journal]
 ```
 
-**This diagram is the authoritative workflow.** Prose sections below provide detail for each node. If prose conflicts with this flow, follow the diagram.
+**This diagram is the authoritative workflow.** If prose conflicts with it, follow the diagram.
 
 ## Workflow Overview
 
-```
-[Brainstorm Contract] → [Intent Detection] → [Inspect/Research?] → [Review] → [Plan] → [Review] → [Implement] → [Conditional Simplify?] → [Review] → [Test?] → [Review] → [Finalize]
-```
+Step numbering, used by every marker below: 0 contract + mode · 1 research ·
+2 plan · 3 implement (3.S conditional simplify) · 4 test · 5 code review ·
+6 finalize. `references/workflow-steps.md` carries each step's per-mode detail
+and `references/intent-detection.md` the per-mode table (which steps run,
+which gates stop). Only `auto` skips the human review gates.
 
-**Default (non-auto):** Stops at `[Review]` gates for human approval before each major step.
-**Auto mode (`--auto`):** Skips human review gates, implements all phases continuously.
-**Progress tracking:** Discover the live task-management surface at runtime and
-use it when available. Otherwise, update the active plan directly. Plan files
-are the durable source of truth; do not infer support from cached tool lists.
+**Progress tracking:** Discover the live task-management surface at runtime and use it when
+available; otherwise update the active plan directly. Plan files are the durable source of truth.
 
-**Plan resolution (files-first):** when the input is a plan path or an
-existing plan is in scope, resolve it via the CLI current-plan pointer
-(`av plan use`) first, falling back to `av plan resolve` for the current
-repo/branch/worktree. Read phase content with `av plan show` (or the files
-directly) and mutate status only through `av plan` file-mutating commands
-(`check`/`uncheck`/`update`/`status`) — never from GitHub issue comments, and
-never require a linked issue to resolve or progress a plan. See
-`references/plan-state-files-first.md` for the full model.
-
-| Mode | Research | Testing | Review Gates | Phase Progression |
-|------|----------|---------|--------------|-------------------|
-| interactive | ✓ | ✓ | **User approval at each step** | One at a time |
-| auto | ✓ | ✓ | Per `references/review-cycle.md` | All at once (no stops) |
-| fast | ✗ | ✓ | **User approval at each step** | One at a time |
-| parallel | Optional | ✓ | **User approval at each step** | Parallel groups |
-| no-test | ✓ | ✗ | **User approval at each step** | One at a time |
-| code | ✗ | ✓ | **User approval at each step** | Per plan |
-
-## Step Output Format
-
-```
-✓ Step [N]: [Brief status] - [Key metrics]
-```
+**Plan resolution (files-first):** when the input is a plan path or an existing
+plan is in scope, read it with `av plan resolve` (the directory) or `av plan
+show` (the phases). Both answer for the current branch's pointer only and exit
+non-zero when it has none — that means "no plan", not an error; set the pointer
+with `av plan use <name>`. Mutate status only through `av plan status` (the
+plan) and `av plan update <phase> <status>` / `check` / `uncheck` (a phase) —
+never from GitHub issue comments, and never require a linked issue to resolve or
+progress a plan. See `references/plan-state-files-first.md` for the full model.
 
 ## Blocking Gates (Non-Auto Mode)
 
 Human review required at these checkpoints (skipped with `--auto`):
-- **Post-Research:** Review findings before planning
-- **Post-Plan:** Approve plan before implementation
-- **Post-Implementation:** Approve code before testing
-- **Post-Testing:** 100% pass + approve before finalize
+**Post-Research** (findings before planning) · **Post-Plan** (approve before
+implementation) · **Post-Implementation** (approve before testing) ·
+**Post-Testing** (100% pass + approve before finalize).
 
 **Always enforced (all modes):**
 - **Testing:** 100% pass required (unless no-test mode)
-- **Code Review (MANDATORY):** Spawn `code-reviewer` subagent with explicit checks:
-  (a) every acceptance criterion met,
-  (b) no regression to business logic in touchpoints/blast-radius,
-  (c) no breaking changes to public contracts (signatures, schemas, APIs, env vars) unless called out,
-  (d) follows existing patterns from scout,
-  (e) no new lint/type/build errors anywhere.
-  Pass scout summary + acceptance criteria as context. If reviewer flags side effects → trigger HARD-GATE-NO-SIDE-EFFECTS (`ask_user capability` with 2-4 options).
-  Then: user approval or the auto-mode decision in `references/review-cycle.md`.
+- **Code Review (MANDATORY):** Spawn `code-reviewer` with the five explicit
+  checks (acceptance criteria met · no regression in the blast radius · no
+  uncalled-out public-contract break · follows scouted patterns · no new
+  lint/type/build errors) and the scout summary + acceptance criteria as
+  context — the exact prompt is in `references/subagent-patterns.md`. A
+  flagged side effect triggers HARD-GATE-NO-SIDE-EFFECTS. Then: user approval,
+  or the auto-mode decision in `references/review-cycle.md`.
 - **Finalize (MANDATORY - never skip):**
-  1. **Activate `the engineer project-management skill` skill (MANDATORY)** → run full plan sync-back across ALL `phase-XX-*.md` (not only current phase), update `plan.md` status/progress, refresh runtime tracking when available, generate progress report
+  1. **Activate `av:pm` (MANDATORY)** → run full plan sync-back across ALL `phase-XX-*.md` (not only current phase), update `plan.md` status/progress, refresh runtime tracking when available, generate progress report
   2. Evaluate docs impact; use `docs-manager` only for affected routed authority surfaces
   3. After sync-back verification, reflect completion in the live task-management surface when available
   4. Ask user if they want to commit via `git-manager` subagent
-  5. Run `/av:journal` to write a concise technical journal entry upon completion — unless the shared "Journal step — opt-out" below applies.
+  5. Run `av:journal` to write a concise technical journal entry upon completion — unless the journal opt-out below applies.
 
 ### Journal step — opt-out
 
-Skip the automatic `/av:journal` step when either applies:
-- The invocation includes the `--skip-journal` flag, OR
-- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal.
-
-Precedence: flag > project config > user config > default (`true`).
-When skipped, print one line:
-- `journal skipped by --skip-journal` (flag), or
-- `journal skipped by preference` (config).
-
-Explicit `/av:journal` and `av journal create` are unaffected. The rest of the Finalize block above stays MANDATORY.
+Skip the automatic `av:journal` step only when the invocation includes the
+`--skip-journal` flag, and print one line: `journal skipped by --skip-journal`.
+There is no config switch for it: `av config prefs resolve --json` has no
+`journal` key, and an unknown key in either config file is warned about and
+ignored, so no setting can suppress the step. Explicit `av:journal` and
+`av journal create` are unaffected. The rest of the Finalize block above stays
+MANDATORY.
 
 ## Required Subagents (MANDATORY)
 
-| Phase | Subagent | Requirement |
-|-------|----------|-------------|
-| Research | `researcher` | Optional in fast/code |
-| Scout | `av:scout` | Optional in code |
-| Plan | `planner` | Optional in code |
-| UI Work | `ui-ux-designer` | If frontend work |
-| Testing | `tester`, `debugger` | **MUST** spawn |
-| Review | `code-reviewer` | **MUST** spawn |
-| Finalize | `the engineer project-management skill`; conditional `docs-manager`; configured git workflow | Project sync and docs-impact decision are mandatory |
+`references/subagent-patterns.md` lists the subagent per phase and the exact
+prompts. `tester` (plus `debugger` on failure) and `code-reviewer` are never
+optional; `git-manager` runs only after the user authorizes a commit. The rest
+are optional only in modes that skip their step.
 
 **CRITICAL ENFORCEMENT:**
-- Steps 4, 5, 6 **MUST** use the live delegation capability to spawn subagents
-- DO NOT implement testing, review, or finalization yourself - DELEGATE
+- Steps 4 and 5 **MUST** use the live delegation capability to spawn subagents;
+  Step 6 activates `av:pm` and delegates an authorized commit
+- DO NOT implement testing or review yourself - DELEGATE
 - If workflow ends without the required delegations, it is INCOMPLETE
 - Pattern: `delegate_agent capability(subagent_type="[type]", prompt="[task]", description="[brief]")`
-- If the user passed `--yagni`, include it in every subagent prompt and pass it
-  to downstream skills, so the opt-in survives the handoff. Without it the
-  delegate defaults to delivering the full requested scope.
+- If the user passed `--yagni`, include it in every subagent prompt and downstream
+  skill call so the opt-in survives the handoff; without it a delegate delivers the full requested scope.
+
+## Output format
+
+One marker line per step, in the numbering above, as the step completes:
+```
+✓ Step [N]: [Brief status] - [Key metrics]
+⏸ Step [N]: [Brief status] - WAITING for approval     ← at a review gate, non-auto modes only
+```
+
+The closing report, after Step 6, in chat:
+```
+Cook complete: <task or plan path>
+  Mode:     <interactive|auto|fast|parallel|no-test|code>
+  Phases:   <done>/<total> (or "no plan" for an ad-hoc task)
+  Files:    <N changed>
+  Tests:    <X/X passed | skipped (--no-test, risk accepted by user)>
+  Review:   <score>/10 - <user approved|auto-approved|approved with noted issues>
+  Plan:     <plan-dir> status <pending|in-progress|completed> (or "no plan")
+  Docs:     <paths updated | no authority surface changed>
+  Commit:   <sha | not committed (user declined)>
+  Journal:  <entry path | skipped by --skip-journal>
+```
+
+Every field comes from a step that ran — Review from `code-reviewer`, Plan from
+`av:pm`, and Commit from `git-manager` or the recorded decision to decline.
+
+## Quality gates
+
+- [ ] A plan existed and was reviewed before the first implementation edit —
+      in `--fast` too; the only exits are the user's explicit "just code it"
+      and `code` mode, where the accepted plan is the reviewed plan
+- [ ] The brainstorm contract was stated or reused before scouting, and every
+      acceptance criterion in it appears verbatim in the `code-reviewer` prompt
+- [ ] Steps 4 and 5 were delegated (`tester`, `code-reviewer`), `av:pm` was
+      activated at finalize, and `git-manager` ran only after commit approval
+- [ ] Plan state changed only through `av plan update` / `check` / `uncheck`
+      (a phase) and `av plan status` (the plan); no frontmatter was hand-edited
+      while `av` was available, and no invented subcommand was run
+- [ ] Under `--no-test`, the finalize `ask_user capability` named the
+      unverified-tests risk and the user accepted it; under `--yagni`, the flag
+      reached every subagent prompt and downstream skill call
+- [ ] A reviewer- or test-flagged side effect stopped the workflow and went to
+      the user with 2-4 options; nothing was patched around
+
+## Workflow position
+
+**Typically follows:** `av:plan`, whose `plan.md` and phase files this skill
+executes in `code` mode (the `cook-after-plan-reminder` hook prints the
+`/av:cook <plan.md>` handoff after a plan is written); `av:brainstorm`, whose
+accepted contract becomes the opening one; `av:agentize`, which hands its
+remaining implementation here.
+
+**Typically precedes:** `av:ship`, once finalize has synced the plan and the
+branch is ready for a PR; `av:journal` runs at finalize unless skipped.
+
+**Invokes directly:** `av:scout` for the mandatory codebase scan; `av:plan`
+(`--fast`, `--parallel`, `validate`) when planning happens inside the workflow;
+`av:pm` for the finalize sync-back; `av:journal` at finalize.
+
+**Related:** `av:fix` owns concrete bugs, failing tests, and CI failures —
+route them there instead of cooking a patch. `av:vibe` wraps this skill in its
+issue-to-PR pipeline. `av:test` and `av:code-review` are standalone skills;
+here their work is done by the `tester` and `code-reviewer` subagents.
 
 ## References
 
@@ -301,10 +294,6 @@ Explicit `/av:journal` and `av journal create` are unaffected. The rest of the F
 - `references/workflow-steps.md` - Detailed step definitions for all modes
 - `references/review-cycle.md` - Interactive and auto review processes
 - `references/subagent-patterns.md` - Subagent invocation patterns
-- `references/plan-state-files-first.md` - Canonical plan-file model, `av plan` index, and optional GitHub projection
-
-## Workflow Position
-
-**Typically follows:** `the engineer plan skill` (execute a plan), `/av:brainstorm` (implement agreed solution)
-**Typically precedes:** `the installed code-review skill` (review after implementation), `the installed test skill` (validate changes)
-**Related:** `/av:fix` (alternative for bug fixes), `the engineer plan skill` (create plan before cooking)
+- `references/advisory-supervision.md` - `--advice` checkpoints and the PR handoff
+- `references/plan-state-files-first.md` - Canonical plan-file model, what each `av plan` command reads and writes, and optional GitHub projection
+- `references/anti-rationalization.md` - The excuses for skipping the plan step, answered

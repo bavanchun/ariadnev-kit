@@ -35,7 +35,12 @@ export function resolveKitRoot(start: string): string {
   }
 }
 
-function readArtifact(type: ArtifactType, name: string, filePath: string): Artifact {
+/**
+ * Exported for the lint-exemption ratchet, which must lint the same artifact
+ * shape production does. A hand-rolled copy in the test would answer a slowly
+ * different question every time this one changes.
+ */
+export function readArtifact(type: ArtifactType, name: string, filePath: string): Artifact {
   const raw = readFileSync(filePath, "utf8");
   const parsed = matter(raw);
   return {
@@ -48,7 +53,8 @@ function readArtifact(type: ArtifactType, name: string, filePath: string): Artif
   };
 }
 
-function readReferenceFiles(skillDir: string): ReferenceFile[] {
+/** Exported alongside `readArtifact`, and for the same reason. */
+export function readReferenceFiles(skillDir: string): ReferenceFile[] {
   const refsDir = join(skillDir, "references");
   if (!existsSync(refsDir)) return [];
   return readdirSync(refsDir)
@@ -193,5 +199,6 @@ export function loadKit(kitRoot: string): Kit {
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
     warnings,
+    held: [],
   };
 }

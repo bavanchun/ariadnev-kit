@@ -110,8 +110,8 @@ When processing arguments, follow this priority order:
 
 Adding `--html` to any generation flag switches output from Markdown to a self-contained HTML file.
 
-**Output:** Single `.html` file with all CSS/JS inline. Opens directly in browser — no server needed.
-**Location:** `{plan_dir}/visuals/{slug}.html` (same plan-aware logic as markdown mode)
+**Output:** Single `.html` file with all authored CSS/JS inline. Opens directly in browser — no server needed.
+**Location:** `{plan_dir}/visuals/{topic-slug}.html` (same plan-aware logic as markdown mode)
 **Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start` (Windows)
 **MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `references/html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
 
@@ -121,13 +121,13 @@ Before generating, agent MUST read these references:
 
 | Mode | Always read | Mode-specific |
 |------|-------------|---------------|
-| All HTML modes | `references/html-design-guidelines.md` | — |
-| `--explain` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `architecture.html` |
-| `--diagram` | `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
-| `--slides` | `references/html-slide-patterns.md`, `references/html-css-patterns.md`, `references/html-libraries.md` | Template: `slide-deck.html` |
-| `--diff` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
-| `--plan-review` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
-| `--recap` | `references/html-css-patterns.md`, `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| All HTML modes | `references/html-design-guidelines.md`, `references/html-css-patterns.md`, `references/html-css-layout-patterns.md`, `references/html-css-content-patterns.md` | — |
+| `--explain` | `references/html-libraries.md` | Template: `architecture.html` |
+| `--diagram` | `references/html-libraries.md` | Template: `mermaid-flowchart.html` or `architecture.html` |
+| `--slides` | `references/html-slide-patterns.md`, `references/html-slide-layout-patterns.md`, `references/html-slide-visual-patterns.md`, `references/html-libraries.md` | Template: `slide-deck.html` |
+| `--diff` | `references/html-libraries.md` | Templates: `data-table.html`, `architecture.html` |
+| `--plan-review` | `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
+| `--recap` | `references/html-libraries.md` | Templates: `architecture.html`, `data-table.html` |
 
 Multi-section pages (`--explain`, `--diff`, `--plan-review`, `--recap`): also read `references/html-responsive-nav.md`.
 
@@ -155,3 +155,57 @@ Output: project identity, architecture snapshot (Mermaid), recent activity, deci
 - Default: static anti-slop rules from `references/html-design-guidelines.md` (6 curated presets)
 - For `--slides`: consider invoking `/av:ui-ux-pro-max` for richer style selection
 - Agent must vary aesthetics between consecutive HTML outputs (different font pair, palette)
+
+## Output format
+
+**View mode** returns the local URL, the network URL for remote devices, what
+is being served — a file or a directory listing — and the fact that the server
+is running as a background task. It does not summarize the file's contents
+unless asked.
+
+**Generation mode** writes one file and reports:
+
+1. **Path** — `{plan_dir}/visuals/{topic-slug}.md` when a plan is active,
+   otherwise `plans/visuals/{topic-slug}.md`; the same two locations with
+   `.html` under `--html`. Give the actual path, not the pattern.
+2. **Mode** — which generation flag produced it, and whether `--html` was set
+   explicitly or implied by `--diff` / `--plan-review` / `--recap`.
+3. **What it shows** — two or three lines on the content, so the user can decide
+   whether to open it.
+4. **Preview URL** — for markdown output, the local and network URLs of the
+   viewer server that was started.
+5. **Browser** — for HTML, whether the file was opened and with which command.
+
+An existing file at the output path is overwritten without prompting; say so
+when it happened.
+
+## Quality gates
+
+- [ ] The page is one file with every authored style and script inline; the
+      only external requests are the CDN libraries named in
+      `references/html-libraries.md` (Google Fonts, Mermaid, Chart.js, anime.js)
+- [ ] The light/dark theme toggle from `references/html-css-patterns.md` is the
+      first child of `<body>` — a page without it is incomplete, not merely
+      unstyled
+- [ ] Claims in a `--diff`, `--plan-review`, or `--recap` page come from the
+      git or plan data actually read, not from recollection of the session
+- [ ] Only the references this mode requires were loaded — its row in the
+      Reference Loading table, plus `references/html-responsive-nav.md` for a
+      multi-section page
+- [ ] The generated file was opened before reporting success; for `--diagram`
+      the rendered output was loaded back as an image and inspected per
+      `references/generation-modes.md` → "Visual Self-Review", never merely
+      re-read as markup — a page that fails to render still writes cleanly
+
+## Workflow position
+
+**Typically follows:** `av:cook` or `av:fix` when finished work needs a
+walkthrough, and `av:plan` when a plan should be reviewed against the codebase
+via `--plan-review`.
+**Typically precedes:** nothing — this skill terminates in an artifact for a
+human to read.
+**Related:** `av:tech-graph` produces publish-grade SVG and PNG diagrams where
+this skill produces quick ASCII, Mermaid, and self-contained HTML;
+`av:mermaidjs-v11` validates the Mermaid syntax embedded here;
+`av:markdown-novel-viewer` is the reader UI view mode serves markdown into;
+`av:ui-ux-pro-max` supplies richer style selection for `--slides`.

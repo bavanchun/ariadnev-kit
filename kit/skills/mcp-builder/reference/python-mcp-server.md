@@ -722,11 +722,11 @@ Before finalizing your Python MCP server implementation, ensure:
 ### Tool Configuration
 - [ ] All tools implement 'name' and 'annotations' in the decorator
 - [ ] Annotations correctly set (readOnlyHint, destructiveHint, idempotentHint, openWorldHint)
-- [ ] All tools use Pydantic BaseModel for input validation with Field() definitions
-- [ ] All Pydantic Fields have explicit types and descriptions with constraints
+- [ ] Tool inputs use typed parameters with constraints; grouped or complex inputs use Pydantic BaseModel with Field() definitions
+- [ ] Pydantic Fields, when used, have explicit types and descriptions with constraints
 - [ ] All tools have comprehensive docstrings with explicit input/output types
 - [ ] Docstrings include complete schema structure for dict/JSON returns
-- [ ] Pydantic models handle input validation (no manual validation needed)
+- [ ] SDK typing and Pydantic models handle schema validation; service-specific semantic checks remain explicit
 
 ### Advanced Features (where applicable)
 - [ ] Context injection used for logging, progress, or elicitation
@@ -736,7 +736,7 @@ Before finalizing your Python MCP server implementation, ensure:
 - [ ] Appropriate transport configured (stdio, HTTP, SSE)
 
 ### Code Quality
-- [ ] File includes proper imports including Pydantic imports
+- [ ] File includes the imports required by the chosen input types, including Pydantic only when used
 - [ ] Pagination is properly implemented where applicable
 - [ ] Large responses check CHARACTER_LIMIT and truncate with clear messages
 - [ ] Filtering options are provided for potentially large result sets

@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Prefix release and rollout"
-status: todo
+status: in-progress
 priority: P1
 effort: "1-2d"
 dependencies: [3]
@@ -109,10 +109,11 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
 
 ## Success Criteria
 
-- [ ] `av doctor` reports unprefixed dirs recorded in a prior receipt, and does
-      **not** report third-party skills sharing the root — proven against a
-      fixture containing `excalidraw` as a third-party dir.
-- [ ] The README provider matrix is unchanged and `av validate --check` is green.
+- [x] `av doctor` reports unprefixed dirs recorded by an interrupted heal
+      journal, and does **not** report third-party skills sharing the root —
+      unit coverage in `packages/cli/src/doctor/diagnose.test.ts`.
+- [x] The README provider matrix is unchanged and `av validate --check` is green
+      (final local verification, 2026-08-24).
 - [ ] Release published with 5 binaries + checksums; smoke test passed.
 - [ ] Root inventory recorded before heal; every one healed; `av doctor` clean.
 - [ ] One skill invoked successfully per provider post-heal.
@@ -134,3 +135,51 @@ the other. *Response:* step 3 names both.
 **Rollback that does not roll back.** The draft's recipe manufactured a
 mirror-image orphan set with no recoverable content. *Response:* step 8 executes
 it. An unexecuted rollback recipe is a guess.
+
+**The heal is one-directional, and the rollback recipe crosses it backwards.**
+Named as the single biggest risk of this phase by the phase 3 advisory review.
+`av update --to <prev>` restores a binary that has no heal: its next `install`
+writes unprefixed dirs and replaces the receipt wholesale, at which point the
+whole `av-` tree leaves the record with nothing referencing it — the exact
+orphan class phase 3 eliminated, recreated by the rollback path, and with no
+backup, because `applyOp` only backs up files already sitting at its own
+destinations. *Pre-decided response:* step 8 runs the recipe on a machine that
+has already healed and records the observed end state, or the recipe becomes
+"uninstall with the new binary first, then roll back". Do not publish a recipe
+whose cost has not been observed.
+
+**Cross-scope claims are invisible to the heal.** Codex writes `ctx.home`
+regardless of scope, so a *project*-scope codex install records
+`~/.agents/skills/…` claims in that project's receipt. A later *global* install
+computes its union from the global receipt alone and will remove legacy files
+the project receipt still claims. Bounded — hash-identical kit content, present
+in the heal backup, converges on the next project-scope install — but that
+project's `doctor` and `uninstall` report missing files until then. Not fixable
+in general: nothing can enumerate every project receipt on a machine.
+*Pre-decided response:* say so in the rollout note, and have `doctor` suggest
+reinstalling at this scope when a recorded file is missing.
+
+**`.DS_Store` makes `survivingDirs` look like an error.** Any legacy skill dir
+the user ever opened in Finder survives the heal and gets reported. That is
+correct behavior, and it will read as a failure unless the rollout note says
+what the line means before anyone sees it.
+
+**A case-only rename makes the heal delete what it just installed** (latent
+defect, found by the phase 9 advisory review on 2026-08-23; fix before any
+release that renames an artifact by case alone). `claimed()` in
+`install-heal.ts` keys receipts by the exact absolute path string. If a prior
+receipt claims `agents/Explore.md` and the new one claims `agents/explore.md`,
+the planner sees a removal, because `after.has("…/Explore.md")` is false. On a
+case-insensitive filesystem — macOS by default, Windows — those are one file,
+which this run has just written. `executeHeal`'s sha256 guard compares the
+file's current bytes with the *previous* receipt's hash, so when the rename
+did not change content the guard passes and `unlinkSync` removes the fresh
+install. No trigger exists today: phase 9 kept `explore.md`'s name and the
+`av-` prefix rename added characters rather than changing case. *Signal:* a
+kit change whose only effect on a path is case. *Pre-decided response:* the
+planner must never emit a removal whose case-folded path equals one the new
+receipt claims when the two resolve to the same inode (probe the filesystem,
+do not assume); case-folding `claimed()` itself is wrong, because on Linux the
+two names are genuinely different files. Add the fixture — prior receipt with
+`Explore.md`, new receipt with `explore.md`, identical content — to
+`install-heal.test.ts` before changing the planner.

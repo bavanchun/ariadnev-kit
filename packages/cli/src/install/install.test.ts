@@ -127,7 +127,7 @@ describe("planInstall (pure)", () => {
 
 describe("executeInstall + dry-run", () => {
   it("dry-run writes nothing but returns full plan", () => {
-    const [res] = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
+    const { results: [res] } = installKit(kit, ["claude-code"], ctx, { dryRun: true, timestamp: "20260603-000000" });
     expect(res.written).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".claude"))).toBe(false);
     expect(existsSync(join(ctx.cwd, ".ariadnev/receipt.json"))).toBe(false);
@@ -176,7 +176,7 @@ describe("executeInstall + dry-run", () => {
   it("real install writes adapted files for codex", () => {
     const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit2"));
     installKit(fixtureKit, ["codex"], ctx, { timestamp: "20260603-000001" });
-    const skill = join(ctx.home, ".agents/skills/sample-skill/SKILL.md");
+    const skill = join(ctx.home, ".agents/skills/av-sample-skill/SKILL.md");
     expect(existsSync(skill)).toBe(true);
     expect(readFileSync(skill, "utf8")).toContain("$HOME/.agents/skills/");
     expect(existsSync(join(ctx.home, ".codex/agents/av-sample-reviewer.toml"))).toBe(true);
@@ -187,11 +187,11 @@ describe("executeInstall + dry-run", () => {
 
   it("idempotent re-install: content stable, prior backed up", () => {
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000010" });
-    const skill = join(ctx.cwd, ".claude/skills/brainstorm/SKILL.md");
+    const skill = join(ctx.cwd, ".claude/skills/av-brainstorm/SKILL.md");
     const first = readFileSync(skill, "utf8");
     const res2 = installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000011" });
     expect(readFileSync(skill, "utf8")).toBe(first);
-    expect(res2[0].backedUp).toBeGreaterThan(0);
+    expect(res2.results[0].backedUp).toBeGreaterThan(0);
     expect(existsSync(join(ctx.cwd, ".ariadnev/backups/20260603-000011"))).toBe(true);
   });
 
@@ -235,7 +235,7 @@ describe("executeInstall + dry-run", () => {
     const hookKit = loadKit(kitRoot);
 
     // declined / non-interactive: file copied, settings.json untouched, skip logged
-    const [declined] = installKit(hookKit, ["claude-code"], ctx, {
+    const { results: [declined] } = installKit(hookKit, ["claude-code"], ctx, {
       timestamp: "20260603-000060",
     });
     expect(existsSync(join(ctx.cwd, ".claude/hooks/av/session-init.cjs"))).toBe(true);
@@ -294,12 +294,12 @@ describe("executeInstall + dry-run", () => {
     const hookOps = ops.filter((o) => o.kind === "hook");
     expect(hookOps.length).toBeGreaterThan(0);
     expect(hookOps.every((o) => o.action === "skip")).toBe(true);
-    const [res] = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
+    const { results: [res] } = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
     expect(res.skipped.some((s) => s.kind === "hook" && /unverified/.test(s.reason))).toBe(true);
   });
 
   it("atomic: a pre-existing file is fully replaced, never half", () => {
-    const skill = join(ctx.cwd, ".claude/skills/brainstorm/SKILL.md");
+    const skill = join(ctx.cwd, ".claude/skills/av-brainstorm/SKILL.md");
     mkdirSync(dirname(skill), { recursive: true });
     writeFileSync(skill, "OLD CONTENT");
     installKit(kit, ["claude-code"], ctx, { timestamp: "20260603-000050" });
@@ -379,7 +379,7 @@ describe("full-kit install smoke (v2 roster)", () => {
       applyHookSettings: true,
     });
     for (const s of ROSTER) {
-      expect(existsSync(join(ctx.cwd, ".claude/skills", s, "SKILL.md")), s).toBe(true);
+      expect(existsSync(join(ctx.cwd, ".claude/skills", `av-${s}`, "SKILL.md")), s).toBe(true);
     }
     for (const a of AGENTS) {
       expect(existsSync(join(ctx.cwd, ".claude/agents", `${a}.md`)), a).toBe(true);
@@ -443,8 +443,8 @@ describe("full-kit install smoke (v2 roster)", () => {
   });
 
   it("codex: skills + agents install, every hook skips and logs", () => {
-    const [res] = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
-    expect(existsSync(join(ctx.home, ".agents/skills/brainstorm/SKILL.md"))).toBe(true);
+    const { results: [res] } = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
+    expect(existsSync(join(ctx.home, ".agents/skills/av-brainstorm/SKILL.md"))).toBe(true);
     expect(existsSync(join(ctx.home, ".codex/agents/explore.toml"))).toBe(true);
     expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
   });

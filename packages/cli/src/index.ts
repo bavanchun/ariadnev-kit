@@ -13,7 +13,7 @@ import { registerHarnessCommands } from "./cli/register-harness-commands.js";
 import { registerMaintenanceCommands } from "./cli/register-maintenance-commands.js";
 import { registerQualityCommands } from "./cli/register-quality-commands.js";
 import { maybeNudge, realNudgeDeps } from "./cli/update-check.js";
-import { scopeProcessEnv } from "./env-scope.js";
+import { scopeProcessEnv, cwdDotenvDeclares } from "./env-scope.js";
 import { toEvent, type EventInput, type HistoryKind } from "./history/record.js";
 import { recordSafe } from "./history/store.js";
 import { sanitize } from "./security/credential-sanitizer.js";
@@ -69,7 +69,13 @@ export function buildProgram(): Command {
 
 // Resolve argv[1] through bin symlinks; Bun binaries use import.meta.main.
 function isEntry(): boolean {
-  if (process.env.ARIADNEV_RUN === "1") return true;
+  // Last among the env-free checks, and gated: this is the only ARIADNEV_* read
+  // that happens before `scopeProcessEnv()`, because it decides whether scoping
+  // runs at all. Calling scope first would strip the environment of every test
+  // that imports `buildProgram`. Asking whether a cwd dotenv names the key gets
+  // the same answer without touching anything — a repository still cannot use
+  // its own `.env` to decide that a clone of ariadnev takes over the process.
+  if (process.env.ARIADNEV_RUN === "1" && !cwdDotenvDeclares("ARIADNEV_RUN")) return true;
   if ((import.meta as { main?: boolean }).main === true) return true;
   if (import.meta.url.includes("/$bunfs/") || import.meta.url.startsWith("bun:")) return true;
   if (!process.argv[1]) return false;

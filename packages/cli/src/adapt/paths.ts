@@ -36,3 +36,25 @@ export const OPENCODE_USER_CONFIG = "~/.config/opencode";
 /** Claude Code hooks install dir + settings file (hooks are claude-only). */
 export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
+
+/**
+ * Namespace prefix for installed skill directories.
+ *
+ * Every skills root this tool writes is shared: `~/.agents/skills` is read
+ * natively by four providers and already holds third-party directories, and
+ * `~/.claude/skills` holds Anthropic's built-ins alongside whatever the user
+ * installed. Prefixing is the observed norm in those roots, and it is what makes
+ * the corpus's `(../)+av-<slug>/…` cross-skill links resolve on disk.
+ */
+export const SKILL_DIR_PREFIX = "av-";
+
+/**
+ * On-disk directory name for a skill, given its canonical kit name.
+ *
+ * The empty name is not a skill — it is how `targetPathFor` asks for the skills
+ * *root* (the README matrix, `av contract --json`, `av kit install-path`). That
+ * query must keep returning the bare root, or all three render `…/skills/av-`.
+ */
+export function installedSkillDirName(name: string): string {
+  return name === "" ? "" : `${SKILL_DIR_PREFIX}${name}`;
+}

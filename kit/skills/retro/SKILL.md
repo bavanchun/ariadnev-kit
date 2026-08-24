@@ -1,6 +1,6 @@
 ---
 name: av:retro
-description: "Generate data-driven sprint retrospectives from any git history. Use for sprint reviews, commit analysis, code-health indicators, team-velocity reporting, and quarterly engineering reviews. Works on solo or team repos."
+description: "Generate data-driven retrospectives from Git history. Use for sprint reviews, commit analysis, code-health indicators, team velocity, or quarterly engineering reviews."
 user-invocable: true
 when_to_use: "Invoke to summarize engineering history from git activity."
 category: utilities
@@ -143,3 +143,23 @@ If `--format html` flag is set:
 - All metrics sourced from git history only (plus optional gh CLI for issues)
 - Do not hallucinate metrics; `N/A` is always correct when data is missing
 - Keep report under 200 lines; split into multiple files if needed
+
+## Output format
+
+Write the Markdown or requested HTML retrospective at the documented report
+path and report its period, commit count, derived metrics, recommendations, and
+data gaps.
+
+## Quality gates
+
+- Every metric is reproducible from the named Git/GitHub/plan evidence.
+- Show formulas and use `N/A` when evidence is unavailable.
+- Separate activity metrics from conclusions about quality or team performance.
+- Keep source files unchanged; only the requested retrospective is written.
+
+## Workflow position
+
+**Typically follows:** the end of a sprint, milestone, or requested Git period.
+**Typically precedes:** planning and process decisions for the next period.
+**Related:** `av:project-management` reports current plan state; this skill
+analyzes historical engineering activity.

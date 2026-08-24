@@ -7,6 +7,7 @@
 // journal cannot recover from.
 
 import { EXIT, UsageError, type ExitCode } from "./exit-codes.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import {
   JOURNAL_STATUSES,
   entryFileName,
@@ -43,7 +44,7 @@ export function journalDir(opts: JournalOpts): string {
 }
 
 function envelope(kind: string, data: unknown): string {
-  return JSON.stringify({ schema_version: JOURNAL_SCHEMA_VERSION, kind, data }, null, 2);
+  return jsonEnvelope(JOURNAL_SCHEMA_VERSION, kind, data);
 }
 
 function entries(deps: JournalDeps, opts: JournalOpts): string[] {

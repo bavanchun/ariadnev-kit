@@ -1,6 +1,6 @@
 ---
 name: av:watzup
-description: "Generate short handoff reports from Git branches, remote refs, worktrees, unfinished plans, and roadmap docs. Surfaces priority-ranked next steps with checkbox progress and rationale. Use when the user asks what's in flight, wants progress/next steps, is in a fresh worktree or detached checkout, or needs end-of-session status."
+description: "Report in-flight work as text: branch, worktree, detached-HEAD state, unfinished plans with checkbox progress, roadmap milestones, ranked next steps. Use for end-of-session or fresh-worktree status."
 user-invocable: true
 when_to_use: "Invoke for end-of-session handoffs, progress summaries, cross-branch worktree status, unfinished plan discovery, and next-step recommendations."
 category: utilities
@@ -18,7 +18,7 @@ Create a short, evidence-backed handoff report for the active project, with prio
 This skill handles status and handoff reporting only. It does not implement, edit, commit, checkout, merge, push, or fetch unless the user explicitly requests fresh remote refs.
 
 For conversation-state compaction that preserves decisions, rationale, and session
-context for a fresh agent, use av-handoff instead.
+context for a fresh agent, use `av:handoff` instead.
 
 ## Required Scan
 
@@ -41,7 +41,8 @@ Default behavior:
 - Scan registered worktrees.
 - Scan unfinished plans from visible worktrees and tracked branch refs.
 - Count `- [ ]` / `- [x]` checkboxes in each plan directory (plan.md + phase-*.md) for progress %.
-- Scan `docs/*roadmap*.md` and `docs/*milestones*.md` for active milestones.
+- Scan each worktree's top-level `docs/` for files whose name ends in
+  `roadmap.md`, `milestone.md`, or `milestones.md`, for active milestones.
 - Build priority-ranked next steps via composite scoring (see below).
 - Do not run network operations.
 - Do not change branches or mutate the checkout.
@@ -57,16 +58,39 @@ The scanner now emits `nextSteps[]` as objects with `{priority, action, rational
 
 Hygiene steps (dirty working tree, detached HEAD) always rank first. Roadmap milestones fill remaining slots after plan-driven actions.
 
-## Report Format
+Each step carries a `priority` bucket — one of `hygiene`, `plan`, `roadmap`, or
+`fallback`. `fallback` appears alone, and only when the scan found no dirty
+changes, no detached HEAD, no unfinished plans, and no active milestone.
 
-Keep output brief. Prefer this structure:
+## Output format
+
+The scanner's own text mode (omit `--json`) prints raw evidence. Your report is
+a separate, shorter thing written from that evidence — do not paste the scanner
+output and call it the handoff. Prefer this structure:
 
 1. **Current State** - branch or detached HEAD, dirty/clean, active worktree.
 2. **Recent Work** - only the highest-signal branches/worktrees.
-3. **In-Flight Plans** - unfinished plans with `X/Y todos · NN% done` annotation.
-4. **Roadmaps** - active milestones from `docs/*roadmap*.md`, if any.
-5. **Next Steps** - 5 to 6 priority-ranked actions, each with one-line rationale.
+3. **In-Flight Plans** - unfinished plans with the scanner's progress where it
+   supplied any. Progress is attached only to plans that have a filesystem
+   source; a plan found only on a git ref, and equally a plan directory
+   containing no checkboxes at all, comes back with none. Report what the
+   scanner returned and never compute a percentage yourself; name the ref when
+   the plan has no filesystem source, since that copy may be stale. Under
+   `--json` progress is an object — the rendered `X/Y todos · NN% done` and
+   `no checkbox data` strings appear only in text mode and inside a next step's
+   rationale.
+4. **Roadmaps** - active milestones from each worktree's top-level `docs/`
+   files whose name ends in `roadmap.md`, `milestone.md`, or `milestones.md`.
+5. **Next Steps** - the scanner's ranked steps, at most six, each with its
+   one-line rationale. There may be only one; report what came back rather than
+   padding to a target count.
 6. **Warnings** - scanner failures, stale remote-ref caveat, detached HEAD.
+
+Pass `--redact-paths` when the report will leave this machine: it replaces
+repository, worktree, and plan-source paths — plus next-step actions,
+rationales, and warnings — with stable labels. It does not touch
+`current.statusLines` or branch and commit subjects, so check those yourself
+before sharing.
 
 If the scanner fails, say it failed and include the error. Then use minimal read-only fallback commands:
 
@@ -79,3 +103,28 @@ find docs -maxdepth 2 -iname '*roadmap*.md' -print
 ```
 
 Do not pretend the full scan completed when fallback was used.
+
+## Quality gates
+
+- [ ] The checkout was not mutated — no branch change, commit, merge, or push,
+      and no `--fetch` unless the user asked for fresh remotes
+- [ ] Every plan named in the report came back from the scan, with its status
+      and progress as reported — not recalled from earlier in the session
+- [ ] Each next step keeps the scanner's rationale; a step whose rationale is
+      dropped is a claim with its evidence removed
+- [ ] If the scanner exited non-zero, the report says so and names the fallback
+      commands used
+- [ ] Plans found only on a remote ref are marked as such, since the local copy
+      may be stale
+
+## Workflow position
+
+**Typically follows:** nothing — this skill is usually the first thing run in a
+fresh worktree, a detached checkout, or at the end of a session.
+**Typically precedes:** `av:cook` or `av:fix` on the plan its ranking put first,
+or `av:handoff` when the session is ending and the next agent needs the
+conversation's decisions, not just the repository's state.
+**Related:** `av:handoff` captures conversation state for a successor agent
+where this skill reads the repository; `av:pm` reconciles and edits the plan
+files this skill only reports on; `av:plans-kanban` shows the same plan data as
+a clickable dashboard rather than text.

@@ -1,6 +1,6 @@
 ---
 name: av:mintlify
-description: Build and maintain Mintlify documentation sites. Covers docs.json, MDX components, navigation, page frontmatter, theming, OpenAPI/AsyncAPI, AI docs assets such as llms.txt and skill.md, deployment targets, and local validation CLI commands.
+description: Use to build and maintain Mintlify documentation sites with docs.json, MDX, navigation, theming, API references, AI docs assets, deployment, and local validation.
 user-invocable: true
 when_to_use: "Invoke for Mintlify docs site structure, MDX, or local checks."
 category: dev-tools
@@ -72,7 +72,8 @@ mint migrate-mdx            # Migrate mint.json to docs.json
 
 - `references/docs-json-configuration-reference.md` - Complete docs.json configuration
 - `references/mdx-components-reference.md` - All 26+ MDX components
-- `references/api-documentation-components-reference.md` - API docs and OpenAPI integration
+- `references/api-documentation-components-reference.md` - OpenAPI, AsyncAPI, parameter, request, and request-example components
+- `references/api-response-components-reference.md` - Response examples, playgrounds, code languages, SDKs, and complete endpoints
 - `references/navigation-structure-and-organization-reference.md` - Navigation patterns
 - `references/deployment-and-continuous-integration-reference.md` - Deployment and CI/CD
 - `references/ai-features-and-integrations-reference.md` - AI assistant, llms.txt, MCP
@@ -126,3 +127,23 @@ pip install
 - Official docs: https://mintlify.com/docs
 - GitHub: https://github.com/mintlify
 - Community: Discord server for support
+
+## Output format
+
+Report changed documentation paths, navigation/configuration effects, the local
+validation command and result, and any preview or deployment step left to run.
+
+## Quality gates
+
+- Confirm current Mintlify CLI and schema behavior from installed help or
+  first-party documentation before adding commands or configuration keys.
+- Validate `docs.json`, frontmatter, internal links, and referenced assets.
+- Keep MDX components accessible and consistent with the existing site theme.
+- Do not claim deployment success without checking the target deployment.
+
+## Workflow position
+
+**Typically follows:** product/API changes or an accepted documentation plan.
+**Typically precedes:** documentation preview, review, and deployment.
+**Related:** `av:docs` owns general repository documentation maintenance;
+`av:llms` owns standalone llms.txt generation.

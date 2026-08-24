@@ -17,12 +17,12 @@
  *
  * Secret redaction (kongming R3): every draft is swept for common
  * secret-value shapes before being returned. NOTE on pattern provenance —
- * `kits/core/hooks/__tests__/secret-output-guardrail.test.cjs` (and its lib,
- * `kits/core/hooks/lib/secret-keywords.cjs`) only match PROMPT *keywords*
+ * `kit/hooks/secret-output-guardrail/hook.cjs` (and its lib,
+ * `kit/hooks/_lib/secret-keywords.cjs`) only match PROMPT *keywords*
  * ("mentions .env", "mentions API key") for a UserPromptSubmit reminder;
  * there is no existing regex set for actual secret VALUES to lift from that
- * file. Adding a new file under `kits/core/hooks/` would also flip this
- * PR's `os_risk` path classification (kits/*\/hooks/* is an os_risk path).
+ * file. Adding a new file under `kit/hooks/` would also flip this
+ * PR's `os_risk` path classification (kit/hooks/* is an os_risk path).
  * So these value-matching patterns are defined here, self-contained, rather
  * than shared via a new cross-kit hooks lib.
  *
@@ -39,7 +39,7 @@ const path = require('path');
 const { parseArgs } = require('util');
 
 // See the module-level comment above for why these are self-contained
-// rather than shared with kits/core/hooks/lib/secret-keywords.cjs.
+// rather than shared with kit/hooks/_lib/secret-keywords.cjs.
 const SECRET_VALUE_PATTERNS = [
   { pattern: /sk-proj-[A-Za-z0-9_-]{10,}/g }, // OpenAI project key
   { pattern: /sk-[A-Za-z0-9_-]{10,}/g }, // generic sk- key (OpenAI classic, Stripe, etc.)

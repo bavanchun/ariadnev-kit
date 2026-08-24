@@ -198,3 +198,113 @@ describe("frontmatter vocabulary matches the real skill corpus", () => {
     expect(res.errors.join("\n")).toMatch(/keywrods/);
   });
 });
+
+describe("lintSkill: Workflow position names something", () => {
+  /** REQUIRED_BODY with a different Workflow position section. */
+  const withPosition = (text: string): string =>
+    REQUIRED_BODY.replace("Related: none.\n", `${text}\n`);
+
+  it("rejects a Workflow position that names neither a skill nor none", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Fits into the wider workflow.") }), []);
+    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+  });
+
+  it("accepts a Workflow position naming an av slug", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Follows av:plan, hands off to av:ship.") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
+  it("accepts the explicit none escape", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("**Typically precedes:** none") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
+  // The escape has to be the whole answer, not a word in a sentence. Each of
+  // these slipped past an earlier attempt that only anchored to a line start or
+  // to a colon, and a test covering the mid-sentence case alone certified a hole
+  // it did not close.
+  const PROSE = [
+    "Runs standalone; none of the other skills depend on it.",
+    "None of the other skills depend on this one.",
+    "Caveat: none of this applies to CI runs.",
+    "This skill has none.",
+  ];
+  for (const prose of PROSE) {
+    it(`does not accept ${JSON.stringify(prose.slice(0, 34))}…`, () => {
+      const res = lintSkill(makeSkill({ body: withPosition(prose) }), []);
+      expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    });
+  }
+
+  it("does not accept a skill naming only itself", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("Related: av:demo.") }), []);
+    expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+  });
+
+  it("accepts a skill naming itself alongside another", () => {
+    const res = lintSkill(makeSkill({ body: withPosition("av:demo runs after av:plan.") }), []);
+    expect(res.errors).toEqual([]);
+  });
+
+  // The label shapes the corpus and the scaffold actually write.
+  for (const declaration of ["Related: none.", "**Typically precedes:** none", "None.", "- Related: none"]) {
+    it(`accepts ${JSON.stringify(declaration)}`, () => {
+      expect(lintSkill(makeSkill({ body: withPosition(declaration) }), []).errors).toEqual([]);
+    });
+  }
+
+  // Two spaces after `##` is still the same heading to `REQUIRED_SECTIONS`. If
+  // the body lookup disagrees, the section is "present" and its content is never
+  // read — the gate turns itself off and says nothing.
+  for (const heading of ["##  Workflow position", "##\tWorkflow position"]) {
+    it(`still fires when the heading is written ${JSON.stringify(heading)}`, () => {
+      const body = REQUIRED_BODY.replace("## Workflow position\n\nRelated: none.\n", `${heading}\n\nFits into the wider workflow.\n`);
+      const res = lintSkill(makeSkill({ body }), []);
+      expect(res.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    });
+  }
+
+  it("reports an incomplete workflow position as an error", () => {
+    const body = withPosition("Fits into the wider workflow.");
+    const result = lintSkill(makeSkill({ body }), []);
+    expect(result.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    expect(result.held).toEqual([]);
+  });
+});
+
+// ADR 0013 moved severity off `metadata.origin` and says the two must not be
+// re-coupled. Nothing structural prevents it, so this asserts the behaviour
+// directly: provenance is recorded, and it decides nothing.
+describe("lintSkill: provenance does not decide severity", () => {
+  it("errors on a ported skill", () => {
+    const ported = makeSkill({
+      body: "# Demo\n\nNothing else.\n",
+      frontmatter: { metadata: { origin: "ported", author: "upstream" } },
+    });
+    const res = lintSkill(ported, []);
+    expect(res.errors.filter((e) => e.includes("missing required section"))).toHaveLength(3);
+    expect(res.held).toEqual([]);
+  });
+
+  it("errors without relying on provenance", () => {
+    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), []);
+    expect(res.errors.filter((h) => h.includes("missing required section"))).toHaveLength(3);
+  });
+});
+
+describe("lintSkill: warnings stay separate from errors", () => {
+  it("reports an over-cap reference as an error", () => {
+    const longRef = { name: "references/big.md", content: "x\n".repeat(REFERENCE_MAX_LINES + 10) };
+    const res = lintSkill(makeSkill(), [longRef]);
+    expect(res.errors.some((h) => h.includes("references/big.md"))).toBe(true);
+    expect(res.warnings).toEqual([]);
+  });
+
+  it("keeps the duplicate-heading warning out of errors", () => {
+    const dupe = { name: "references/dupe.md", content: "## Output format\n" };
+    const res = lintSkill(makeSkill(), [dupe]);
+    expect(res.warnings.some((w) => w.includes("Output format"))).toBe(true);
+    expect(res.held).toEqual([]);
+  });
+
+});

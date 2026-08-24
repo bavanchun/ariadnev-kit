@@ -31,6 +31,8 @@ function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
 function makeDeps(overrides: Partial<DiagnoseDeps> = {}): DiagnoseDeps {
   return {
     fileExists: () => true,
+    dirExists: () => false,
+    listDir: () => null,
     readSettingsJson: () =>
       JSON.stringify({
         hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"' }] }] } },
@@ -73,6 +75,33 @@ describe("diagnose (pure, tri-state)", () => {
   it("flags a hook file that fails to execute as fail", () => {
     const findings = diagnose(makeReceipt(), makeDeps({ hookExecutable: () => false }), opt);
     expect(findings.some((f) => f.level === "fail" && f.message.includes("session-init.cjs"))).toBe(true);
+  });
+
+  it("flags a non-empty legacy skill directory claimed by the receipt", () => {
+    const findings = diagnose(makeReceipt(), makeDeps({ dirExists: () => true, listDir: () => [".DS_Store"] }), {
+      ...opt,
+      pendingHealRemovals: [{ path: ".claude/skills/brainstorm/SKILL.md", sha256: "abc" }],
+    });
+    expect(findings).toContainEqual(expect.objectContaining({
+      level: "fail",
+      message: expect.stringContaining("legacy skill directory remains"),
+      remedy: "ariadnev install",
+    }));
+  });
+
+  it("does not inspect a third-party directory absent from the interrupted-heal journal", () => {
+    const receipt = makeReceipt({
+      installs: {
+        "claude-code": {
+          ...makeReceipt().installs["claude-code"]!,
+          files: [{ path: ".claude/skills/av-excalidraw/SKILL.md", sha256: "abc" }],
+        },
+      },
+    });
+    const listed: string[] = [];
+    const findings = diagnose(receipt, makeDeps({ listDir: (path) => { listed.push(path); return ["SKILL.md"]; } }), opt);
+    expect(listed).toEqual([]);
+    expect(findings.some((f) => f.message.includes("legacy skill directory"))).toBe(false);
   });
 
   it("passes (not fails) when bindings were never applied and files are present", () => {

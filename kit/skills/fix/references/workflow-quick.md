@@ -33,12 +33,9 @@ Implement the fix directly.
 - Follow existing patterns
 - Preserve the opening constraints and non-goals
 
-**Parallel Verification:**
-Launch run_shell-capable agents in parallel:
-```
-delegate_agent capability("run_shell", "Run typecheck", "Verify types")
-delegate_agent capability("run_shell", "Run lint", "Verify lint")
-```
+**Verification:** Run the project's narrow typecheck, lint, build, and test
+commands directly. Split independent commands across verification workers only
+when delegation was explicitly requested and the runtime permits it.
 
 **Before/After comparison:** Re-run the EXACT command from pre-fix state capture. Compare output.
 
@@ -47,7 +44,8 @@ See `references/parallel-exploration.md` for patterns.
 **Output:** `✓ Step 3: Fixed - [N] files, verified (types/lint passed)`
 
 ### Step 4: Review + Prevent
-Use `code-reviewer` subagent for quick review with explicit side-effect sweep.
+Use `code-reviewer` for a quick review when delegation is permitted; otherwise
+perform the same explicit side-effect sweep locally.
 
 Prompt: "Quick review of fix for [issue]. Check: (a) acceptance criteria met, (b) no regression to business logic in blast-radius from Step 1 scout, (c) no breaking changes to public contracts (signatures, schemas, APIs, env vars), (d) follows existing patterns, (e) no new lint/type/build errors. Score X/10. Explicitly flag any side effects."
 
@@ -68,13 +66,14 @@ Report summary to user (root cause, files changed, prevention).
 **Output:** `✓ Step 5: Reported`
 
 ### Step 6: Finalize (MANDATORY — every fix)
-1. **Activate `the engineer project-management skill` skill (MANDATORY)** → sync plan status if the fix is part of a plan, update progress, and refresh runtime tracking when available.
+1. **Activate `av:pm` (MANDATORY)** → sync plan status if the fix is part of a plan, update progress, and refresh runtime tracking when available.
 2. Evaluate docs impact; use `docs-manager` only when a routed authority surface changed.
 3. Reflect completion in the live task-management surface when available.
-4. Spawn `git-manager` subagent to commit.
-5. Run `/av:journal` to log decisions — unless the shared "Journal step — opt-out" applies (see SKILL.md; skip when `--skip-journal` or `journal.auto=false`).
+4. Ask whether the user wants a commit; on approval, use the git workflow or
+   spawn `git-manager` when delegation is permitted.
+5. Run `/av:journal` to log decisions — unless the invocation carries `--skip-journal` (see "Journal step — opt-out" in SKILL.md).
 
-**Output:** `✓ Step 6: Finalized - sync-back complete, committed, journaled`
+**Output:** `✓ Step 6: Finalized - sync-back <status>, commit <sha | declined>, journal <status>`
 
 ## Skills/Subagents Activated
 
@@ -82,10 +81,10 @@ Report summary to user (root cause, files changed, prevention).
 |------|------------------|
 | 1 | `av:scout` (minimal) or direct file read |
 | 2 | `av:debug`, `av:sequential-thinking` |
-| 3 | Parallel `run_shell` for verification |
-| 4 | `code-reviewer` subagent |
+| 3 | Direct verification commands; optional workers when permitted |
+| 4 | Independent review; delegated `code-reviewer` when permitted |
 | 5 | Report |
-| 6 | `the engineer project-management skill` (MANDATORY), conditional `docs-manager`, `git-manager`, `/av:journal` (unless the shared "Journal step — opt-out" applies — see SKILL.md) |
+| 6 | `av:pm` (MANDATORY), conditional `docs-manager`, authorized commit workflow or `git-manager`, `/av:journal` (unless the shared "Journal step — opt-out" applies — see SKILL.md) |
 
 **Extra:** `av:context-engineering` if dealing with AI/LLM code
 
@@ -96,4 +95,4 @@ Report summary to user (root cause, files changed, prevention).
 - No planning phase needed
 - Opening brainstorm contract is inherited from the parent skill
 - Pre-fix state capture is STILL mandatory (even for quick fixes)
-- Step 6 finalize is MANDATORY for every fix — `the engineer project-management skill` is NOT optional
+- Step 6 finalize is MANDATORY for every fix — `av:pm` is NOT optional

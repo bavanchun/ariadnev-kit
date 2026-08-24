@@ -123,4 +123,35 @@ describe("rotateBackups", () => {
     rotateBackups(parent, 3);
     expect(readdirSync(parent).length).toBe(3);
   });
+
+  // For project scope the backups parent sits inside the user's project, so
+  // anyone who can write there chooses directory names. `9999-…` sorts above
+  // every real timestamp: it used to occupy a slot in the keep window forever,
+  // pushing a genuine backup out on every install.
+  it("does not let a foreign directory consume the keep window", () => {
+    const parent = join(sandbox, "backups");
+    for (let i = 0; i < 3; i++) mkdirSync(join(parent, `2026060${i}-000000`), { recursive: true });
+    mkdirSync(join(parent, "9999-evil"), { recursive: true });
+    rotateBackups(parent, 3);
+    const left = readdirSync(parent).sort();
+    expect(left).toEqual(["20260600-000000", "20260601-000000", "20260602-000000", "9999-evil"]);
+  });
+
+  // And we do not delete it either. It is not ours.
+  it("never prunes a directory it did not write", () => {
+    const parent = join(sandbox, "backups");
+    for (let i = 0; i < 5; i++) mkdirSync(join(parent, `2026060${i}-000000`), { recursive: true });
+    mkdirSync(join(parent, "notes"), { recursive: true });
+    rotateBackups(parent, 1);
+    expect(readdirSync(parent).sort()).toEqual(["20260604-000000", "notes"]);
+  });
+
+  it("rotates the pre-restore safety copies alongside real backups", () => {
+    const parent = join(sandbox, "backups");
+    mkdirSync(join(parent, "20260601-000000"), { recursive: true });
+    mkdirSync(join(parent, "pre-restore-20260602-000000"), { recursive: true });
+    mkdirSync(join(parent, "20260603-000000"), { recursive: true });
+    rotateBackups(parent, 2);
+    expect(readdirSync(parent).sort()).toEqual(["20260603-000000", "pre-restore-20260602-000000"]);
+  });
 });

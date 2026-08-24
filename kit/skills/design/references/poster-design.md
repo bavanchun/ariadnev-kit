@@ -36,7 +36,8 @@ Variation seed contributes:
 - rotation jitter (-8° to +8°) on secondary elements
 - hierarchy order shuffle
 
-Result: 5 calls with the same `--style` produce 5 visibly distinct posters that read as a cohesive series.
+Result: calls with the same explicit `--style`, `--palette`, and `--texture`
+can vary layout and seed while retaining the selected visual axes.
 
 ## Usage
 
@@ -59,14 +60,16 @@ python3 scripts/poster/search.py --poster-brief --topic "AI Conference" --query 
 ```bash
 python3 scripts/poster/generate.py --topic "AI Conference"
 python3 scripts/poster/generate.py --topic "AI Conference" --query "swiss" --aspect a2
-python3 scripts/poster/generate.py --topic "AI Conference" --style style-03-swiss-editorial --seed 42
+python3 scripts/poster/generate.py --topic "AI Conference" --style modern-editorial-typographic --seed 42
 ```
 
 Pipe the prompt into the image model of choice (Gemini Nano Banana 2, GPT Image, Imagen, Midjourney, etc.). The skill is model-agnostic — it emits text only.
 
 ## Recommendations
 
-- **For a series**: generate 3-5 prompts with the same `--style` and unique `--seed` values. Coherence is guaranteed by locked style/palette/texture; variety comes from the randomized layout + variation seed.
+- **For a series**: generate 3-5 prompts with the same explicit `--style`,
+  `--palette`, and `--texture`, plus unique `--seed` values. Pass `--layout` too
+  when layout must remain fixed; otherwise it is selected per call.
 - **For exploration**: omit `--style` and let the picker rotate styles by query relevance.
 - **For deterministic repro**: always pass `--seed`.
 - **For wide aspect**: use `--aspect landscape` for banners; `--aspect a2` for tall print.

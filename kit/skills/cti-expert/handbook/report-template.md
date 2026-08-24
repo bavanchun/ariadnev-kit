@@ -1,6 +1,6 @@
 # Intelligence Summary (INTSUM) Report Template
 
-When the user issues `/intel-report`, generate a markdown file following this exact structure. Populate sections from conversation findings. Mark sections as "No data collected" if empty.
+When the user issues `/report`, generate a markdown file following this exact structure. Populate sections from conversation findings. Mark sections as "No data collected" if empty.
 
 ---
 

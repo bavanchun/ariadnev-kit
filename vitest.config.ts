@@ -9,6 +9,8 @@ export default defineConfig({
         "packages/cli/src/adapt/**/*.ts",
         "packages/cli/src/ui/**/*.ts",
         "packages/cli/src/cli/emit.ts",
+        // Pure, and the only thing standing between the corpus and dead links.
+        "packages/cli/src/kit/cross-skill-references.ts",
         "packages/cli/src/doctor/audit-score.ts",
         "packages/cli/src/doctor/audit.ts",
         "packages/cli/src/doctor/audit-scripts.ts",

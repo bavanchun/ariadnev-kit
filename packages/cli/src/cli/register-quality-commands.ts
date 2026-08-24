@@ -9,6 +9,9 @@ import { emit, emitError } from "./emit.js";
 import { parseBehavioralCommand, runBehavioralEval } from "./behavioral-eval-command.js";
 import { realEvalDeps, runEval } from "./eval-command.js";
 import { runValidate } from "./validate-command.js";
+// The registration layer owns both the command tree and every runValidate
+// caller, so it is where the surface is built — see ValidateOpts.surface.
+import { commandSurface } from "./command-surface.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { loadConfig, realLoadDeps } from "../config/load-config.js";
 
@@ -18,8 +21,14 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .description("Lint the kit source (frontmatter, sizes, references, cross-skill routing) without installing")
     .option("--check", "also fail if the README provider matrix is out of sync (CI gate)", false)
     .option("--strict", "count orphan and dangling reference warnings as failures", false)
-    .action((opts: { check?: boolean; strict?: boolean }) => {
-      const { summary, ok } = runValidate({ check: !!opts.check, strict: !!opts.strict });
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((opts: { check?: boolean; strict?: boolean; json?: boolean }) => {
+      const { summary, ok } = runValidate({
+        check: !!opts.check,
+        strict: !!opts.strict,
+        json: !!opts.json,
+        surface: commandSurface(),
+      });
       emit(summary);
       if (!ok) process.exitCode = 1;
     });
@@ -109,8 +118,9 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .option("--skill-repeats <count>", "repeats for every skill routing cell", "3")
     .option("--deep-repeats <count>", "repeats for every golden task", "1")
     .option("--concurrency <count>", "maximum parallel isolated runs", "1")
+    .option("--json", "emit the machine envelope instead of the text report (--suite always emits JSON)", false)
     .action(async (opts: {
-      skill?: string; suite?: boolean; runner?: string; variant: string;
+      skill?: string; suite?: boolean; runner?: string; variant: string; json?: boolean;
       runtimeProvider?: string; runtimeVersion?: string; model?: string;
       timeoutMs: string; skillRepeats: string; deepRepeats: string; concurrency: string;
     }) => {
@@ -138,6 +148,7 @@ export function registerQualityCommands(program: Command, context: CommandRegist
           concurrency: positive(opts.concurrency, "--concurrency"),
           kitRoot: getKitRoot(dirname(fileURLToPath(import.meta.url))),
           runnerHome: process.env.ARIADNEV_BEHAVIORAL_HOME,
+          surface: commandSurface(),
         });
         emit(summary);
         context.record("eval", { status: ok ? "ok" : "fail" });
@@ -149,7 +160,9 @@ export function registerQualityCommands(program: Command, context: CommandRegist
         skill: opts.skill,
         evalCmd,
         color: context.outColor(),
+        json: !!opts.json,
         deps: evalCmd ? realEvalDeps(evalCmd) : undefined,
+        surface: commandSurface(),
       });
       emit(summary);
       context.record("eval", { status: ok ? "ok" : "fail" });

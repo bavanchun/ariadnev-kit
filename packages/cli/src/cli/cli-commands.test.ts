@@ -87,7 +87,7 @@ describe("runInstall handler", () => {
 
   it("real install writes files", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
-    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(true);
+    expect(existsSync(join(base.cwd, ".claude/skills/av-brainstorm/SKILL.md"))).toBe(true);
   });
 });
 
@@ -151,7 +151,7 @@ describe("runUninstall handler (sandbox round-trip)", () => {
     });
 
     expect(JSON.parse(readFileSync(settingsPath, "utf8"))).toEqual(originalSettings);
-    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(false);
+    expect(existsSync(join(base.cwd, ".claude/skills/av-brainstorm/SKILL.md"))).toBe(false);
     expect(existsSync(join(base.cwd, ".ariadnev/backups"))).toBe(true);
     expect(existsSync(join(base.cwd, ".ariadnev/receipt.json"))).toBe(false); // last provider gone
     const [{ result }] = outcomes;
@@ -173,7 +173,7 @@ describe("runUninstall handler (sandbox round-trip)", () => {
 
   it("preserves a file the user modified after install instead of deleting it", () => {
     runInstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, kitRoot, timestamp: nowStamp() });
-    const skillFile = join(base.cwd, ".claude/skills/brainstorm/SKILL.md");
+    const skillFile = join(base.cwd, ".claude/skills/av-brainstorm/SKILL.md");
     writeFileSync(skillFile, "# My customized brainstorm skill\n");
 
     const { outcomes } = runUninstall({ providers: ["claude-code"], scope: "project", dryRun: false, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
@@ -191,7 +191,7 @@ describe("runUninstall handler (sandbox round-trip)", () => {
 
     runUninstall({ providers: ["claude-code"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, timestamp: nowStamp() });
 
-    expect(existsSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"))).toBe(true);
+    expect(existsSync(join(base.cwd, ".claude/skills/av-brainstorm/SKILL.md"))).toBe(true);
     expect(readFileSync(receiptPath, "utf8")).toBe(before);
   });
 });
@@ -228,7 +228,7 @@ describe("runDoctor handler (sandbox integration)", () => {
       kitRoot,
       timestamp: nowStamp(),
     });
-    rmSync(join(base.cwd, ".claude/skills/brainstorm/SKILL.md"));
+    rmSync(join(base.cwd, ".claude/skills/av-brainstorm/SKILL.md"));
     const res = runDoctor({ scope: "project", home: base.home, cwd: base.cwd, kitRoot });
     expect(res.status).toBe("degraded");
     expect(res.exitCode).toBe(1);

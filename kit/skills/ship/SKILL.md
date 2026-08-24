@@ -75,25 +75,25 @@ Step 6:  Version bump     → Auto-detect version file, bump patch/minor
 Step 7:  Changelog        → Auto-generate from commits + diff
 Step 8:  Journal          → Write technical journal via /av:journal (see the shared "Journal step — opt-out" contract: --skip-journal flag or journal.auto config skips)
 Step 9:  Docs update      → Update project docs via /av:docs update (official only)
-Step 9b: Finalize plan    → av plan update --status completed (plan-backed; foreground, staged by Step 10)
+Step 9b: Finalize plan    → av plan status completed (plan-backed; foreground, staged by Step 10)
 Step 10: Commit           → Conventional commit with version/changelog
 Step 11: Push             → git push -u origin <branch>
 Step 12: Create PR        → gh pr create with structured body + linked issues
-Step 12b: Link plan↔PR    → av plan update --linked-pr <n> (plan-backed; no close until merge)
+Step 12b: Note plan↔PR    → no CLI stores this; record the PR in the plan body (plan-backed)
 Step 13: Social publish   → if --social: build-in-public draft → av journal create → post-social.cjs (see below)
 ```
 
 **Detailed steps:** Load `references/ship-workflow.md`
 **Auto-detection:** Load `references/auto-detect.md`
 **PR template:** Load `references/pr-template.md`
-**Writing language:** Load `kits/core/skills/av-review-pr/references/writing-language.md`
-**PR body contract:** Load `kits/core/skills/av-review-pr/references/pr-body-contract.md`
+**Writing language:** Load `../av-review-pr/references/writing-language.md`
+**PR body contract:** Load `../av-review-pr/references/pr-body-contract.md`
 
 ## Writing language + PR body (#1195)
 
 Before Step 12, resolve language with
-`WL_BIN=.claude/hooks/lib/writing-language.cjs
-test -f "$WL_BIN" || WL_BIN=kits/core/hooks/lib/writing-language.cjs
+`WL_BIN=.claude/hooks/av/_lib/writing-language.cjs
+test -f "$WL_BIN" || WL_BIN=kit/hooks/_lib/writing-language.cjs
 node "$WL_BIN" --json` and author the PR body in
 that language. Titles stay English conventional commits. The body must include
 the seven evidence sections (plus Linked Issues / Ship Mode). Prefer honest
@@ -143,7 +143,7 @@ User says `/av:ship` → run full pipeline → output PR URL.
 User says `/av:ship beta` → ship to dev branch with lighter pipeline.
 User says `/av:ship official` → ship to main with full docs + journal.
 
-## Output Format
+## Output format
 
 ```
 ✓ Pre-flight: branch feature/foo, 5 commits, +200/-50 lines (mode: official)
@@ -160,6 +160,12 @@ User says `/av:ship official` → ship to main with full docs + journal.
 ✓ PR: https://github.com/org/repo/pull/123 (linked: #42, #43)
 ```
 
+## Quality gates
+
+- Confirm the target branch, repository state, required checks, and release mode before mutation.
+- Do not report tests, reviews, commits, pushes, publications, or merges that did not occur.
+- Stop on failed required checks, unresolved critical review findings, or missing user authority.
+
 ## Important Rules
 
 - **Never skip tests** (unless `--skip-tests`). If tests fail, stop.
@@ -170,7 +176,7 @@ User says `/av:ship official` → ship to main with full docs + journal.
 - **Subagent delegation.** Use `tester` for tests, `code-reviewer` for review, `journal-writer` for journal, `docs-manager` for docs. Don't inline.
 - **Background tasks.** Journal and docs run in background to not block the pipeline.
 
-## Workflow Position
+## Workflow position
 
 **Typically follows:** `/av:code-review` (ship after review passes)
 **Typically precedes:** `/av:journal` (document after shipping)

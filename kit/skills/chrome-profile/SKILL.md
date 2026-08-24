@@ -1,6 +1,6 @@
 ---
 name: av:chrome-profile
-description: Target a real Google Chrome profile for browser automation through Chrome DevTools MCP. Provides the chrome-profile CLI, profile discovery, live DevTools probing guidance, setup playbooks, and URL-anchor tab selection.
+description: Target the user's real Google Chrome profile for browser automation through Chrome DevTools MCP. Use when cookies, a signed-in account, or a deterministic profile and exact tab binding matter.
 user-invocable: true
 when_to_use: "Invoke when browser automation needs the user's real Chrome profile, cookies, account, or a deterministic profile target."
 category: dev-tools
@@ -69,8 +69,8 @@ Install the local CLI shim from the shipped skill directory. Use the path that m
 
 ```bash
 # ariadnev / Claude Code native-skill layout
-bash ~/.claude/skills/chrome-profile/scripts/install.sh
-bash .claude/skills/chrome-profile/scripts/install.sh
+bash ~/.claude/skills/av-chrome-profile/scripts/install.sh
+bash .claude/skills/av-chrome-profile/scripts/install.sh
 
 # Current skill directory
 bash scripts/install.sh
@@ -79,11 +79,11 @@ bash scripts/install.sh
 bash ~/.claude/plugins/<plugin>/skills/av-chrome-profile/scripts/install.sh
 
 # ariadnev / Codex native-skill layout, global or project-local
-bash ~/.agents/skills/chrome-profile/scripts/install.sh
-bash .agents/skills/chrome-profile/scripts/install.sh
+bash ~/.agents/skills/av-chrome-profile/scripts/install.sh
+bash .agents/skills/av-chrome-profile/scripts/install.sh
 ```
 
-If none of those paths exists, find the installed `chrome-profile/scripts/install.sh` under the runtime skill directory and run that script. On Windows, run the sibling `install.cmd`.
+If none of those paths exists, find the installed `av-chrome-profile/scripts/install.sh` under the runtime skill directory and run that script. On Windows, run the sibling `install.cmd`.
 
 Then run the guided checks:
 
@@ -192,6 +192,7 @@ For profile-scoped work, do not use an MCP `new_page` or raw `navigate_page` too
 ```json
 {
   "bind_selector": "cdp-open=6d4f8b0a9c1e2d33",
+  "no_activate": false,
   "open_marker": "cdp-open=6d4f8b0a9c1e2d33",
   "opened_url": "https://example.com#cdp-profile=work&cdp-open=6d4f8b0a9c1e2d33",
   "profile_dir": "Profile 7",
@@ -200,6 +201,10 @@ For profile-scoped work, do not use an MCP `new_page` or raw `navigate_page` too
   "profile_marker": "cdp-profile=work"
 }
 ```
+
+Without `--force`, `open` first runs the same static bridge check as `doctor`
+and exits 1 (printing the doctor report to stderr) when `ok=false`; no tab is
+opened in that case.
 
 Treat `bind_selector` as the primary MCP tab selector. `profile_marker` is a CLI marker sanity check and stale-tab fallback, not proof of the browser account identity.
 
@@ -225,3 +230,52 @@ Treat `bind_selector` as the primary MCP tab selector. `profile_marker` is a CLI
 - `references/architecture.md` - why profile targeting works with Chrome's single-process profile model.
 - `references/mcp-config-recipes.md` - detailed bridge setup recipes and troubleshooting.
 - `references/troubleshooting.md` - common failures and fixes.
+
+## Output format
+
+Report the binding before any page action, then the work done through it:
+
+```markdown
+## Chrome profile session
+- Profile key: <key> (label withheld unless the user asked)
+- Readiness: list=ok | setup-needed · doctor bridge=<value> ok=<true|false> · live MCP probe=<page list succeeded | failed | tools absent>
+- Opened: `chrome-profile open --json <key> <url>` [--force: <reason>] [--no-activate]
+- Bound tab: page <id> — url contains `<bind_selector>` and `cdp-profile=<key>`
+- Actions: <snapshot / click / evaluate / screenshot ...>
+- Result: <what was read or done>
+- Setup handed to user: <next concrete command or browser action> — or "none"
+```
+
+Never paste the raw `open --json` payload or profile emails into the report
+unless the user explicitly asked for them.
+
+## Quality gates
+
+- [ ] The task actually needs real profile state (cookies, account, tenant);
+      if not, it was routed to `av:agent-browser` and this skill stopped.
+- [ ] "No bridge" was declared only after both `chrome-profile doctor` and a
+      live Chrome DevTools MCP page-list probe failed — a consent prompt on the
+      first MCP call is not a failure.
+- [ ] The tab was selected by the exact `cdp-open=<token>` from the CLI output
+      (`bind_selector` or the `find:` line), never by newest tab or by
+      `cdp-profile` alone, and its page ID was captured before any SPA could
+      rewrite the hash.
+- [ ] No `new_page` / `navigate_page` MCP call created or navigated the
+      profile-scoped tab; every profile tab came from `chrome-profile open`.
+- [ ] `--force` appears only with its reason (human-only tab, or a live probe
+      succeeded but the CLI could not classify the bridge).
+- [ ] Profile emails, display names, and directory mappings stay out of the
+      response unless asked.
+
+Proof/risk: N/A — reads and drives the user's browser; it does not change code.
+
+## Workflow position
+
+**Typically follows:** `av:test`, `av:debug`, or `av:fix` when a frontend
+verification needs the user's signed-in session, and `av:use-mcp` when Chrome
+DevTools MCP itself is being wired up.
+**Typically precedes:** `av:ai-multimodal` for analysis of screenshots taken
+through the bound tab.
+**Related:** `av:agent-browser` is the default for profile-independent browser
+work; `av:web-testing` owns repeatable Playwright suites with their own auth
+helpers.

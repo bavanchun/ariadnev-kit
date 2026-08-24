@@ -20,6 +20,7 @@ function smoke(overrides = {}) {
     validateOut: goodValidate,
     runHelpOut: goodRunHelp,
     graphValidateOut: goodGraphValidate,
+    doctorOut: "ariadnev doctor — not-installed\n  ✓ ed25519: available (release signatures can be verified)",
     expectedVersion: "0.6.0",
     ...overrides,
   });
@@ -137,4 +138,28 @@ test("rejects a truncated or empty asset", () => {
 test("rejects a completely wrong format", () => {
   const r = checkAssetHeader("ariadnev-windows-x64.exe", Buffer.from("#!/bin/sh\necho hi\n"), 12 * 1024 * 1024);
   assert.match(r.failures.join(" "), /header/i);
+});
+
+// Whether node:crypto carries Ed25519 into all five cross-compiled targets is an
+// assumption, and `av update` refusing everything looks the same whether the key
+// is unset or the runtime cannot do the maths. The gate wants the capability
+// asserted, so it has to fail on anything other than a clear yes.
+test("fails when doctor does not report ed25519 as available", () => {
+  const res = smoke({
+    doctorOut: "ariadnev doctor — not-installed\n  ✗ ed25519: UNAVAILABLE — `ariadnev update` cannot verify a release on this platform",
+  });
+  assert.equal(res.ok, false);
+  assert.ok(res.failures.some((f) => /ed25519/.test(f)));
+});
+
+test("fails when doctor said nothing about ed25519 at all", () => {
+  const res = smoke({ doctorOut: "ariadnev doctor — healthy   health ▓▓▓ 100" });
+  assert.equal(res.ok, false);
+});
+
+// A release gate with an opt-out is not a gate. The runner always captures
+// doctor output, so an absent value means something went wrong upstream — which
+// is a failure, not a reason to wave the check through.
+test("fails when no doctor output was captured at all", () => {
+  assert.equal(smoke({ doctorOut: undefined }).ok, false);
 });

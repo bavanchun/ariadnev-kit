@@ -1,7 +1,7 @@
 ---
 phase: 7
 title: "Install lifecycle locking"
-status: todo
+status: completed
 priority: P2
 effort: "1-2d"
 dependencies: [3, 6]
@@ -136,18 +136,50 @@ defeats its purpose. Judgment call, recorded.
 
 ## Success Criteria
 
-- [ ] An async command holds the lock until its awaited work finishes — proven
+- [x] An async command holds the lock until its awaited work finishes — proven
       by a test that asserts the lock file still exists mid-await.
-- [ ] Two project-scope installs in different directories, both selecting codex,
-      **do** contend. The case the draft's design missed.
-- [ ] Two `av update` runs in different directories contend.
-- [ ] A live lock past the age ceiling is reported, not stolen.
-- [ ] Each hostile lock-file shape is treated as stale or rejected cleanly — none
-      escapes as an unhandled throw.
-- [ ] The lock is acquired after interactive prompts.
-- [ ] `--dry-run` proceeds with a lock held; read-only commands never block.
-- [ ] Lock released when the wrapped command throws.
-- [ ] `pnpm test` green.
+- [x] Two project-scope installs in different directories **do** contend. The
+      case the draft's design missed.
+- [x] Two `av update` runs in different directories contend, via
+      `dirname(execPath)`.
+- [x] A live lock past the age ceiling is reported, not stolen.
+- [x] Each hostile lock-file shape is treated as stale or rejected cleanly —
+      twelve of them, none escaping as an unhandled throw.
+- [x] The lock is acquired after interactive prompts.
+- [x] `--dry-run` proceeds with a lock held; read-only commands never block.
+- [x] Lock released when the wrapped command throws, and on a partial acquire.
+- [x] `pnpm test` green — 1322 vitest, 153 node, lint / validate / brand clean.
+
+## What the design got right, and the one thing it did not
+
+All four named defects are covered by a test that fails when the guard is
+removed, each mutation-checked: the sync wrapper, single-root locking, stealing
+a live lock past the ceiling, and install not taking the lock at all.
+
+**Lock roots: both, always, rather than derived from the plan.** The phase said
+"derive the lock set from the resolved install plan's target roots, at minimum
+always take the home lock when any selected provider is codex". Taking
+`[home, cwd]` unconditionally is simpler, can never under-lock, and avoids
+planning the install twice to find out what to lock. The cost is a rare false
+contention between two ariadnev commands running at once — which is the
+situation the lock exists for.
+
+**`pid: 1` needed a defence the phase's own list did not supply.** The phase
+prescribed `Number.isInteger(pid) && pid > 0`, and `1` passes that:
+`process.kill(1, 0)` answers `EPERM` for an ordinary user, which the liveness
+check reads as alive. A lock naming it would never go stale and would brick
+every mutating command in that directory, permanently. Rejected explicitly.
+
+That is also the honest limit of a pid-based check, recorded in the source: a
+lock naming any *other* live pid is equally unfalsifiable. Two things keep it
+from mattering — `.ariadnev/` is gitignored, so committing one takes a
+deliberate `git add -f`, and `ariadnev unlock` clears it in one command.
+
+**Commands that take it:** install, uninstall, update, migrate,
+`backups restore|prune`, `recover`, `adapters regenerate`, `doctor --fix`.
+**Commands that do not:** everything read-only, including
+`backups list|show|verify` — those are what someone reaches for to find out what
+is going on — and anything under `--dry-run`.
 
 ## Risk Assessment
 

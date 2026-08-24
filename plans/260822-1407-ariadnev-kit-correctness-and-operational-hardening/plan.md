@@ -1,7 +1,7 @@
 ---
 title: "ariadnev kit correctness and operational hardening"
 description: "Fix the broken cross-skill links and the validator blind spot that hides them, move skill dirs to an av- prefix via a receipt-driven heal, sign the update channel, harden the backup restore path, and retire the ported-skill lint exemption across the whole corpus."
-status: pending
+status: in-progress
 priority: P1
 effort: "25-42d + 3h"
 tags: [kit, cli, lint, security, quality]
@@ -121,6 +121,21 @@ checksum authenticate nothing — RCE via one env var, on a tool driven by agent
 that run shell commands. A detached signature over `checksums.txt`, verified
 against a compiled-in public key, is now a prerequisite for the override.
 
+**4. Phase 5 signs locally; finalize verifies.** Added 2026-08-22, after phase 2.
+The original "sign at `finalize-release.yml`" was specified against
+`update-command.ts` without reading the pipeline it ships through. Verified in
+`finalize-release.yml`: the release asset inventory is a closed literal list
+asserted before and after publish (`:124-125`, `:132`), published releases are
+asserted `immutable` (`:143`), and `checksums.txt` has a line format asserted
+against `required` (`:127`). So a signature minted at finalize trips the
+inventory assertion, a version tag inside `checksums.txt` trips the format
+assertion, no past release can ever be retro-signed, and the private key would
+have to live in Actions secrets — contradicting the phase's own offline-key
+policy. Corrected in the phase file: sign locally, pass the signature as a
+`workflow_dispatch` input, have finalize verify and upload it, and bind the
+version by signing a composed `${tag}\n${checksums}` message rather than editing
+the file.
+
 **3. The link checker needs a shape rule, not just a name lookup.** Resolving
 cross-skill links by name with `av-` stripped makes `../cook/…` and
 `../av-cook/…` indistinguishable. A reviewer ran the draft's own regexes: all 21
@@ -142,17 +157,17 @@ path-shape are now two separate rules.
 | # | Phase | Depends on | Status |
 |---|-------|------------|--------|
 | 0 | [Installer checksum pin](./phase-00-installer-checksum-pin.md) | — | **Completed** (merged, live) |
-| 1 | [Link integrity](./phase-01-link-integrity.md) | — | Pending |
-| 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | Pending |
-| 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | Pending |
-| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | Pending |
-| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | Pending |
-| 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | Pending |
-| 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | Pending |
-| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | Pending |
-| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 | Pending |
-| 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | Pending |
-| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | Pending |
+| 1 | [Link integrity](./phase-01-link-integrity.md) | — | **Completed** (merged to dev) |
+| 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | **Completed** (merged to dev) |
+| 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | **Completed** (merged to dev) |
+| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | **In progress** (doctor guard complete; release and rehearsal pending) |
+| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **In progress** (merged to dev; release cut pending) |
+| 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
+| 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
+| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (lint clean and exemption removed; independent second-reader evidence and final merge-history proof remain) |
+| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **Completed** |
+| 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
+| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **In progress** (merged to dev; edge deploy + beta cut pending) |
 
 **Execution order: 0 ✓ → 1, 2, 5 in parallel → release(5) → 11 → 3 → 4 → 6 → 7 → 8 → 9.**
 **Phase 10 has no dependencies and blocks nothing — fit it into any gap.**
@@ -191,29 +206,35 @@ target existence, and a shape rule requiring `(../)+av-<slug>/`.
 
 ## Success Criteria
 
-- [ ] `av validate` reports zero findings with **no** skill or agent taking an
-      exemption; `kit/skills-lint-exempt.json` and `isPorted()` are deleted.
-- [ ] `grep -rn 'kits/core/skills/' kit/` returns nothing.
-- [ ] Every cross-skill path in the corpus matches `(../)+av-<slug>/…`, enforced.
-- [ ] A brownfield e2e proves heal-on-install leaves zero unprefixed dirs, zero
+- [x] `av validate` reports zero findings with **no** skill or agent taking an
+      exemption; `kit/skills-lint-exempt.json` and `isPorted()` are deleted
+      (final strict validation, 2026-08-24).
+- [x] `grep -rn 'kits/core/skills/' kit/` returns nothing (final sync-back,
+      2026-08-24).
+- [x] Every cross-skill path in the corpus matches `(../)+av-<slug>/…`, enforced
+      (`cross-skill-references.test.ts` and final strict validation).
+- [x] A brownfield e2e proves heal-on-install leaves zero unprefixed dirs, zero
       duplicates, a correct receipt, and survives a kill between delete and
-      receipt write.
-- [ ] Heal never removes a path outside the scope root, a path still claimed by
-      an untouched provider record, or a file whose hash drifted.
-- [ ] No code path renames a directory ariadnev does not own.
-- [ ] `av update` verifies a detached signature over `checksums.txt` against a
-      compiled-in key before trusting any hash.
-- [ ] `backups restore` refuses an absolute or traversing path and validates the
-      manifest against a schema.
-- [ ] Every command supports `--json`; one envelope helper, extracted not invented.
-- [ ] A second concurrent mutating command exits 3 without touching any file,
-      including for codex's home-rooted writes.
-- [ ] `ARIADNEV_BASE_URL=http://evil` fails closed against **all three** of
-      `install.sh`, `install.ps1`, and `av update`.
+      receipt write (`phase-03-installer-av-prefix-and-heal.md`).
+- [x] Heal never removes a path outside the scope root, a path still claimed by
+      an untouched provider record, or a file whose hash drifted (phase 3 e2e).
+- [x] No code path renames a directory ariadnev does not own (phase 3 source
+      audit and tests).
+- [x] `av update` verifies a detached signature over `checksums.txt` against a
+      compiled-in key before trusting any hash (phase 5 tests).
+- [x] `backups restore` refuses an absolute or traversing path and validates the
+      manifest against a schema (phase 5 tests).
+- [x] Every command supports `--json`; one envelope helper, extracted not invented
+      (phase 6 command-surface tests).
+- [x] A second concurrent mutating command exits 3 without touching any file,
+      including for codex's home-rooted writes (phase 7 lock tests).
+- [x] `ARIADNEV_BASE_URL=http://evil` fails closed against **all three** of
+      `install.sh`, `install.ps1`, and `av update` (phases 0 and 5 tests).
 - [ ] Phase 4's sandbox rollback succeeds **on the first attempt** — the proof
       that the phase-5-before-phase-4 sequencing worked.
-- [ ] The heal backup still exists after three post-heal `av install` runs.
-- [ ] `pnpm test` green after every phase.
+- [x] The heal backup still exists after three post-heal `av install` runs
+      (phase 3 e2e).
+- [x] `pnpm test` green after every phase (final full suite, 2026-08-24).
 
 ## Scope honesty
 
@@ -250,13 +271,27 @@ split in phase 7. It converts ~25-40 hr of fragment-shuffling into ~3-6 hr.
 
 ## Open questions
 
-1. Does the cursor agent-as-skill-dir shim (`resolver.ts:87`) take the `av-`
-   prefix? Phase 3 decides and records it. Now lower-stakes with no migration.
-2. Does `test-provider` (`resolver.ts:127-137`) get prefixed? Phase 3.
-3. Hash strategy for directory-shaped backup entries. Phase 5 decides before
-   implementing `verify`.
-4. Strip `metadata.origin: ported` once a skill clears the bar? Phase 2's ADR.
-5. Does `ariadnev-web` consume any `av --json` output? One grep before phase 5
-   pins `LEGACY_JSON_COMMANDS` — it is a permanent contract surface.
+1. ~~Does the cursor agent-as-skill-dir shim (`resolver.ts:87`) take the `av-`
+   prefix?~~ **Yes.** It writes into the same shared `.agents/skills` root the
+   skills use, so an unprefixed name there is indistinguishable from a
+   third-party skill. Zero of 105 skill names collide with an agent name and a
+   test holds that.
+2. ~~Does `test-provider` (`resolver.ts:127-137`) get prefixed?~~ **Yes** — same
+   `targetFor`, and a test provider that behaves unlike the real ones is worth
+   less than one that does not.
+3. ~~Hash strategy for directory-shaped backup entries.~~ **A tree digest** —
+   every file below the target, sorted by relative path, folded in as
+   `relpath\0<sha256>`. Paths are part of the digest so a move without an edit
+   still changes it. Decided and shipped in phase 6.
+4. ~~Strip `metadata.origin: ported` once a skill clears the bar?~~ **No.**
+   ADR 0013 keeps it as historical provenance; it no longer affects lint
+   severity or any validation outcome.
+5. ~~Does `ariadnev-web` consume any `av --json` output?~~ **No.** Grepped the
+   whole repo: every `--json` hit is documentation text or the web repo's own
+   unrelated `schemaVersion` fields, and its `mustFind` benchmark entries assert
+   what the docs *say*, not what any command returns. The only ariadnev-produced
+   input it reads is the release docs bundle, which carries its own
+   `docs-bundle-manifest-v1.schema.json` and is not a CLI `--json` surface. So
+   `LEGACY_JSON_COMMANDS` has no cross-repo consumer to preserve.
 
 <!-- slug: ariadnev-kit-correctness-and-operational-hardening -->

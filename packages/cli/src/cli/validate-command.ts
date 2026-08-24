@@ -1,16 +1,25 @@
 import { readdirSync, existsSync, readFileSync } from "node:fs";
+import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
-import { isPorted } from "../kit/skill-lint.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
 import { scoreDescriptions, type CollisionAllowlistEntry } from "../kit/description-collision.js";
 import { findUnresolvedSkillReferences } from "../kit/skill-crossrefs.js";
+import { buildSkillIndex, checkCrossSkillReferences } from "../kit/cross-skill-references.js";
 import { matchesSkillFilter } from "../kit/skill-filter.js";
 import { compileGraph, PORTABLE_GRAPH_CAPABILITY_CONTRACT } from "../graph/compile-graph.js";
 import { graphRegistryForKit } from "../graph/kit-graph-registry.js";
+import type { CommandSurface } from "../kit/av-invocation-lint.js";
+import {
+  isAllowlisted,
+  loadAvInvocationAllowlist,
+  MAX_INVOCATION_ALLOWLIST_ENTRIES,
+  readSkillScripts,
+  scanInvocations,
+} from "./validate-invocations.js";
 
 // `ariadnev validate` — lint the kit source without installing it. Wraps the
 // same loadKit lint the installer runs, then adds reference-integrity
@@ -31,18 +40,61 @@ export function pendingPortNames(kitRoot: string): string[] {
   }
 }
 
+/** The files a sibling skill may legitimately be pointed at: its SKILL.md, its
+ *  references, and its scripts. Names only — the cross-skill checker compares
+ *  paths, and reading 105 skills' file contents for that would be waste.
+ *
+ *  Recursive, because real skills nest their scripts — `plans-kanban/scripts/lib`,
+ *  `design/scripts/logo`, `watzup/scripts/lib`. A flat listing here would make
+ *  the checker report a link to a file that is sitting right there. */
+function skillFileNames(skillDir: string): string[] {
+  const names = ["SKILL.md"];
+  const walk = (dir: string, prefix: string): void => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const rel = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) walk(join(dir, entry.name), rel);
+      else names.push(rel);
+    }
+  };
+  for (const sub of ["references", "scripts"]) walk(join(skillDir, sub), sub);
+  return names;
+}
+
 export interface ValidateFinding {
   skill: string;
-  kind: "lint" | "dangling" | "orphan" | "skillref" | "missing-skill" | "matrix" | "collision" | "graph";
+  kind:
+    | "lint"
+    | "dangling"
+    | "orphan"
+    | "skillref"
+    | "cross-dangling"
+    | "cross-shape"
+    | "missing-skill"
+    | "matrix"
+    | "collision"
+    | "graph"
+    | "av-invocation";
   message: string;
   /** "warn" findings surface but do not fail validation. Default: "error". */
   level?: "warn" | "error";
 }
 
+export const VALIDATE_SCHEMA_VERSION = 1;
+
 export interface ValidateResult {
   ok: boolean;
   findings: ValidateFinding[];
   counts: { skills: number; agents: number; hooks: number };
+  /** Reserved for compatibility with older validate JSON consumers; always empty. */
+  heldFindings: string[];
+  /**
+   * Lint findings that hold for every skill regardless of the exemption list
+   * (today: the duplicate-heading heuristic). Kept apart from `heldFindings`
+   * because these are not a backlog and clearing the exemption list will not
+   * reduce them.
+   */
+  warnings: string[];
   summary: string;
 }
 
@@ -56,12 +108,26 @@ export interface ValidateOpts {
   /** Restrict per-skill checks to these skill names (accepts "scout" or
    * "av:scout"). Used by `av eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
-  /**
-   * Promote reference-integrity findings (orphan, dangling) to errors even for
-   * ported skills. Deliberately narrow: size and style stay warnings for ported
-   * content, so this gate does not block the next port of a long upstream skill.
-   */
+   /**
+   * Kept for CLI compatibility. Orphan and dangling references are errors at
+   * every strictness level now that every skill meets the authoring bar.
+    */
   strict?: boolean;
+  /** Emit the machine envelope instead of the text report. */
+  json?: boolean;
+  /**
+   * The live command tree, for the av-invocation check.
+   *
+   * Passed in rather than built here on purpose. `cli/command-surface.ts` reads
+   * the tree by calling the `register*` functions, and `register-quality-commands`
+   * imports this module — building it here closed
+   * command-surface → register-quality-commands → validate-command → command-surface.
+   * ESM tolerates that cycle; a bundler reordering the modules need not, and the
+   * failure would be a `buildProgram` that is undefined at import time. The
+   * registration layer owns both halves, so it supplies the surface. Omitted
+   * means the check does not run — for a unit test asking about something else.
+   */
+  surface?: CommandSurface;
 }
 
 // `--check` is a CI/dev gate run from the repo root, so resolve README against
@@ -95,9 +161,15 @@ export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry
   }
 }
 
-function renderSummary(findings: ValidateFinding[], counts: ValidateResult["counts"]): string {
+function renderSummary(
+  findings: ValidateFinding[],
+  counts: ValidateResult["counts"],
+  warnings: string[] = [],
+): string {
   const header = `ariadnev validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
-  if (findings.length === 0) return `${header}\n  all checks passed`;
+  const extra: string[] = [];
+  if (warnings.length > 0) extra.push(`  ${warnings.length} warning(s)`);
+  if (findings.length === 0) return [header, "  all checks passed", ...extra].join("\n");
   const lines = [header];
   for (const f of findings) {
     const tag = (f.level ?? "error") === "warn" ? "warn:" : "";
@@ -106,10 +178,26 @@ function renderSummary(findings: ValidateFinding[], counts: ValidateResult["coun
   const errors = findings.filter((f) => (f.level ?? "error") === "error").length;
   const warns = findings.length - errors;
   lines.push(`  ${errors} error(s), ${warns} warning(s)`);
+  lines.push(...extra);
   return lines.join("\n");
 }
 
 /** Validate the kit source. Returns a structured result + rendered summary. */
+/**
+ * The machine form carries `heldFindings` in full, where the text report prints
+ * only the count. The exemption list's whole defence is that its cost stays
+ * countable, and a consumer that can only see the number cannot help shrink it.
+ */
+function envelopeFor(
+  ok: boolean,
+  findings: ValidateFinding[],
+  counts: ValidateResult["counts"],
+  heldFindings: string[],
+  warnings: string[],
+): string {
+  return jsonEnvelope(VALIDATE_SCHEMA_VERSION, "validate.kit", { ok, counts, findings, heldFindings, warnings });
+}
+
 export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const root = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
 
@@ -120,7 +208,16 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     const message = err instanceof Error ? err.message : String(err);
     const findings: ValidateFinding[] = [{ skill: "(kit)", kind: "lint", message }];
     const counts = { skills: 0, agents: 0, hooks: 0 };
-    return { ok: false, findings, counts, summary: renderSummary(findings, counts) };
+    return {
+      ok: false,
+      findings,
+      counts,
+      heldFindings: [],
+      warnings: [],
+      summary: opts.json
+        ? envelopeFor(false, findings, counts, [], [])
+        : renderSummary(findings, counts),
+    };
   }
 
   const findings: ValidateFinding[] = [];
@@ -137,17 +234,53 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // would make `validate` red for the whole port — which trains everyone to
   // ignore it. A name on neither list is still an error, so a genuine typo or a
   // reference to something that exists nowhere is caught exactly as before.
-  const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingPortNames(kit.root)];
+  const pendingNames = pendingPortNames(kit.root);
+  const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingNames];
+
+  // Built from every skill, in its own pass, deliberately. `skillsToCheck` is
+  // filtered by --skill (and `av eval --skill <name>` passes that filter), so an
+  // index built inside the loop below would hold one entry and report every
+  // cross-skill link as unknown-skill. The index is kit-wide; the findings are
+  // filtered.
+  const skillIndex = buildSkillIndex(
+    kit.skills.map((skill) => ({ name: skill.name, files: skillFileNames(dirname(skill.sourcePath)) })),
+  );
+
+  const surface = opts.surface;
+  const invocationAllowlist = loadAvInvocationAllowlist(kit.root);
+  // Shrink-only ratchet on the invocation allowlist. Under --strict, an entry
+  // beyond the committed count fails the gate; the entries themselves still
+  // downgrade their own hits to warnings either way. Same shape as the
+  // held-findings ceiling, and reported at the kit level so it survives a
+  // per-skill --skill filter.
+  if (opts.strict && invocationAllowlist.length > MAX_INVOCATION_ALLOWLIST_ENTRIES) {
+    findings.push({
+      skill: "(kit)",
+      kind: "av-invocation",
+      message: `kit/av-invocation-allowlist.json has ${invocationAllowlist.length} entries; ceiling is ${MAX_INVOCATION_ALLOWLIST_ENTRIES}. Lower the ceiling as entries are removed; do not raise it — every phantom worth quarantining is worth a review comment naming the outstanding decision.`,
+    });
+  }
+
   for (const skill of skillsToCheck) {
     const refsDir = join(dirname(skill.sourcePath), "references");
-    const referenceFiles = existsSync(refsDir)
-      ? readdirSync(refsDir)
-          .filter((f) => f.endsWith(".md"))
-          .map((file) => ({
-            name: `references/${file}`,
-            content: readFileSync(join(refsDir, file), "utf8"),
-          }))
-      : [];
+    const referenceFiles: { name: string; content: string }[] = [];
+    if (existsSync(refsDir)) {
+      for (const file of readdirSync(refsDir).filter((f) => f.endsWith(".md"))) {
+        // An EACCES on one skill's reference used to abort the whole loop from
+        // inside a list comprehension. Reported like unreadable scripts: the
+        // installer copies the file either way, so silence would be a worse
+        // answer than a finding.
+        try {
+          referenceFiles.push({ name: `references/${file}`, content: readFileSync(join(refsDir, file), "utf8") });
+        } catch (error) {
+          findings.push({
+            skill: skill.name,
+            kind: "av-invocation",
+            message: `${skill.name}/references/${file} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }
+    }
     const names = referenceFiles.map((file) => file.name);
     const { dangling, orphans } = checkReferenceIntegrity(skill.body, names);
     for (const d of dangling) {
@@ -163,7 +296,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({
         skill: skill.name,
         kind: "orphan",
-        level: isPorted(skill) && !opts.strict ? "warn" : "error",
+        level: "error",
         message: `${o} exists but is never linked from SKILL.md`,
       });
     }
@@ -183,6 +316,73 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
         kind: "skillref",
         message: `${ref.source} references unknown skill ${ref.reference}`,
       });
+    }
+
+    for (const cross of checkCrossSkillReferences(
+      [
+        { source: `${skill.name}/SKILL.md`, content: skill.body },
+        ...referenceFiles.map((file) => ({ source: `${skill.name}/${file.name}`, content: file.content })),
+      ],
+      skillIndex,
+      pendingNames,
+    )) {
+      findings.push({
+        skill: skill.name,
+        kind: cross.reason === "bad-shape" ? "cross-shape" : "cross-dangling",
+        // Installed skill dirs carry the `av-` prefix now, so an unprefixed
+        // link is broken on disk exactly like a stale root or a wrong depth.
+        // It warned while the two halves were shipping apart; that staging is
+        // over and a warning would just be a broken link nobody reads.
+        level: "error",
+        message: `${cross.source} links ${cross.raw} — ${cross.detail}`,
+      });
+    }
+
+    const scripts = readSkillScripts(dirname(skill.sourcePath));
+    for (const broken of scripts.unreadable) {
+      findings.push({
+        skill: skill.name,
+        kind: "av-invocation",
+        message: `${skill.name}/${broken.name} could not be read: ${broken.reason}`,
+      });
+    }
+    for (const hit of surface === undefined ? [] : scanInvocations(
+      [
+        { name: `${skill.name}/SKILL.md`, content: skill.raw },
+        ...referenceFiles.map((file) => ({ name: `${skill.name}/${file.name}`, content: file.content })),
+        ...scripts.sources.map((script) => ({ ...script, name: `${skill.name}/${script.name}` })),
+      ],
+      surface,
+    )) {
+      findings.push({
+        skill: skill.name,
+        kind: "av-invocation",
+        // Held only by this lint's own allowlist, never by the authoring-bar
+        // exemption: a skill can sit at the bar and still cite a command that
+        // does not exist, and the two lists shrink for unrelated reasons. A hit
+        // anywhere else is an error at every strictness, because a phantom
+        // command is wrong whether or not --strict is on.
+        level:
+          hit.severity === "warning" || isAllowlisted(invocationAllowlist, skill.name, hit.source)
+            ? "warn"
+            : "error",
+        message: `${hit.source}:${hit.line} ${hit.message}`,
+      });
+    }
+  }
+
+  // Agents cite the CLI too, and no allowlist entry covers one today. Skipped
+  // under --skill, which asks about a single skill.
+  if (opts.skillFilter === undefined && surface !== undefined) {
+    for (const agent of kit.agents) {
+      for (const hit of scanInvocations([{ name: `agents/${agent.name}.md`, content: agent.raw }], surface)) {
+        findings.push({
+          skill: `agent:${agent.name}`,
+          kind: "av-invocation",
+          level: hit.severity === "warning" ? "warn" : "error",
+          message: `${hit.source}:${hit.line} ${hit.message}`,
+        });
+      }
     }
   }
 
@@ -228,5 +428,18 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   const counts = { skills: kit.skills.length, agents: kit.agents.length, hooks: kit.hooks.length };
   // Warnings surface but don't fail; only error-level findings break the gate.
   const ok = !findings.some((f) => (f.level ?? "error") === "error");
-  return { ok, findings, counts, summary: renderSummary(findings, counts) };
+  // Copied, not aliased: `ValidateResult` is handed to callers and must not be
+  // a live window onto the Kit's arrays.
+  const heldFindings = [...kit.held];
+  const warnings = [...kit.warnings];
+  return {
+    ok,
+    findings,
+    counts,
+    heldFindings,
+    warnings,
+    summary: opts.json
+      ? envelopeFor(ok, findings, counts, heldFindings, warnings)
+      : renderSummary(findings, counts, warnings),
+  };
 }

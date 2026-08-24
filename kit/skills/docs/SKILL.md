@@ -1,6 +1,6 @@
 ---
 name: av:docs
-description: "Analyze a codebase and create, refresh, summarize, or audit project documentation without imposing a fixed docs layout, including authoring and optimizing the root CLAUDE.md/AGENTS.md agent context file."
+description: "Create, refresh, summarize, or audit this repository's own documentation, including the root CLAUDE.md/AGENTS.md agent context file. Use for docs you maintain here, written from the codebase."
 user-invocable: true
 when_to_use: "Invoke to create, refresh, summarize, or audit project documentation, or to author or optimize the root CLAUDE.md/AGENTS.md agent context file."
 category: utilities
@@ -104,7 +104,66 @@ document.
 - Verify every path, command, configuration key, and behavioral claim against
   current evidence.
 
-For diagrams, use the installed diagram skill only when a visual materially
-improves understanding, then visually review the output.
+For diagrams, use `av:mermaidjs-v11` for a diagram that lives inline in a
+document, or `av:tech-graph` when a document needs a publish-grade exported
+image — and only when a visual materially improves understanding. Review the
+rendered output before committing it.
 
 **Do not implement product code during a documentation operation.**
+
+## Output format
+
+Report the decision before the diff, because "no change was needed" is a valid
+and common result:
+
+1. **Operation** — which route ran (`init`, `update`, `summarize`,
+   `agent-context`, `llms`) and the argument that selected it.
+2. **Discovery** — the contract found, in the order of the Discovery Contract:
+   which instruction file, README, index, and evidence sources were read. Name
+   them; do not describe them as "the usual docs". Write "none" for a route that
+   read none of them.
+3. The body, which depends on the route:
+   - **Write routes** (`init`, `update`, `llms`) — **Changes**, a table of
+     `File | Created/Updated/Deleted | What changed | Evidence`. `Evidence`
+     cites the source, test, script, or live state that proves the new text. A
+     row without evidence is a row that was written from memory.
+   - **`agent-context`** — a **Proposal**, not a change log: the current file's
+     line count, a per-block keep / cut / migrate classification, the deletions
+     and migrations as a diff, and any deterministic control recommended as a
+     snippet. Nothing is written until the user confirms.
+   - **`summarize`** — **Findings**, the evidence-backed summary itself. This
+     route answers a question; it does not necessarily touch a file.
+4. **Deliberately unchanged** — documents inspected and left alone, each with
+   the reason.
+5. **Unresolved questions** — or "none".
+
+## Quality gates
+
+- [ ] The only files written are documentation surfaces the Discovery Contract
+      identified — this project's docs route, the root `CLAUDE.md`/`AGENTS.md`,
+      or the `llms.txt` output path — and no product code was implemented
+- [ ] No claim was verified against another document; every one traces to
+      source, tests, scripts, or live state
+- [ ] For `agent-context`: the diff was shown and confirmed before any write,
+      and no secret was written into the file
+- [ ] No `settings.json` or hook file was edited — a deterministic control is
+      recommended as a snippet for the user to apply, never applied here
+- [ ] Any runtime loader behavior stated was verified against that runtime
+      rather than asserted as an evergreen fact
+
+## Workflow position
+
+**Typically follows:** `av:cook` or `av:fix` when landed work changed a
+user-visible contract, and `av:scout` when the repository's docs layout is not
+yet known.
+**Typically precedes:** `av:ship`, which invokes `/av:docs update` as step 9 on
+official releases — as a background task, so confirm the docs landed before
+ship's commit at step 10 rather than assuming they rode along.
+**Related:** `av:docs-seeker` retrieves *other* projects' documentation, where
+this skill writes this project's own; `av:interview-docs` derives a document
+from the user's answers rather than from the codebase; `av:folder-context`
+owns subfolder `CLAUDE.md` files, where the `agent-context` route here owns the
+root one; `av:llms` is the general `llms.txt` generator — arbitrary source paths
+or URLs, custom output location, and the inline-content `llms-full.txt` —
+whereas this skill's `llms` argument covers only the narrow case: a links-only
+index built from `docs/`.

@@ -68,7 +68,8 @@ See: `references/mobile-mindset.md` for thinking patterns and decision framework
 
 **Best Practices & Development Mindset:**
 - `references/mobile-best-practices.md` - Mobile-first design, performance optimization, offline-first architecture, security, testing, accessibility, deployment, analytics
-- `references/mobile-debugging.md` - Debugging tools, performance profiling, crash analysis, network debugging, platform-specific debugging
+- `references/mobile-debugging.md` - Platform-specific debugging tools and mobile debugging mindset
+- `references/mobile-debugging-workflows.md` - UI, performance, network, crash, scenario, and production debugging workflows
 - `references/mobile-mindset.md` - Thinking patterns, decision frameworks, platform-specific thinking, common pitfalls, debugging strategies
 
 ## Key Best Practices (2024-2025)
@@ -218,3 +219,25 @@ See: `references/mobile-mindset.md` for thinking patterns and decision framework
 - Pub.dev (Flutter packages): https://pub.dev/
 - Awesome React Native: https://github.com/jondot/awesome-react-native
 - Awesome Flutter: https://github.com/Solido/awesome-flutter
+
+## Output format
+
+Report the platform and framework, changed files, supported OS/device scope,
+validation performed, and any signing, store, or physical-device step deferred.
+
+## Quality gates
+
+- Follow the selected framework and platform's current project conventions.
+- Verify the touched behavior with focused tests and at least one appropriate
+  simulator, emulator, or device check when available.
+- Check accessibility, offline/error states, permissions, lifecycle, and secret
+  storage where the feature touches them.
+- Do not claim store readiness without signing and release validation evidence.
+
+## Workflow position
+
+**Typically follows:** product requirements and mobile UX/architecture choices.
+**Typically precedes:** device testing, release review, signing, and store
+submission.
+**Related:** `av:frontend-design` can define visual direction; this skill owns
+native and cross-platform mobile implementation.

@@ -99,3 +99,23 @@ rmbg input.jpg -m u2netp -o output.png  # Fast
 - `references/common-workflows.md` — Video optimization, responsive images, GIF creation
 - `references/troubleshooting.md` — Error fixes, performance tips
 - `references/format-compatibility.md` — Format support, codec recommendations
+
+## Output format
+
+Report each output path, selected tool and operation, resulting format and
+dimensions or duration, and any metadata, quality, or compatibility trade-off.
+
+## Quality gates
+
+- Inspect input streams or image metadata before choosing codecs and flags.
+- Preserve originals unless the user explicitly requested in-place mutation.
+- Verify every output can be decoded and matches the requested dimensions,
+  duration, stream layout, or transparency.
+- Keep secrets and unrelated metadata out of command output and artifacts.
+
+## Workflow position
+
+**Typically follows:** content creation or receipt of source media.
+**Typically precedes:** upload, publication, or use by a frontend/video workflow.
+**Related:** `av:ai-multimodal` interprets media content; this skill performs
+deterministic file transformations.

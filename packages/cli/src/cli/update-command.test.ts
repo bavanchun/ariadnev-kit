@@ -9,9 +9,11 @@ import {
   parseLatestTag,
   assetNameFor,
   expectedSha,
+  updateBaseUrl,
   type UpdateDeps,
   type UpdateHandlerOpts,
 } from "./update-command.js";
+import { verifyChecksums } from "./update-signature.js";
 import { isValidVersion } from "./update-version.js";
 
 describe("isValidVersion", () => {
@@ -110,8 +112,13 @@ describe("runUpdate", () => {
       fetchLatestVersion: async () => "0.6.0",
       fetchPinnedVersion: async () => null,
       downloadBinary: async () => bin,
-      downloadText: async () => `${binSha}  ariadnev-darwin-arm64\n`,
+      // Keyed on the URL: the signature is a second text asset, and a fake that
+      // answers every text download identically would hand the verifier the
+      // checksums as their own signature.
+      downloadText: async (url: string) =>
+        url.includes("checksums.txt.sig") ? "signature-bytes" : `${binSha}  ariadnev-darwin-arm64\n`,
       replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: () => true,
       replaced,
       ...over,
     };
@@ -271,5 +278,332 @@ describe("isNewerVersion", () => {
     expect(isNewerVersion("0.10.0", "0.9.0")).toBe(true);
     expect(isNewerVersion("0.5.0", "0.5.0")).toBe(false);
     expect(isNewerVersion("0.4.0", "0.5.0")).toBe(false);
+  });
+});
+
+/**
+ * The channel's whole security argument. `checksums.txt` and the binary come
+ * from the same origin, so the hash proves only that the two halves agree with
+ * each other — anyone who can answer for that origin supplies both. The
+ * signature is what makes the hash mean something, so it has to be checked
+ * first and it has to be able to stop the install on its own.
+ */
+describe("runUpdate: release signature", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "ariadnev-update-sig-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const bin = new Uint8Array([1, 2, 3, 4]);
+  const binSha = createHash("sha256").update(bin).digest("hex");
+  const checksums = `${binSha}  ariadnev-darwin-arm64\n`;
+
+  function opts(over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts {
+    return {
+      home: sandbox, cwd: root, scope: "project", currentVersion: "0.5.0",
+      execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+      to: null, platform: "darwin", arch: "arm64", ...over,
+    };
+  }
+
+  function deps(over: Partial<UpdateDeps> = {}): UpdateDeps & { replaced: unknown[]; verified: string[][] } {
+    const replaced: unknown[] = [];
+    const verified: string[][] = [];
+    return {
+      fetchLatestVersion: async () => "0.6.0",
+      fetchPinnedVersion: async (v: string) => v,
+      downloadBinary: async () => bin,
+      downloadText: async (url: string) => (url.includes("checksums.txt.sig") ? "sig" : checksums),
+      replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: (tag, sums, signature) => {
+        verified.push([tag, sums, signature]);
+        return true;
+      },
+      replaced,
+      verified,
+      ...over,
+    };
+  }
+
+  it("does not replace the binary when the signature does not verify", async () => {
+    const d = deps({ verifyRelease: () => false });
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("signature did not verify");
+    expect(res.summary).toContain("NOT replaced");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  // Order matters: a correct hash must not rescue a bad signature. Both halves
+  // come from the same place, so a forged pair agrees with itself.
+  it("refuses a forged pair whose hash matches its own checksums", async () => {
+    const forged = new Uint8Array([9, 9, 9]);
+    const d = deps({
+      verifyRelease: () => false,
+      downloadBinary: async () => forged,
+      downloadText: async (url: string) =>
+        url.includes("checksums.txt.sig") ? "sig" : `${createHash("sha256").update(forged).digest("hex")}  ariadnev-darwin-arm64\n`,
+    });
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("signature did not verify");
+    expect(d.replaced).toEqual([]);
+  });
+
+  /**
+   * Releases published before signing existed have no `.sig`, and cannot gain
+   * one: GitHub releases are immutable once published. So this is a permanent
+   * horizon, not a gap that closes — and it has to say so, because the only way
+   * back past it is a reinstall.
+   */
+  it("refuses a release that predates signing, and names the way out", async () => {
+    const d = deps({
+      to: undefined,
+      downloadText: async (url: string) => (url.includes("checksums.txt.sig") ? null : checksums),
+    } as Partial<UpdateDeps>);
+    const res = await runUpdate(opts({ to: "0.4.0" }), d);
+    expect(res.summary).toContain("predates release signing");
+    expect(res.summary).toContain("NOT replaced");
+    expect(res.summary).toContain("curl -fsSL https://ariadnev.com/install");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  it("verifies against the resolved target tag and the untouched checksum bytes", async () => {
+    const d = deps();
+    await runUpdate(opts(), d);
+    expect(d.verified).toEqual([["0.6.0", checksums, "sig"]]);
+  });
+
+  it("installs when the signature verifies and the hash matches", async () => {
+    const d = deps();
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("updated 0.5.0 -> 0.6.0");
+    expect(d.replaced).toHaveLength(1);
+  });
+});
+
+/**
+ * The override the plan's red team killed in its first design, now safe.
+ *
+ * It was RCE: binary, checksums and /version all came from one origin, so
+ * redirecting that origin made the fail-closed checksum compare an attacker's
+ * binary against the attacker's own checksums. What changed is that the
+ * signature is verified against a key compiled into the binary — an origin that
+ * cannot produce the maintainer's signature installs nothing, whatever it
+ * serves. That is the property these assert.
+ */
+describe("updateBaseUrl", () => {
+  it("defaults to the real domain", () => {
+    expect(updateBaseUrl({})).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "   " })).toBe("https://ariadnev.com");
+  });
+
+  it("accepts an https override and drops trailing slashes", () => {
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example///" })).toBe("https://mirror.example");
+  });
+
+  // The signature makes tampering detectable, not private. There is no reason
+  // to hand an observer the list of what a machine is installing.
+  // Each of these parses as https and used to be returned verbatim, so it
+  // reached every asset URL exactly as written.
+  it("strips nothing and accepts nothing odd — it rebuilds from the parse", () => {
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "HTTPS://Mirror.Example" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://user:pw@evil.example" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://evil.example/?x=" })).toBe("https://ariadnev.com");
+    // An empty fragment is no fragment. Rebuilding is what makes this safe:
+    // returned verbatim it would have swallowed every path into the fragment.
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example#" })).toBe("https://mirror.example");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example#frag" })).toBe("https://ariadnev.com");
+    expect(updateBaseUrl({ ARIADNEV_BASE_URL: "https://mirror.example/base/" })).toBe("https://mirror.example/base");
+  });
+
+  for (const hostile of ["http://evil", "file:///etc", "ftp://x", "not a url", "javascript:alert(1)"]) {
+    it(`ignores ${JSON.stringify(hostile)} and stays on the real domain`, () => {
+      expect(updateBaseUrl({ ARIADNEV_BASE_URL: hostile })).toBe("https://ariadnev.com");
+    });
+  }
+});
+
+describe("runUpdate: a redirected origin still cannot install", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "ariadnev-update-base-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  it("refuses a hostile mirror that serves a self-consistent binary and checksums", async () => {
+    const trojan = new Uint8Array([6, 6, 6]);
+    const replaced: unknown[] = [];
+    const res = await runUpdate(
+      {
+        home: sandbox, cwd: root, scope: "project", currentVersion: "0.5.0",
+        execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+        to: null, platform: "darwin", arch: "arm64",
+      },
+      {
+        fetchLatestVersion: async () => "9.9.9",
+        fetchPinnedVersion: async () => null,
+        downloadBinary: async () => trojan,
+        downloadText: async (url: string) =>
+          url.includes("checksums.txt.sig")
+            ? "a-signature-the-attacker-made"
+            : `${createHash("sha256").update(trojan).digest("hex")}  ariadnev-darwin-arm64\n`,
+        replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+        // The real verifier with the real compiled-in key: nothing an attacker
+        // serves can satisfy it.
+        verifyRelease: (tag, checksums, signature) => verifyChecksums({ tag, checksums, signature }),
+      },
+    );
+    expect(res.summary).toContain("signature did not verify");
+    expect(replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+});
+
+
+/**
+ * `target` comes off `/version`, which is unsigned by design — the signature
+ * covers the checksums, not the advertisement. Everything downstream treats it
+ * as a version string: it goes into the signed message, and it gets printed.
+ */
+describe("runUpdate: the advertised version is not trusted", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "av-update-target-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const opts = (over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts => ({
+    home: sandbox, cwd: root, scope: "project", currentVersion: "1.1.0",
+    execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: false,
+    to: null, platform: "darwin", arch: "arm64", ...over,
+  });
+
+  const deps = (latest: string, over: Partial<UpdateDeps> = {}): UpdateDeps & { replaced: unknown[] } => {
+    const replaced: unknown[] = [];
+    return {
+      fetchLatestVersion: async () => latest,
+      fetchPinnedVersion: async () => latest,
+      downloadBinary: async () => new Uint8Array([1]),
+      downloadText: async (url: string) => (url.includes(".sig") ? "sig" : "hash  ariadnev-darwin-arm64\n"),
+      replaceBinary: (path, bytes) => replaced.push({ path, bytes }),
+      verifyRelease: () => true,
+      replaced,
+      ...over,
+    };
+  };
+
+  // `${tag}\n${checksums}` is not prefix-free. A newline in the tag moves the
+  // boundary, so one signature authenticates several readings of the same bytes.
+  it("refuses a version containing a newline", async () => {
+    const d = deps("1.2.0\nhash  ariadnev-darwin-arm64");
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("not an exact x.y.z");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  // `sanitize()` redacts credentials, not control characters. `\u001b[2K\r`
+  // erases the line reporting the update and writes over it.
+  it("refuses a version carrying terminal escapes, before printing it", async () => {
+    const d = deps("1.2.0\u001b[2K\rariadnev is up to date. Nothing to do.");
+    const res = await runUpdate(opts(), d);
+    expect(res.summary).toContain("not an exact x.y.z");
+    expect(res.summary).not.toContain("up to date. Nothing to do");
+    expect(res.summary).not.toContain("\u001b");
+  });
+
+  // Both releases are genuinely signed, so verification cannot tell them apart.
+  // Only the caller knows which one it asked for.
+  it("refuses when a pinned --to resolves to a different version", async () => {
+    const d = deps("1.3.0");
+    const res = await runUpdate(opts({ to: "1.2.0" }), d);
+    expect(res.summary).toContain("resolved 1.2.0 to 1.3.0");
+    expect(d.replaced).toEqual([]);
+    expect(res.exitCode).toBe(1);
+  });
+
+  it("still installs when the pinned version is the one served", async () => {
+    const d = deps("1.2.0");
+    const res = await runUpdate(opts({ to: "1.2.0" }), d);
+    expect(res.summary).toContain("pinned target: 1.1.0 -> 1.2.0");
+  });
+});
+
+/**
+ * The property the beta channel rests on. There is no channel abstraction —
+ * a beta is reachable only by naming its exact version — so "bare update never
+ * picks a beta" is not enforced by routing code that could be inspected. It
+ * falls out of two things: the edge answers `/version` from the *latest*
+ * release, and finalization never marks a beta latest.
+ *
+ * That makes this test the only thing standing between a published beta and
+ * every machine running `av update`. It is written against the selection logic
+ * rather than the edge, so it fails if either half of the reasoning changes.
+ */
+describe("runUpdate: a beta is never selected without being asked for", () => {
+  let sandbox: string;
+  let root: string;
+  beforeEach(() => {
+    sandbox = mkdtempSync(join(tmpdir(), "av-update-beta-"));
+    root = join(sandbox, "proj");
+    mkdirSync(root, { recursive: true });
+  });
+  afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
+
+  const opts = (over: Partial<UpdateHandlerOpts> = {}): UpdateHandlerOpts => ({
+    home: sandbox, cwd: root, scope: "project", currentVersion: "1.1.0",
+    execPath: join(sandbox, "ariadnev"), isBinary: true, checkOnly: true,
+    to: null, platform: "darwin", arch: "arm64", ...over,
+  });
+
+  const deps = (latest: string, pinned: string | null = null): UpdateDeps => ({
+    fetchLatestVersion: async () => latest,
+    fetchPinnedVersion: async () => pinned,
+    downloadBinary: async () => null,
+    downloadText: async () => null,
+    replaceBinary: () => {},
+    verifyRelease: () => true,
+  });
+
+  // The edge answers /version from the latest release, and a beta is never
+  // latest — so the version that reaches here is the stable one.
+  it("takes the stable version the edge reports, with a beta published", async () => {
+    const res = await runUpdate(opts(), deps("1.2.0"));
+    expect(res.summary).toContain("update available: 1.1.0 -> 1.2.0");
+    expect(res.summary).not.toContain("beta");
+  });
+
+  // And if the edge ever did report one, a bare update still must not take it
+  // silently. This is the second half of the reasoning, tested rather than
+  // assumed: `--to` is the only way to ask for a prerelease.
+  it("refuses a beta offered on the bare path, rather than installing it", async () => {
+    const res = await runUpdate(opts(), deps("2.0.0-beta.1"));
+    expect(res.summary).toContain("not offered without --to");
+    expect(res.exitCode).toBe(0);
+  });
+
+  it("installs a beta only when it is named exactly", async () => {
+    const res = await runUpdate(opts({ to: "2.0.0-beta.1" }), deps("1.2.0", "2.0.0-beta.1"));
+    expect(res.summary).toContain("pinned target: 1.1.0 -> 2.0.0-beta.1");
+  });
+
+  // A beta user is not stranded: the stable release of the same version
+  // outranks it, so the ordinary update path moves them off the prerelease.
+  it("offers the stable release to someone running its beta", async () => {
+    const res = await runUpdate(opts({ currentVersion: "2.0.0-beta.1" }), deps("2.0.0"));
+    expect(res.summary).toContain("update available: 2.0.0-beta.1 -> 2.0.0");
   });
 });

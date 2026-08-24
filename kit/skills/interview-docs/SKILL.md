@@ -1,6 +1,6 @@
 ---
 name: av:interview-docs
-description: Extract a user's vision and decisions into durable project documents through a guided interview. Use for README, ADR, strategy, principles, and structured-doc authoring.
+description: "Use when extracting a user's vision and decisions into README, ADR, strategy, principles, or another durable structured document through an interview."
 user-invocable: true
 when_to_use: Invoke when the user's answers, not AI proposals or code inspection, should become the document.
 category: utilities
@@ -57,3 +57,27 @@ documentation from source code.
 - Do not write secrets, personal data, or credentials into docs.
 - Never use an ADR to make an unapproved architectural decision. Record only a
   decision the user has explicitly made.
+
+## Output format
+
+Return the interview mode, questions answered, document paths/sections updated,
+decisions recorded verbatim or faithfully paraphrased, and unresolved questions.
+
+## Quality gates
+
+- [ ] Mode and target documents were selected from the user's intent.
+- [ ] Existing documents were read before edits and after each user answer.
+- [ ] No priority, sequence, rationale, or decision was invented.
+- [ ] README and ADR content stay in their respective authority boundaries.
+- [ ] User wording and edits are preserved; sensitive data is excluded.
+- [ ] Every recorded decision is explicitly attributable to the user.
+
+## Workflow position
+
+**Typically follows:** a request to externalize user knowledge rather than infer
+it from code.
+
+**Typically precedes:** `av:plan` when approved decisions now need execution.
+
+**Related:** `av:brainstorm` when the agent should propose options and `av:docs`
+when documentation should be derived from repository evidence.

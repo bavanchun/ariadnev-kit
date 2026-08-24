@@ -1,6 +1,6 @@
 ---
 name: av:payment-integration
-description: Integrate payments with SePay (VietQR), Polar, and Stripe. Checkout, webhooks, subscriptions, QR codes, and multi-provider orders.
+description: Use to integrate SePay (VietQR), Polar, or Stripe payments for checkout, webhooks, subscriptions, QR codes, and multi-provider orders.
 user-invocable: true
 when_to_use: "Invoke for checkout, subscriptions, webhooks, or QR payments."
 category: backend
@@ -42,6 +42,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 - `references/sepay/sdk.md` - Node.js, PHP, Laravel
 - `references/sepay/qr-codes.md` - VietQR generation
 - `references/sepay/best-practices.md` - Production patterns
+- `references/sepay/payment-operations.md` - Currency, invoicing, errors, testing, and production operations
 
 ### Polar
 - `references/polar/overview.md` - Auth, MoR concept
@@ -52,6 +53,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 - `references/polar/benefits.md` - Automated delivery
 - `references/polar/sdk.md` - Multi-language SDKs
 - `references/polar/best-practices.md` - Production patterns
+- `references/polar/revenue-operations.md` - Fees, discounts, revenue, schemas, testing, and production operations
 
 ### Stripe
 - `references/stripe/stripe-best-practices.md` - Integration design
@@ -63,6 +65,7 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 
 ### Multi-Provider
 - `references/multi-provider-order-management-patterns.md` - Unified orders, currency conversion
+- `references/multi-provider-order-lifecycle-patterns.md` - Refunds, webhook idempotency, discount sync, and admin operations
 
 ### Scripts
 - `scripts/sepay-webhook-verify.js` - SePay webhook verification
@@ -80,3 +83,25 @@ Production-proven payment processing with SePay (Vietnamese banks), Polar (globa
 ## Implementation
 
 **General flow:** auth → products → checkout → webhooks → events
+
+## Output format
+
+Report the provider and environment, changed integration surfaces, webhook and
+idempotency behavior, focused test results, and required dashboard/manual steps.
+
+## Quality gates
+
+- Verify API versions, SDK calls, event names, and signature rules against
+  current first-party provider documentation.
+- Keep credentials server-side and never print secret or webhook-signing values.
+- Test success, cancellation, retry, duplicate-event, and invalid-signature paths.
+- Do not claim production readiness from sandbox or test-mode evidence alone.
+
+## Workflow position
+
+**Typically follows:** an accepted provider, pricing, order, and entitlement
+contract plus backend/data ownership decisions.
+**Typically precedes:** security review, end-to-end payment testing, and staged
+production rollout.
+**Related:** `av:backend-development` owns the surrounding API and persistence;
+this skill owns payment-provider contracts.

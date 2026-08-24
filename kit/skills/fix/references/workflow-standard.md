@@ -103,10 +103,10 @@ Record the review phase as completed after accepted findings are resolved.
 ### Step 6: Finalize
 Record the finalize phase as active.
 - Report summary: root cause, changes, prevention measures, confidence score
-- Activate `av:project-management` for task sync-back and plan status updates
+- Activate `av:pm` for task sync-back and plan status updates
 - Evaluate docs impact and use `docs-manager` only for affected authority surfaces
 - Ask to commit via git workflow or delegated git-manager when explicitly requested/permitted
-- Run `/av:journal` — unless the shared "Journal step — opt-out" applies (see SKILL.md; skip when `--skip-journal` or `journal.auto=false`)
+- Run `/av:journal` — unless the invocation carries `--skip-journal` (see "Journal step — opt-out" in SKILL.md)
 
 Record the finalize phase as completed in the live surface when available and in the active plan.
 **Output:** `✓ Step 6: Complete - [action]`
@@ -120,7 +120,7 @@ Record the finalize phase as completed in the live surface when available and in
 | 3 | `av:problem-solving` (if stuck), `av:sequential-thinking` (complex logic) |
 | 4 | `run_shell` verification; optional delegated tester/workers when permitted |
 | 5 | `code-reviewer` via `delegate_agent` when permitted, otherwise local review |
-| 6 | `av:project-management`; docs/git delegation only when permitted |
+| 6 | `av:pm`; docs/git delegation only when permitted |
 
 **Rules:** Don't skip steps. Validate before proceeding. One phase at a time.
 **Frontend:** Use `av:agent-browser`, Chrome MCP / `chrome-devtools-mcp`, or any relevant project-native browser tests to verify.

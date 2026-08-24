@@ -2,14 +2,20 @@
 // `reset` command: telemetry is stateless (no device id to rotate).
 
 import { isEnabled, type TelemetryConfig } from "../telemetry/consent.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import { coral, teal, faint, type StyleOpts } from "../ui/style.js";
+
+export const TELEMETRY_SCHEMA_VERSION = 1;
 
 export function runTelemetryStatus(
   env: Record<string, string | undefined>,
   config: TelemetryConfig = {},
-  opts: StyleOpts = { color: false },
+  opts: StyleOpts & { json?: boolean } = { color: false },
 ): string {
   const { enabled, reason } = isEnabled(env, config);
+  if (opts.json) {
+    return jsonEnvelope(TELEMETRY_SCHEMA_VERSION, "telemetry.status", { enabled, reason, stateless: true });
+  }
   return [
     `${coral("ariadnev", opts)} telemetry — ${enabled ? teal("enabled", opts) : "disabled"}`,
     faint(`  reason: ${reason}`, opts),

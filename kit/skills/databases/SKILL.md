@@ -1,6 +1,6 @@
 ---
 name: av:databases
-description: Design schemas, write queries for MongoDB and PostgreSQL. Use for database design, SQL/NoSQL queries, aggregation pipelines, indexes, migrations, replication, performance optimization, psql CLI.
+description: Design schemas and write queries for MongoDB and PostgreSQL. Use for data modeling, SQL and aggregation pipelines, indexes, migrations, and slow-query work — not for provisioning or hosting.
 user-invocable: true
 when_to_use: "Invoke when schema, query, migration, or index work is central."
 category: database
@@ -25,11 +25,17 @@ Use when:
 - Building aggregation pipelines or complex joins
 - Optimizing indexes and query performance
 - Implementing database migrations
-- Setting up replication, sharding, or clustering
-- Configuring backups and disaster recovery
-- Managing database users and permissions
 - Analyzing slow queries and performance issues
-- Administering production database deployments
+- Deciding a replication, sharding, or backup *strategy* — which data is
+  partitioned on what key, what must survive a restore
+
+This skill's centre of gravity is the data model and the queries over it.
+Standing an instance up and wiring it into an environment is platform work:
+`av:devops` covers that on the Cloudflare, Docker, and GCP side, and anything
+Atlas- or Postgres-specific is your provider's own tooling. The operational
+references bundled here (`mongodb-atlas.md`, `postgresql-administration.md`)
+exist for the parts that feed schema decisions — cluster tier, connection
+limits, restore mechanics — not as a mandate to run the fleet.
 
 ## Reference Navigation
 
@@ -55,16 +61,44 @@ Database utility scripts in `scripts/`:
 - **db_backup.py** - Backup and restore MongoDB and PostgreSQL
 - **db_performance_check.py** - Analyze slow queries and recommend indexes
 
+All three take `--db {mongodb,postgres}`, and the first two put the verb in a
+positional subcommand rather than a flag.
+
 ```bash
-# Generate migration
-python scripts/db_migrate.py --db mongodb --generate "add_user_index"
+# Generate migration — "generate" is a subcommand; there is no --generate flag.
+# generate is the only db_migrate.py subcommand that runs without --uri.
+python scripts/db_migrate.py --db mongodb generate "add_user_index"
+python scripts/db_migrate.py --db mongodb --uri "$MONGO_URI" status
+python scripts/db_migrate.py --db postgres --uri "$PG_URI" apply
 
-# Run backup
-python scripts/db_backup.py --db postgres --output /backups/
+# Back up — --backup-dir precedes the subcommand; --uri is required on
+# backup/restore but not list/cleanup; --database is mandatory for Postgres,
+# and optional for MongoDB.
+python scripts/db_backup.py --db postgres --backup-dir ./backups backup --uri "$PG_URI" --database orders
 
-# Check performance
-python scripts/db_performance_check.py --db mongodb --threshold 100ms
+# Check performance — --uri is required, --threshold is an integer in
+# milliseconds, so "100ms" is rejected
+python scripts/db_performance_check.py --db mongodb --uri "$MONGO_URI" --threshold 100
 ```
+
+`--backup-dir` is created with `mkdir(exist_ok=True)` and no `parents=True`, so
+give it a path whose parent already exists and is writable.
+
+`generate`, `apply`, `rollback`, `restore`, and `cleanup` accept `--dry-run`.
+Use it first on the destructive ones — `apply`, `rollback`, `restore`,
+`cleanup`. `backup` has no `--dry-run`.
+
+**`rollback` does not reverse anything on MongoDB.** It runs `delete_one`
+against the tracking collection, so the migration is forgotten and re-applied on
+the next `apply` while its effects remain; `generate` emits no down-operations
+for MongoDB in the first place. On Postgres it executes `down_sql` only when the
+migration file carries one — otherwise it prints `✓ Rolled back` having changed
+nothing, including the tracking row. Note that `generate` writes a Postgres
+`down_sql` stub containing only a comment, which is truthy: the stub therefore
+takes the executing branch, runs as a no-op, and *does* clear the tracking row,
+so an unfilled stub silently forgets the migration exactly as MongoDB does. Write and run the inverse yourself. In the
+same script, MongoDB `apply` handles only `createIndex` operations and skips any
+other operation type while still recording the migration as applied.
 
 ## Best Practices
 
@@ -74,7 +108,7 @@ python scripts/db_performance_check.py --db mongodb --threshold 100ms
 - Index frequently queried fields
 - Use aggregation pipeline for complex transformations
 - Enable authentication and TLS in production
-- Use Atlas for managed hosting
+- Prefer a managed deployment (Atlas) over self-hosting
 
 **PostgreSQL:**
 - Normalize schema to 3NF, denormalize for performance
@@ -83,6 +117,49 @@ python scripts/db_performance_check.py --db mongodb --threshold 100ms
 - Use EXPLAIN ANALYZE to optimize queries
 - Regular VACUUM and ANALYZE maintenance
 - Connection pooling (pgBouncer) for web apps
+
+## Output format
+
+Return the artifact, not a description of it:
+
+- **Schema work** — the DDL or collection/validator definition, runnable as
+  written, with the engine and version assumption stated. Follow it with a table
+  of `Index | Columns/fields | Query it serves`; an index with no named query is
+  cost without a reason.
+- **Query work** — the query, and when a database is reachable, the
+  `EXPLAIN ANALYZE` (Postgres) or `.explain("executionStats")` (MongoDB) output
+  before and after, so the improvement is measured rather than asserted. When
+  none is reachable — the common case for a from-scratch design — write
+  `Not measured: no database reachable` and label the expected plan change a
+  prediction. Never write plan output you did not get back from a database.
+- **Migration work** — the forward migration and its rollback, and the command
+  that applies it. State whether it takes a lock that blocks writes.
+- Close with **Trade-offs** naming what the chosen shape costs (write
+  amplification, denormalized copies to keep in sync, index maintenance).
+
+## Quality gates
+
+- [ ] A backup exists before any migration, drop, or bulk update is proposed as
+      ready to run, and the report says which command takes it
+- [ ] Every index is justified by a specific query in the report
+- [ ] Performance claims come from a real `EXPLAIN`, or are labelled as
+      predictions — never presented as measurements that were not taken
+- [ ] Destructive steps are shown with `--dry-run` first where the script
+      supports one
+- [ ] No connection string, password, or host is written into the report or into
+      a committed file — pass them by environment variable
+
+## Workflow position
+
+**Typically follows:** `av:debug` when an investigation has traced a problem to
+a query or a missing index.
+**Typically precedes:** `av:test` for the migration's regression coverage.
+**Interleaves with:** `av:backend-development` — the schema's shape drives the
+API's, and the API's access patterns drive which indexes are worth their cost,
+so these two usually alternate rather than run once each.
+**Related:** `av:devops` owns the platform layer this runs on — containers,
+Cloudflare, GCP — where this skill designs what runs inside the database;
+`av:security` reviews the access-control and exposure side of a schema.
 
 ## Resources
 

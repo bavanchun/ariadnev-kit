@@ -39,6 +39,15 @@ export const CAPABILITIES = [
   "contract.envelope.v1",
   "update.selfupdate.v1",
   "backups.restore.v1",
+  // Reading a backup rather than acting on it. Separate from
+  // `backups.restore.v1` because it depends on manifest v2 recording a digest —
+  // a client that finds only `backups.restore.v1` is talking to a build whose
+  // `verify` cannot answer.
+  "backups.verify.v1",
+  // An advisory lock serializing mutating commands, and the command that clears
+  // a leaked one. A client that does not find this is talking to a build where
+  // two installs can interleave.
+  "lifecycle.lock.v1",
   "history.query.v1",
   "graph.run.v1",
   "telemetry.optout.v1",
@@ -60,6 +69,8 @@ export const KNOWN_COMMANDS = [
   "audit",
   "skill",
   "backups",
+  "recover",
+  "unlock",
   "update",
   "validate",
   "contract",

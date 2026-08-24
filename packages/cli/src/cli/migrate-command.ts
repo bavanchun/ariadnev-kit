@@ -1,4 +1,6 @@
 import { homedir } from "node:os";
+import { lifecycleRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
+import { jsonEnvelope } from "./json-envelope.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
@@ -33,17 +35,28 @@ export interface MigrateHandlerOpts {
   provider?: string;
   dryRun: boolean;
   timestamp: string;
+  json?: boolean;
 }
+
+export const MIGRATE_SCHEMA_VERSION = 1;
 
 export function runMigrate(opts: MigrateHandlerOpts): { moved: number; dryRun: boolean; summary: string } {
   const manifest = loadManifest(opts.manifestPath);
   const applied = readAppliedState(opts.root);
   const ops = planMigrations(manifest, applied, { root: opts.root }, opts.provider);
   const res = executeMigrations(ops, opts.root, { dryRun: opts.dryRun, timestamp: opts.timestamp });
+  const moves = res.moved.map((op) => ({ from: op.migration.from, to: op.migration.to }));
+  if (opts.json) {
+    return {
+      moved: moves.length,
+      dryRun: res.dryRun,
+      summary: jsonEnvelope(MIGRATE_SCHEMA_VERSION, "migrate.run", { dryRun: res.dryRun, moved: moves }),
+    };
+  }
   const lines = [opts.dryRun ? "ariadnev migrate — DRY RUN" : "ariadnev migrate — complete"];
-  for (const op of res.moved) lines.push(`  move ${op.migration.from} -> ${op.migration.to}`);
-  if (res.moved.length === 0) lines.push("  nothing to migrate");
-  return { moved: res.moved.length, dryRun: res.dryRun, summary: lines.join("\n") };
+  for (const move of moves) lines.push(`  move ${move.from} -> ${move.to}`);
+  if (moves.length === 0) lines.push("  nothing to migrate");
+  return { moved: moves.length, dryRun: res.dryRun, summary: lines.join("\n") };
 }
 
 export function registerMigrate(program: Command): void {
@@ -52,16 +65,22 @@ export function registerMigrate(program: Command): void {
     .description("Relocate installed files when provider path conventions change")
     .option("--provider <id>", "limit to one provider")
     .option("--global", "operate on ~/ instead of ./", false)
-    .action((opts: { provider?: string; global?: boolean }) => {
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action(async (opts: { provider?: string; global?: boolean; json?: boolean }) => {
       const g = program.opts<{ home: string; cwd: string; dryRun?: boolean }>();
       const root = opts.global ? (g.home ?? homedir()) : (g.cwd ?? process.cwd());
-      const { summary } = runMigrate({
-        root,
-        manifestPath: defaultManifestPath(),
-        provider: opts.provider,
-        dryRun: !!g.dryRun,
-        timestamp: nowStamp(),
-      });
+      const { summary } = await withLifecycleLock(
+        g.dryRun ? [] : lifecycleRoots({ home: g.home ?? homedir(), cwd: g.cwd ?? process.cwd() }),
+        "migrate",
+        () => runMigrate({
+          root,
+          manifestPath: defaultManifestPath(),
+          provider: opts.provider,
+          dryRun: !!g.dryRun,
+          timestamp: nowStamp(),
+          json: !!opts.json,
+        }),
+      );
       emit(summary);
     });
 }

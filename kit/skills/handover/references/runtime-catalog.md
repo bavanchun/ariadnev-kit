@@ -56,7 +56,7 @@ better than a silent substitution or a confusing preflight failure.
 | `gemini-cli` | "The retired Gemini CLI path is not supported by av:orchestrate. Choose a first-class runtime (`claude-code`, `codex`, `av-run`, `internal`) or a preflight-gated external runtime." |
 
 Wording mirrors the precedent in
-`kits/core/skills/av-use-mcp/SKILL.md`.
+`../../av-use-mcp/SKILL.md`.
 
 ## User-supplied IDs
 
@@ -79,6 +79,8 @@ user-selected runtime.
 3. Do not add capability, flag, model, or authentication assertions here.
 4. Update the refusal message under "User-supplied IDs" to include the
    new ID in the supported list.
+5. Update the tier lists under `## Runtime selection` in `../SKILL.md`, which
+   repeats these IDs for at-a-glance use and drifts otherwise.
 
 Adding a runtime here is a **policy** change — a decision that this skill
 is willing to hand a job to that runtime. It never implies orchestrate
@@ -89,7 +91,8 @@ already supports it in the current environment.
 1. Move the row to "Not dispatchable" with a rejection message explaining
    why (retired path, incompatible harness, security decision).
 2. Update the refusal message.
-3. Reference the underlying orchestrate contract change if any.
+3. Update the tier lists under `## Runtime selection` in `../SKILL.md`.
+4. Reference the underlying orchestrate contract change if any.
 
 ## Invariants
 

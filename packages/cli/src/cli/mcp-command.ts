@@ -12,6 +12,7 @@
 // this repository's rule is that an unverified path is skipped, not guessed.
 
 import { spawn } from "node:child_process";
+import { jsonEnvelope } from "./json-envelope.js";
 import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { atomicWrite } from "../install/fs-atomic.js";
@@ -64,7 +65,7 @@ function readParsed(path: string): unknown {
 }
 
 function envelope(kind: string, data: unknown): string {
-  return JSON.stringify({ schema_version: MCP_SCHEMA_VERSION, kind, data }, null, 2);
+  return jsonEnvelope(MCP_SCHEMA_VERSION, kind, data);
 }
 
 function loadBoth(opts: McpOpts): { entries: McpServerEntry[]; shadowed: string[]; dropped: string[] } {
