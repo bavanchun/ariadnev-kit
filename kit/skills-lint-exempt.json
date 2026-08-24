@@ -1,7 +1,0 @@
-{
-  "exempt": [
-    "mintlify",
-    "payment-integration",
-    "plans-kanban"
-  ]
-}

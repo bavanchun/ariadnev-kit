@@ -1,8 +1,15 @@
 # 0013. The lint exemption is a shrinking list, not a property
 
 Date: 2026-08-22
-Status: Accepted. Supersedes the severity split in
+Status: Accepted and completed 2026-08-24. Supersedes the severity split in
 [0008](./0008-porting-upstream-content.md).
+
+## Completion
+
+The authoring backlog reached zero on 2026-08-24. The checked-in exemption
+ledger, its loader, the severity branches, and the ratchet tests were deleted;
+all skills now fail authoring-bar violations directly. `heldFindings` remains
+empty only for validate JSON compatibility with older consumers.
 
 ## Context
 

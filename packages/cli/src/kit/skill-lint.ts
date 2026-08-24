@@ -8,25 +8,6 @@ import { skillReferencePattern } from "./skill-crossrefs.js";
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 200;
 
-/**
- * A skill still held to the old severity, named in `kit/skills-lint-exempt.json`.
- *
- * This replaces a blanket downgrade keyed on `metadata.origin: ported`. The
- * difference is measurability: a property of the artifact exempts a class that
- * can silently grow, while a checked-in list of names is countable, shrinks by
- * deletion, and has a test that fails when an entry no longer needs to be there.
- * 101 of 105 skills were unmeasurable under the old rule — not lenient,
- * *unmeasurable*, because nothing distinguished "passes" from "never asked".
- *
- * The list is read in `load-kit.ts`, which has a kit root; this module takes the
- * result. Reading it here would break the purity contract at the top of the file
- * and make the fixture tests depend on the real repo's JSON. Same shape as
- * `pendingPortNames()`.
- *
- * ADR 0013.
- */
-export type ExemptNames = ReadonlySet<string>;
-
 export const SKILL_MAX_LINES = 300;
 export const SKILL_MAX_LINES_CEILING = 400;
 /**
@@ -187,12 +168,11 @@ function resolveMaxLines(artifact: Artifact, errors: string[]): number {
 
 /**
  * Lint one skill against the av authoring spec. Errors fail the kit load;
- * `held` is what the exemption list suppressed; `warnings` hold regardless.
+ * Every house-rule violation is an error; warnings hold independently.
  */
 export function lintSkill(
   artifact: Artifact,
   references: ReferenceFile[],
-  exemptNames: ExemptNames = new Set(),
 ): SkillLintResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -205,8 +185,6 @@ export function lintSkill(
     }
   }
 
-  const exempt = exemptNames.has(artifact.name);
-
   const description = artifact.frontmatter.description;
   if (typeof description === "string") {
     const len = description.trim().length;
@@ -216,11 +194,11 @@ export function lintSkill(
       errors.push(`${label}: description must be at least ${DESCRIPTION_MIN} chars (got ${len})`);
     } else if (len > DESCRIPTION_MAX) {
       const over = `${label}: description is ${len} chars, over the ${DESCRIPTION_MAX}-char house limit`;
-      (exempt ? held : errors).push(over);
+      errors.push(over);
     }
     if (!TRIGGER_VERB.test(description)) {
       const noTrigger = `${label}: description needs a trigger verb (use/invoke/run/activate/trigger) saying when to fire`;
-      (exempt ? held : errors).push(noTrigger);
+      errors.push(noTrigger);
     }
   }
 
@@ -228,16 +206,12 @@ export function lintSkill(
   const skillLines = countLines(artifact.raw);
   if (skillLines > maxLines) {
     const tooLong = `${label}: SKILL.md is ${skillLines} lines, limit ${maxLines} (default ${SKILL_MAX_LINES})`;
-    (exempt ? held : errors).push(tooLong);
+    errors.push(tooLong);
   }
 
   const skillHeadings = headings(artifact.body);
   const exactSections = levelTwoHeadings(artifact.body);
-  // Run for exempt skills too, into `held`. Skipping them outright is what made
-  // the corpus unmeasurable: 301 findings existed and nothing counted them, so
-  // "exempt" and "passes" looked identical from every command. The exemption
-  // decides severity, never whether the question gets asked.
-  const houseErrors = exempt ? held : errors;
+  const houseErrors = errors;
   for (const section of REQUIRED_SECTIONS) {
     if (!exactSections.has(section)) {
       houseErrors.push(`${artifact.sourcePath}: ${label} missing required section "${section}"`);
@@ -274,9 +248,9 @@ export function lintSkill(
       // 6 exceed 800 (822-1718 lines). The old 300 was a limit most of the
       // corpus-by-weight broke, suppressed for exactly the files that broke it,
       // so it never bound anything. At 800 the six outliers answer for
-      // themselves — as errors, unless the skill is on the exemption list.
+      // themselves, so this is always an error.
       const tooLong = `${label}: ${ref.name} is ${refLines} lines, limit ${REFERENCE_MAX_LINES}`;
-      (exempt ? held : errors).push(tooLong);
+      errors.push(tooLong);
     }
     for (const [normalized, original] of headings(ref.content)) {
       if (skillHeadings.has(normalized)) {

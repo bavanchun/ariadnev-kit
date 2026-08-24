@@ -81,10 +81,6 @@ export interface Kit {
   envExample: string | null;
   /** Non-fatal lint findings that hold for every skill (duplicate-heading heuristic). */
   warnings: string[];
-  /**
-   * Lint findings `kit/skills-lint-exempt.json` suppressed — errors for any
-   * skill not on that list. The exemption backlog, kept countable so it can be
-   * watched to zero. ADR 0013.
-   */
+  /** Reserved for compatibility with older validate JSON consumers; always empty. */
   held: string[];
 }

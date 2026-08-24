@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pendingPortNames, runValidate } from "./validate-command.js";
 import { loadAvInvocationAllowlist, MAX_INVOCATION_ALLOWLIST_ENTRIES } from "./validate-invocations.js";
 import { commandSurface } from "./command-surface.js";
-import { resolveKitRoot, exemptSkillNames, readArtifact, readReferenceFiles } from "../kit/load-kit.js";
-import { lintSkill } from "../kit/skill-lint.js";
+import { resolveKitRoot } from "../kit/load-kit.js";
 
 const GOOD_FRONTMATTER = `---
 name: av:foo
@@ -75,14 +74,6 @@ Related: none.
       writeFileSync(join(dir, "references", refName), content);
     }
   }
-}
-
-/** Mark a fixture skill exempt the way the kit does — by name, in
- *  `skills-lint-exempt.json` at the kit root. `metadata.origin: ported` no
- *  longer decides severity; ADR 0013 moved that to this checked-in list so the
- *  exempt set is countable and shrinks by deletion. */
-function writeExemptList(kitRoot: string, names: string[]): void {
-  writeFileSync(join(kitRoot, "skills-lint-exempt.json"), JSON.stringify({ exempt: names }, null, 2));
 }
 
 function writeSkill(kitRoot: string, body: string, refs: Record<string, string> = {}): void {
@@ -170,46 +161,17 @@ describe("runValidate", () => {
     expect(result.counts.skills).toBeGreaterThan(0);
   });
 
-  // The exemption's whole defence is that its cost stays visible, so the two
-  // numbers are part of the contract, not decoration. They must also be
-  // distinct: one is a backlog meant to reach zero, the other holds for every
-  // skill and will not move when the list empties.
-  it("reports the held backlog and the unconditional warnings as separate numbers", () => {
+  it("reports no held findings after the authoring bar is fully enforced", () => {
     const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()) });
-    expect(result.heldFindings.length).toBeGreaterThan(0);
+    expect(result.heldFindings).toEqual([]);
     expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.summary).toContain(
-      `${result.heldFindings.length} finding(s) held by kit/skills-lint-exempt.json`,
-    );
     expect(result.summary).toContain(`${result.warnings.length} warning(s)`);
-    // No overlap: a duplicate-heading warning is not a held finding, and a
-    // suppressed house error is not a warning.
-    expect(result.heldFindings.filter((h) => result.warnings.includes(h))).toEqual([]);
   });
 
-  /**
-   * The backlog may shrink; it may not grow. Membership of the exemption list is
-   * already ratcheted, but a listed skill can gain findings freely — a longer
-   * SKILL.md, a new over-cap reference, a section deleted — and every one of
-   * those lands in `held` with CI green. Phase 8 edits 101 listed skills, which
-   * is exactly when that channel gets exercised.
-   *
-   * Lower this number when the backlog drops. Never raise it: a finding worth
-   * adding to a listed skill is worth fixing in the same change.
-   */
-  const HELD_FINDING_HIGH_WATER = 388;
-
-  it("never lets the held backlog grow", () => {
-    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()) });
-    expect(result.heldFindings.length).toBeLessThanOrEqual(HELD_FINDING_HIGH_WATER);
-  });
-
-  it("holds nothing when no skill is on the list", () => {
+  it("returns no held findings for a clean fixture", () => {
     writeSkill(tmp, `${GOOD_FRONTMATTER}\nNo links here.\n`);
-    writeExemptList(tmp, []);
     const result = runValidate({ kitRoot: tmp });
     expect(result.heldFindings).toEqual([]);
-    expect(result.summary).not.toContain("held by kit/skills-lint-exempt.json");
   });
 
   it("flags an orphan reference (exists but unlinked)", () => {
@@ -341,19 +303,17 @@ describe("runValidate --strict", () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
-  it("leaves a ported skill's orphan as a passing warning by default", () => {
+  it("reports a ported skill's orphan as an error by default", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
-    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp });
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
     expect(result.findings).toContainEqual(
-      expect.objectContaining({ skill: "foo", kind: "orphan", level: "warn" }),
+      expect.objectContaining({ skill: "foo", kind: "orphan", level: "error" }),
     );
   });
 
   it("promotes that orphan to an error and fails", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nNo links here.\n`, { "orphan.md": "# Orphan\n" });
-    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp, strict: true });
     expect(result.ok).toBe(false);
     expect(result.findings).toContainEqual(
@@ -363,7 +323,6 @@ describe("runValidate --strict", () => {
 
   it("still passes a clean tree", () => {
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
-    writeExemptList(tmp, ["foo"]);
     const result = runValidate({ kitRoot: tmp, strict: true });
     expect(result.ok).toBe(true);
   });
@@ -372,7 +331,6 @@ describe("runValidate --strict", () => {
     // Deliberate scope: promoting every warning would be free today (all 89 are
     // orphans) and would block the next port of a long upstream skill later.
     writeSkill(tmp, `${PORTED_FRONTMATTER}\nSee references/used.md.\n`, { "used.md": "# Used\n" });
-    writeExemptList(tmp, ["foo"]);
     writeInvalidWorkflow(tmp);
     const lenient = runValidate({ kitRoot: tmp });
     const strict = runValidate({ kitRoot: tmp, strict: true });
@@ -395,49 +353,6 @@ describe("kit-wide reference integrity", () => {
       referenceFindings.map((f) => `${f.skill}: ${f.message}`),
       "link the file where the body needs it, index it under ## References with a purpose line, or delete it",
     ).toEqual([]);
-  });
-});
-
-describe("lint exemption ratchet", () => {
-  const kitRoot = resolveKitRoot(process.cwd());
-  const exempt = exemptSkillNames(kitRoot);
-
-  // Every assertion below iterates the list, so an empty one passes them all.
-  // `exemptSkillNames` returns an empty set on any read or parse failure — safe
-  // for shipping (the kit then fails to load loudly) but it would turn this
-  // whole describe into a no-op without saying so. Delete this when the last
-  // entry goes; the file and the mechanism go with it.
-  it("has a list to ratchet", () => {
-    expect(exempt.size).toBeGreaterThan(0);
-  });
-
-  it("lists only skills that exist", () => {
-    const present = new Set(
-      readdirSync(join(kitRoot, "skills"), { withFileTypes: true })
-        .filter((e) => e.isDirectory())
-        .map((e) => e.name),
-    );
-    expect([...exempt].filter((name) => !present.has(name))).toEqual([]);
-  });
-
-  // The whole point of a ratchet. A name that no longer needs to be here is the
-  // difference between "shrinking backlog" and "the old blanket exemption with
-  // extra steps", and only a failing test makes anyone delete it.
-  it("holds no skill that already passes every check", () => {
-    const stillEarning: string[] = [];
-    for (const name of exempt) {
-      const dir = join(kitRoot, "skills", name);
-      // A stale name is the previous test's finding; reading it here would bury
-      // that clear message under an ENOENT from `readArtifact`.
-      if (!existsSync(join(dir, "SKILL.md"))) continue;
-      // The loader's own readers, so the ratchet lints exactly what production
-      // lints — a local copy would drift the moment `readArtifact` changes.
-      const artifact = readArtifact("skill", name, join(dir, "SKILL.md"));
-      // Lint it as if it were NOT exempt. Any error is what the entry is for.
-      if (lintSkill(artifact, readReferenceFiles(dir), new Set()).errors.length > 0) stillEarning.push(name);
-    }
-    const redundant = [...exempt].filter((name) => !stillEarning.includes(name));
-    expect(redundant, `these skills pass unaided — delete them from kit/skills-lint-exempt.json`).toEqual([]);
   });
 });
 
@@ -493,7 +408,6 @@ describe("av-invocation findings", () => {
       mkdirSync(join(dir, "scripts"), { recursive: true });
       writeFileSync(join(dir, "scripts", name), content);
     }
-    writeExemptList(tmp, extras.exempt ? ["foo"] : []);
     // The invocation allowlist is the list that actually holds invocation
     // hits — the two lists shrink for unrelated reasons, see ADR 0013.
     if (extras.exempt) {

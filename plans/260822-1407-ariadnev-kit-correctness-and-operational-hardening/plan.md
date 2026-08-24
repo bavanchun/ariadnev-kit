@@ -1,7 +1,7 @@
 ---
 title: "ariadnev kit correctness and operational hardening"
 description: "Fix the broken cross-skill links and the validator blind spot that hides them, move skill dirs to an av- prefix via a receipt-driven heal, sign the update channel, harden the backup restore path, and retire the ported-skill lint exemption across the whole corpus."
-status: pending
+status: in-progress
 priority: P1
 effort: "25-42d + 3h"
 tags: [kit, cli, lint, security, quality]
@@ -160,14 +160,14 @@ path-shape are now two separate rules.
 | 1 | [Link integrity](./phase-01-link-integrity.md) | — | **Completed** (merged to dev) |
 | 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | **Completed** (merged to dev) |
 | 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | **Completed** (merged to dev) |
-| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | Pending |
-| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (merged to dev; release cut pending) |
+| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | **In progress** (doctor guard complete; release and rehearsal pending) |
+| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **In progress** (merged to dev; release cut pending) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
-| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (Tier C complete, all 7; Tier B 1 of 10; Tier A calibration batch merged, 15 of 84; held 383 → 289. Sampling decided: 100% second reads — see the phase file's "Calibration result") |
-| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **In progress** (steps 1-4, 6, 7 shipped: 16 of 16 agents pass the lint with no exemption branch. Step 5 withdrawn — the rename is superseded. Step 8, deleting the ratchet file, waits on phase 8; steps 9-10 follow it) |
+| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (lint clean and exemption removed; independent second-reader evidence and final merge-history proof remain) |
+| 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **Completed** |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
-| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (merged to dev; edge deploy + beta cut pending) |
+| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **In progress** (merged to dev; edge deploy + beta cut pending) |
 
 **Execution order: 0 ✓ → 1, 2, 5 in parallel → release(5) → 11 → 3 → 4 → 6 → 7 → 8 → 9.**
 **Phase 10 has no dependencies and blocks nothing — fit it into any gap.**
@@ -206,29 +206,35 @@ target existence, and a shape rule requiring `(../)+av-<slug>/`.
 
 ## Success Criteria
 
-- [ ] `av validate` reports zero findings with **no** skill or agent taking an
-      exemption; `kit/skills-lint-exempt.json` and `isPorted()` are deleted.
-- [ ] `grep -rn 'kits/core/skills/' kit/` returns nothing.
-- [ ] Every cross-skill path in the corpus matches `(../)+av-<slug>/…`, enforced.
-- [ ] A brownfield e2e proves heal-on-install leaves zero unprefixed dirs, zero
+- [x] `av validate` reports zero findings with **no** skill or agent taking an
+      exemption; `kit/skills-lint-exempt.json` and `isPorted()` are deleted
+      (final strict validation, 2026-08-24).
+- [x] `grep -rn 'kits/core/skills/' kit/` returns nothing (final sync-back,
+      2026-08-24).
+- [x] Every cross-skill path in the corpus matches `(../)+av-<slug>/…`, enforced
+      (`cross-skill-references.test.ts` and final strict validation).
+- [x] A brownfield e2e proves heal-on-install leaves zero unprefixed dirs, zero
       duplicates, a correct receipt, and survives a kill between delete and
-      receipt write.
-- [ ] Heal never removes a path outside the scope root, a path still claimed by
-      an untouched provider record, or a file whose hash drifted.
-- [ ] No code path renames a directory ariadnev does not own.
-- [ ] `av update` verifies a detached signature over `checksums.txt` against a
-      compiled-in key before trusting any hash.
-- [ ] `backups restore` refuses an absolute or traversing path and validates the
-      manifest against a schema.
-- [ ] Every command supports `--json`; one envelope helper, extracted not invented.
-- [ ] A second concurrent mutating command exits 3 without touching any file,
-      including for codex's home-rooted writes.
-- [ ] `ARIADNEV_BASE_URL=http://evil` fails closed against **all three** of
-      `install.sh`, `install.ps1`, and `av update`.
+      receipt write (`phase-03-installer-av-prefix-and-heal.md`).
+- [x] Heal never removes a path outside the scope root, a path still claimed by
+      an untouched provider record, or a file whose hash drifted (phase 3 e2e).
+- [x] No code path renames a directory ariadnev does not own (phase 3 source
+      audit and tests).
+- [x] `av update` verifies a detached signature over `checksums.txt` against a
+      compiled-in key before trusting any hash (phase 5 tests).
+- [x] `backups restore` refuses an absolute or traversing path and validates the
+      manifest against a schema (phase 5 tests).
+- [x] Every command supports `--json`; one envelope helper, extracted not invented
+      (phase 6 command-surface tests).
+- [x] A second concurrent mutating command exits 3 without touching any file,
+      including for codex's home-rooted writes (phase 7 lock tests).
+- [x] `ARIADNEV_BASE_URL=http://evil` fails closed against **all three** of
+      `install.sh`, `install.ps1`, and `av update` (phases 0 and 5 tests).
 - [ ] Phase 4's sandbox rollback succeeds **on the first attempt** — the proof
       that the phase-5-before-phase-4 sequencing worked.
-- [ ] The heal backup still exists after three post-heal `av install` runs.
-- [ ] `pnpm test` green after every phase.
+- [x] The heal backup still exists after three post-heal `av install` runs
+      (phase 3 e2e).
+- [x] `pnpm test` green after every phase (final full suite, 2026-08-24).
 
 ## Scope honesty
 
@@ -277,7 +283,9 @@ split in phase 7. It converts ~25-40 hr of fragment-shuffling into ~3-6 hr.
    every file below the target, sorted by relative path, folded in as
    `relpath\0<sha256>`. Paths are part of the digest so a move without an edit
    still changes it. Decided and shipped in phase 6.
-4. Strip `metadata.origin: ported` once a skill clears the bar? Phase 2's ADR.
+4. ~~Strip `metadata.origin: ported` once a skill clears the bar?~~ **No.**
+   ADR 0013 keeps it as historical provenance; it no longer affects lint
+   severity or any validation outcome.
 5. ~~Does `ariadnev-web` consume any `av --json` output?~~ **No.** Grepped the
    whole repo: every `--json` hit is documentation text or the web repo's own
    unrelated `schemaVersion` fields, and its `mustFind` benchmark entries assert

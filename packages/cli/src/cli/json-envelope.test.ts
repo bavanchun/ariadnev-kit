@@ -98,15 +98,13 @@ describe("the kind each surface declares", () => {
     expect(out.schema_version).toBe(1);
   });
 
-  it("validate.kit, carrying the held backlog in full", () => {
+  it("validate.kit, carrying no held findings after close-out", () => {
     const out = JSON.parse(runValidate({ kitRoot: resolveKitRoot(process.cwd()), json: true }).summary) as {
       kind: string;
       data: { heldFindings: string[]; counts: { skills: number } };
     };
     expect(out.kind).toBe("validate.kit");
-    // The text report prints only the count; a consumer that cannot see the
-    // entries cannot help shrink the list they represent.
-    expect(out.data.heldFindings.length).toBeGreaterThan(0);
+    expect(out.data.heldFindings).toEqual([]);
     expect(out.data.counts.skills).toBeGreaterThan(0);
   });
 

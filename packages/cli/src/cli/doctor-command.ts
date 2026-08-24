@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,7 @@ import { packageVersion } from "../version.js";
 import { scoreAudit } from "../doctor/audit-score.js";
 import { coral, teal, amber, faint, bar, symbols, type StyleOpts } from "../ui/style.js";
 import { ed25519SelfTest } from "./update-signature.js";
+import { readJournal } from "../install/intent-journal.js";
 
 export interface DoctorHandlerOpts {
   home: string;
@@ -53,6 +54,14 @@ function readReceipt(root: string): Receipt | null {
 function realDeps(): DiagnoseDeps {
   return {
     fileExists: (p) => existsSync(p),
+    dirExists: (p) => existsSync(p),
+    listDir: (p) => {
+      try {
+        return readdirSync(p);
+      } catch {
+        return null;
+      }
+    },
     readSettingsJson: (p) => (existsSync(p) ? readFileSync(p, "utf8") : null),
     hookExecutable: (p) => {
       if (!existsSync(p)) return false;
@@ -155,6 +164,7 @@ function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string,
 export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
   const root = opts.scope === "global" ? opts.home : opts.cwd;
   const receipt = readReceipt(root);
+  const journal = readJournal(root);
   const deps = realDeps();
 
   // --fix runs BEFORE diagnose so the post-repair diagnosis reflects the fix.
@@ -164,6 +174,7 @@ export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
     home: opts.home,
     cwd: opts.cwd,
     currentVersion: packageVersion(),
+    pendingHealRemovals: journal?.healRemovals,
   });
   const kitFinding = kitLintFinding(opts.kitRoot);
   const allFindings = kitFinding ? [...findings, kitFinding] : findings;

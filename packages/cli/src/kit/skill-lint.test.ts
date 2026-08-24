@@ -264,18 +264,11 @@ describe("lintSkill: Workflow position names something", () => {
     });
   }
 
-  // The rule is a house check, so a name on the exemption list escapes it —
-  // that, and not `metadata.origin`, is what decides severity since ADR 0013.
-  // The finding still has to be produced, or the backlog cannot be counted.
-  it("holds the finding for a listed skill instead of skipping the check", () => {
+  it("reports an incomplete workflow position as an error", () => {
     const body = withPosition("Fits into the wider workflow.");
-    const listed = lintSkill(makeSkill({ body }), [], new Set(["demo"]));
-    expect(listed.errors).toEqual([]);
-    expect(listed.held.some((h) => h.includes("Workflow position"))).toBe(true);
-
-    const unlisted = lintSkill(makeSkill({ body }), [], new Set(["other"]));
-    expect(unlisted.errors.some((e) => e.includes("Workflow position"))).toBe(true);
-    expect(unlisted.held).toEqual([]);
+    const result = lintSkill(makeSkill({ body }), []);
+    expect(result.errors.some((e) => e.includes("Workflow position"))).toBe(true);
+    expect(result.held).toEqual([]);
   });
 });
 
@@ -283,47 +276,35 @@ describe("lintSkill: Workflow position names something", () => {
 // re-coupled. Nothing structural prevents it, so this asserts the behaviour
 // directly: provenance is recorded, and it decides nothing.
 describe("lintSkill: provenance does not decide severity", () => {
-  it("errors on a ported skill that is not on the exemption list", () => {
+  it("errors on a ported skill", () => {
     const ported = makeSkill({
       body: "# Demo\n\nNothing else.\n",
       frontmatter: { metadata: { origin: "ported", author: "upstream" } },
     });
-    const res = lintSkill(ported, [], new Set());
+    const res = lintSkill(ported, []);
     expect(res.errors.filter((e) => e.includes("missing required section"))).toHaveLength(3);
     expect(res.held).toEqual([]);
   });
 
-  it("holds for a listed skill that carries no provenance at all", () => {
-    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), [], new Set(["demo"]));
-    expect(res.errors).toEqual([]);
-    expect(res.held.filter((h) => h.includes("missing required section"))).toHaveLength(3);
+  it("errors without relying on provenance", () => {
+    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), []);
+    expect(res.errors.filter((h) => h.includes("missing required section"))).toHaveLength(3);
   });
 });
 
-describe("lintSkill: held findings are separated from warnings", () => {
-  // The exemption backlog has to be countable on its own. Mixing it with
-  // findings that hold for every skill produced a number that overstated the
-  // backlog and could never reach zero, even with the list empty.
-  it("routes suppressed house findings to held, not warnings", () => {
+describe("lintSkill: warnings stay separate from errors", () => {
+  it("reports an over-cap reference as an error", () => {
     const longRef = { name: "references/big.md", content: "x\n".repeat(REFERENCE_MAX_LINES + 10) };
-    const res = lintSkill(makeSkill(), [longRef], new Set(["demo"]));
-    expect(res.errors).toEqual([]);
-    expect(res.held.some((h) => h.includes("references/big.md"))).toBe(true);
+    const res = lintSkill(makeSkill(), [longRef]);
+    expect(res.errors.some((h) => h.includes("references/big.md"))).toBe(true);
     expect(res.warnings).toEqual([]);
   });
 
-  it("keeps the duplicate-heading warning out of held for a listed skill", () => {
+  it("keeps the duplicate-heading warning out of errors", () => {
     const dupe = { name: "references/dupe.md", content: "## Output format\n" };
-    const res = lintSkill(makeSkill(), [dupe], new Set(["demo"]));
+    const res = lintSkill(makeSkill(), [dupe]);
     expect(res.warnings.some((w) => w.includes("Output format"))).toBe(true);
     expect(res.held).toEqual([]);
   });
 
-  // Missing required sections were skipped outright for listed skills. 301
-  // findings existed across the corpus and no command could see one of them.
-  it("reports a listed skill's missing sections as held", () => {
-    const res = lintSkill(makeSkill({ body: "# Demo\n\nNothing else.\n" }), [], new Set(["demo"]));
-    expect(res.errors).toEqual([]);
-    expect(res.held.filter((h) => h.includes("missing required section"))).toHaveLength(3);
-  });
 });

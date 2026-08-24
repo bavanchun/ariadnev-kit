@@ -65,30 +65,9 @@ export function readReferenceFiles(skillDir: string): ReferenceFile[] {
     }));
 }
 
-/**
- * Skills still held to the old lint severity, from `kit/skills-lint-exempt.json`.
- *
- * Read here rather than in `skill-lint.ts` because this module has the kit root
- * and that one is pure by contract. A missing or malformed file exempts nobody:
- * the strict reading is the safe one, and a silently-empty allowlist surfaces
- * immediately as lint errors rather than as a quiet loss of coverage.
- */
-export function exemptSkillNames(kitRoot: string): Set<string> {
-  try {
-    const parsed = JSON.parse(readFileSync(join(kitRoot, "skills-lint-exempt.json"), "utf8")) as {
-      exempt?: unknown;
-    };
-    if (!Array.isArray(parsed.exempt)) return new Set();
-    return new Set(parsed.exempt.filter((name): name is string => typeof name === "string"));
-  } catch {
-    return new Set();
-  }
-}
-
-function loadSkills(kitRoot: string, warnings: string[], held: string[]): Artifact[] {
+function loadSkills(kitRoot: string, warnings: string[]): Artifact[] {
   const skillsDir = join(kitRoot, "skills");
   if (!existsSync(skillsDir)) return [];
-  const exemptNames = exemptSkillNames(kitRoot);
   const out: Artifact[] = [];
   const seen = new Set<string>();
   for (const entry of readdirSync(skillsDir)) {
@@ -98,12 +77,11 @@ function loadSkills(kitRoot: string, warnings: string[], held: string[]): Artifa
     if (!statSync(dir).isDirectory() || !existsSync(skillMd)) continue;
     const artifact = readArtifact("skill", entry, skillMd);
     validateSkill(artifact);
-    const lint = lintSkill(artifact, readReferenceFiles(dir), exemptNames);
+    const lint = lintSkill(artifact, readReferenceFiles(dir));
     if (lint.errors.length > 0) {
       throw new KitValidationError(lint.errors.join("\n"));
     }
     warnings.push(...lint.warnings);
-    held.push(...lint.held);
     if (seen.has(artifact.name)) {
       throw new KitValidationError(`duplicate skill name: ${artifact.name}`);
     }
@@ -204,8 +182,7 @@ export function loadKit(kitRoot: string): Kit {
   const scriptsDir = join(kitRoot, "scripts");
   const envExample = join(kitRoot, ".env.example");
   const warnings: string[] = [];
-  const held: string[] = [];
-  const skills = loadSkills(kitRoot, warnings, held);
+  const skills = loadSkills(kitRoot, warnings);
   const agents = loadAgents(kitRoot);
   return {
     root: kitRoot,
@@ -222,6 +199,6 @@ export function loadKit(kitRoot: string): Kit {
     scriptsDir: existsSync(scriptsDir) ? scriptsDir : null,
     envExample: existsSync(envExample) ? envExample : null,
     warnings,
-    held,
+    held: [],
   };
 }

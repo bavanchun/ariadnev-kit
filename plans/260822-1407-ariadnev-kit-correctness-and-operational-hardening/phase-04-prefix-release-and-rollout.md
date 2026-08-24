@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Prefix release and rollout"
-status: todo
+status: in-progress
 priority: P1
 effort: "1-2d"
 dependencies: [3]
@@ -109,9 +109,9 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
 
 ## Success Criteria
 
-- [ ] `av doctor` reports unprefixed dirs recorded in a prior receipt, and does
-      **not** report third-party skills sharing the root — proven against a
-      fixture containing `excalidraw` as a third-party dir.
+- [x] `av doctor` reports unprefixed dirs recorded by an interrupted heal
+      journal, and does **not** report third-party skills sharing the root —
+      unit coverage in `packages/cli/src/doctor/diagnose.test.ts`.
 - [ ] The README provider matrix is unchanged and `av validate --check` is green.
 - [ ] Release published with 5 binaries + checksums; smoke test passed.
 - [ ] Root inventory recorded before heal; every one healed; `av doctor` clean.

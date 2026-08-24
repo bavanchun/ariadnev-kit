@@ -30,13 +30,8 @@ export interface InvocationHit {
  * One entry in `kit/av-invocation-allowlist.json`: a phantom invocation that is
  * known, deliberate, and waiting on a decision this lint cannot make.
  *
- * A separate list from `kit/skills-lint-exempt.json` on purpose. That one is
- * ADR 0013's ratchet over *authoring-bar* findings and shrinks as skills are
- * rewritten to the bar — which has nothing to do with whether a skill cites a
- * command that exists. Borrowing it had two failures: a new phantom in any of
- * the eighty listed skills passed CI unnoticed, and the day `plans-kanban` came
- * off that list its nine phantom-command errors would detonate inside whichever
- * unrelated PR did the removing.
+ * The authoring bar is enforced separately, so this list only quarantines
+ * citations whose CLI contract is awaiting a documented decision.
  *
  * `skill` holds every hit in one skill; `path` holds one file and is the
  * narrower form to prefer. Either way `reason` is required and has to say what

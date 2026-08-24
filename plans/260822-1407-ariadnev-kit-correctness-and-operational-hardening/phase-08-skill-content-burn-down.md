@@ -322,13 +322,17 @@ the routing gate. Re-run the collision check after every batch.
 
 ## Success Criteria
 
-- [ ] `kit/skills-lint-exempt.json` is empty.
-- [ ] `av validate` and `--strict` clean with zero exemptions.
-- [ ] No SKILL.md >300 lines; no reference file >800.
-- [ ] All 105 descriptions ≤200 chars with a trigger verb.
-- [ ] No new `description-collision` allowlist entries were added during the
-      burn-down. Collisions were resolved by differentiating.
-- [ ] Every `## Workflow position` names ≥1 `av:<slug>`.
+- [x] `kit/skills-lint-exempt.json` is deleted.
+- [x] `av validate` and `--strict` clean with zero exemptions (final local
+      verification, 2026-08-24).
+- [x] No SKILL.md >300 lines; no reference file >800 (enforced by
+      `skill-lint.test.ts` and final strict validation).
+- [x] All 105 descriptions ≤200 chars with a trigger verb (final strict
+      validation).
+- [x] No new `description-collision` allowlist entries were added during the
+      burn-down. Collisions were resolved by differentiating (final strict validation).
+- [x] Every `## Workflow position` names ≥1 `av:<slug>` (final strict
+      validation).
 - [ ] Second-reader review completed for every skill in every tier, by a
       different model/agent with fresh context — never the authoring session —
       and every fix diff re-read the same way. (Raised from "≥20% of Tier A"
