@@ -85,7 +85,7 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 |---|---|
 | `ariadnev install [--provider a,b] [--global] [--dry-run]` | Install kit to providers; writes `.ariadnev/receipt.json` |
 | `ariadnev list [--global]` | Show kit contents + per-provider install state |
-| `ariadnev doctor [--global]` | Health-check the install against its receipt (files, hooks, settings bindings, version) |
+| `ariadnev doctor [--global]` | Health-check the install against its receipt (files, hooks, settings bindings, version, and legacy skill directories recorded by an interrupted heal journal) |
 | `ariadnev uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install. Recovers an install interrupted before its receipt was written, and fails rather than reporting success when there is no install record at all |
 | `ariadnev audit [kit\|scripts] [--global] [--json] [--strict]` | Classify every installed file against the receipt (`ok`/`modified`/`missing`/`untracked`), or scan the scripts the kit ships for privilege escalation, remote code execution, and writes outside the skill. Exits 1 on drift; `--strict` also fails on untracked files and flagged scripts |
 | `ariadnev skill <install\|verify\|repair\|upgrade\|remove\|run> [name] [args…]` | Manage the Python environment a skill's scripts need, and run those scripts under the right interpreter. Most skills import only the standard library and need no environment; those that do get one built from a pinned, hash-verified lock. `verify` reads installed metadata only — `--deep` additionally imports the packages in a timed-out child process |
@@ -188,14 +188,13 @@ rather than ignored. `ariadnev validate` enforces both, and every cross-skill
 [`docs/av-skill-authoring-spec.md`](docs/av-skill-authoring-spec.md) for the
 machine-enforced authoring contract.
 
-Two shrink-only lists sit beside the enforcement so a decision that cannot
-land now stays visible: `kit/skills-lint-exempt.json` holds skills still below
-the authoring bar (see ADR 0013), and `kit/av-invocation-allowlist.json` holds
+Every skill meets the authoring bar (see ADR 0013).
+`kit/av-invocation-allowlist.json` holds
 individual phantom-command citations waiting on a content decision the linter
 cannot make. The two shrink for unrelated reasons — a skill can sit at the
 authoring bar and still name a subcommand this CLI never registered — and
 every entry in the invocation list carries a reason naming the outstanding
-decision. `--strict` refuses either list beyond its committed ceiling.
+decision. `--strict` refuses that list beyond its committed ceiling.
 
 - **Core loop skills**: `av:brainstorm`, `av:plan`, `av:cook` (embedded
   test/review gates + risk-lane routing), `av:fix` (root-cause loop),

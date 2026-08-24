@@ -1,6 +1,6 @@
 ---
 name: av:mintlify
-description: Build and maintain Mintlify documentation sites with docs.json, MDX, navigation, theming, API references, AI docs assets, deployment, and local validation.
+description: Use to build and maintain Mintlify documentation sites with docs.json, MDX, navigation, theming, API references, AI docs assets, deployment, and local validation.
 user-invocable: true
 when_to_use: "Invoke for Mintlify docs site structure, MDX, or local checks."
 category: dev-tools

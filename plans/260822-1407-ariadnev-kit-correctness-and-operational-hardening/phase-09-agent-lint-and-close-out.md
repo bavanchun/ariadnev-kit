@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Agent lint and close-out"
-status: todo
+status: completed
 priority: P2
 effort: "3-5d"
 dependencies: [8]
@@ -173,9 +173,9 @@ exemption gets added quietly.
       as it stands.
 - [x] ~~`explore` is invocable after the rename — verified by invoking it.~~
       **Withdrawn** with the rename.
-- [ ] `kit/skills-lint-exempt.json` deleted; `isExempt()`/`isPorted()` absent.
-- [ ] `av validate`, `--strict`, `--check` all clean.
-- [ ] `pnpm test` green.
+- [x] `kit/skills-lint-exempt.json` deleted; `isExempt()`/`isPorted()` absent.
+- [x] `av validate`, `--strict`, `--check` all clean.
+- [x] `pnpm test` green.
 
 ## Risk Assessment
 

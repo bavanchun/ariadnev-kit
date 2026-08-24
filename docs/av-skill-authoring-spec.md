@@ -105,11 +105,8 @@ deciding to load the skill. Formula: *what it does* + *when to fire*.
 | `SKILL.md` | ≤ 300 lines (override: `metadata.maxLines`, hard ceiling 400) |
 | each `references/*.md` | ≤ 800 lines |
 
-An error, unless the skill is named in `kit/skills-lint-exempt.json` — then it
-is a held finding, counted in `av validate`'s output but not failing the build.
-That list is a shrinking backlog, not a category: see
-[ADR 0013](./decisions/0013-lint-exemption-is-a-shrinking-list.md). Provenance
-(`metadata.origin: ported`) no longer affects severity.
+An error. Every shipped skill is held to the same authoring bar; provenance
+(`metadata.origin: ported`) does not affect severity.
 
 The reference limit is 800 rather than 300 because 83 of the 463 reference files
 in the kit exceed 300 and 6 exceed 800. A limit most of the corpus-by-weight

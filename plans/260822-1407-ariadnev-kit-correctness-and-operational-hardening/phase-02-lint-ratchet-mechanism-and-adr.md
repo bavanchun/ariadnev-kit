@@ -124,7 +124,8 @@ floor checks; the real control is second-reader review in phase 8.
 
 1. Write ADR 0013. Supersedes ADR 0008's severity split; records the ratchet, the
    `REFERENCE_MAX_LINES` change with its distribution evidence, and whether
-   `metadata.origin: ported` is stripped once a skill clears the bar. Note that
+   `metadata.origin: ported` is retained as historical provenance after a skill
+   clears the bar. Note that
    ADR 0011 removes "keep ports diffable" as an objection.
 2. **Run every candidate anti-filler check against the 4 authored skills.**
    Record which pass. Only survivors may become gates.

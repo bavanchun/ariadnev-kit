@@ -2,7 +2,7 @@ import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { jsonEnvelope } from "./json-envelope.js";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadKit, exemptSkillNames } from "../kit/load-kit.js";
+import { loadKit } from "../kit/load-kit.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { checkReferenceIntegrity } from "../kit/reference-integrity.js";
 import { checkMatrixDrift } from "../providers/matrix-drift.js";
@@ -86,13 +86,7 @@ export interface ValidateResult {
   ok: boolean;
   findings: ValidateFinding[];
   counts: { skills: number; agents: number; hooks: number };
-  /**
-   * Lint findings `kit/skills-lint-exempt.json` held back from erroring. Until
-   * ADR 0013 these went onto `Kit.warnings` and no command read them, so
-   * "downgraded to a warning" meant "discarded" — and the exemption's whole
-   * defence is that the cost stays in view. Carried in full for programmatic
-   * consumers; the summary prints only the count.
-   */
+  /** Reserved for compatibility with older validate JSON consumers; always empty. */
   heldFindings: string[];
   /**
    * Lint findings that hold for every skill regardless of the exemption list
@@ -115,10 +109,8 @@ export interface ValidateOpts {
    * "av:scout"). Used by `av eval --skill`. Undefined = whole kit. */
   skillFilter?: string[];
    /**
-    * Promote the reference-orphan finding to an error even for a skill on
-    * `kit/skills-lint-exempt.json`. Deliberately narrow: size and style stay
-    * held for listed skills, so this gate does not block work on a long ported
-    * skill. (Dangling was always an error and is unaffected.)
+   * Kept for CLI compatibility. Orphan and dangling references are errors at
+   * every strictness level now that every skill meets the authoring bar.
     */
   strict?: boolean;
   /** Emit the machine envelope instead of the text report. */
@@ -172,19 +164,10 @@ export function loadCollisionAllowlist(kitRoot: string): CollisionAllowlistEntry
 function renderSummary(
   findings: ValidateFinding[],
   counts: ValidateResult["counts"],
-  heldFindings: string[] = [],
   warnings: string[] = [],
 ): string {
   const header = `ariadnev validate — ${counts.skills} skills, ${counts.agents} agents, ${counts.hooks} hooks`;
-  // Counts, not the hundreds of lines behind them — the text is on the result
-  // object. Two separate numbers because they mean different things: the held
-  // count is the exemption backlog and is meant to reach zero, the warning count
-  // holds for every skill and never will. One combined number was worse than no
-  // number: it overstated the backlog and could not have reached zero.
   const extra: string[] = [];
-  if (heldFindings.length > 0) {
-    extra.push(`  ${heldFindings.length} finding(s) held by kit/skills-lint-exempt.json`);
-  }
   if (warnings.length > 0) extra.push(`  ${warnings.length} warning(s)`);
   if (findings.length === 0) return [header, "  all checks passed", ...extra].join("\n");
   const lines = [header];
@@ -252,7 +235,6 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
   // ignore it. A name on neither list is still an error, so a genuine typo or a
   // reference to something that exists nowhere is caught exactly as before.
   const pendingNames = pendingPortNames(kit.root);
-  const exemptNames = exemptSkillNames(kit.root);
   const knownSkillNames = [...kit.skills.map((skill) => skill.name), ...pendingNames];
 
   // Built from every skill, in its own pass, deliberately. `skillsToCheck` is
@@ -314,7 +296,7 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
       findings.push({
         skill: skill.name,
         kind: "orphan",
-        level: exemptNames.has(skill.name) && !opts.strict ? "warn" : "error",
+        level: "error",
         message: `${o} exists but is never linked from SKILL.md`,
       });
     }
@@ -458,6 +440,6 @@ export function runValidate(opts: ValidateOpts = {}): ValidateResult {
     warnings,
     summary: opts.json
       ? envelopeFor(ok, findings, counts, heldFindings, warnings)
-      : renderSummary(findings, counts, heldFindings, warnings),
+      : renderSummary(findings, counts, warnings),
   };
 }

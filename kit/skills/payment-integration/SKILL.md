@@ -1,6 +1,6 @@
 ---
 name: av:payment-integration
-description: Integrate payments with SePay (VietQR), Polar, and Stripe. Checkout, webhooks, subscriptions, QR codes, and multi-provider orders.
+description: Use to integrate SePay (VietQR), Polar, or Stripe payments for checkout, webhooks, subscriptions, QR codes, and multi-provider orders.
 user-invocable: true
 when_to_use: "Invoke for checkout, subscriptions, webhooks, or QR payments."
 category: backend

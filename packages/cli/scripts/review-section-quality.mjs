@@ -13,23 +13,12 @@
 // Neither check detects filler. A short generator satisfies both. They are a
 // floor, and the actual control is a second reader.
 //
-//   node packages/cli/scripts/review-section-quality.mjs [--exempt-only] [--json]
+//   node packages/cli/scripts/review-section-quality.mjs [--json]
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-const KIT = join(process.cwd(), "kit");
-const SKILLS = join(KIT, "skills");
-const args = new Set(process.argv.slice(2));
-
-function exemptNames() {
-  try {
-    const parsed = JSON.parse(readFileSync(join(KIT, "skills-lint-exempt.json"), "utf8"));
-    return new Set(Array.isArray(parsed.exempt) ? parsed.exempt : []);
-  } catch {
-    return new Set();
-  }
-}
+const SKILLS = join(process.cwd(), "kit", "skills");
 
 /** The section name on a level-2 heading line, or null. Must stay in sync with
  *  `levelTwoHeadingName` in skill-lint.ts — an earlier copy here compared the
@@ -81,16 +70,12 @@ function sectionsNameSomething(body) {
   return bad.length === 0 ? true : bad.join("; ");
 }
 
-const exempt = exemptNames();
 const rows = [];
-// Counted as we go: with --exempt-only the denominator is the filtered set, not
-// every skill on disk, or the run reports "101 of 105" about 101 skills.
 let considered = 0;
 for (const entry of readdirSync(SKILLS, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const skillMd = join(SKILLS, entry.name, "SKILL.md");
   if (!existsSync(skillMd)) continue;
-  if (args.has("--exempt-only") && !exempt.has(entry.name)) continue;
   considered++;
   const body = readFileSync(skillMd, "utf8");
   const outputFormat = outputFormatIsConcrete(body);
@@ -98,7 +83,6 @@ for (const entry of readdirSync(SKILLS, { withFileTypes: true })) {
   if (outputFormat === true && named === true) continue;
   rows.push({
     skill: entry.name,
-    exempt: exempt.has(entry.name),
     ...(outputFormat === true ? {} : { outputFormat }),
     ...(named === true ? {} : { sectionsNameSomething: named }),
   });
@@ -108,7 +92,7 @@ if (args.has("--json")) {
   process.stdout.write(`${JSON.stringify({ total: rows.length, rows }, null, 2)}\n`);
 } else {
   for (const row of rows) {
-    process.stdout.write(`${row.exempt ? "exempt " : "AUTHORED"} ${row.skill}\n`);
+    process.stdout.write(`AUTHORED ${row.skill}\n`);
     if (row.outputFormat) process.stdout.write(`    Output format: ${row.outputFormat}\n`);
     if (row.sectionsNameSomething) process.stdout.write(`    ${row.sectionsNameSomething}\n`);
   }
