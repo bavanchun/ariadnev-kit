@@ -180,16 +180,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
   // The other four assets are what most users download and this runner cannot
   // execute any of them. Say so explicitly, and check what can be checked —
-  // silence here would read as a pass.
+  // silence here would read as a pass. Look next to the bin the caller pointed
+  // at (`candidate/` from the release matrix; `dist/release/` locally), not a
+  // fixed releaseDir — the two disagree in the cross-platform smoke job.
+  const siblingDir = dirname(bin);
   const headerFailures = [];
   for (const { asset: name } of TARGETS) {
     if (name === asset) continue;
-    const path = join(releaseDir, name);
+    const path = join(siblingDir, name);
     let size;
     try {
       size = statSync(path).size;
     } catch {
-      headerFailures.push(`${name} is missing from ${releaseDir}`);
+      headerFailures.push(`${name} is missing from ${siblingDir}`);
       continue;
     }
     const { magic, archOffset, archBytes } = expectedHeader(name);
