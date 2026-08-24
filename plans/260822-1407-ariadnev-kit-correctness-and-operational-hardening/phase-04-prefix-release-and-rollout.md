@@ -112,7 +112,8 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
 - [x] `av doctor` reports unprefixed dirs recorded by an interrupted heal
       journal, and does **not** report third-party skills sharing the root —
       unit coverage in `packages/cli/src/doctor/diagnose.test.ts`.
-- [ ] The README provider matrix is unchanged and `av validate --check` is green.
+- [x] The README provider matrix is unchanged and `av validate --check` is green
+      (final local verification, 2026-08-24).
 - [ ] Release published with 5 binaries + checksums; smoke test passed.
 - [ ] Root inventory recorded before heal; every one healed; `av doctor` clean.
 - [ ] One skill invoked successfully per provider post-heal.
