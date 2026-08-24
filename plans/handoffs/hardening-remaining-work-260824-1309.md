@@ -80,14 +80,15 @@ coverage, path constants only in `src/adapt/paths.ts`. See
 ## Current state
 
 - **Repo root:** `/Users/vchun/Codes/My-projects/vcskill-kit/ariadnev-kit`
-- **Branch:** `dev`
-- **HEAD:** `f8efbea9819bb06e0e477b9921ba330b982abaf4`
-- **Working tree:** clean (no uncommitted changes).
+- **PR branch:** `hardening/complete-lint-exemption-syncback`
+- **HEAD:** `6a473b5` (followed by this handoff refresh commit)
+- **PR:** https://github.com/bavanchun/ariadnev-kit/pull/69 → `dev` (draft;
+  CI in progress when this handoff was refreshed).
+- **Working tree:** clean after this handoff commit and push.
 - **Plan directory:**
   `plans/260822-1407-ariadnev-kit-correctness-and-operational-hardening/`
-- **Skill-lint exemption ledger:** `kit/skills-lint-exempt.json` still held
-  (~289 findings per memory `ariadnev-hardening-plan-progress-2026-08`).
-  Re-measure before starting phase 8 batches.
+- **Skill-lint exemption ledger:** deleted. `av validate --strict --check`
+  reports 0 errors; the existing invocation allowlist leaves three warnings.
 - **Live install baseline:** `~/.agents/skills` = 131 entries (101 `ak-*`, 30
   third-party, 0 `av-*`); `~/.ariadnev/` holds `history.jsonl` only, zero
   `av-*` dirs. There is no global ariadnev install to migrate — receipt-driven
@@ -114,9 +115,9 @@ new evidence:
   Real users exist on the curl installer (confirmed 2026-08-22).
 - **Phase 1 checker enforces two rules:** target existence *and* path shape
   `(../)+av-<slug>/`. Name-only would be a no-op.
-- **`av doctor` orphan check keys on the prior receipt, not on `SKILL.md`
-  presence or canonical name.** Draft's filter double-fails on third-party
-  collisions and on the file heal deletes.
+- **`av doctor` legacy-dir check keys on interrupted-heal journal entries, not
+  directory names or `SKILL.md` presence.** This avoids third-party collisions
+  and reports only an incomplete heal that ariadnev itself recorded.
 - **`ariadnev-web` does not consume `av --json`** (grepped; every `--json` hit
   in web is docs text or unrelated `schemaVersion`). No cross-repo consumer
   gate on JSON envelope changes.
@@ -128,11 +129,8 @@ new evidence:
 - **Agents have no `references/` escape hatch** (loader reads only top-level
   `.md`); over-long agents must be *cut*, not extracted.
 
-Open question still unresolved:
-
-- **Q4** in `plan.md`: strip `metadata.origin: ported` once a skill clears the
-  bar? Deferred to phase 2's ADR revisit at close-out — decide before deleting
-  `isPorted()` in phase 9.
+**Q4 resolved:** retain `metadata.origin: ported` as provenance only. ADR 0013
+records that it has no lint-severity effect.
 
 ## Work performed
 
@@ -150,30 +148,24 @@ Session-visible history (from plan.md + memory
 - **Between then and now (2026-08-24 13:09 +07):** dev advanced to `f8efbea`
   with phases 1, 2, 3, 5 (merge), 6, 7, 10, 11 (merge) marked completed;
   working tree currently clean; no release cut yet.
-
-No commands executed in this handoff session beyond read-only git probes and
-plan/phase file reads. No files mutated.
+- **2026-08-24 follow-up:** removed the exemption mechanism and ledger, added
+  journal-backed doctor reporting, regenerated the embedded kit, refreshed
+  docs and plan sync-back, and opened PR #69 to `dev`.
 
 ## Verification
 
-**Verified in this session.**
-- Git state: `git rev-parse` chain + `git status --short` (clean).
-- Plan status table: parsed `plan.md:159-170`, matches per-phase file front
-  matter `status:` fields.
-- Open checkbox counts per pending phase file (grep `^\s*- \[ \]`): phase 4
-  = 7, phase 5 = 1, phase 8 = 8, phase 9 = 3, phase 11 = 2.
+**Verified for PR #69.**
+- `pnpm test` completed successfully.
+- `pnpm lint`, `pnpm build`, `git diff --check`, and focused doctor/validate
+  suites passed.
+- `node packages/cli/dist/index.js validate --strict --check` reports 0 errors
+  (three existing invocation warnings).
+- `gitleaks git --staged --redact` found no leaks before commit.
 
-**Not verified in this session.** Successor agent MUST re-verify before acting:
-- `pnpm test` current state on `dev` (memory says green; re-run before
-  starting a batch).
-- Actual number of held findings in `kit/skills-lint-exempt.json` now (memory
-  quoted 289; count directly).
-- Whether Tier A batch 2 / Tier B batch 1 / calibration-tail / av-lint agent
-  work already merged into `dev` since memory snapshot.
-- Beta channel status: `ariadnev.com/version` value; whether any `-beta`
-  binary has been cut.
-- Whether phase 5's signed release has actually been published (releases
-  page + presence of `checksums.txt.sig` asset).
+**Maintainer must verify before release.**
+- PR #69 CI reaches green and the draft is ready for review.
+- A signed phase-5 release is published with `checksums.txt.sig`.
+- Beta channel state and `ariadnev.com/version` after deployment.
 
 **Known failure modes to preserve.**
 - Retro-signing a past release is impossible by design (releases asserted
@@ -193,72 +185,21 @@ plan/phase file reads. No files mutated.
 - **Second-reader review is 100% mandated** for phase 8. If a single agent
   drives both authoring and review, invalidate the reviewer's independence
   and log it — do not silently self-review.
-- **Ratchet monotonicity.** Every phase-8 PR must reduce
-  `kit/skills-lint-exempt.json` (never grow it, never re-add).
 - **Beta users are unknown.** Anyone who installed via curl before phase 0 is
   unmeasured. Beta channel + heal-on-install is the only mitigation.
-- **Q4 (`metadata.origin: ported` stripping)** unresolved — decide before
-  phase 9 close-out, not during.
 
 ## Exact next actions
 
 Ordered, executable, safe. Sequence matters — do not reorder without maintainer
 approval.
 
-1. **First safe step.** Re-verify current state before committing to a batch:
-   - `cd /Users/vchun/Codes/My-projects/vcskill-kit/ariadnev-kit`
-   - `git fetch --all --prune && git status`
-   - `pnpm install --frozen-lockfile && pnpm test`
-   - `pnpm -w exec av validate --strict` (or the local equivalent) to read the
-     current held-findings number and confirm `pnpm test` still green.
-   - Read `kit/skills-lint-exempt.json` and record: number of entries, distinct
-     skills, distinct rule ids.
-2. **Continue phase 8 Tier A batches (≤15 skills per PR).**
-   - Per skill: author `## Output format`, `## Quality gates`,
-     `## Workflow position` (naming ≥1 `av:<slug>`) grounded in the skill's
-     actual behavior; if Tier A also flagged for description, rewrite to
-     ≤200 chars starting with a trigger verb.
-   - Every skill gets a second-reader pass; every fix-diff re-reads the same
-     way. Log reviewer identity per skill in the PR body.
-   - Each PR must reduce `kit/skills-lint-exempt.json` monotonically.
-3. **Phase 8 Tier B trim.** Sections plus trim to ≤300 lines. Ten skills:
-   `agentize`, `cook`, `markdown-novel-viewer`, `shopify`, `ui-styling`,
-   `web-frameworks`, `mcp-builder`, `orchestrate`, `fix`, `design`.
-4. **Phase 8 Tier C content extraction.** Seven skills, `cti-expert` already
-   piloted. Order: `fable-thinking` → `frontend-development` → `review-pr` →
-   remaining. Extract into `references/` — do not delete surface behavior.
-5. **Phase 8 reference-file split.** Six files >800 lines
-   (`preview/references/html-css-patterns.md` 1717,
-   `preview/references/html-slide-patterns.md` 1401,
-   `mobile-development/references/mobile-debugging.md` 1089, plus 3 others —
-   confirm from `find kit/skills -name '*.md' -not -name SKILL.md`).
-6. **Phase 8 close-out.**
-   - Confirm `kit/skills-lint-exempt.json` is empty.
-   - `av validate` and `av validate --strict` clean with zero exemptions.
-   - No SKILL.md >300 lines; no reference file >800.
-   - All 105 descriptions ≤200 chars with a trigger verb.
-   - No new `description-collision` allowlist entries added.
-   - `pnpm test` green.
-7. **Phase 9 execution** (blocks on step 6):
-   - Remove `agent-lint.ts` `ported` branch; bring all 16 agents to the bar
-     (rewrite descriptions for 9, author `<example>`/`<commentary>` pair for
-     7, add `Behavioral Checklist` for 8, cut ≥120 lines for 9 agents —
-     union is all 16). No `references/` extraction (loader is flat).
-   - Delete `kit/skills-lint-exempt.json`, `isExempt()`, `isPorted()`, every
-     `origin: ported` severity path.
-   - Land the `explore` name lowering in a single commit (partial rename
-     breaks invocation).
-   - Decide Q4 (`metadata.origin: ported` stripping) with the maintainer
-     before closing.
-   - `av validate`, `--strict`, `--check` clean; `pnpm test` green.
-8. **Maintainer-gated release sequence** (do not execute unattended):
+1. **Review PR #69 and wait for CI green.** Preserve phase 8's unchecked
+   independent-second-reader and per-merge-proof criteria until evidence exists.
+2. **Maintainer-gated release sequence** (do not execute unattended):
    - **Cut phase 5 release** (signed `checksums.txt.sig` asset). Verify with
      a fresh `av update` from `${DOMAIN}` against a compiled-in public key.
    - **Deploy phase 11 edge + beta cut** so `-beta` version is installable by
      explicit opt-in without polluting the bare-installer stream.
-   - **Phase 4 pre-flight:** author `av doctor` orphan check keyed on the
-     prior receipt (add fourth dep to `diagnose()`, update
-     `doctor-command.ts:50-52`, expand `diagnose.test.ts`).
    - **Phase 4 rehearsal on beta.** Prove heal-on-install: zero unprefixed
      dirs, zero duplicates, correct receipt, survives kill between delete and
      receipt write. Prove one skill invocation per provider post-heal.
@@ -267,7 +208,7 @@ approval.
    - **Phase 4 stable release** only after all above green. Record inventory
      before heal; heal every maintainer install; `av doctor` clean;
      `ariadnev.com/version` serves the new version.
-9. **Plan close-out.**
+3. **Plan close-out.**
    - Re-run sync-back guard across all phase files; backfill checkboxes; flip
      `plan.md` `status: pending → completed` only when every phase file's
      `status:` is `completed` and every success criterion checkbox is `[x]`.
