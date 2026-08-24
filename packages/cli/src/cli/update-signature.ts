@@ -31,7 +31,7 @@ import { createPublicKey, generateKeyPairSync, sign, verify } from "node:crypto"
  * Changing this constant re-roots trust for every installed binary. It is not
  * overridable at runtime — an override would restore the hole it closes.
  */
-export const UPDATE_SIGNING_PUBLIC_KEY = "MCowBQYDK2VwAyEAXzDBIiBKNDB/DeEvyhE4G1xxCpGPCNI0Z3bEwr7J98I=";
+export const UPDATE_SIGNING_PUBLIC_KEY = "MCowBQYDK2VwAyEA6ymrlJ+gGvMnbcWrnJXnj3sqs52U3Nv9jPw7HOcFTu0=";
 
 /**
  * The bytes the signature covers: the release tag, a newline, then
