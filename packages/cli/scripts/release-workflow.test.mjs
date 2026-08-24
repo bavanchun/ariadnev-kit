@@ -42,7 +42,11 @@ test("workflow permissions and dispatch inputs are literal and minimal", () => {
   const finalizeData = loadWorkflow(finalize);
   assert.deepEqual(releaseData.permissions, {});
   assert.deepEqual(releaseJobs["version-pr"].permissions, { contents: "write", "pull-requests": "write" });
-  assert.deepEqual(releaseJobs["candidate-build"].permissions, { contents: "read" });
+  // checks:read propagates from the reusable build job, which reads the CI
+  // verdict via check-runs (require-ci-verdict.mjs). A caller cannot grant a
+  // reusable workflow more than it holds itself, so omitting it here trips a
+  // GitHub Actions startup_failure before any job runs.
+  assert.deepEqual(releaseJobs["candidate-build"].permissions, { contents: "read", checks: "read" });
   assert.deepEqual(releaseJobs["candidate-publish"].permissions, { contents: "write", actions: "read" });
   assert.deepEqual(buildJobs.build.permissions, { contents: "read", checks: "read" });
   assert.deepEqual(publishJobs.publish.permissions, { contents: "write", actions: "read" });
