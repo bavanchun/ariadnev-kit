@@ -75,6 +75,11 @@ jobs:
     if: needs.version-pr.outputs.release == 'true'
     permissions:
       contents: read
+      # The reusable workflow's build job reads the ci verdict from
+      # check-runs (require-ci-verdict.mjs). A caller cannot grant a reusable
+      # workflow more than it holds itself, so `checks: read` must appear here
+      # or GitHub refuses to schedule with startup_failure.
+      checks: read
     uses: ./.github/workflows/release-candidate-build.yml
     with:
       source_sha: ${{ needs.version-pr.outputs.source_sha }}
