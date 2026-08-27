@@ -31,7 +31,11 @@ export function payloadEntry(path: string, content: Buffer): DocsBundleManifestP
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validate = ajv.compile(manifestSchema);
-const STABLE_VERSION = /^\d+\.\d+\.\d+$/;
+// Accepts stable and SemVer-2.0 prereleases (`1.2.1-beta.0`) so phase 11's
+// beta channel can produce a valid manifest. The `releaseTag` check below still
+// enforces the tag/version identity, so a manifest can never claim a stable
+// tag for a prerelease version or vice versa.
+const RELEASE_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const REQUIRED_PAYLOAD_PATHS = [
   "proof/release-summary.json",
   "reference/cli/commands.json",
@@ -55,7 +59,7 @@ export function validateDocsBundleManifest(value: unknown): DocsBundleValidation
   if (!valid) errors.push(...(validate.errors ?? []).map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`));
   if (!valid) return { valid: false, errors };
   const complete = manifest as DocsBundleManifestV1;
-  if (!STABLE_VERSION.test(complete.version)) errors.push("version must be a stable semantic version");
+  if (!RELEASE_VERSION.test(complete.version)) errors.push("version must be a semantic version");
   if (complete.mode === "final" && complete.releaseTag !== `ariadnev@${complete.version}`) {
     errors.push("releaseTag must match version identity");
   }
