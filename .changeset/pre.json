@@ -4,5 +4,7 @@
   "initialVersions": {
     "ariadnev": "1.2.0"
   },
-  "changesets": []
+  "changesets": [
+    "p11-open-beta-channel"
+  ]
 }
