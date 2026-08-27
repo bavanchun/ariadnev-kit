@@ -1,0 +1,8 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "ariadnev": "1.2.0"
+  },
+  "changesets": []
+}
