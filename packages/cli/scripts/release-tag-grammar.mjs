@@ -14,15 +14,24 @@
 // language is how the two drift.
 
 const SEMVER = String.raw`(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)`;
+// Optional SemVer 2.0 prerelease suffix (`-beta.0`, `-rc.1`, `-alpha.2.3`).
+// Empty by design when the version is stable, so a stable tag under the current
+// grammar keeps matching the same shape it did before this suffix existed.
+const PRERELEASE = String.raw`(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?`;
 
 /** Product names that have carried a release. Order is oldest-first. */
 export const RELEASE_PRODUCT_NAMES = ["vcskill", "ariadnev"]; // brand-drift-allow: names the pre-rename release grammar
 
-/** A tag naming any release this project has ever cut. */
+/** A tag naming any stable release this project has ever cut. Prereleases are
+ * deliberately excluded: previous-stable lock and "bare install selects stable"
+ * both depend on this staying stable-only. */
 export const STABLE_RELEASE_TAG = new RegExp(`^(?:${RELEASE_PRODUCT_NAMES.join("|")})@${SEMVER}$`);
 
-/** A tag for a release being produced now — current name only. */
-export const CURRENT_RELEASE_TAG = new RegExp(`^${RELEASE_PRODUCT_NAMES.at(-1)}@${SEMVER}$`);
+/** A tag for a release being produced now — current name, stable or prerelease.
+ * `detect-release-source.mjs` gates candidate-build on this: without the
+ * prerelease branch, a `1.2.1-beta.0` cut is refused as "not a release version"
+ * and phase 11's beta channel cannot ship. */
+export const CURRENT_RELEASE_TAG = new RegExp(`^${RELEASE_PRODUCT_NAMES.at(-1)}@${SEMVER}${PRERELEASE}$`);
 
 export function isStableReleaseTag(tag) {
   return typeof tag === "string" && STABLE_RELEASE_TAG.test(tag);
