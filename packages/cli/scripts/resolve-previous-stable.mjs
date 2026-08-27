@@ -2,12 +2,17 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const STABLE_VERSION = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
+// Same shape as STABLE_VERSION plus a SemVer 2.0 prerelease suffix. Only used
+// for the `--version` input of the current cut, which under phase 11 pre mode
+// is `X.Y.Z-beta.N`. Previous-stable candidates keep going through
+// STABLE_VERSION so a beta tag is never picked as a predecessor.
+const CURRENT_VERSION = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const FULL_SHA = /^[a-f0-9]{40}$/;
 
-function parseVersion(value, label) {
-  const match = STABLE_VERSION.exec(value);
-  if (!match) throw new Error(`${label} must be a stable semantic version`);
-  const parts = match.slice(1).map(Number);
+function parseVersion(value, label, { allowPrerelease = false } = {}) {
+  const match = (allowPrerelease ? CURRENT_VERSION : STABLE_VERSION).exec(value);
+  if (!match) throw new Error(`${label} must be a ${allowPrerelease ? "" : "stable "}semantic version`);
+  const parts = match.slice(1, 4).map(Number);
   if (!parts.every(Number.isSafeInteger)) throw new Error(`${label} exceeds safe integer bounds`);
   return parts;
 }
@@ -34,7 +39,10 @@ function git(repositoryRoot, args) {
 const TAG_PREFIXES = ["ariadnev@", "vcskill@"]; // brand-drift-allow: reads pre-rename release tags
 
 export function resolvePreviousStable({ repositoryRoot, currentVersion }) {
-  const current = parseVersion(currentVersion, "current version");
+  // The current cut may be a prerelease under phase-11 pre mode; comparison
+  // only uses major.minor.patch, so `1.2.1-beta.0` finds the same predecessor
+  // stable as `1.2.1` would.
+  const current = parseVersion(currentVersion, "current version", { allowPrerelease: true });
   const candidates = TAG_PREFIXES.flatMap((prefix, prefixRank) =>
     git(repositoryRoot, ["tag", "--list", `${prefix}*`])
       .split("\n")

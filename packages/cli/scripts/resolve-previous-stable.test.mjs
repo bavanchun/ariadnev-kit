@@ -88,3 +88,33 @@ test("fails closed when predecessor metadata is missing or mismatched", () => {
     rmSync(mismatched, { recursive: true, force: true });
   }
 });
+
+test("accepts a prerelease current version and finds the same stable predecessor", () => {
+  // Phase 11 pre mode ships `X.Y.Z-beta.N`. Comparison uses only major.minor.patch,
+  // so `1.2.1-beta.0` must find the same predecessor as `1.2.1`.
+  const root = fixture();
+  try {
+    commitVersion(root, "1.2.0", "ariadnev@1.2.0");
+    const expectedSha = git(root, "rev-parse", "HEAD");
+    commitVersion(root, "1.2.1-beta.0");
+    assert.deepEqual(resolvePreviousStable({ repositoryRoot: root, currentVersion: "1.2.1-beta.0" }), {
+      schemaVersion: 1,
+      releaseTag: "ariadnev@1.2.0",
+      productSha: expectedSha,
+    });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("still refuses a malformed current version", () => {
+  const root = fixture();
+  try {
+    assert.throws(
+      () => resolvePreviousStable({ repositoryRoot: root, currentVersion: "v1.2.3" }),
+      /current version must be a semantic version/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
