@@ -90,7 +90,11 @@ jobs:
           };
           const maybe = (path) => { const result = runGh([...baseArgs, path]); if (result.status === 0) return JSON.parse(result.stdout || "{}"); if (/\bHTTP 404\b/.test(String(result.stderr))) return null; fail("GitHub API preflight failed"); };
           ok(/^[0-9]+$/.test(releaseId) && /^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ID) && /^[0-9]+$/.test(env.FINALIZATION_RUN_ATTEMPT), "invalid numeric identity");
-          ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-beta\.[1-9]\d*)?$/.test(tag), "exact ref identity required");
+          // Accept stable and full SemVer 2.0 prereleases. The pre-fix shape
+          // required `-beta.N` with N >= 1, but changesets pre mode starts at
+          // `-beta.0` — the first phase-11 beta cut would have been refused
+          // for the counter alone.
+          ok(/^[a-f0-9]{40}$/.test(sha) && env.EXACT_WORKFLOW_SHA === sha && env.DISPATCH_SHA === sha && env.DISPATCH_REF === `refs/tags/${tag}` && env.DISPATCH_REF_TYPE === "tag" && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(tag), "exact ref identity required");
           ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest) && artifactName === `ariadnev-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate identity drift");
           // The repository setting itself is unreadable here: GET
           // /repos/{owner}/{repo}/immutable-releases answers 403 "Resource not
