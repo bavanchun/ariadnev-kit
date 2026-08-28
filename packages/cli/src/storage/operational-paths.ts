@@ -26,7 +26,7 @@
 // does not — on the machine this was designed against, the upstream CLI's own
 // operational directory did not exist until something actually needed it.
 
-import { chmodSync, lstatSync, mkdirSync, rmSync } from "node:fs";
+import { chmodSync, lstatSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
 const ROOT_DIRECTORY = ".ariadnev";
@@ -104,7 +104,48 @@ export function ensureOperationalDirectory(home: string, path: string): string {
  * once, next to the paths it deletes.
  */
 export function removeStorageTree(path: string): void {
-  rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  // The retry loop is written out rather than delegated to `rmSync`'s own
+  // `maxRetries`. Passing that option changed nothing on windows-x64 under Bun,
+  // so it is not something this can rely on across both runtimes.
+  const deadline = 10;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      rmSync(path, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt >= deadline || (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY")) {
+        // Name what is still there. A bare EBUSY on the third CI run teaches
+        // nothing; the file that is stuck is the whole diagnosis.
+        throw new Error(`could not remove ${path} after ${attempt} attempt(s) (${code}): still holding ${describeTree(path)}`, { cause: error });
+      }
+      sleepBriefly(attempt * 20);
+    }
+  }
+}
+
+/** What is left in a tree that refused to go, for an error message. */
+function describeTree(path: string): string {
+  try {
+    return readdirSync(path, { recursive: true }).map(String).sort().join(", ") || "(nothing — the directory itself is held)";
+  } catch (error) {
+    return `(unreadable: ${(error as NodeJS.ErrnoException).code})`;
+  }
+}
+
+/**
+ * Block for a few milliseconds without pulling in an async boundary.
+ *
+ * `removeStorageTree` is synchronous because everything around it is — the
+ * drivers, the paths, the commands that will call it. Making it async to sleep
+ * would push a promise through every one of them for the sake of a retry that
+ * only ever fires on Windows.
+ */
+function sleepBriefly(milliseconds: number): void {
+  const until = Date.now() + milliseconds;
+  while (Date.now() < until) {
+    /* deliberate spin: bounded by the caller, and only reached on a failed unlink */
+  }
 }
 
 /** Throw away every rebuildable artifact. Authoritative files are untouched. */

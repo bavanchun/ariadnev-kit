@@ -27,6 +27,8 @@ interface BunStatement {
   all(...params: SqlValue[]): RawRow[];
   get(...params: SqlValue[]): RawRow | undefined | null;
   run(...params: SqlValue[]): { changes: number | bigint; lastInsertRowid: number | bigint };
+  /** Releases the native statement. Present on bun:sqlite; absent on some node:sqlite minors. */
+  finalize?(): void;
 }
 
 interface BunDatabase {
@@ -55,11 +57,33 @@ export const bunDriver: StorageDriver = {
     const { Database } = loadSqlite<BunSqliteModule>(BUN_SQLITE);
     const database = new Database(path, { create: true });
     if (wantsWal(path)) database.exec("PRAGMA journal_mode = WAL");
+    // Prepared statements are a native resource, and one left unfinalised keeps
+    // a handle on the database file. On Windows that makes the file
+    // undeletable, which breaks the one operation ADR 0014 rests on. Caching by
+    // SQL text both bounds the set and avoids re-preparing the same query.
+    const prepared = new Map<string, BunStatement>();
     return {
       exec: (sql) => database.exec(sql),
-      prepare: (sql) => wrapStatement(database.prepare(sql)),
+      prepare: (sql) => {
+        let statement = prepared.get(sql);
+        if (!statement) {
+          statement = database.prepare(sql);
+          prepared.set(sql, statement);
+        }
+        return wrapStatement(statement);
+      },
       transaction: (body) => execTransaction({ exec: (sql) => database.exec(sql) }, body),
-      close: () => checkpointAndClose(database),
+      close: () => {
+        for (const statement of prepared.values()) {
+          try {
+            statement.finalize?.();
+          } catch {
+            /* already finalised, or a driver that does not expose it */
+          }
+        }
+        prepared.clear();
+        checkpointAndClose(database);
+      },
     };
   },
 };
