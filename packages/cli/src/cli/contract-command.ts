@@ -77,9 +77,9 @@ export const PARITY = {
   /** Names in the captured surface this project intends to expose. */
   inScope: 36,
   /** Of those, the ones Commander registers today. */
-  registered: 23,
+  registered: 25,
   /** The gap. Monotonically decreasing; zero is the phase 13 exit condition. */
-  missing: 13,
+  missing: 11,
 } as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -101,6 +101,8 @@ export const KNOWN_COMMANDS = [
   "skill",
   "backups",
   "recover",
+  "diagnostics",
+  "versions",
   "unlock",
   "update",
   "validate",

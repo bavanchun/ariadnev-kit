@@ -1,4 +1,6 @@
-import { basename } from "node:path";
+import { basename, join } from "node:path";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { recordActivity } from "../activity/emit.js";
 import {
   runActivityList,
@@ -6,7 +8,7 @@ import {
   tailActivity,
 } from "./activity-command.js";
 import { executableRoot, lifecycleRoots, runUnlock, withLifecycleLock } from "../install/lifecycle-lock.js";
-import type { Command } from "commander";
+import { Command } from "commander";
 import { runBackupsList, runBackupsPrune, runBackupsRestore } from "./backups-command.js";
 import { runBackupsShow, runBackupsVerify, type BackupsResult } from "./backups-inspect.js";
 import { EXIT } from "./exit-codes.js";
@@ -20,6 +22,10 @@ import {
   runAnalyticsRebuild, runAnalyticsRefresh, runAnalyticsStatus,
 } from "./analytics-command.js";
 import { runDataIngest, runDataRetention, runDataStatus } from "./data-command.js";
+import { runRecover } from "./recover-command.js";
+import { runBackupsCreate } from "./backups-create.js";
+import { runDiagnosticsExport } from "./diagnostics-command.js";
+import { runVersions } from "./versions-command.js";
 import {
   runContentSearchDelete, runContentSearchDisable, runContentSearchEnable,
   runContentSearchRebuild, runContentSearchSearch, runContentSearchStatus,
@@ -44,7 +50,31 @@ interface BackupsCliOpts {
   latest?: boolean;
   olderThan?: string;
   keepLast?: string;
+  rebuild?: boolean;
   json?: boolean;
+}
+
+/** Commander's repeatable-option accumulator: `--allow-root a --allow-root b`. */
+function collect(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+/** `av diagnostics export`, as its own command so the group reads like the rest. */
+function diagnosticsExport(program: Command): Command {
+  return new Command("export")
+    .description("Write a redacted diagnostics bundle that is safe to paste into an issue")
+    .option("--offline", "accepted for compatibility; the bundle is built from local state either way", false)
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { offline?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      finishBackups(runDiagnosticsExport({
+        home: global.home,
+        cwd: global.cwd,
+        now: new Date().toISOString(),
+        offline: !!opts.offline,
+        json: !!opts.json,
+      }));
+    });
 }
 
 /** Positive integer from a CLI string, or null when it is not one. */
@@ -72,11 +102,23 @@ function runBackupsAction(
   const json = !!opts.json;
   if (action === "list") return { output: runBackupsList({ ...base, json }), exitCode: EXIT.ok };
 
+  if (action === "create") {
+    return runBackupsCreate({ ...base, timestamp: timestamp ?? nowStamp(), dryRun, json });
+  }
+
   if (action === "show" || action === "verify") {
     const missing = needsTimestamp(action, timestamp, false);
     if (missing) return missing;
     const inspect = { ...base, timestamp: timestamp!, json };
-    return action === "show" ? runBackupsShow(inspect) : runBackupsVerify(inspect);
+    if (action === "show") return runBackupsShow(inspect);
+    // The rebuild check runs in a throwaway directory, never against the live
+    // home: a diagnostic that rebuilt the index it is reassuring you about
+    // would have a side effect, which is the same reason `status` never repairs.
+    return runBackupsVerify({
+      ...inspect,
+      rebuild: !!opts.rebuild,
+      ...(opts.rebuild ? { scratchHome: mkdtempSync(join(tmpdir(), "ariadnev-rebuild-check-")) } : {}),
+    });
   }
 
   if (action === "restore") {
@@ -117,7 +159,7 @@ function runBackupsAction(
   }
 
   return {
-    output: `unknown backups action: ${action} (use list, show, verify, restore or prune)`,
+    output: `unknown backups action: ${action} (use create, list, show, verify, restore or prune)`,
     exitCode: EXIT.usage,
   };
 }
@@ -128,7 +170,10 @@ function runBackupsAction(
  * reaches for precisely when they want to know what is going on.
  */
 function backupsLockRoots(action: string, global: GlobalOpts): string[] {
-  const mutates = action === "restore" || action === "prune";
+  // `create` joins the writers: it copies operational state that another
+  // command could be appending to, and taking the lock is what makes "the
+  // snapshot is internally consistent" true of more than the activity log.
+  const mutates = action === "restore" || action === "prune" || action === "create";
   return mutates && !global.dryRun ? lifecycleRoots(global) : [];
 }
 
@@ -175,22 +220,30 @@ export function registerMaintenanceCommands(
   program
     .command("backups")
     .description("List, show, verify, restore or prune ariadnev-managed backups")
-    .argument("<action>", "list | show <ts> | verify <ts> | restore <ts> | prune")
+    .argument("<action>", "create | list | show <ts> | verify <ts> | restore <ts> | prune")
     .argument("[timestamp]", "backup timestamp (for show, verify, restore)")
     .option("--global", "use ~/ scope", false)
     .option("--file <rel>", "restore only the file matching this name")
     .option("--latest", "restore the newest backup instead of a named one", false)
     .option("--older-than <days>", "prune: remove backups older than this many days")
     .option("--keep-last <n>", "prune: keep this many newest backups")
+    .option("--rebuild", "verify: also prove the derived state this backup omits can be regenerated", false)
     .option("--json", "emit the machine envelope instead of the text report", false)
     .action(async (action: string, timestamp: string | undefined, opts: BackupsCliOpts) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       const base = { home: global.home, cwd: global.cwd, scope } as const;
       finishBackups(
-        await withLifecycleLock(backupsLockRoots(action, global), `backups ${action}`, () =>
-          runBackupsAction(action, timestamp, opts, base, !!global.dryRun),
-        ),
+        await withLifecycleLock(backupsLockRoots(action, global), `backups ${action}`, () => {
+          const result = runBackupsAction(action, timestamp, opts, base, !!global.dryRun);
+          // A dry run took no snapshot, so it is not one. "When did I last have
+          // a good copy" is the question this event exists to answer, and a
+          // preview would answer it wrongly.
+          if (action === "create" && !global.dryRun) {
+            recordActivity(global.home, "backup.created", { status: result.exitCode === EXIT.ok ? "ok" : "failed" });
+          }
+          return result;
+        }),
       );
     });
 
@@ -199,25 +252,72 @@ export function registerMaintenanceCommands(
   // `--latest`, which now lives on `restore` beside the other restore flags.
   program
     .command("recover")
-    .description("Alias for `backups restore --latest` (pass a timestamp to pick one)")
+    .description("Replay a snapshot back to its original paths. Previews unless --yes")
     .argument("[timestamp]", "backup timestamp; omit to take the newest")
     .option("--global", "use ~/ scope", false)
     .option("--file <rel>", "restore only the file matching this name")
+    .option("--dry-run", "print the restore plan and write nothing", false)
+    .option("--allow-root <dir>", "authorize one absolute root this restore may write under (repeatable)", collect, [])
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action(async (timestamp: string | undefined, opts: BackupsCliOpts) => {
+    .action(async (timestamp: string | undefined, opts: BackupsCliOpts & { dryRun?: boolean; allowRoot?: string[] }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
+      // Writing is the only path that takes the lock. A preview is what someone
+      // runs to decide whether to write, and blocking it during another command
+      // takes away the answer at exactly the moment it is wanted.
+      const writes = !!global.yes && !opts.dryRun && !global.dryRun;
       finishBackups(
-        await withLifecycleLock(backupsLockRoots("restore", global), "recover", () =>
-          runBackupsAction(
-            "restore",
-            timestamp,
-            { ...opts, latest: timestamp === undefined },
-            { home: global.home, cwd: global.cwd, scope },
-            !!global.dryRun,
-          ),
-        ),
+        await withLifecycleLock(writes ? lifecycleRoots(global) : [], "recover", () => {
+          const outcome = runRecover({
+            home: global.home,
+            cwd: global.cwd,
+            scope,
+            timestamp: timestamp ?? "",
+            latest: timestamp === undefined,
+            file: opts.file,
+            yes: !!global.yes,
+            dryRun: !!opts.dryRun || !!global.dryRun,
+            allowRoot: opts.allowRoot ?? [],
+            json: !!opts.json,
+            preRestoreTimestamp: nowStamp(),
+          });
+          // Only a restore that actually ran is an event. A preview changed
+          // nothing, and logging it would put "restored" in the record of a
+          // machine where nothing was restored — the same confusion the preview
+          // warning exists to prevent. A refused invocation is not an event
+          // either: `--allow-root` naming the wrong root is a rejected command,
+          // not a restore that failed, and recording it as one would leave a
+          // "backup.restored failed" in the log for something never attempted.
+          if (writes && outcome.exitCode === EXIT.ok) {
+            recordActivity(global.home, "backup.restored", {
+              status: outcome.restored.length > 0 ? "ok" : "failed",
+            });
+          }
+          return outcome;
+        }),
       );
+    });
+
+  program
+    .command("diagnostics")
+    .description("Export a redacted support bundle")
+    .addCommand(diagnosticsExport(program));
+
+  program
+    .command("versions")
+    .description("Show local versions for the CLI, the kit, and installed skills")
+    .option("--local-only", "accepted for compatibility; every version here is already local", false)
+    .option("--cache-ttl <duration>", "accepted for compatibility; nothing is fetched or cached")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { localOnly?: boolean; cacheTtl?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      finishBackups(runVersions({
+        home: global.home,
+        cwd: global.cwd,
+        localOnly: !!opts.localOnly,
+        ...(opts.cacheTtl === undefined ? {} : { cacheTtl: opts.cacheTtl }),
+        json: !!opts.json,
+      }));
     });
 
   // The escape hatch a refuse-never-steal policy requires. A lock is only ever

@@ -24,6 +24,13 @@ export const ACTIVITY_KINDS = [
   "workflow.started",
   "workflow.completed",
   "workflow.failed",
+  // Snapshot and restore. Recorded because these are the two operations whose
+  // absence is hardest to reconstruct afterwards: "when did I last have a good
+  // copy of this" and "what did that restore actually touch" are exactly the
+  // questions someone asks after losing state, and the log is the only place
+  // that can still answer them.
+  "backup.created",
+  "backup.restored",
 ] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
