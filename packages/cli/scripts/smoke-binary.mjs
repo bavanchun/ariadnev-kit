@@ -136,11 +136,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
   const releaseDir = join(pkgDir, "dist", "release");
   const asset = hostAssetName();
-  const bin = process.argv[2] ?? (asset && join(releaseDir, asset));
-  if (!bin) {
+  const binArg = process.argv[2] ?? (asset && join(releaseDir, asset));
+  if (!binArg) {
     console.error(`smoke: no binary for this host (${process.platform}/${process.arch}) — pass a path`);
     process.exit(1);
   }
+  // execFileSync spawns with `cwd: scratch`. On POSIX a bin path containing a
+  // slash is resolved relative to the child's cwd (execvp), so a relative arg
+  // like `candidate/ariadnev-darwin-arm64` breaks the moment cwd changes.
+  // Absolute-resolve at the boundary so smoke works from any invocation cwd.
+  const bin = resolve(binArg);
 
   const expectedVersion = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")).version;
 
@@ -175,16 +180,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
   // The other four assets are what most users download and this runner cannot
   // execute any of them. Say so explicitly, and check what can be checked —
-  // silence here would read as a pass.
+  // silence here would read as a pass. Look next to the bin the caller pointed
+  // at (`candidate/` from the release matrix; `dist/release/` locally), not a
+  // fixed releaseDir — the two disagree in the cross-platform smoke job.
+  const siblingDir = dirname(bin);
   const headerFailures = [];
   for (const { asset: name } of TARGETS) {
     if (name === asset) continue;
-    const path = join(releaseDir, name);
+    const path = join(siblingDir, name);
     let size;
     try {
       size = statSync(path).size;
     } catch {
-      headerFailures.push(`${name} is missing from ${releaseDir}`);
+      headerFailures.push(`${name} is missing from ${siblingDir}`);
       continue;
     }
     const { magic, archOffset, archBytes } = expectedHeader(name);

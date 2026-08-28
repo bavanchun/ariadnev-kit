@@ -77,7 +77,10 @@ jobs:
             if (/\bHTTP 404\b/.test(String(result.stderr))) return null;
             fail("GitHub API preflight failed");
           };
-          ok(/^[a-f0-9]{40}$/.test(sha) && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag), "invalid release identity");
+          // Accept stable and SemVer 2.0 prereleases so phase-11 beta cuts
+          // (`ariadnev@1.2.1-beta.0`) reach the held-draft step. Finalization
+          // is what decides whether a draft becomes a public latest.
+          ok(/^[a-f0-9]{40}$/.test(sha) && /^ariadnev@(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(tag), "invalid release identity");
           ok(/^[0-9]+$/.test(runId) && /^[0-9]+$/.test(attempt) && /^[0-9]+$/.test(artifactId), "invalid candidate identity");
           ok(/^sha256:[a-f0-9]{64}$/.test(artifactDigest), "invalid candidate digest");
           ok(artifactName === `ariadnev-candidate-${sha}-run-${runId}-attempt-${attempt}`, "candidate name drift");

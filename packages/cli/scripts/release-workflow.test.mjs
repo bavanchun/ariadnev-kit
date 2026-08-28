@@ -42,7 +42,11 @@ test("workflow permissions and dispatch inputs are literal and minimal", () => {
   const finalizeData = loadWorkflow(finalize);
   assert.deepEqual(releaseData.permissions, {});
   assert.deepEqual(releaseJobs["version-pr"].permissions, { contents: "write", "pull-requests": "write" });
-  assert.deepEqual(releaseJobs["candidate-build"].permissions, { contents: "read" });
+  // checks:read propagates from the reusable build job, which reads the CI
+  // verdict via check-runs (require-ci-verdict.mjs). A caller cannot grant a
+  // reusable workflow more than it holds itself, so omitting it here trips a
+  // GitHub Actions startup_failure before any job runs.
+  assert.deepEqual(releaseJobs["candidate-build"].permissions, { contents: "read", checks: "read" });
   assert.deepEqual(releaseJobs["candidate-publish"].permissions, { contents: "write", actions: "read" });
   assert.deepEqual(buildJobs.build.permissions, { contents: "read", checks: "read" });
   assert.deepEqual(publishJobs.publish.permissions, { contents: "write", actions: "read" });
@@ -200,18 +204,36 @@ test("finalize verifies the signature and publishes it as an asset", () => {
   assert.doesNotMatch(workflow, /ARIADNEV_RELEASE_KEY|secrets\.[A-Z_]*SIGN/);
 });
 
-test("a beta tag is accepted by the ref-identity check, a malformed one is not", () => {
+test("a SemVer 2.0 prerelease tag is accepted by the ref-identity check, a malformed one is not", () => {
   // Extracted from the workflow rather than restated, so this cannot drift into
   // testing a copy of the pattern while the real one says something else.
+  //
+  // The original shape here only accepted `-beta.[1-9]\d*`, which refused the
+  // very first phase-11 beta cut because changesets pre mode starts at `-beta.0`.
+  // Widened to the full SemVer 2.0 prerelease grammar so alpha/rc identifiers
+  // and a zero counter are accepted alongside the stable shape.
   const workflow = readWorkflow(finalize);
   const start = workflow.indexOf("/^ariadnev@");
   const end = workflow.indexOf("/.test(tag)", start);
   assert.ok(start > 0 && end > start, "the ref-identity tag pattern moved");
   const re = new RegExp(workflow.slice(start + 1, end));
-  for (const good of ["ariadnev@1.2.3", "ariadnev@1.2.3-beta.1", "ariadnev@10.0.0-beta.12"]) {
+  for (const good of [
+    "ariadnev@1.2.3",
+    "ariadnev@1.2.3-beta.0",
+    "ariadnev@1.2.3-beta.1",
+    "ariadnev@10.0.0-beta.12",
+    "ariadnev@1.2.3-alpha.1",
+    "ariadnev@1.2.3-rc.10",
+  ]) {
     assert.equal(re.test(good), true, good);
   }
-  for (const bad of ["ariadnev@1.2.3-beta", "ariadnev@1.2.3-beta.0", "ariadnev@1.2.3-alpha.1", "ariadnev@1.2.3-beta.1-x", "v1.2.3"]) {
+  for (const bad of [
+    "ariadnev@1.2.3-",
+    "ariadnev@1.2.3-beta..0",
+    "v1.2.3",
+    "ariadnev@1.2",
+    "ariadnev@1.2.3-beta.1+build",
+  ]) {
     assert.equal(re.test(bad), false, bad);
   }
 });

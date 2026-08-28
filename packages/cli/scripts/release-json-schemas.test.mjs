@@ -6,7 +6,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { candidateEnvelope, createCandidate, SHA, TAG } from "./release-privileged-fixtures.mjs";
 import { repoRoot, withScratch } from "./release-test-helpers.mjs";
-import { isStableReleaseTag, RELEASE_PRODUCT_NAMES } from "./release-tag-grammar.mjs";
+import { CURRENT_RELEASE_TAG, isStableReleaseTag, RELEASE_PRODUCT_NAMES, STABLE_RELEASE_TAG } from "./release-tag-grammar.mjs";
 
 const schemaDirectory = join(repoRoot, ".github", "release");
 
@@ -41,6 +41,28 @@ test("a predecessor tag is accepted across the rename and refused beyond it", ()
   assert.equal(isStableReleaseTag(`${currentName}@1.0`), false);
   assert.equal(isStableReleaseTag("v1.0.0"), false);
   assert.equal(isStableReleaseTag(undefined), false);
+});
+
+test("CURRENT_RELEASE_TAG accepts stable and prerelease under the current name", () => {
+  // detect-release-source.mjs gates candidate-build on this regex. It must
+  // accept phase-11 beta cuts (`1.2.1-beta.0`), otherwise the beta channel
+  // cannot ship. The stable shape must still match, and prereleases outside
+  // the current name must still be refused.
+  const [oldName, currentName] = RELEASE_PRODUCT_NAMES;
+
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@1.2.1`), true);
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@1.2.1-beta.0`), true);
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@2.0.0-alpha.1`), true);
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@1.0.0-rc.10`), true);
+
+  // The pre-rename name is deliberately not "current".
+  assert.equal(CURRENT_RELEASE_TAG.test(`${oldName}@1.0.0-beta.0`), false);
+  // A prerelease is not a stable release.
+  assert.equal(STABLE_RELEASE_TAG.test(`${currentName}@1.2.1-beta.0`), false);
+  // Shape still has to hold: no leading `v`, no missing patch, no empty tag.
+  assert.equal(CURRENT_RELEASE_TAG.test(`v${currentName}@1.0.0-beta.0`), false);
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@1.0-beta.0`), false);
+  assert.equal(CURRENT_RELEASE_TAG.test(`${currentName}@1.0.0-`), false);
 });
 
 test("candidate and inner provenance fixtures validate and malformed dates fail", () => withScratch("av-release-schema-", (dir) => {

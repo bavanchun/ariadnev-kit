@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "ariadnev": "1.2.0"
+  },
+  "changesets": [
+    "p11-open-beta-channel"
+  ]
+}

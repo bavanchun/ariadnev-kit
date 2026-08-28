@@ -1,5 +1,74 @@
 # ariadnev
 
+## 1.2.1-beta.0
+
+### Patch Changes
+
+- 2b83937: Open the beta release channel (phase 11 rehearsal).
+
+  This changeset exists so the Version PR under changesets pre mode produces
+  `ariadnev@X.Y.Z-beta.1` — a real, installable prerelease used to rehearse
+  phase 4's directory rename on live installs before the stable cut.
+
+  Contents of the beta:
+
+  - `fix(release): resolve smoke binary path to absolute` — release smoke script
+    now resolves the binary path against the workspace root instead of the caller
+    CWD, so the smoke passes when the workflow invokes it from a sibling target
+    directory.
+
+  Opt-in only. Bare `curl … | bash` and bare `av update` continue to select the
+  stable release. To install this beta:
+
+      av update --to <printed-version>
+
+  The signature-verifying update path covers this beta through the same key and
+  the same finalize step as stable — no unsigned-but-accepted path is introduced.
+
+## 1.2.0
+
+### Minor Changes
+
+- 5725529: `ariadnev doctor` now reports a non-empty unprefixed skill directory only when
+  the current receipt recorded that legacy path and its `av-*` replacement exists.
+  This makes interrupted or incomplete prefix heals actionable without reporting
+  third-party skills that share a canonical name.
+
+  All shipped skills now meet the authoring bar directly; the retired skill-lint
+  exemption ledger can no longer suppress validation failures.
+
+- 00797ee: Authenticate the update channel, and stop `backups restore` trusting its manifest.
+
+  **`ariadnev update` now verifies an Ed25519 signature before it trusts any hash.**
+  The binary and `checksums.txt` come from the same origin, so the checksum only
+  ever proved the two halves agreed with each other — a forged pair agrees with
+  itself. Releases carry a `checksums.txt.sig` signed by a key held offline by the
+  maintainer and verified against a public key compiled into the binary. The
+  signature covers the version as well as the checksums, so a genuinely signed
+  older release cannot be replayed as a newer one.
+
+  Two consequences worth knowing:
+
+  - **`ariadnev update --to <version>` no longer works for any release published
+    before signing.** GitHub releases are immutable, so those releases can never
+    gain a signature. Rolling back past that point means re-running the installer.
+  - **`ARIADNEV_BASE_URL` may now redirect `ariadnev update`**, because an origin
+    that cannot produce the maintainer's signature cannot install anything. It is
+    https-only, and https is enforced across redirects rather than only on the
+    first request.
+
+  **`ariadnev backups restore` refused a class of manifest it used to obey.** It
+  copied files to an absolute path read straight out of `manifest.json`, which for
+  project scope lives inside the repository you cloned. A hostile manifest could
+  name any path — a git hook, a shell profile, `~/.ssh/authorized_keys` — and
+  restore would write it. Restore now accepts only paths ariadnev actually
+  installs, validates every entry before writing the first one, and rejects a
+  manifest that does not parse instead of reporting it as "no manifest".
+
+  **`ariadnev doctor` reports whether this binary can verify a signature at all.**
+  Without it, a platform where Ed25519 is unavailable and a correctly fail-closed
+  one look identical: both refuse every update.
+
 ## 1.1.0
 
 ### Minor Changes
