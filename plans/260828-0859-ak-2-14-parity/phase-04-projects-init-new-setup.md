@@ -41,6 +41,83 @@ gives a command that cannot make its central safety guarantee.
   lock rather than a second locking scheme.
 - `setup` writes **no** auth material — out of scope.
 
+## Oracle observation — captured 2026-08-28 against 2.14.0
+
+Step 1, before any code. Five findings the phase did not have.
+
+### The manifest has a name and a location
+
+`ak init --help`: *"Creates or updates `<dir>/.agentkit/ownership.json`. Captures
+pre-init snapshot."* So the manifest is one file at the project root, not a
+global index — `projects.json` is the global index and holds no file list.
+
+### `init` can skip its snapshot; `uninstall` cannot
+
+`init` has `--no-backup` (*"Skip the pre-install snapshot (power users only —
+data loss risk)"*). `uninstall` has **no such flag**, and states the rule
+outright: *"A snapshot is taken via `ak backups` BEFORE any deletion, even with
+`--force`."*
+
+That asymmetry is correct and worth keeping deliberately. `init` writes files;
+its snapshot protects against a bad write, and a power user may accept that
+risk. `uninstall` deletes files, and nothing recovers a deletion but the
+snapshot. **`--no-backup` must not be ported to `uninstall`.**
+
+### `uninstall --dry-run` exits 3, which collides with this repo's exit table
+
+Verbatim: *"Show classification plan without deleting anything (exit 3)"*, and
+default behaviour is dry-run.
+
+`exit-codes.ts` defines 3 as *"the command could not run because the environment
+is not ready"*, and `uninstall` is **not** in `LEGACY_EXIT_COMMANDS`, so it takes
+that table. Reproducing exit 3 here would mean one number saying two unrelated
+things in the same binary, and CI already gates on the documented meaning.
+
+**Decision: `av uninstall --dry-run` exits 0.** A preview that ran and printed
+its plan did what was asked. The plan's own semver-honesty rule is about
+changing behavior silently; this is a divergence recorded before it ships, and
+phase 13's audit gets it. Scripted callers read the classification from `--json`,
+not from an exit code that means "environment not ready" everywhere else.
+
+### `new` is half remote-registry, and that half does not port
+
+`--channel`, `--registry-url`, `--remote`/`--local`, `--version`, `--kits-dir`
+all serve a remote kit registry. ariadnev ships its kit **embedded in the
+binary** — there is no registry to point at, and inventing one is a different
+project. `av new` keeps `--template` and `--kits` resolved against the embedded
+kit, and the registry flags are a documented non-port rather than a gap.
+
+### `setup`'s step list is mostly auth, and this phase excludes auth
+
+Upstream `--step` values: `enabled_adapters`, `anthropic_api_key`,
+`openai_api_key`, `default_provider`, `default_model`, `image_provider`,
+`default_kit`, `telemetry`, `codex_api_key_env_var`, `codex_default_model`,
+`codex_provider`.
+
+Three write credentials and are out of scope by this phase's own non-functional
+rule (*"`setup` writes **no** auth material"*). ariadnev's `--step` set is the
+remaining eight. `--advanced`, whose entire purpose is *"configure direct
+provider API keys"*, is not ported either.
+
+### The registry shape
+
+`~/.agentkit/projects.json` is `{ version, projects: [...] }` with entries of
+`name`, `dir`, `registered_at`, `updated_at`. `projects list --json`:
+
+```json
+{ "schema_version": 1, "kind": "projects.list",
+  "data": { "projects": [ { "dir": "…", "name": "…",
+    "registered_at": "…", "updated_at": "…" } ], "total": 2 } }
+```
+
+Note what is **absent**: no `schema_version` repeated inside `data`. Phase 3
+found that duplicate on `activity` and dropped it, reasoning it had no
+independent meaning. This confirms it — upstream is inconsistent about it, and
+`projects` is the shape phase 3 chose.
+
+`projects prune` also carries `--all --force --yes` to wipe the registry, with
+`--force` documented as *"required safety gate when using `--all`"*.
+
 ## Architecture
 
 **Oracle.** `~/.agentkit/projects.json` is plain JSON with a sibling
@@ -124,7 +201,9 @@ minus every auth-related step.
 - [ ] `av projects` full lifecycle against a locked registry
 - [ ] Concurrent `av init` runs do not corrupt the manifest
 - [ ] `av setup --no-interactive --config` writes config without a TTY
-- [ ] `setup` writes no auth material
+- [ ] `setup` writes no auth material, and offers none of the three auth steps
+- [ ] `uninstall` has no `--no-backup`, under any spelling
+- [ ] `projects prune --all` refuses without both `--force` and `--yes`
 - [ ] Existing `av install` **behavioral** tests untouched and green. Receipt-schema
       tests may gain cases; they must not lose assertions
 - [ ] `pnpm test` green
