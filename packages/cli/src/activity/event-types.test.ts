@@ -118,6 +118,8 @@ describe("the event vocabulary", () => {
       "workflow.failed",
       "backup.created",
       "backup.restored",
+      "dispatch.started",
+      "dispatch.completed",
     ]);
   });
 });

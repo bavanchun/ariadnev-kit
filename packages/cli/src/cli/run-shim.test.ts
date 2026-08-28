@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EXIT, UsageError } from "./exit-codes.js";
-import { acceptLegacyRun, refuseLegacyRunSubcommand, RUN_SHIM_REMOVED_IN } from "./run-shim.js";
+import { classifyRun, refuseLegacyRunSubcommand, RUN_SHIM_REMOVED_IN } from "./run-shim.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -15,7 +15,7 @@ function captureStderr(): string[] {
 describe("the legacy `av run` shim", () => {
   it("lets a workflow ID through, and says the name is going away", () => {
     const warnings = captureStderr();
-    acceptLegacyRun("read-only-delivery");
+    classifyRun("read-only-delivery");
     expect(warnings).toHaveLength(1);
     // Naming the replacement and the release is the whole content of a
     // deprecation. A warning that only says "deprecated" tells a user their
@@ -29,7 +29,7 @@ describe("the legacy `av run` shim", () => {
     // invocation that stops working — silence here would strand exactly the
     // users who never pass a workflow ID.
     const warnings = captureStderr();
-    acceptLegacyRun(undefined);
+    classifyRun(undefined);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("av workflow run");
   });
@@ -39,33 +39,32 @@ describe("the legacy `av run` shim", () => {
     // which would make the deprecation itself the breaking change.
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     captureStderr();
-    acceptLegacyRun("read-only-delivery");
+    classifyRun("read-only-delivery");
     expect(log).not.toHaveBeenCalled();
   });
 
-  it("refuses a slashed positional instead of running a workflow by that name", () => {
-    // The reserved grammar. Misrouting it would run the harness against a
-    // workflow ID that cannot exist, and report "not found" for a command that
-    // was spelled correctly.
+  it("routes a slashed positional to dispatch", () => {
+    // The grammar the name was reserved for, now implemented. Misrouting it
+    // would run the harness against a workflow ID that cannot exist and report
+    // "not found" for a command that was spelled correctly.
+    expect(classifyRun("engineer/scout")).toBe("dispatch");
+  });
+
+  it("says nothing at all when dispatching", () => {
+    // Dispatch is the current meaning of `run`, not a deprecated one. Warning
+    // here would print a deprecation notice on the spelling users are being
+    // moved towards.
     const warnings = captureStderr();
-    expect(() => acceptLegacyRun("engineer/scout")).toThrow(UsageError);
+    classifyRun("engineer/scout");
     expect(warnings).toEqual([]);
   });
 
-  it("tells a slashed positional what it is reserved for, and what to type today", () => {
-    let thrown: unknown;
-    try {
-      acceptLegacyRun("engineer/scout");
-    } catch (error) {
-      thrown = error;
-    }
-    expect((thrown as UsageError).message).toContain("engineer/scout");
-    expect((thrown as UsageError).message).toContain("av workflow run <workflow>");
-    // Not `av workflow run engineer`. A suggestion built from the kit name is
-    // not a workflow ID, and pointing a confused user at a second error is
-    // worse than pointing them at the grammar.
-    expect((thrown as UsageError).message).not.toContain("av workflow run engineer");
-    expect((thrown as UsageError).exitCode).toBe(EXIT.usage);
+  it("keeps both senses of run alive at once", () => {
+    // The coexistence requirement, as one assertion: the slash decides, and
+    // neither answer is an error.
+    captureStderr();
+    expect(classifyRun("engineer/scout")).toBe("dispatch");
+    expect(classifyRun("read-only-delivery")).toBe("legacy-workflow");
   });
 
   it("sends the moved subcommands to their new spelling", () => {

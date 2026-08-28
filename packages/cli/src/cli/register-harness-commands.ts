@@ -24,7 +24,9 @@ import {
   type RunWorkflowActionV1,
   type RunWorkflowCommandInputV1,
 } from "./run-command.js";
-import { acceptLegacyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
+import { classifyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
+import { DISPATCH_TARGETS } from "../dispatch/adapter-invocation.js";
+import { runDispatch } from "./run-dispatch-command.js";
 import { recordActivity } from "../activity/emit.js";
 
 const CODEX_RUNTIME_VERSION = "0.147.0";
@@ -300,9 +302,55 @@ export function registerHarnessCommands(program: Command): void {
   registerDeprecatedRun(program, runWorkflow);
 }
 
+interface DispatchFlags {
+  target?: string;
+  timeout?: string;
+  kitsDir?: string;
+  json?: boolean;
+}
+
 /**
- * The old spelling, kept working for one release. Deleted in 1.4.0 with
- * `run-shim.ts` — see that file for why the name had to move at all.
+ * Run one dispatch, forwarding the terminal's Ctrl-C to the spawned agent.
+ *
+ * The handler is installed for the duration of the run and removed after. A
+ * dispatched agent is detached into its own process group precisely so that a
+ * signal reaches its children too, and the cost of that is that the terminal's
+ * own Ctrl-C no longer arrives for free — this is where it is paid back.
+ */
+async function dispatch(program: Command, ref: string, args: string[], opts: DispatchFlags): Promise<void> {
+  const global = program.opts<GlobalOpts>();
+  const controller = new AbortController();
+  const onInterrupt = (): void => controller.abort();
+  process.on("SIGINT", onInterrupt);
+  try {
+    const result = await runDispatch({
+      ref,
+      args,
+      cwd: global.cwd,
+      home: global.home,
+      signal: controller.signal,
+      ...(opts.target ? { target: opts.target } : {}),
+      ...(opts.timeout ? { timeout: opts.timeout } : {}),
+      ...(opts.kitsDir ? { kitsDir: opts.kitsDir } : {}),
+      ...(opts.json ? { json: true } : {}),
+    });
+    if (result.output) emit(result.output);
+    // Set rather than thrown: the child's code is an answer to propagate, not
+    // an error of ariadnev's. Throwing would also print a message where the
+    // child has already said everything there is to say.
+    process.exitCode = result.exitCode;
+  } finally {
+    process.off("SIGINT", onInterrupt);
+  }
+}
+
+/**
+ * `av run` — skill dispatch, plus the harness spelling it replaced.
+ *
+ * Both senses live on one command because they have to: Commander binds a name
+ * once, and the whole point of the slash discriminator is that a single `run`
+ * can serve both without a flag. The legacy half is deleted in 1.4.0 along with
+ * `run-shim.ts`; the dispatch half is what the name now means.
  */
 function registerDeprecatedRun(
   program: Command,
@@ -310,11 +358,21 @@ function registerDeprecatedRun(
 ): void {
   const run = addWorkflowRunOptions(program
     .command("run")
-    .description("Reserved for skill dispatch as run <kit>/<skill>; a bare workflow ID is the deprecated spelling of workflow run"));
+    .description("Dispatch a skill as run <kit>/<skill>; a bare workflow ID is the deprecated spelling of workflow run"))
+    // Everything after the reference belongs to the skill, including flags the
+    // skill defines and this CLI has never heard of.
+    .argument("[args...]", "arguments passed through to the dispatched skill")
+    .allowUnknownOption()
+    .option("--target <provider>", `adapter to dispatch to: ${DISPATCH_TARGETS.join(" | ")}`)
+    .option("--timeout <duration>", "per-invocation timeout (30s, 2m); zero disables it")
+    .option("--kits-dir <dir>", "kits directory (default: ./kits or $ARIADNEV_KITS_DIR)");
 
-  run.action(async (workflow: string | undefined, opts: WorkflowRunOpts) => {
-    acceptLegacyRun(workflow);
-    await runWorkflow(workflow, opts);
+  run.action(async (workflow: string | undefined, args: string[], opts: WorkflowRunOpts & DispatchFlags) => {
+    if (classifyRun(workflow) === "legacy-workflow") {
+      await runWorkflow(workflow, opts);
+      return;
+    }
+    await dispatch(program, workflow as string, args ?? [], opts);
   });
 
   for (const moved of ["resume", "status", "cancel"] as const) {

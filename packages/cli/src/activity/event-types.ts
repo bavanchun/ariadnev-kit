@@ -31,6 +31,12 @@ export const ACTIVITY_KINDS = [
   // that can still answer them.
   "backup.created",
   "backup.restored",
+  // Skill dispatch. Two events rather than one because dispatch spawns a
+  // process that can outlive the question being asked about it: a run that
+  // never returned leaves only a `started`, and that absence of a matching
+  // `completed` is the signal worth being able to see.
+  "dispatch.started",
+  "dispatch.completed",
 ] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
