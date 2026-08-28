@@ -58,7 +58,29 @@ export const CAPABILITIES = [
   "adapters.project.v1",
   "plan.files.v1",
   "journal.entries.v1",
+  // How far this build is through the upstream-2.14.0 parity program. A client
+  // that does not find this is talking to a build from before the program
+  // started, and should assume nothing about which commands exist.
+  "parity.progress.v1",
 ] as const;
+
+// Progress against the captured upstream 2.14.0 surface.
+//
+// Constants rather than a read of `parity-manifest.json`: the manifest sits at
+// the repository root and the shipped binary has no repository. `KNOWN_COMMANDS`
+// below is kept honest the same way, and `parity-ratchet.test.ts` fails if any
+// of these four numbers drifts from the manifest or from the live surface — so
+// the manifest stays the single source of truth and this stays a projection of
+// it rather than a second opinion.
+export const PARITY = {
+  upstreamVersion: "2.14.0",
+  /** Names in the captured surface this project intends to expose. */
+  inScope: 36,
+  /** Of those, the ones Commander registers today. */
+  registered: 14,
+  /** The gap. Monotonically decreasing; zero is the phase 13 exit condition. */
+  missing: 22,
+} as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
 // real surface drifts from this list — the signal to revisit CAPABILITIES.
@@ -102,6 +124,7 @@ export function runContract(opts: ContractOpts): ContractResult {
           cli_version: opts.version,
           capabilities: [...CAPABILITIES],
           schema: { min: 1, max: 1 },
+          parity: { ...PARITY },
           providers: matrixToJSON(data),
         },
         null,
