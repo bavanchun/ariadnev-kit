@@ -14,13 +14,19 @@ const goodGraphValidate = JSON.stringify({
   graph: { id: "read-only-delivery", nodes: 7, edges: 12 },
 });
 
+const goodDoctor = [
+  "ariadnev doctor — not-installed",
+  "  ✓ ed25519: available (release signatures can be verified)",
+  "  ✓ sqlite: available (bun, fts5, wal)",
+].join("\n");
+
 function smoke(overrides = {}) {
   return checkSmokeOutput({
     versionOut: "0.6.0\n",
     validateOut: goodValidate,
     runHelpOut: goodRunHelp,
     graphValidateOut: goodGraphValidate,
-    doctorOut: "ariadnev doctor — not-installed\n  ✓ ed25519: available (release signatures can be verified)",
+    doctorOut: goodDoctor,
     expectedVersion: "0.6.0",
     ...overrides,
   });
@@ -162,4 +168,27 @@ test("fails when doctor said nothing about ed25519 at all", () => {
 // is a failure, not a reason to wave the check through.
 test("fails when no doctor output was captured at all", () => {
   assert.equal(smoke({ doctorOut: undefined }).ok, false);
+});
+
+test("fails when the target's SQLite has no FTS5", () => {
+  // The failure this is here for: Bun bundles its own SQLite off macOS, so a
+  // Linux or Windows artifact can lose full-text search while every other
+  // assertion in this file still passes.
+  const r = smoke({ doctorOut: goodDoctor.replace("sqlite: available (bun, fts5, wal)", "sqlite: UNAVAILABLE — missing fts5") });
+  assert.equal(r.ok, false);
+  assert.match(r.failures.join(" "), /sqlite/i);
+});
+
+test("fails when the binary reports WAL but not FTS5", () => {
+  const r = smoke({ doctorOut: goodDoctor.replace(", fts5, wal", ", wal") });
+  assert.equal(r.ok, false);
+  assert.match(r.failures.join(" "), /fts5 and wal/);
+});
+
+test("fails when doctor says nothing about sqlite at all", () => {
+  // Silence is the failure mode a positive assertion exists to catch: an older
+  // binary, or one whose storage line was dropped, must not smoke green.
+  const r = smoke({ doctorOut: "ariadnev doctor — not-installed\n  ✓ ed25519: available (release signatures can be verified)" });
+  assert.equal(r.ok, false);
+  assert.match(r.failures.join(" "), /sqlite/i);
 });

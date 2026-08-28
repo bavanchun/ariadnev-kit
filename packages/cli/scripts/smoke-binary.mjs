@@ -48,6 +48,16 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
     failures.push("doctor did not report ed25519 as available — release signatures cannot be verified here");
   }
 
+  // The storage substrate, on the target that actually ships. Bun bundles its
+  // own SQLite on Linux and Windows and uses the system one on macOS, and FTS5
+  // is a compile-time option rather than a guarantee — so a probe that passed on
+  // a developer's Mac says nothing about the artifact most users download. This
+  // rides the `doctor` invocation above rather than spawning again: the release
+  // gate is not the place to spend a process proving something already printed.
+  if (!/sqlite: available \([a-z]+, fts5, wal\)/.test(doctorOut ?? "")) {
+    failures.push("doctor did not report sqlite with fts5 and wal — the operational data plane cannot be built on this target");
+  }
+
   for (const token of ["resume", "status", "cancel", "--runtime <provider>", "--validate", "--json"]) {
     if (!runHelpOut.includes(token)) failures.push(`run --help is missing ${token}`);
   }

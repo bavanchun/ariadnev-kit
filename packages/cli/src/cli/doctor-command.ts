@@ -13,6 +13,7 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
 import { scoreAudit } from "../doctor/audit-score.js";
 import { coral, teal, amber, faint, bar, symbols, type StyleOpts } from "../ui/style.js";
+import { sqliteSelfTest, sqliteSelfTestSummary } from "../storage/sqlite-self-test.js";
 import { ed25519SelfTest } from "./update-signature.js";
 import { readJournal } from "../install/intent-journal.js";
 
@@ -112,6 +113,20 @@ function cryptoLine(opts: StyleOpts): string {
     : `  ${coral(symbols.fail, opts)} ed25519: UNAVAILABLE — \`ariadnev update\` cannot verify a release on this platform`;
 }
 
+/**
+ * Whether this binary's SQLite has what the operational data plane needs.
+ *
+ * Stated for the same reason as the line above: Bun bundles its own SQLite off
+ * macOS, so the build a user downloads may differ from the one anybody ran by
+ * hand, and FTS5 is a compile-time option rather than a guarantee. The release
+ * smoke asserts this line on every target it can execute.
+ */
+function storageLine(opts: StyleOpts): string {
+  const result = sqliteSelfTest();
+  const glyph = result.ok ? teal(symbols.ok, opts) : coral(symbols.fail, opts);
+  return `  ${glyph} ${sqliteSelfTestSummary(result)}`;
+}
+
 export function renderDoctorSummary(
   status: DoctorStatus,
   findings: ProviderFinding[],
@@ -121,10 +136,10 @@ export function renderDoctorSummary(
   if (status === "not-installed") {
     // The crypto line belongs here too: it is a property of the binary, not of
     // the install, and someone diagnosing a platform problem has no receipt yet.
-    return `${head}\n  no receipt found — run \`ariadnev install\` first\n${cryptoLine(opts)}`;
+    return `${head}\n  no receipt found — run \`ariadnev install\` first\n${cryptoLine(opts)}\n${storageLine(opts)}`;
   }
   const { score } = scoreAudit(findings);
-  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`, cryptoLine(opts)];
+  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`, cryptoLine(opts), storageLine(opts)];
   if (findings.length === 0) {
     lines.push(`  ${teal(symbols.ok, opts)} all checks passed`);
     return lines.join("\n");

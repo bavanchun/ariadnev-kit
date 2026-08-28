@@ -1,0 +1,103 @@
+name: Storage Gate A
+
+# Proves the storage substrate on every target CI actually executes, without
+# cutting a release to do it.
+#
+# WHY THIS EXISTS SEPARATELY. The only cross-platform harness in this repository
+# is `smoke-cross-platform` inside release-candidate-build.yml, and that runs on
+# the release path — which triggers on a push to `main` and nothing else. So the
+# question "does bun:sqlite have FTS5 on Linux and Windows" could not be asked
+# before a release without asking it during one. Bun bundles its own SQLite off
+# macOS and uses the system one on macOS, so a probe that passes on a
+# developer's Mac says nothing about the artifacts most users download.
+#
+# The assertion itself is not duplicated here. `doctor` prints the storage
+# capability line, `smoke-binary.mjs` asserts it on the release path, and this
+# workflow asserts the same line on the same three targets on demand. One
+# statement of the property, three places that read it.
+#
+# COST. Nothing, unless someone asks: dispatch, or a push to a `gate-a/**`
+# branch. Each runner compiles its own host target rather than cross-compiling
+# five, which is why this is minutes rather than tens of minutes.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["gate-a/**"]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      # One red target is the answer, so let the others finish and report too —
+      # "Linux fails, Windows unknown" is a worse place to start debugging from.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: macos-latest
+            target: darwin-arm64
+          - os: windows-latest
+            target: windows-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Storage conformance under node:sqlite
+        # The dev-side driver, on this OS. Narrowed to the storage suite: the
+        # rest of the tree is covered by ci.yml on ubuntu and is not what this
+        # workflow is asking about.
+        run: pnpm exec vitest run packages/cli/src/storage
+
+      - name: Storage conformance under bun:sqlite
+        run: bun packages/cli/scripts/run-storage-conformance.ts
+
+      - name: Compile the host binary
+        run: pnpm --filter ariadnev build:binary
+
+      - name: SQLite, FTS5 and WAL inside the compiled binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin=packages/cli/dist/ariadnev
+          [ -f "$bin" ] || bin=packages/cli/dist/ariadnev.exe
+          # `doctor` exits 2 with no receipt, which is the normal state on a
+          # runner, so the output is what matters rather than the code.
+          out=$("$bin" doctor || true)
+          echo "$out"
+          if ! grep -Eq 'sqlite: available \([a-z]+, fts5, wal\)' <<<"$out"; then
+            echo "::error::${{ matrix.target }}: the compiled binary has no working SQLite with FTS5 and WAL"
+            exit 1
+          fi
+          echo "${{ matrix.target }}: sqlite, fts5 and wal confirmed inside the compiled binary"
