@@ -11,6 +11,7 @@ import { registerCatalogCommands } from "./register-catalog-commands.js";
 import { registerConfigCommands } from "./register-config-commands.js";
 import { registerHarnessCommands } from "./register-harness-commands.js";
 import { registerInstallCommands } from "./register-install-commands.js";
+import { registerProjectCommands } from "./register-project-commands.js";
 import { registerMaintenanceCommands } from "./register-maintenance-commands.js";
 import { registerQualityCommands } from "./register-quality-commands.js";
 import { registerTier1Commands } from "./register-tier1-commands.js";
@@ -88,6 +89,7 @@ function surfaceProgram(): Command {
     record: () => undefined,
   };
   registerInstallCommands(program, context);
+  registerProjectCommands(program, context);
   registerMaintenanceCommands(program, context);
   registerQualityCommands(program, context);
   registerCatalogCommands(program, context);
