@@ -78,8 +78,7 @@ positional form needs the fallthrough.
 
 ## This phase breaks the release gate unless `smoke-binary.mjs` moves with it
 
-Found 2026-08-28; neither the plan nor its red team caught it, and it is the
-reason this phase cannot be treated as CLI-local.
+This is the reason this phase cannot be treated as CLI-local.
 
 `packages/cli/scripts/smoke-binary.mjs:51-53` asserts:
 

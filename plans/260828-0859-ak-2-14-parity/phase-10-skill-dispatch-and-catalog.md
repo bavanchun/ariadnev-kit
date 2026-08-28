@@ -77,10 +77,10 @@ independently revertable.
 
 **The shim stays.** Once `run <kit>/<skill>` dispatches, the no-slash
 fallthrough keeps working and keeps warning, through 1.3.0; it is deleted in
-1.4.0. Corrected 2026-08-28 — an earlier draft deleted it here, which would have
-shipped a deprecation warning no stable user ever saw. The discriminator stays
-unambiguous indefinitely (dispatch requires a slash), so retaining it costs
-nothing. What this phase owes is that dispatch and fallthrough coexist. The
+1.4.0. Deleting it here would ship a deprecation warning no stable user ever
+sees. The discriminator stays unambiguous indefinitely (dispatch requires a
+slash), so retaining it costs nothing. What this phase owes is that dispatch and
+fallthrough coexist. The
 release checklist verifies it rather than performing it.
 
 ## Related Code Files

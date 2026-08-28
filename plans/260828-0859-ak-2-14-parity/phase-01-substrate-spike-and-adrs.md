@@ -29,13 +29,10 @@ The two are separated because the predictable failure is declaring the exit gate
 risk this plan's own risk table ranks first (`bun:sqlite` off macOS). Gate A is
 green on every executed target, or the plan does not advance.
 
-**Corrected 2026-08-28.** An earlier draft of this phase claimed the harness
-"does not exist today — release smoke runs host-only", and sized Gate A at
-roughly half the phase on that basis. **That was false.** Verified:
-`.github/workflows/release-candidate-build.yml:160` defines job
-`smoke-cross-platform`, added by commit `05dce94`, which downloads the compiled
-candidate and *executes* it via `packages/cli/scripts/smoke-binary.mjs`.
-Execution coverage of the five targets in `scripts/binary-targets.mjs` today:
+**The harness already exists.** `release-candidate-build.yml:160` defines job
+`smoke-cross-platform`, which downloads the compiled candidate and *executes* it
+via `packages/cli/scripts/smoke-binary.mjs`. Execution coverage of the five
+targets in `scripts/binary-targets.mjs`:
 
 | Target | Executed in CI | Where |
 |---|---|---|
@@ -74,10 +71,8 @@ maintainer, not a default. See open question 7.
   identifier — the product name, and a bare `ak` as a standalone word — across
   every tracked file except its allowlist. `plans/` is allowlisted ("dated plans
   and reports describe work as it was scoped"), which is why this plan's own
-  prose passes; `docs/` and `packages/` are **not**. Discovered the hard way on
-  2026-08-28: the four ADRs failed this gate on their first push with 27 hits and
-  were rewritten to say "upstream" throughout, matching ADR 0011's existing house
-  style.
+  prose passes; `docs/` and `packages/` are **not**. ADRs 0014-0017 say
+  "upstream" throughout for this reason, matching ADR 0011's house style.
 
   This is a live constraint on phase 1's own deliverables, not a documentation
   footnote. `capture-upstream-surface.mjs` must invoke the upstream binary by
@@ -110,10 +105,9 @@ maintainer, not a default. See open question 7.
 | `node:sqlite` under Node 24.15.0 | works, FTS5 confirmed |
 | CI `node-version` | **`20`**, in **five places across three workflows** — `ci.yml:174`, `ci.yml:262`, `release.yml:40`, `release-candidate-build.yml:55`, `release-candidate-build.yml:178` |
 
-All five get bumped, but **not for the reason an earlier draft gave.** That draft
-said leaving the release pins on Node 20 would fail at phase 13 because
-`node:sqlite` does not exist there. Verified 2026-08-28: **the release-candidate
-build runs no tests at all.** Its steps are verdict lookup
+All five get bumped, though **the three release pins are inert with respect to
+the storage work**: the release-candidate build runs no tests at all. Its steps
+are verdict lookup
 (`require-ci-verdict.mjs`, keyed by source SHA), `pnpm install`,
 `build-binaries.mjs`, `smoke-binary.mjs`, attestation, staging, upload. Nothing
 on that path imports `node:sqlite` — the shipped binary carries `bun:sqlite`

@@ -87,9 +87,8 @@ are installed and lint-clean. Released as `1.3.0`.
    cell carrying evidence with a provider version and a date.
 4. Delete the derived index → rebuild → equivalent output. Standing CI test.
 5. The `run` fallthrough shim **ships in 1.3.0 and retires in 1.4.0** — see
-   "The `run` collision". An earlier draft removed it before 1.3.0 final, which
-   would have meant no stable user ever saw the deprecation warning the plan
-   calls its semver honesty.
+   "The `run` collision". Removing it before 1.3.0 would mean no stable user ever
+   saw the deprecation warning this plan calls its semver honesty.
 6. `1.3.0` released over the signed channel built in `260822-1407` phase 5.
 
 ## The exclusion set is not closed under dependency
@@ -133,9 +132,6 @@ rather than engineering. It records this plan in `blocks:`, and its
 commercial-surface non-goals are marked superseded — binding there, owned here.
 
 ## The stopping line, and the branch rule
-
-Corrected 2026-08-28 after verification; an earlier risk row said "phases 1-12
-can proceed" and was wrong.
 
 **Phases 1-9 and 11 may proceed under the open blocker. Phase 10 may not.**
 Phase 10's own requirements include `av skill install|remove|repair|upgrade`,
@@ -265,14 +261,12 @@ the positional falls through to the legacy workflow path with a deprecation
 warning. AgentKit's grammar requires `<kit>/<skill>`, so the discriminator is
 unambiguous.
 
-**The shim ships in 1.3.0 and retires in 1.4.0.** Corrected 2026-08-28: the
-plan previously had phase 10 delete it before 1.3.0 final while phase 13 still
-required verifying its one-release deprecation warning — the two cannot both
-hold, and the version a 1.2.x user actually upgrades to would have hard-errored
-with no warning at all. Keeping the fallthrough through 1.3.0 costs nothing:
-dispatch requires a slash, so the no-slash discriminator stays unambiguous
-indefinitely, and it puts `run` on the same one-release footing as `uninstall`,
-`update`, and `recover`.
+**The shim ships in 1.3.0 and retires in 1.4.0.** It cannot retire earlier: the
+version a 1.2.x user actually upgrades to is the one that has to carry the
+warning, or the deprecation path exists only on `dev`. Keeping the fallthrough
+through 1.3.0 costs nothing — dispatch requires a slash, so the no-slash
+discriminator stays unambiguous indefinitely — and it puts `run` on the same
+one-release footing as `uninstall`, `update`, and `recover`.
 
 ## Where "y chang agentkit" is a trap
 
@@ -338,11 +332,9 @@ ratchet, the ADRs). **Phase 2 and everything after wait on Gate A.** The
 predictable failure is calling the gate green on macOS with Linux pending, which
 skips exactly the risk the table below ranks first.
 
-*Corrected 2026-08-28:* an earlier draft claimed the cross-target harness "does
-not exist today — release smoke runs host-only" and sized the phase around
-building one. It exists (`release-candidate-build.yml`'s `smoke-cross-platform`,
-executing on Linux, macOS, and Windows), so Gate A is an extension and the phase
-is 3-5d rather than 4-7d. Details in the phase file.
+Gate A extends the cross-target harness that already exists
+(`release-candidate-build.yml`'s `smoke-cross-platform`, executing on Linux,
+macOS, and Windows) rather than building one. Details in the phase file.
 
 Phase 2 is early and trivially revertable: it frees the `run` name *before* any
 ported prose or dispatch work references it.
