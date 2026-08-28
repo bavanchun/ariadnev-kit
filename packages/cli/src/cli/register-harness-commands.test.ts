@@ -36,13 +36,29 @@ describe("harness command registration", () => {
     expect(named("run")?.description()).toContain("<kit>/<skill>");
   });
 
-  it("refuses `av run kit/skill` rather than looking for a workflow of that name", async () => {
+  it("routes `av run kit/skill` to dispatch rather than to a workflow of that name", async () => {
+    // Reaching skill resolution — and failing there, on a kit that does not
+    // exist — is the proof that it went to dispatch. A workflow lookup would
+    // have complained about a missing workflow instead.
     const warnings: string[] = [];
     vi.spyOn(console, "error").mockImplementation((line) => warnings.push(String(line)));
     await expect(
-      buildProgram().parseAsync(["node", "ariadnev", "--cwd", process.cwd(), "run", "engineer/scout"]),
-    ).rejects.toThrow("reserved for skill dispatch");
+      buildProgram().parseAsync(["node", "ariadnev", "--cwd", process.cwd(), "run", "nosuchkit/scout"]),
+    ).rejects.toThrow(/unknown kit "nosuchkit"/);
+    // No deprecation warning: dispatch is what `run` means now.
     expect(warnings).toEqual([]);
+  });
+
+  it("keeps the deprecated spelling working beside dispatch, and still warns", async () => {
+    // The coexistence requirement. Both senses of `run` are live until 1.4.0,
+    // and only the old one warns.
+    const warnings: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((line) => warnings.push(String(line)));
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    await buildProgram().parseAsync([
+      "node", "ariadnev", "--cwd", process.cwd(), "run", "missing-workflow", "--validate", "--json",
+    ]);
+    expect(warnings.join("\n")).toContain("av workflow run missing-workflow");
   });
 
   it("sends `av run status <id>` to its new spelling without touching a run", async () => {

@@ -26,30 +26,29 @@ import { UsageError } from "./exit-codes.js";
 /** The release that removes this file. Named in the warning, not just here. */
 export const RUN_SHIM_REMOVED_IN = "1.4.0";
 
+/** Which of the two senses of `run` an invocation is asking for. */
+export type RunSense = "dispatch" | "legacy-workflow";
+
 /**
- * Let a legacy `av run` invocation through, or refuse the reserved grammar.
+ * Decide which `run` an invocation means, and warn if it is the old one.
  *
- * Warns for a workflow ID and returns; throws for a slashed positional. There
- * is deliberately no third outcome — silently reinterpreting an invocation a
- * user already has in a script is the failure this whole shim exists to
- * prevent.
+ * A slashed positional is dispatch — the grammar this name was reserved for,
+ * and now implemented. Anything else is the deprecated harness spelling: it
+ * still works and still warns, through {@link RUN_SHIM_REMOVED_IN}.
+ *
+ * There is deliberately no third outcome. Silently reinterpreting an invocation
+ * a user already has in a script is the failure this whole shim exists to
+ * prevent, and it is the reason the discriminator is a slash rather than a
+ * heuristic about what the token looks like.
  */
-export function acceptLegacyRun(positional: string | undefined): void {
-  if (positional?.includes("/")) {
-    // Deliberately no derived suggestion. Turning `engineer/scout` into
-    // `av workflow run engineer` reads as helpful and is not: the kit name is
-    // not a workflow ID, so the advice sends a confused user to a second error.
-    throw new UsageError(
-      `av run ${positional}: the <kit>/<skill> form is reserved for skill dispatch, ` +
-        "which this release does not implement. To run a workflow, use " +
-        "av workflow run <workflow>",
-    );
-  }
+export function classifyRun(positional: string | undefined): RunSense {
+  if (positional?.includes("/")) return "dispatch";
   const suffix = positional ? ` ${positional}` : "";
   emitError(
     `warning: av run${suffix} is deprecated and stops working in ${RUN_SHIM_REMOVED_IN}. ` +
       `Use av workflow run${suffix}`,
   );
+  return "legacy-workflow";
 }
 
 /**
