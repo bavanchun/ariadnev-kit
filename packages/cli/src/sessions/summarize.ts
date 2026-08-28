@@ -10,10 +10,10 @@
 // 348 `user` and 599 `assistant`. Counting lines would overstate the message
 // count several-fold, so only the two conversational types count.
 //
-// THE PREVIEW IS THE HAZARD. `ak sessions list --json` printed a sentence
-// written seconds earlier in the live session, plus prose from two unrelated
-// projects. It is the default output of the most-used verb. Here it is
-// truncated hard and omitted unless the caller asks for it by name.
+// THE PREVIEW IS THE HAZARD. The upstream CLI's `sessions list --json` printed
+// a sentence written seconds earlier in the live session, plus prose from two
+// unrelated projects. It is the default output of the most-used verb. Here it
+// is truncated hard and omitted unless the caller asks for it by name.
 
 import { basename } from "node:path";
 import { readRecords, scanCounts, streamLines } from "./parse.js";

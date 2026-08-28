@@ -56,9 +56,9 @@ function writeSession(home: string, id: string, records: unknown[]): string {
 
 describe("list", () => {
   it("omits the preview by default", () => {
-    // `ak sessions list --json` printed a sentence written seconds earlier in
-    // the live session, plus prose from two unrelated projects. Absent by
-    // default is the fix.
+    // The upstream CLI's `sessions list --json` printed a sentence written
+    // seconds earlier in the live session, plus prose from two unrelated
+    // projects. Absent by default is the fix.
     const { home, env } = sandbox();
     writeSession(home, "abc", [user("something private and identifying")]);
 

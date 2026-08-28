@@ -39,9 +39,10 @@ export interface SessionRoots {
 }
 
 export function sessionRoots(home: string, env: NodeJS.ProcessEnv = process.env): SessionRoots {
-  // The oracle honours `AGENTKIT_CLAUDE_HOME`; the ariadnev-branded spelling is
-  // what this reads, because pointing at another tool's variable would make one
-  // tool's test fixture silently redirect the other.
+  // The ariadnev-branded spelling is what this reads. Pointing at the upstream
+  // tool's own variable would let one tool's test fixture silently redirect the
+  // other, which is why the name below is recorded as the thing NOT read:
+  // upstream honours AGENTKIT_CLAUDE_HOME. brand-drift-allow: names the upstream variable this deliberately does not read
   const claudeHome = env.ARIADNEV_CLAUDE_HOME ?? join(home, ".claude");
   const codexHome = env.ARIADNEV_CODEX_HOME ?? join(home, ".codex");
   return { claudeCode: join(claudeHome, "projects"), codex: join(codexHome, "sessions") };
