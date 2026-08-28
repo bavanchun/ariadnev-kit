@@ -213,15 +213,39 @@ describe("no install record at all", () => {
   });
 });
 
-describe("backups survive a mass overwrite", () => {
-  it("keeps one recoverable copy per overwritten file", () => {
-    installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000001" });
+describe("a re-install over files the user has edited", () => {
+  const edit = () => {
     for (const n of ["aaa", "bbb", "ccc"]) {
       writeFileSync(join(ctx.cwd, ".claude", "skills", `av-${n}`, "SKILL.md"), `local edit ${n}`);
     }
+  };
+  // A function, not a constant: `ctx` is rebuilt per test, so a value captured
+  // at collection time points at a sandbox that no longer exists.
+  const skillPaths = () =>
+    ["aaa", "bbb", "ccc"].map((n) => join(ctx.cwd, ".claude", "skills", `av-${n}`, "SKILL.md"));
 
-    installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000002" });
+  it("leaves the edits in place rather than overwriting them", () => {
+    installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000001" });
+    edit();
 
+    const result = installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000002" });
+
+    expect(skillPaths().map((p) => readFileSync(p, "utf8")).sort())
+      .toEqual(["local edit aaa", "local edit bbb", "local edit ccc"]);
+    const skipped = result.results[0]!.skipped.filter((s) => s.reason.includes("modified since install"));
+    expect(skipped).toHaveLength(3);
+  });
+
+  it("overwrites them under --force, and keeps one recoverable copy of each", () => {
+    // The assertion this file has always carried: an overwrite is never the
+    // last time that content exists. It now lives on the `--force` path, which
+    // is the only path that still overwrites a user's edit.
+    installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000001" });
+    edit();
+
+    installKit(loadKit(kitRoot), ["claude-code"], ctx, { timestamp: "20260814-000002", force: true });
+
+    expect(skillPaths().map((p) => readFileSync(p, "utf8"))).not.toContain("local edit aaa");
     const manifest = readBackupManifest(join(ctx.cwd, ".ariadnev", "backups", "20260814-000002"));
     const skillBackups = manifest.filter((e) => e.originalPath.endsWith("SKILL.md"));
     expect(skillBackups).toHaveLength(3);

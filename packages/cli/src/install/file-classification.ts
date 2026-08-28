@@ -18,7 +18,8 @@
 // one migration that would have renamed those 30 directories.
 
 import { createHash } from "node:crypto";
-import { dirname } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { ProviderId } from "../providers/spec-verified.js";
 import { fromPortablePath, type Receipt } from "./install-receipt.js";
 
@@ -173,6 +174,64 @@ export function refusedDeletions(
     }
   }
   return refused;
+}
+
+/**
+ * Classification against the real filesystem.
+ *
+ * `fileExists` asks whether a **readable regular file** is there, not merely
+ * whether the path resolves. A recorded file can be replaced by a directory —
+ * an interrupted heal does it, and so does a user reorganising by hand — and
+ * then `readFileSync` throws EISDIR. Answering "yes it exists" and letting the
+ * read throw turns a strange path into an aborted install, which is the wedge
+ * `e2e-heal` was written to prevent: every subsequent run fails in the same
+ * place until someone finds the path by hand.
+ *
+ * Calling it `missing` instead is both true and useful in each direction. The
+ * file this tool installed is genuinely no longer there; an install rewrites
+ * it, and an uninstall plans no deletion — so nothing unlinks whatever has
+ * taken its place.
+ */
+export const realClassifyDeps: ClassifyDeps = {
+  fileExists: (path) => {
+    try {
+      return statSync(path).isFile();
+    } catch {
+      return false;
+    }
+  },
+  // Bytes, deliberately: hashing a font read back as utf8 never matches the
+  // receipt, so every binary file would look edited.
+  readFileContent: (path) => readFileSync(path),
+  listFiles: (dir) => {
+    try {
+      return readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => join(dir, entry.name));
+    } catch {
+      return [];
+    }
+  },
+};
+
+/**
+ * Absolute paths of every file in the receipt the user has edited since it was
+ * written — what a re-install must not silently overwrite.
+ *
+ * Reads the whole receipt rather than one provider's record. An install run
+ * targets the providers it was asked for, but the file it is about to write may
+ * be recorded under another one, and "did the user edit this file" is a
+ * question about the file, not about which provider claimed it.
+ */
+export function modifiedPaths(receipt: Receipt, home: string, cwd: string, deps: ClassifyDeps): Set<string> {
+  const classified = classifyFiles(
+    { receipt, providerIds: Object.keys(receipt.installs) as ProviderId[], home, cwd },
+    // The orphan scan is dead weight here — this only reads `modified`, which
+    // comes from the receipt rows — and it costs a directory walk per owned
+    // directory on a path that runs before every install.
+    { fileExists: deps.fileExists, readFileContent: deps.readFileContent },
+  );
+  return new Set(classified.filter((file) => file.state === "modified").map((file) => file.path));
 }
 
 /** Counts for a summary line, in the order the classification table lists them. */

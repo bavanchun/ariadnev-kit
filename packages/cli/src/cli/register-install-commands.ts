@@ -18,8 +18,9 @@ export function registerInstallCommands(program: Command, context: CommandRegist
     .description("Install the kit to one or more providers")
     .option("--provider <list>", "comma-separated provider ids", splitProviders)
     .option("--global", "install to ~/ instead of ./", false)
+    .option("--force", "overwrite files edited since the last install", false)
     .option("--json", "emit the machine envelope instead of the text report", false)
-    .action(async (opts: { provider?: string[]; global?: boolean; json?: boolean }) => {
+    .action(async (opts: { provider?: string[]; global?: boolean; force?: boolean; json?: boolean }) => {
       const global = program.opts<GlobalOpts>();
       const scope = opts.global ? "global" : "project";
       let providers = opts.provider ?? [];
@@ -49,6 +50,7 @@ export function registerInstallCommands(program: Command, context: CommandRegist
             timestamp: nowStamp(),
             applyHookSettings,
             ariadnevVersion: context.version,
+            force: !!opts.force,
             json: !!opts.json,
           }),
       );

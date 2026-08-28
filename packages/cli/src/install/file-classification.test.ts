@@ -1,9 +1,12 @@
 import { createHash } from "node:crypto";
-import { dirname } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   classifyFiles,
   ownedDirectories,
+  realClassifyDeps,
   plannedDeletions,
   FILE_STATES,
   type ClassifiedFile,
@@ -237,5 +240,32 @@ describe("multiple providers", () => {
     );
     expect(stateOf(files, "/proj/.codex/b.md")).not.toBe("orphan");
     expect(plannedDeletions(files, { force: true }).map((file) => file.path)).toEqual(["/proj/.claude/a.md"]);
+  });
+});
+
+describe("a recorded path that is not a readable file", () => {
+  it("is missing rather than a thrown read", () => {
+    // A directory can end up where a file was: an interrupted heal does it, and
+    // so does a user reorganising by hand. Reporting the path as present and
+    // letting the read throw EISDIR aborts the whole install, and every run
+    // after it fails in the same place — the wedge `e2e-heal` guards against.
+    //
+    // "missing" is the true answer as well as the safe one: the file this tool
+    // installed is genuinely not there. An install rewrites it; an uninstall
+    // plans no deletion, so nothing unlinks whatever took its place.
+    const dir = mkdtempSync(join(tmpdir(), "ariadnev-classify-"));
+    try {
+      const blocked = join(dir, "SKILL.md");
+      mkdirSync(blocked);
+      const receipt = receiptWith([{ path: "SKILL.md", content: "ours" }]);
+      const files = classifyFiles(
+        { receipt, providerIds: ["claude-code"], home: dir, cwd: dir },
+        realClassifyDeps,
+      );
+      expect(files.find((file) => file.path === blocked)?.state).toBe("missing");
+      expect(plannedDeletions(files, { force: true })).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

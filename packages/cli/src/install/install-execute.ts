@@ -9,6 +9,7 @@ import type { ResolverCtx } from "../providers/resolver.js";
 import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
+import { modifiedPaths, realClassifyDeps } from "./file-classification.js";
 import { mergeHookSettings, mergeStatusLine } from "./hook-settings-merge.js";
 import { buildReceipt, type ProviderResultForReceipt, type Receipt, type ReceiptSkillSelection } from "./install-receipt.js";
 import { writeAdapterArtifactsSafe } from "../adapters/write-adapter-artifacts.js";
@@ -35,6 +36,16 @@ export interface ExecuteOpts {
   scopeRoot: string;
   /** User confirmed merging hook bindings into settings.json (default: no). */
   applyHookSettings?: boolean;
+  /**
+   * Files the user has edited since the last install. A plain re-install leaves
+   * them alone; `--force` overwrites them.
+   *
+   * Empty on a first install, which is the honest answer rather than a special
+   * case: with no prior receipt there is no record of anyone's edit to respect.
+   */
+  userModified?: ReadonlySet<string>;
+  /** Overwrite the set above instead of preserving it. */
+  force?: boolean;
 }
 
 function opContent(op: Exclude<InstallOp, { action: "skip" }>): string | Buffer {
@@ -85,6 +96,21 @@ export function executeInstall(
       });
       continue;
     }
+    // A file the user edited is left as they left it. Only `write` ops are
+    // eligible: the merge targets below carry the user's own content by design,
+    // so every one of them differs from its recorded hash the moment the user
+    // touches their half. Treating that as "modified, skip" would freeze the
+    // managed block at whatever it said on install day, which is a stale block
+    // rather than a preserved edit.
+    if (op.action === "write" && !opts.force && opts.userModified?.has(op.dest)) {
+      result.skipped.push({
+        action: "skip",
+        kind: op.kind,
+        name: op.name,
+        reason: "modified since install — left as-is (use --force to overwrite)",
+      });
+      continue;
+    }
     const { wrote, backedUp } = applyOp(op, backupRoot, opts);
     if (wrote) result.written++;
     if (backedUp) result.backedUp++;
@@ -99,6 +125,8 @@ export interface InstallKitOpts {
   applyHookSettings?: boolean;
   /** Installed ariadnev package version, recorded in the receipt. */
   ariadnevVersion?: string;
+  /** Overwrite files the user edited since the last install. */
+  force?: boolean;
 }
 
 /** Two heal reports from one run: the recovered pending set, then this run's. */
@@ -181,6 +209,13 @@ export function installKit(
     });
   }
 
+  // Computed from the receipt as it stood before this run wrote anything. Once
+  // the first file lands, "differs from the recorded hash" starts describing
+  // this install's own work.
+  const userModified = prevReceipt
+    ? modifiedPaths(prevReceipt, ctx.home, ctx.cwd, realClassifyDeps)
+    : new Set<string>();
+
   for (const { id, ops } of planned) {
     const result = executeInstall(ops, id, backupRoot, {
       dryRun: opts.dryRun ?? false,
@@ -188,6 +223,8 @@ export function installKit(
       allowedRoots,
       scopeRoot: baseRoot,
       applyHookSettings,
+      userModified,
+      force: opts.force,
     });
     results.push(result);
     receiptEntries.push({ providerId: id, scope: ctx.scope, applyHookSettings, result, skillSelection });

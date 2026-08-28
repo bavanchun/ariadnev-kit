@@ -1,8 +1,9 @@
-import { existsSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { assertWithinRoots } from "../install/path-guard.js";
 import { cleanEmptyDirsUpward } from "../install/dir-cleanup.js";
 import { atomicWrite } from "../install/fs-atomic.js";
+import { realClassifyDeps } from "../install/file-classification.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
 import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
@@ -86,21 +87,10 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
   return result;
 }
 
-const realPlanDeps: PlanUninstallDeps = {
-  fileExists: (p) => existsSync(p),
-  // Bytes, deliberately: hashing a font read back as utf8 never matches the
-  // receipt, so every binary file would look edited and be preserved forever.
-  readFileContent: (p) => readFileSync(p),
-  // One level, no recursion: the caller only ever asks about a directory the
-  // receipt already claims a file in, and what lives in a subtree below it is
-  // not evidence about this install.
-  listFiles: (dir) => {
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir, { withFileTypes: true })
-      .filter((entry) => entry.isFile())
-      .map((entry) => join(dir, entry.name));
-  },
-};
+// The same filesystem reads install classifies with. One definition of "is this
+// file there, and is it still ours" for both directions: an install and an
+// uninstall disagreeing about that is the drift this design exists to prevent.
+const realPlanDeps: PlanUninstallDeps = realClassifyDeps;
 
 export interface UninstallKitOpts {
   dryRun?: boolean;

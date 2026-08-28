@@ -24,6 +24,8 @@ export interface InstallHandlerOpts {
   applyHookSettings?: boolean;
   /** Installed ariadnev package version, recorded in the receipt. */
   ariadnevVersion?: string;
+  /** Overwrite files the user has edited since the last install. */
+  force?: boolean;
   json?: boolean;
 }
 
@@ -80,6 +82,7 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
       timestamp: opts.timestamp,
       applyHookSettings: opts.applyHookSettings,
       ariadnevVersion: opts.ariadnevVersion,
+      force: opts.force,
     },
   );
   if (opts.json) {
