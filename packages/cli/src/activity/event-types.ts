@@ -17,6 +17,10 @@
 export const ACTIVITY_KINDS = [
   "install.completed",
   "update.completed",
+  "uninstall.completed",
+  "project.initialized",
+  "project.registered",
+  "project.deregistered",
   "workflow.started",
   "workflow.completed",
   "workflow.failed",

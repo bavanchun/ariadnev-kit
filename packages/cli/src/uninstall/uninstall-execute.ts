@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { assertWithinRoots } from "../install/path-guard.js";
 import { cleanEmptyDirsUpward } from "../install/dir-cleanup.js";
 import { atomicWrite } from "../install/fs-atomic.js";
+import { realClassifyDeps } from "../install/file-classification.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
 import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
@@ -44,7 +45,16 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
     if (op.action === "remove-file") {
       result.removed.push(op.path);
       if (opts.dryRun) continue;
-      if (existsSync(op.path)) unlinkSync(op.path);
+      // Copied out before it is unlinked, always. `--force` widens which files
+      // reach this branch; it never decides whether the copy is taken, because
+      // nothing else recovers a deletion. Settings and AGENTS.md have been
+      // backed up before rewrite since the beginning — a rewrite is reversible
+      // from the backup and a deletion is reversible from nothing, so the file
+      // that most needed the copy was the one not getting it.
+      if (existsSync(op.path)) {
+        backupPath(op.path, opts.backupRoot, "removed", opts.scopeRoot);
+        unlinkSync(op.path);
+      }
       cleanEmptyDirsUpward(dirname(op.path), opts.scopeRoot);
       continue;
     }
@@ -77,16 +87,16 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
   return result;
 }
 
-const realPlanDeps: PlanUninstallDeps = {
-  fileExists: (p) => existsSync(p),
-  // Bytes, deliberately: hashing a font read back as utf8 never matches the
-  // receipt, so every binary file would look edited and be preserved forever.
-  readFileContent: (p) => readFileSync(p),
-};
+// The same filesystem reads install classifies with. One definition of "is this
+// file there, and is it still ours" for both directions: an install and an
+// uninstall disagreeing about that is the drift this design exists to prevent.
+const realPlanDeps: PlanUninstallDeps = realClassifyDeps;
 
 export interface UninstallKitOpts {
   dryRun?: boolean;
   timestamp: string;
+  /** Extend deletion to files the user has edited since install. Never to orphans. */
+  force?: boolean;
 }
 
 export interface UninstallKitOutcome {
@@ -120,7 +130,7 @@ export function uninstallKit(
     const install = receipt.installs[providerId];
     if (!install) continue;
     const root = install.scope === "global" ? ctx.home : ctx.cwd;
-    const ops = planUninstall(receipt, providerId, ctx.home, ctx.cwd, realPlanDeps);
+    const ops = planUninstall(receipt, providerId, ctx.home, ctx.cwd, realPlanDeps, { force: opts.force });
     const backupsParent = join(root, ".ariadnev", "backups");
     const result = executeUninstall(ops, {
       dryRun,

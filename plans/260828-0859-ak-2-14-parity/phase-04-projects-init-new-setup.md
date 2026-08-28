@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "projects, init, new, setup"
-status: pending
+status: completed
 priority: P1
 effort: "3-5d"
 dependencies: [1, 3]
@@ -40,6 +40,83 @@ gives a command that cannot make its central safety guarantee.
 - Registry writes atomic and locked, reusing `260822-1407` phase 7's lifecycle
   lock rather than a second locking scheme.
 - `setup` writes **no** auth material — out of scope.
+
+## Oracle observation — captured 2026-08-28 against 2.14.0
+
+Step 1, before any code. Five findings the phase did not have.
+
+### The manifest has a name and a location
+
+`ak init --help`: *"Creates or updates `<dir>/.agentkit/ownership.json`. Captures
+pre-init snapshot."* So the manifest is one file at the project root, not a
+global index — `projects.json` is the global index and holds no file list.
+
+### `init` can skip its snapshot; `uninstall` cannot
+
+`init` has `--no-backup` (*"Skip the pre-install snapshot (power users only —
+data loss risk)"*). `uninstall` has **no such flag**, and states the rule
+outright: *"A snapshot is taken via `ak backups` BEFORE any deletion, even with
+`--force`."*
+
+That asymmetry is correct and worth keeping deliberately. `init` writes files;
+its snapshot protects against a bad write, and a power user may accept that
+risk. `uninstall` deletes files, and nothing recovers a deletion but the
+snapshot. **`--no-backup` must not be ported to `uninstall`.**
+
+### `uninstall --dry-run` exits 3, which collides with this repo's exit table
+
+Verbatim: *"Show classification plan without deleting anything (exit 3)"*, and
+default behaviour is dry-run.
+
+`exit-codes.ts` defines 3 as *"the command could not run because the environment
+is not ready"*, and `uninstall` is **not** in `LEGACY_EXIT_COMMANDS`, so it takes
+that table. Reproducing exit 3 here would mean one number saying two unrelated
+things in the same binary, and CI already gates on the documented meaning.
+
+**Decision: `av uninstall --dry-run` exits 0.** A preview that ran and printed
+its plan did what was asked. The plan's own semver-honesty rule is about
+changing behavior silently; this is a divergence recorded before it ships, and
+phase 13's audit gets it. Scripted callers read the classification from `--json`,
+not from an exit code that means "environment not ready" everywhere else.
+
+### `new` is half remote-registry, and that half does not port
+
+`--channel`, `--registry-url`, `--remote`/`--local`, `--version`, `--kits-dir`
+all serve a remote kit registry. ariadnev ships its kit **embedded in the
+binary** — there is no registry to point at, and inventing one is a different
+project. `av new` keeps `--template` and `--kits` resolved against the embedded
+kit, and the registry flags are a documented non-port rather than a gap.
+
+### `setup`'s step list is mostly auth, and this phase excludes auth
+
+Upstream `--step` values: `enabled_adapters`, `anthropic_api_key`,
+`openai_api_key`, `default_provider`, `default_model`, `image_provider`,
+`default_kit`, `telemetry`, `codex_api_key_env_var`, `codex_default_model`,
+`codex_provider`.
+
+Three write credentials and are out of scope by this phase's own non-functional
+rule (*"`setup` writes **no** auth material"*). ariadnev's `--step` set is the
+remaining eight. `--advanced`, whose entire purpose is *"configure direct
+provider API keys"*, is not ported either.
+
+### The registry shape
+
+`~/.agentkit/projects.json` is `{ version, projects: [...] }` with entries of
+`name`, `dir`, `registered_at`, `updated_at`. `projects list --json`:
+
+```json
+{ "schema_version": 1, "kind": "projects.list",
+  "data": { "projects": [ { "dir": "…", "name": "…",
+    "registered_at": "…", "updated_at": "…" } ], "total": 2 } }
+```
+
+Note what is **absent**: no `schema_version` repeated inside `data`. Phase 3
+found that duplicate on `activity` and dropped it, reasoning it had no
+independent meaning. This confirms it — upstream is inconsistent about it, and
+`projects` is the shape phase 3 chose.
+
+`projects prune` also carries `--all --force --yes` to wipe the registry, with
+`--force` documented as *"required safety gate when using `--all`"*.
 
 ## Architecture
 
@@ -124,7 +201,9 @@ minus every auth-related step.
 - [ ] `av projects` full lifecycle against a locked registry
 - [ ] Concurrent `av init` runs do not corrupt the manifest
 - [ ] `av setup --no-interactive --config` writes config without a TTY
-- [ ] `setup` writes no auth material
+- [ ] `setup` writes no auth material, and offers none of the three auth steps
+- [ ] `uninstall` has no `--no-backup`, under any spelling
+- [ ] `projects prune --all` refuses without both `--force` and `--yes`
 - [ ] Existing `av install` **behavioral** tests untouched and green. Receipt-schema
       tests may gain cases; they must not lose assertions
 - [ ] `pnpm test` green
@@ -169,3 +248,118 @@ they are exactly what the plan's semver-honesty constraint covers.
 *Response:* emit a one-release deprecation-style warning when the new
 classification actually changes the outcome, and list both in the 1.3.0 release
 notes. They are not free just because they are safer.
+
+## What shipped, and where it diverged
+
+Recorded for phase 13's audit. Each of these is a decision made against
+evidence, not an omission.
+
+### There is no `ownership.json`
+
+The phase specified one. The install receipt already **is** an ownership
+manifest — a portable path and a sha256 for every file an install wrote — so a
+second record would have been two records of the same fact, and the moment they
+would disagree is during an `uninstall`. `file-classification.ts` reads the
+receipt.
+
+Step 4 ("implement `ownership-manifest.ts`") is therefore not implemented and
+will not be. The risk section anticipated this: *"if they genuinely cannot
+merge, the receipt is authoritative."* They merged by there being only one.
+
+### `updateRegistry` takes no lock
+
+The phase asked for registry writes to be "atomic and locked, reusing phase 7's
+lifecycle lock". They are atomic, and the lock is taken — by the **command**,
+not by the registry helper.
+
+`withLifecycleLock` *refuses* a second holder rather than queueing. A helper
+taking its own lock would therefore be taking a second lock while `av init`
+holds the first, and would deadlock against its own caller the moment their
+roots overlapped. Today they do not overlap only by the accident of naming
+different roots. The concurrency criterion is met where the guarantee actually
+lives, and `registry.test.ts` asserts it there: one run writes, overlapping runs
+are refused by name, the registry is never torn.
+
+### The classification engine is shared with `uninstall`, which already had one
+
+`planUninstall` already implemented clean/modified via its own hash comparison.
+Rather than leave two implementations of "has the user edited this file", it now
+asks `file-classification.ts`. Both directions read the filesystem through one
+`realClassifyDeps`.
+
+That shared reader treats a path which is not a **readable regular file** as
+`missing` rather than reading it and throwing. A directory can end up where a
+file was; an EISDIR from that read aborted the install and every install after
+it, which is the wedge `e2e-heal.test.ts` exists to prevent.
+
+### Orphans are looked for only in directories the receipt claims
+
+Not in the scope root. The home root measured for this plan holds 131 entries,
+30 belonging to other tools — reporting all of them as orphans is noise
+presented as a finding, and it invites a cleanup nobody should perform.
+
+### `uninstall` now snapshots before deleting, which it did not before
+
+The phase treated "a snapshot before any deletion" as a property to preserve.
+It did not exist: `backupPath` ran before a settings/AGENTS.md **rewrite**, and
+`remove-file` unlinked with no copy. So the reversible operation had the backup
+and the irreversible one did not. Deleted files are now copied into the backup
+root first, `--force` included.
+
+### `--dry-run` exits 0, and preview is the default
+
+As decided in the oracle-observation section above: exit 3 means "environment
+not ready" everywhere else in this binary. `uninstall` previews unless `--yes`.
+
+### `av update` was not touched; `av install` was
+
+Step 10 says "wire `av update` to the classification". In this repository
+`av update` is the **binary self-updater** — it downloads a release and replaces
+the executable. The command that rewrites kit content is `av install`, re-run.
+That is where the classification went.
+
+This contradicts the plan's semver table, which lists `update` as *"skips
+user-modified files, and widens from binary-only to binary-then-kits"*. The
+widening did not happen and is not in this phase. `av install` gained the
+skip-unless-`--force` behaviour instead, and that is the row the 1.3.0 release
+notes need.
+
+### `setup`'s steps are this tool's, not the oracle's
+
+Upstream's remaining eight steps name a provider/model/telemetry system
+ariadnev does not have: `default_model` and `image_provider` have nothing here
+to set. Mapping them onto invented config keys would produce a wizard writing
+settings no consumer reads. The steps cover the fields this tool actually
+resolves: `adapters`, `paths`, `plans`, `project`, `statusline`, `locale`,
+`privacy`.
+
+The no-credentials rule is enforced rather than intended: `assertNoSecrets`
+reads the schema's own `sensitive` marks, so a step added later that tried to
+collect a token fails at the writer instead of shipping.
+
+### `av new` takes a name, not a path
+
+Validated as given, before resolution — checking the basename of the resolved
+path accepts `../escape`, whose basename is an ordinary "escape", and creates a
+directory beside the project rather than inside it. `av init <dir>` is the
+command that takes a path.
+
+## Release-notes obligation
+
+Two already-shipped commands changed behaviour and both warn on the changed
+path, as the risk section requires:
+
+- `av uninstall` previews unless `--yes`, and says so on every preview.
+- `av install` skips a file edited since the last install, and names both the
+  reason and `--force` in the skip line.
+
+## Verification
+
+- `pnpm test` for the CLI package: 1624 passing.
+- Lint clean.
+- Driven against the **compiled binary**, not only the test suite: `init` then
+  `projects list`; `uninstall` previewing by default; `uninstall --yes --force`
+  leaving a planted orphan intact and reporting it; the force-deleted file
+  recovered from `.ariadnev/backups/`; a re-`install` preserving an edited
+  SKILL.md and reporting the skip; `setup --no-interactive --config` writing
+  config with no TTY.

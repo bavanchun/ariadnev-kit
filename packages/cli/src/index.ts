@@ -9,6 +9,7 @@ import { registerCatalogCommands } from "./cli/register-catalog-commands.js";
 import { registerConfigCommands } from "./cli/register-config-commands.js";
 import { registerTier1Commands } from "./cli/register-tier1-commands.js";
 import { registerInstallCommands } from "./cli/register-install-commands.js";
+import { registerProjectCommands } from "./cli/register-project-commands.js";
 import { registerHarnessCommands } from "./cli/register-harness-commands.js";
 import { registerMaintenanceCommands } from "./cli/register-maintenance-commands.js";
 import { registerQualityCommands } from "./cli/register-quality-commands.js";
@@ -55,6 +56,7 @@ export function buildProgram(): Command {
     record,
   };
   registerInstallCommands(program, context);
+  registerProjectCommands(program, context);
   registerMaintenanceCommands(program, context);
   registerQualityCommands(program, context);
   registerCatalogCommands(program, context);

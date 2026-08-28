@@ -109,6 +109,10 @@ describe("the event vocabulary", () => {
     expect([...ACTIVITY_KINDS]).toEqual([
       "install.completed",
       "update.completed",
+      "uninstall.completed",
+      "project.initialized",
+      "project.registered",
+      "project.deregistered",
       "workflow.started",
       "workflow.completed",
       "workflow.failed",

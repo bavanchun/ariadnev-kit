@@ -178,3 +178,54 @@ describe("binary files", () => {
     expect(ops.some((op) => op.action === "preserve-file")).toBe(true);
   });
 });
+
+describe("--force, and the line it cannot cross", () => {
+  const listing = (files: string[]) => (dir: string) =>
+    files.filter((f) => f.slice(0, f.lastIndexOf("/")) === dir);
+
+  it("leaves a user-edited file alone by default, and names the flag that would remove it", () => {
+    const ops = planUninstall(makeReceipt(), "claude-code", home, cwd, makeDeps({
+      "/home/u/proj/.claude/skills/brainstorm/SKILL.md": "user edited this",
+    }));
+    expect(ops.find((o) => o.action === "remove-file")).toBeUndefined();
+    expect(ops).toContainEqual({
+      action: "preserve-file",
+      path: "/home/u/proj/.claude/skills/brainstorm/SKILL.md",
+      reason: expect.stringContaining("--force"),
+    });
+  });
+
+  it("removes a user-edited file when --force is passed", () => {
+    const ops = planUninstall(makeReceipt(), "claude-code", home, cwd, makeDeps({
+      "/home/u/proj/.claude/skills/brainstorm/SKILL.md": "user edited this",
+    }), { force: true });
+    expect(ops).toContainEqual({
+      action: "remove-file",
+      path: "/home/u/proj/.claude/skills/brainstorm/SKILL.md",
+    });
+  });
+
+  it("never removes a file the receipt does not claim, with or without --force", () => {
+    // The guarantee the whole ownership design exists for. A directory this
+    // tool wrote into also holds files it did not write, and those are somebody
+    // else's work — reported so the user can see them, never acted on.
+    const onDisk = {
+      "/home/u/proj/.claude/skills/brainstorm/SKILL.md": "original",
+      "/home/u/proj/.claude/skills/brainstorm/NOTES.md": "written by the user",
+    };
+    for (const force of [false, true]) {
+      const ops = planUninstall(makeReceipt(), "claude-code", home, cwd, {
+        ...makeDeps(onDisk),
+        listFiles: listing(Object.keys(onDisk)),
+      }, { force });
+
+      const removed = ops.filter((o) => o.action === "remove-file").map((o) => o.path);
+      expect(removed, `force=${force}`).toEqual(["/home/u/proj/.claude/skills/brainstorm/SKILL.md"]);
+      expect(ops, `force=${force}`).toContainEqual({
+        action: "preserve-file",
+        path: "/home/u/proj/.claude/skills/brainstorm/NOTES.md",
+        reason: expect.stringContaining("not installed by ariadnev"),
+      });
+    }
+  });
+});

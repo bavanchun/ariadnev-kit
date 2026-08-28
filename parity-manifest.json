@@ -20,7 +20,7 @@
       "status": "in-scope",
       "target": "init",
       "phase": 4,
-      "note": "project bootstrap over the projects registry"
+      "note": "registered"
     },
     {
       "name": "journal",
@@ -43,7 +43,7 @@
       "status": "in-scope",
       "target": "new",
       "phase": 4,
-      "note": "scaffold a new project"
+      "note": "registered"
     },
     {
       "name": "plan",
@@ -88,7 +88,7 @@
       "status": "in-scope",
       "target": "projects",
       "phase": 4,
-      "note": "the global project registry; a file, not an index (ADR 0014)"
+      "note": "registered"
     },
     {
       "name": "self-update",
@@ -106,7 +106,7 @@
       "status": "in-scope",
       "target": "setup",
       "phase": 4,
-      "note": "first-run wizard; @clack/prompts is already a dependency"
+      "note": "registered"
     },
     {
       "name": "uninstall",
