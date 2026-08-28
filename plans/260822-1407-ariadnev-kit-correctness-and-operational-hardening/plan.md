@@ -6,6 +6,7 @@ priority: P1
 effort: "25-42d + 3h"
 tags: [kit, cli, lint, security, quality]
 created: 2026-08-22
+blocks: [260828-0859-ak-2-14-parity]
 ---
 
 # ariadnev kit correctness and operational hardening
@@ -47,6 +48,15 @@ concurrently and scriptable as JSON.
   dashboard/API, projects registry, sessions/activity, content-search.
 - `av backups create`. AgentKit's `create` snapshots a database; ariadnev has
   none. Porting it would ship dead surface.
+
+> **Superseded for the surface non-goals, 2026-08-28.** The maintainer has since
+> asked for AgentKit-2.14.0 parity across everything except auth, remote
+> telemetry, and licensing. Plan `260828-0859-ak-2-14-parity` owns that scope and
+> is `blockedBy` this plan — these non-goals stay binding *inside this plan*, and
+> nothing here should grow to cover them. The `av backups create` verdict is
+> re-examined there against a store that did not exist when it was written; the
+> reasoning above (no database ⇒ dead surface) remains the thing that must be
+> answered, not ignored.
 - **A directory-renaming migration for the prefix.** Dropped by decision — see
   "Corrections" below.
 - The tier-2 eval baseline left open by plan `260816-1845` phase 4.
