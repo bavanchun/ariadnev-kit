@@ -419,13 +419,35 @@ the widest failure surface, and in phase 12's case a prompt-injection surface.
    *Partly resolved 2026-08-28:* one PR, all five pins plus both `engines.node`
    fields, targeting `dev`. The open half is purely timing — whether it opens
    before or after the maintainer finalizes the beta.
-7. **Should the compiled-binary SQLite smoke also run per-PR in `ci.yml`?** It
-   runs today only on the release-candidate path. Per-PR coverage catches a
-   substrate regression weeks earlier; it also adds macOS and Windows runners to
-   every PR, and Windows bills at 2× on a private repo. Maintainer's call, since
-   the constraint it trades against is the CI budget.
-8. **Should `darwin-x64` join the executed set?** It is header-checked only today.
-   Now that the probe is cheap, adding it is one matrix entry — but it is a fourth
-   runner on the release path.
+7. **Should the compiled-binary SQLite smoke also run per-PR in `ci.yml`?**
+   *Decided 2026-08-28: no.* Four layers already cover the substrate on every
+   PR or on demand — the vitest conformance cases under Node, the Bun
+   conformance step in the unit gate, `storage-gate-a.yml` across three targets
+   on dispatch, and the release-candidate smoke. What per-PR compiled coverage
+   adds over that is narrow: a Bun-compile regression specific to a non-host
+   target. Gate A already catches exactly that, at zero standing cost, and the
+   thing it trades against — macOS and Windows runners on every PR, Windows at
+   2× — is a recurring bill for a rare failure. **Working rule instead:** run
+   Gate A before merging any PR that touches `packages/cli/src/storage/`.
+8. **Should `darwin-x64` join the executed set?** *Decided 2026-08-28: no.*
+   The reason is what Bun links, not what the runner costs. Bun uses the
+   **system** SQLite on macOS and bundles its own on Linux and Windows, and
+   `darwin-arm64` already executes that system-SQLite path. Architecture does
+   not change which library is linked or whether FTS5 was compiled into it, so a
+   fourth runner would re-prove what the third already proved. Header check
+   stays. Revisit only on an actual macOS-specific failure — a real signal, not
+   a hypothetical one.
+
+## Release decisions carried by this plan
+
+**PR #80 (Version Packages beta) — hold, and recut after the first promotion.**
+Not merged, for two reasons that point the same way. The branch rule above makes
+`main` maintainer-only until blocker phase 11 closes, and merging a Version
+Packages PR publishes artifacts, which is not a step to take on inference. More
+concretely, the beta carries the defect PR #82 fixed: it bumped
+`packages/cli/package.json` without regenerating `kit-embedded.generated.ts`, so
+that beta stamps a kit version that does not match the binary. Cutting it as it
+stands would ship that mismatch. The clean order is: promote `dev` → `main`
+once the parity phases reach a stopping point, then cut the beta on top.
 
 <!-- slug: ak-2-14-parity -->
