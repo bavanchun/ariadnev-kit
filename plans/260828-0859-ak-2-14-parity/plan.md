@@ -338,7 +338,7 @@ releases, not AgentKit's endpoints).
 | 6 | [analytics and data](./phase-06-analytics-and-data.md) | 3, 5 | **L** | Completed |
 | 7 | [content-search shards](./phase-07-content-search-shards.md) | 6 | M | Completed |
 | 8 | [backups, recover, diagnostics, versions](./phase-08-backups-recover-diagnostics-versions.md) | 6 | M | Completed |
-| 9 | [Provider union](./phase-09-provider-union.md) | 1 | M-L | Pending |
+| 9 | [Provider union](./phase-09-provider-union.md) | 1 | M-L | Completed |
 | 10 | [Skill dispatch and catalog](./phase-10-skill-dispatch-and-catalog.md) | 2, 9 | **L** | Pending |
 | 11 | [api, config, gui](./phase-11-api-config-gui.md) | 6, 8 | **L** | Pending |
 | 12 | [watch and orchestrate](./phase-12-watch-and-orchestrate.md) | 10, 11 | **L** | Pending |

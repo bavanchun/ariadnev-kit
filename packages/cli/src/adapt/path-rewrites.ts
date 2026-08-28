@@ -53,6 +53,14 @@ const TABLES: Record<ProviderId, Rule[]> = {
   cursor: NEUTRAL_RULES,
   antigravity: NEUTRAL_RULES,
   opencode: OPENCODE_RULES,
+  // omp and dsh both target the neutral `.agents` layout, so they take the same
+  // rewrites cursor and antigravity do.
+  omp: NEUTRAL_RULES,
+  // grok's tree is Claude-shaped, so a `.claude/` path in kit prose is already
+  // the right shape for it — rewriting it to `.agents/` would send prose
+  // somewhere grok does not look. Identity, like claude-code.
+  grok: [],
+  dsh: NEUTRAL_RULES,
   generic: NEUTRAL_RULES,
   "test-provider": NEUTRAL_RULES,
 };

@@ -102,9 +102,22 @@ describe("docs bundle projector", () => {
       "cursor",
       "antigravity",
       "opencode",
+      "omp",
+      "grok",
+      "dsh",
       "generic",
     ]);
     expect(projected.providers.every((provider) => provider.artifacts.every((artifact) => artifact.verified))).toBe(true);
+  });
+
+  it("projects a fully unverified provider with no artifacts rather than dropping it", () => {
+    // `dsh` has no verified cell at all. It still appears, because a public
+    // bundle that omitted it would say nothing, while one that lists it with an
+    // empty artifact set says "known, and nothing is installable" — which is
+    // the fact a reader needs.
+    const dsh = projectProviders(buildProviderMatrix()).providers.find((provider) => provider.id === "dsh");
+    expect(dsh).toBeDefined();
+    expect(dsh?.artifacts).toEqual([]);
   });
 
   it("summarizes proof inputs with explicit digest and enum validation", () => {

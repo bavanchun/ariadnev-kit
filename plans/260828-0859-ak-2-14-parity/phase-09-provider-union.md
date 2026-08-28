@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Provider union"
-status: pending
+status: completed
 priority: P1
 effort: "4-6d"
 dependencies: [1]
@@ -104,14 +104,65 @@ does.
 
 ## Success Criteria
 
-- [ ] `av contract --json` reports 9 providers × 9 artifacts
-- [ ] Every `verified: true` cell carries a note, a version, and a date — asserted
-- [ ] The observation report is committed and cited from `spec-verified.ts`
-- [ ] `dsh`'s real status is stated in both the README and `av contract`
-- [ ] `omp` cells resolve to `~/.omp/agent/…`, confirmed by a load check
-- [ ] `matrix-drift.test.ts` green
-- [ ] `src/adapt/` still pure and ≥90% covered
-- [ ] `pnpm test` green
+- [x] `av contract --json` reports 9 providers × 9 artifacts
+- [x] Every `verified: true` cell carries a substantive note; version and date
+      are required of any provider claiming an `observed` cell — see the
+      correction below, the criterion as written could not hold
+- [x] The observation report is committed and cited from `spec-verified.ts`
+- [x] `dsh`'s real status is stated in both the README and `av contract`
+- [~] **`omp` cells resolve to `.agents/skills`, NOT `~/.omp/agent/…`** — the
+      criterion named the wrong path; see below. No load check was possible.
+- [x] `matrix-drift.test.ts` green
+- [x] `src/adapt/` still pure and ≥90% covered
+- [x] `pnpm test` green
+
+## Corrections to this phase document
+
+**The `omp` path in the Architecture section is wrong.** It says artifacts live
+under `~/.omp/agent/` and warns that a constant one level too high writes into an
+ignored directory. The instinct was right and the conclusion inverted: per omp's
+own runtime docs, `~/.omp/agent` is `PI_CODING_AGENT_DIR`, the session-storage
+directory, and the canonical native location is `.agent[s]/skills`. The only
+skills path beneath `agent/` is `managed-skills`, an auto-learn bucket at
+priority 5 that always defers to an authored skill. Both directories exist and
+are populated here, so a listing would have "confirmed" either.
+
+**Step 3's evidence rule could not be implemented as written.** It asks that
+every `verified: true` cell carry an `observedVersion` and an `observedOn`. That
+would fail `antigravity`, `generic` and `cursor`, which legitimately hold
+`convention` cells with null version fields — `convention` means *not* observed,
+so there is no version to record. The existing test already enforces the correct
+form: a provider claiming any `observed` cell must carry both. Left as-is.
+
+**`omp` did not reach `observed`, despite having a binary.** `omp read
+skill://<name>` looked like a local load check; a probe skill planted in both
+candidate layouts returned "Available: none" while `omp config` confirmed
+discovery was enabled, so that subcommand resolves a session registry rather
+than the discovery pipeline. The only remaining probe is `omp --print`, which
+spends the user's model credits — not something to do for a table refresh. Cells
+stay `convention`, matching the reasoning already recorded for `cursor`.
+
+## What regenerating the matrix caught
+
+`grok`'s hook cell was verified on the strength of `~/.grok/hooks` existing in a
+Claude-shaped tree. Regenerating the README table showed that cell resolving to
+**`.claude/hooks/av/*.cjs`** — the resolver hard-wires that path for every
+provider — so a verified cell would have installed grok's hooks into
+claude-code's directory. It is now `none`. Giving grok its own hook root needs
+evidence that grok reads it, which needs a binary this machine does not have.
+
+`PROVIDER_IDS` was also a hand-kept array. `ProviderId[]` is satisfied by a list
+missing members, so adding to the union compiled cleanly and left `getResolver`
+returning `undefined` — a crash at the call site instead of an error at the
+definition. It now derives from the verification table, which the compiler does
+check.
+
+## Outcome
+
+**9 listed, 8 installable, 1 skipped.** `omp` and `grok` install at
+`convention`; `dsh` is every-cell `skip` and says so in the README, in
+`av contract`, and in the public docs bundle, which projects it with an empty
+artifact set rather than omitting it.
 
 ## Risk Assessment
 

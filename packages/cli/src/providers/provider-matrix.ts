@@ -13,6 +13,13 @@ export const MATRIX_PROVIDERS: ProviderId[] = [
   "cursor",
   "antigravity",
   "opencode",
+  "omp",
+  "grok",
+  // Listed even though every cell is unverified. A provider the tool knows
+  // about and refuses to install is a different fact from one it has never
+  // heard of, and only the first can be reported to a user asking why nothing
+  // was written. `av contract` shows it as skipped rather than omitting it.
+  "dsh",
   "generic",
 ];
 

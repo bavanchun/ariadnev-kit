@@ -103,3 +103,41 @@ artifact not being picked up. A cell may be promoted from `convention` to
 `observed` at any time by running the provider and recording what was seen; the
 reverse — quietly promoting without an observation — is the failure this
 decision exists to prevent.
+
+## Amendment, 2026-08-28: three providers added, none of them `observed`
+
+`omp`, `grok` and `dsh` join the table. The observation run is recorded in
+`plans/reports/observation-260828-grok-omp.md`; this section records what the
+result means for the ladder, because two of the three tested it directly.
+
+**`omp` has a binary and its cells are still `convention`.** That combination is
+new here — every previous provider with a binary reached `observed` through some
+local listing or prompt dump. `omp read skill://<name>` looked like that surface;
+a probe skill planted in both candidate layouts came back `Available: none` while
+`omp config` confirmed discovery was on, which means the subcommand resolves a
+per-session registry rather than the discovery pipeline. The only probe left is
+`omp --print`, which spends the user's model credits. **A cell is not worth
+someone's money to certify**, so it stays at `convention` — the same reasoning
+already applied to `cursor`, and the reason that row reads the way it does.
+
+**A directory listing nearly certified the wrong path.** The upstream CLI writes
+`~/.omp/agent/skills`, and that directory is populated here with 105 skills. omp's
+own runtime documentation says `~/.omp/agent` is the session-storage directory
+(`PI_CODING_AGENT_DIR`) and that the canonical native location is
+`.agent[s]/skills`; the only skills path beneath `agent/` is `managed-skills`, an
+auto-learn bucket at priority 5 that always defers to an authored skill. Both
+directories exist and both are populated, so a listing would have "confirmed"
+whichever was looked at first. This is precisely the confusion the ladder exists
+to catch, and it is the first time it has caught one.
+
+**`grok` is `convention` for the ordinary reason** — a Claude-shaped tree with
+real artifacts in it, and no binary on PATH to watch loading anything.
+
+**`dsh` is entirely `none`.** No binary, no home directory, and absent from the
+upstream CLI's own adapters. The installer skips every cell and logs, the README
+says skipped, and `av contract` reports it. Shipping a guessed path would be
+worse than the documented gap, because an installer writing confidently into an
+invented location looks like success.
+
+The provider count is therefore **9 listed, 8 installable, 1 skipped** — and that
+is stated in those terms rather than as "9 providers supported".
