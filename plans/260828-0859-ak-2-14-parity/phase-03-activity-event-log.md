@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Activity event log"
-status: pending
+status: completed
 priority: P1
 effort: "2-4d"
 dependencies: [1, 2]
@@ -167,11 +167,44 @@ it with the derived store — and the rebuild-equivalence invariant then require
 that the indexed answer equals the file-scan answer, which is precisely the
 property worth asserting.
 
+## Correction: the fire-and-forget log already exists
+
+Scouted before writing anything. `src/history/` is an append-only JSONL event
+log at `~/.ariadnev/history.jsonl` that already has three of the four properties
+this phase asks to be built:
+
+| this phase asks for | already in `src/history/` |
+|---|---|
+| a fire-and-forget wrapper (step 4) | `recordSafe()` — never throws, and on failure drops a **degraded marker** so `query` and `doctor` can tell "no history" from "recording is broken" |
+| no credentials in event bodies (step 10) | `toEvent()` — an allowlist scrub that copies *only* enumerated categorical fields, so a caller's free-form payload cannot be persisted. Added by a red team |
+| install and update emit (step 5) | both already do, through a `context.record(kind, fields)` seam threaded into command registration |
+
+So `activity/emit.ts` as specified would be a second copy of code that is
+already written and already hardened.
+
+**They are not the same log, and merging them would be worse.** History records
+*what ariadnev did to this machine* — installs, updates, doctor runs — and
+`av query` is a shipped contract over it. Activity records *what agents did with
+the skills* — usage by kit and runtime, which is what `stats` aggregates.
+Different producers, different consumers, different retention. One log with two
+vocabularies would serve neither, and migrating `query` onto it risks a shipped
+surface for no gain.
+
+**Decision: share the mechanism, keep the vocabularies separate.** Activity
+reuses the append/scrub/degraded-marker primitives and adds only what genuinely
+does not exist — day segmentation, monotonic IDs, `tail`, `stats`, 0600. Two
+event vocabularies is a fact about the domain; two copies of the same
+append-only machinery would be drift.
+
+**One real gap this confirms:** of the three instrumentation targets in step 5,
+install and update already emit. The **workflow path does not** — `run-command.ts`
+records to its own manifest store instead. That is the only new emission.
+
 ## Related Code Files
 
 - Create: `packages/cli/src/activity/event-log.ts` + test — append, read, segment
 - Create: `packages/cli/src/activity/event-types.ts` — the versioned event union
-- Create: `packages/cli/src/activity/emit.ts` + test — the fire-and-forget wrapper
+- Create: `packages/cli/src/activity/emit.ts` + test — the activity vocabulary over the existing `history/` primitives, not a second copy of them
 - Create: `packages/cli/src/cli/activity-command.ts` + test
 - Modify: `packages/cli/src/cli/register-maintenance-commands.ts`
 - Modify: `packages/cli/src/install/install-execute.ts` — emit
@@ -212,17 +245,17 @@ property worth asserting.
 
 ## Success Criteria
 
-- [ ] `av activity list|tail|stats` all work, with `--json` envelopes
-- [ ] `list --since <id>` returns strictly later events, across a day rollover
-- [ ] `stats --kit` and `--runtime` filter, and `--window` parses `24h|7d|2w`
-- [ ] `stats` reports coverage honestly — one source in this phase, not two
-- [ ] Empty state is a clean message, exit 0
-- [ ] Install, update, and workflow emit events
-- [ ] An install with an unwritable log directory still succeeds — asserted
-- [ ] Concurrent appends never tear a line — asserted
-- [ ] `tail` survives the midnight segment rollover
-- [ ] Log files are 0600 and contain no credentials
-- [ ] `pnpm test` green
+- [x] `av activity list|tail|stats` all work, with `--json` envelopes
+- [x] `list --since <id>` returns strictly later events, across a day rollover
+- [x] `stats --kit` and `--runtime` filter, and `--window` parses `24h|7d|2w`
+- [x] `stats` reports coverage honestly — one source in this phase, not two
+- [x] Empty state is a clean message, exit 0
+- [x] Install, update, and workflow emit events
+- [x] An install with an unwritable log directory still succeeds — asserted
+- [x] Concurrent appends never tear a line — asserted
+- [x] `tail` survives the midnight segment rollover
+- [x] Log files are 0600 and contain no credentials
+- [x] `pnpm test` green — 1544 tests / 155 files; lint, brand-drift and `validate --check --strict` (0 errors) clean; verified on a compiled binary
 
 ## Risk Assessment
 
@@ -249,3 +282,46 @@ midnight.
 *Signal:* a `tail` that goes quiet after a date change.
 *Response:* named as step 7 with its own test, because this is the bug that
 otherwise ships and is found by a user at 00:01.
+
+## What execution changed
+
+Three decisions the phase could not have made in advance.
+
+### `tail` needed no rollover handling at all
+
+The phase named the midnight rollover as "the bug that otherwise ships and is
+found by a user at 00:01", and specified a step to handle it. Implementing it
+against a **cursor** rather than a file handle removed the case instead of
+handling it: `tail` re-lists segments on every tick and asks for events after
+the last ID it saw, so a new day's file is picked up exactly the way a new line
+is. Nothing special happens at midnight because nothing about midnight is
+special to a cursor. Both tests still exist — they now assert a property rather
+than guard a workaround.
+
+### `--json` on an empty log must not print prose
+
+Not in the phase. `list` on an empty log prints `No activity events found.` and
+exits 0, matching the oracle — but under `--json` a machine consumer parses
+stdout, and prose there is how a script that worked for a week breaks on a fresh
+install. The empty case emits an empty envelope. Asserted.
+
+### One deliberate divergence from the captured shape
+
+The oracle repeats `schema_version` *inside* `data`, beside the envelope's own.
+This does not. `json-envelope.test.ts` forbids a hand-written `schema_version`
+outside the helper — a gate against a sixth private envelope copy — and the
+right response was to drop the duplicate rather than weaken the gate. The
+duplicate had no independent meaning: the two numbers are always equal, so the
+only thing it can do is disagree. The real payload version is already
+per-record — every event carries `v`, which is where the shape actually varies
+and is stronger for a consumer reading a mixed-age log.
+
+Recorded in the module and here so phase 13's audit sees a decision rather than
+an omission.
+
+### The scrub was proven at the log, not at the type
+
+The redaction criterion could have been met by testing `toActivityEvent`. It is
+tested by handing `recordActivity` a token, a bearer header, an env map and an
+argv array, then grepping **what reached disk**. A type says what should be
+copied; only the file says what was.

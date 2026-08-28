@@ -2,9 +2,16 @@
 // bun:sqlite → never poisons the Node test graph). Recording is best-effort:
 // a write failure never breaks the host command, but drops a marker so `query`
 // and `doctor` can distinguish "no history" from "recording broken".
+//
+// The append/read/marker mechanism itself lives in `log/jsonl-log.ts`, shared
+// with the activity log. This module owns *what history means* — the path, the
+// event type, and the fact that `av query` reads it — and nothing else. When
+// the second log arrived, one copy of the durability rules was the difference
+// between two logs that agree and two that quietly disagree.
 
-import { appendFileSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { appendLine, appendLineSafe, readLines } from "../log/jsonl-log.js";
 import type { HistoryEvent } from "./record.js";
 
 export function historyPath(home: string): string {
@@ -16,23 +23,12 @@ export function degradedMarkerPath(home: string): string {
 }
 
 export function appendEvent(path: string, event: HistoryEvent): void {
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, `${JSON.stringify(event)}\n`);
+  appendLine(path, JSON.stringify(event));
 }
 
 /** Read all events, skipping any corrupt line (tolerant parse). */
 export function readEvents(path: string): HistoryEvent[] {
-  if (!existsSync(path)) return [];
-  const out: HistoryEvent[] = [];
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    if (!line.trim()) continue;
-    try {
-      out.push(JSON.parse(line) as HistoryEvent);
-    } catch {
-      // Skip a truncated/corrupt line rather than failing the whole read.
-    }
-  }
-  return out;
+  return readLines<HistoryEvent>(path);
 }
 
 export function isDegraded(home: string): boolean {
@@ -45,15 +41,11 @@ export function recordSafe(
   event: HistoryEvent,
   deps: { append?: (path: string, event: HistoryEvent) => void } = {},
 ): void {
-  try {
-    (deps.append ?? appendEvent)(historyPath(home), event);
-  } catch {
-    try {
-      const marker = degradedMarkerPath(home);
-      mkdirSync(dirname(marker), { recursive: true });
-      writeFileSync(marker, new Date().toISOString());
-    } catch {
-      // Nothing more we can do — but the host command still succeeds.
-    }
-  }
+  const append = deps.append;
+  appendLineSafe(
+    { path: historyPath(home), line: JSON.stringify(event), markerPath: degradedMarkerPath(home) },
+    // The injected seam is typed in events, not lines, because that is the
+    // shape this module's callers and tests already speak.
+    append ? { append: (path) => append(path, event) } : {},
+  );
 }

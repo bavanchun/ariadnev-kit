@@ -25,6 +25,7 @@ import {
   type RunWorkflowCommandInputV1,
 } from "./run-command.js";
 import { acceptLegacyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
+import { recordActivity } from "../activity/emit.js";
 
 const CODEX_RUNTIME_VERSION = "0.147.0";
 const CLAUDE_CODE_RUNTIME_VERSION = "2.1.226";
@@ -150,6 +151,17 @@ async function execute(
   const cancel = () => controller.abort("process-signal");
   process.once("SIGINT", cancel);
   process.once("SIGTERM", cancel);
+  const startedAt = Date.now();
+  // Only a real execution is worth an event. `validate` and `dry-run` neither
+  // start a run nor invoke a provider, so recording them would inflate every
+  // usage aggregate with work that never happened.
+  const observed = input.action === "run" || input.action === "resume";
+  if (observed) {
+    recordActivity(global.home, "workflow.started", {
+      runtime: input.runtime,
+      workflow: input.workflow,
+    });
+  }
   try {
     try {
       const result = await runWorkflowCommand({
@@ -158,8 +170,24 @@ async function execute(
         signal: controller.signal,
       }, runtimeDeps(global, opts, input.action === "run" || input.action === "resume"));
       emit(formatRunWorkflowResult(result, !!opts.json));
+      if (observed) {
+        recordActivity(global.home, result.ok ? "workflow.completed" : "workflow.failed", {
+          runtime: input.runtime,
+          workflow: input.workflow,
+          status: result.status,
+          durationMs: Date.now() - startedAt,
+        });
+      }
       if (!result.ok) process.exitCode = 1;
     } catch (error) {
+      if (observed) {
+        recordActivity(global.home, "workflow.failed", {
+          runtime: input.runtime,
+          workflow: input.workflow,
+          status: "error",
+          durationMs: Date.now() - startedAt,
+        });
+      }
       if (!opts.json) throw error;
       const result = Object.freeze({
         schemaVersion: 1 as const,

@@ -32,6 +32,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 const ROOT_DIRECTORY = ".ariadnev";
 const OPERATIONAL_DIRECTORY = "operational";
 const DERIVED_DIRECTORY = "derived";
+const ACTIVITY_DIRECTORY = "activity";
 
 /** `~/.ariadnev/operational`. `home` comes from the caller — `--home` overrides it. */
 export function operationalRoot(home: string): string {
@@ -41,6 +42,17 @@ export function operationalRoot(home: string): string {
 /** A path for something authoritative: the only copy, and never rebuildable. */
 export function operationalPath(home: string, ...segments: string[]): string {
   return join(operationalRoot(home), ...segments);
+}
+
+/**
+ * `~/.ariadnev/operational/activity` — the event log. Authoritative.
+ *
+ * Deliberately outside `derived/`: these events are the only record that they
+ * happened. Everything phases 6-8 compute is derived *from* here, and nothing
+ * can rebuild here.
+ */
+export function activityRoot(home: string): string {
+  return operationalPath(home, ACTIVITY_DIRECTORY);
 }
 
 /** `~/.ariadnev/operational/derived` — safe to delete in full, at any time. */
