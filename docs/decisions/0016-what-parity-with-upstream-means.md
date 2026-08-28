@@ -49,6 +49,10 @@ Three corollaries:
    ship. Enforced by a `NotImplementedError` assertion in CI, active from the
    first phase, so the missing-count ratchet cannot be improved by registering
    empty commands.
+   The assertion is a drift guard, not the enforcement: it catches a stub that
+   uses the sanctioned error type, and `throw new Error("coming soon")` walks
+   straight past it. What actually enforces "no stubs" is the capture-first test
+   per command.
 3. **The excluded set is frozen.** It is committed as data and asserted by test,
    so a later phase cannot improve the parity number by reclassifying a command
    instead of implementing it.
@@ -60,10 +64,18 @@ Three corollaries:
 | `login`, `logout`, `whoami`, `licenses` | excluded | auth and licensing, excluded by the maintainer |
 | `api` — LLM proxy half | excluded by dependency | serves licensed routing via `login` credentials; porting it ships a credential daemon with no client. The local half (health, status, version, dashboard) is in scope |
 | `gui` | ariadnev-owned equivalent | upstream's is a native desktop app it builds and hosts. ariadnev starts the local API and opens `ariadnev-web`, a dashboard that already exists. Cloning the native app means a second product and a webview dependency swamp inside a Bun binary, against a download endpoint ariadnev does not operate |
-| `feedback` | ariadnev-owned equivalent | remote telemetry is excluded; export-only, or an issue on ariadnev's own repository |
+| `feedback` | ariadnev-owned equivalent *(shape unresolved)* | remote telemetry is excluded. Export-only, or an issue on ariadnev's own repository — resolved by the phase that implements it |
 | `changelog` | ariadnev-owned equivalent | reads ariadnev's own signed releases, not upstream's endpoints |
+| `content` | ariadnev-owned equivalent | publishes to user-supplied webhooks; ariadnev hosts no channel |
+| `self-update` | ariadnev-owned equivalent | an alias over ariadnev's own signed update path, not upstream's binary channel |
 | `run` | renamed collision | `av run` was the workflow harness. `run` becomes skill dispatch to match upstream; the harness becomes `av workflow`, behind a one-release deprecation shim |
 | the two upstream router skills | merged, not imported | they are routers over *upstream's* CLI and catalog. ariadnev ships native `ariadnev` and `av` equivalents; importing verbatim would ship prose describing a CLI that does not exist |
+
+**`parity-manifest.json` is the authoritative machine copy; this table is
+exposition.** The audit runs against the manifest, and the two must agree — but
+they cannot be literally identical, because the brand-drift gate forbids this
+document from naming upstream identifiers the manifest may need. On a mismatch
+the manifest wins and this table is corrected.
 
 Two further rows are expected and are filled in by the phases that resolve them:
 whether `dsh` ships as a verified provider or a documented skipped one, and

@@ -4,7 +4,7 @@ title: "Activity event log"
 status: pending
 priority: P1
 effort: "2-4d"
-dependencies: [1]
+dependencies: [1, 2]
 ---
 
 # Phase 3: Activity event log

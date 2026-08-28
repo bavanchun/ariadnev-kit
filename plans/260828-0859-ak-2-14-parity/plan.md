@@ -86,7 +86,10 @@ are installed and lint-clean. Released as `1.3.0`.
 3. `av contract --json` reports 9 providers × 9 artifacts, every `verified: true`
    cell carrying evidence with a provider version and a date.
 4. Delete the derived index → rebuild → equivalent output. Standing CI test.
-5. The `av workflow` shim is removed before 1.3.0 final.
+5. The `run` fallthrough shim **ships in 1.3.0 and retires in 1.4.0** — see
+   "The `run` collision". An earlier draft removed it before 1.3.0 final, which
+   would have meant no stable user ever saw the deprecation warning the plan
+   calls its semver honesty.
 6. `1.3.0` released over the signed channel built in `260822-1407` phase 5.
 
 ## The exclusion set is not closed under dependency
@@ -260,8 +263,16 @@ and what every piece of ported skill prose will reference.
 Semver honesty comes from a one-release shim: `av run <arg>` with **no slash** in
 the positional falls through to the legacy workflow path with a deprecation
 warning. AgentKit's grammar requires `<kit>/<skill>`, so the discriminator is
-unambiguous. The shim retires in phase 10 when dispatch actually ships, and
-before 1.3.0 final.
+unambiguous.
+
+**The shim ships in 1.3.0 and retires in 1.4.0.** Corrected 2026-08-28: the
+plan previously had phase 10 delete it before 1.3.0 final while phase 13 still
+required verifying its one-release deprecation warning — the two cannot both
+hold, and the version a 1.2.x user actually upgrades to would have hard-errored
+with no warning at all. Keeping the fallthrough through 1.3.0 costs nothing:
+dispatch requires a slash, so the no-slash discriminator stays unambiguous
+indefinitely, and it puts `run` on the same one-release footing as `uninstall`,
+`update`, and `recover`.
 
 ## Where "y chang agentkit" is a trap
 
@@ -366,9 +377,9 @@ the widest failure surface, and in phase 12's case a prompt-injection surface.
 - [ ] No in-scope command is a stub — asserted by test
 - [ ] Rebuild-equivalence invariant standing and green
 - [ ] `av contract --json` shows 9 providers with per-cell evidence; `dsh`'s real status stated
-- [ ] `av workflow` shim removed before 1.3.0 final
+- [ ] The `run` fallthrough shim ships in 1.3.0, warns, and names 1.4.0 as its removal release
 - [ ] All skills lint-clean with no exemption
-- [ ] `pnpm test` green on `main` at every phase merge
+- [ ] `pnpm test` green on `dev` at every phase merge — `main` is maintainer-only under the branch rule
 - [ ] `1.3.0` released over the signed channel
 
 ## Open questions

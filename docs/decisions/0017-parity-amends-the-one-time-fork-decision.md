@@ -29,10 +29,14 @@ that it is pursued by reimplementation rather than by synchronisation.**
 
 What does **not** change:
 
-- No upstream ref is recorded, and none is added. There is nothing to record: the
-  upstream binary is a closed Mach-O arm64 executable and no upstream source
-  exists on this machine or in any checkout. The sync path 0011 declined is not
-  merely unwanted, it is unavailable.
+- No upstream ref is recorded, and none is added. There is no *CLI* source to
+  record a ref against: the upstream binary is a closed Mach-O arm64 executable.
+  Two honest qualifications. Upstream *skill content* is readable on disk and one
+  phase imports a tree of it — that is ADR 0008's ordinary by-hand port, not a
+  sync. And `parity-manifest.json`, once committed, is a behavioral snapshot
+  pinned to one version — the nearest thing to a recorded ref this repo will
+  hold. It feeds tests, never a merge, so the sync path 0011 declined stays
+  unbuilt and unavailable.
 - No re-sync mechanism is built. The `metadata.origin` markers keep the narrowed
   meaning 0011 gave them: provenance, not the input to a synchronisation
   mechanism.
@@ -50,8 +54,11 @@ What **does** change:
   observable and are captured into the plan as contracts before any test is
   written. This is 0011's "port that content by hand" applied to behavior instead
   of files.
-- 0011's premise that this is a tool with no external users is unchanged, and it
-  is still what makes the low-ceremony posture correct. Parity is a product
+- 0011's premise still holds in the sense that matters: no third party depends on
+  ariadnev's interfaces, so no compatibility contract is owed outward, and the
+  low-ceremony posture stays correct. It should not be read as "nobody runs
+  this" — the installer RCE closed in `260822-1407` phase 0 was live on real
+  installs, which is why 1.3.0 waits for the signed channel. Parity is a product
   decision by the maintainer, not a new obligation to anyone outside.
 
 ## Consequences

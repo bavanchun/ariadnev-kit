@@ -33,7 +33,7 @@ phase checks whether it did.
 **Non-functional**
 - Every skill lint-clean, **no exemption**.
 - Cross-skill links resolve in **installed** coordinates.
-- `run-shim.ts` gone — verified here, deleted in phase 10.
+- `run-shim.ts` **still present and working** — it ships in 1.3.0, retires in 1.4.0.
 - No in-scope command is a stub.
 - The phase-1 missing-count ratchet reaches a ceiling of zero.
 
@@ -122,15 +122,24 @@ right, not as a footnote to phase 9.
 7. Implement `content`, `feedback`, `changelog`, `self-update` per the table.
 8. **Run the parity audit.** Every captured name registered or in the
    divergence table. Lower the phase-1 ratchet ceiling to zero.
-9. Verify `run-shim.ts` is gone and `av run <no-slash>` errors correctly.
+
+   The audit is **name-granular, and that is a known hole**: a command can be
+   registered with half its subcommands, or with a `--json` envelope that
+   diverges, and still pass. Close half of it here by additionally asserting that
+   every registered in-scope name has a **committed oracle capture** on file. A
+   name with no capture was never checked against the oracle, whatever the ratchet
+   says.
+9. Verify `av run <no-slash>` still routes to the harness **and warns**, and that
+   `av run <kit>/<skill>` dispatches. The shim ships in this release; deleting it
+   before 1.3.0 would mean no stable user ever saw the warning.
 10. Verify no in-scope command is a stub.
 11. Full install rehearsal across every verified provider, from a clean machine
     state: `init`, install, dispatch, index build, rebuild, snapshot, restore.
 12. Changeset, version `1.3.0`, release over the signed channel. **Release notes
     lead with all four behavior changes to already-shipped commands** — `run` →
     `workflow`, `uninstall` refusing modified files, `update` skipping them, and
-    `recover` defaulting to preview. Verify each ships its one-release
-    deprecation warning; `recover` matters most, because a script whose restore
+    `recover` defaulting to preview. Verify each of the four ships its
+    one-release deprecation warning **in this release**; `recover` matters most, because a script whose restore
     silently becomes a preview believes it succeeded.
 
 ## Success Criteria
@@ -143,7 +152,8 @@ right, not as a footnote to phase 9.
 - [ ] All skills lint-clean, no exemption
 - [ ] `content`, `feedback`, `changelog`, `self-update` work; `changelog` reads ariadnev's releases
 - [ ] **Every captured name registered or in the divergence table** — asserted, ratchet at zero
-- [ ] `run-shim.ts` gone
+- [ ] Every registered in-scope name has a committed oracle capture — asserted
+- [ ] `run-shim.ts` present and warning; its comment names 1.4.0 as its removal release
 - [ ] No in-scope command is a stub
 - [ ] Clean-machine rehearsal passes on every verified provider
 - [ ] `1.3.0` released over the signed channel

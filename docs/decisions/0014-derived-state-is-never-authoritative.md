@@ -42,7 +42,9 @@ Concretely, under `~/.ariadnev/operational/`:
 This is enforced by a standing CI invariant rather than by convention: a
 rebuild-equivalence test that deletes the derived state, rebuilds it, and asserts
 equivalent output. The test is written before the first command that would use
-the index, over an empty set of cases, and gains a case per command. A gate added
+the index, over an empty set of cases, and gains a case per command — enumerated
+from the registry of index-touching commands rather than from thirteen phases
+each remembering to add one, since a forgotten case fails silently. A gate added
 afterwards gets shaped around whatever was already built, which is how this kind
 of rule quietly stops meaning anything.
 

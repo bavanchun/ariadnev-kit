@@ -84,9 +84,13 @@ maintainer, not a default. See open question 7.
   name, and `parity-manifest.json` records the surface it captured. Decide the
   mechanism here, once, for every later phase: the gate offers a line-scoped
   `brand-drift-allow: <reason>` comment, or the binary name can come from an
-  environment variable with a documented default. Do **not** add an allowlist
-  prefix for `packages/` — the gate's own comment is explicit that entries must
-  be historical records, "never a file that simply has not been renamed yet".
+  environment variable with a documented default. Note the wrinkle before hitting
+  it: `parity-manifest.json` is JSON, so a line-scoped `brand-drift-allow:`
+  comment has to ride inside a string value on the same line as each identifier —
+  which argues for the manifest storing no upstream identifier at all. Do **not**
+  add an allowlist prefix for `packages/` — the gate's own comment is explicit
+  that entries must be historical records, "never a file that simply has not been
+  renamed yet".
 - Dynamic imports only for both drivers; both marked external in the tsup and
   bun-build configs. A static `import "node:sqlite"` fails `bun build --compile`
   at *build* time — verified.
@@ -128,8 +132,11 @@ smoke change ride the first post-beta `dev`→`main` promotion, so the next
 candidate build after that promotion is the first on Node 24.
 
 `engines.node` in `package.json:6` and `packages/cli/package.json:33` both
-declare `">=18"`, which becomes false the moment the dev driver lands
-(`node:sqlite` arrived in 22.5). Both are bumped in the same PR.
+declare `">=18"`, which becomes false the moment the dev driver lands. The floor
+is **`>=22.13`**, not `>=22.5`: `node:sqlite` was added in 22.5 but required
+`--experimental-sqlite` until 22.13.0 (and 23.4.0), so a contributor on 22.5-22.12
+hits the same `No such built-in module` this plan documents for Bun. CI pins 24;
+22.13 is the honest floor for a contributor. Both fields move in the same PR.
 
 On the substrate itself: neither driver alone covers both runtimes, which is what
 forces the adapter. `better-sqlite3` is rejected — a native addon fights
@@ -184,7 +191,7 @@ live in a `derived/` subdirectory that can be deleted wholesale at any moment.
 - Create: `packages/cli/src/storage/operational-paths.ts` — runtime state constants, **not** `adapt/paths.ts`
 - Create: `packages/cli/src/storage/rebuild-equivalence.test.ts` — the standing invariant
 - Create: `parity-manifest.json`
-- Create: `scripts/capture-upstream-surface.mjs` — regenerates the manifest from `ak --help`
+- Create: `packages/cli/scripts/capture-upstream-surface.mjs` — regenerates the manifest. Every existing script lives here, not at the repo root
 - Create: `docs/decisions/0014-…` … `0017-…` — four ADRs, continuing the existing sequence (latest is `0013-lint-exemption-is-a-shrinking-list.md`). **There is no `docs/adr/`** — the repo's ADRs live in `docs/decisions/`, which is also where `0011-upstream-is-a-one-time-fork.md` lives, and ADR #4 below amends it
 - Create: `packages/cli/src/kit/parity-ratchet.test.ts` — the monotonic missing-count gate
 - Modify: `.github/workflows/ci.yml:174,262` — Node 20 → 24
@@ -226,7 +233,8 @@ live in a `derived/` subdirectory that can be deleted wholesale at any moment.
 6. Write `rebuild-equivalence.test.ts` over an empty command set — trivially
    green now, gaining a case per command later. **Writing it now is the point:**
    a gate added afterwards is shaped around what was already built.
-7. Write `scripts/capture-upstream-surface.mjs` (shell out to `ak --help` and
+7. Write `packages/cli/scripts/capture-upstream-surface.mjs` (shell out to the
+   upstream binary's `--help` and
    each `ak <cmd> --help`, parse, emit JSON, retain raw text so a mis-parse is
    diffable). It is a maintainer tool — `ak` is not on CI, and the script header
    must say so, so nobody wires it into a build.

@@ -68,7 +68,8 @@ fix is a faster rebuild, not a fatter snapshot.
 
 ## Revisiting
 
-If the operational data plane is ever cut back to nothing authoritative, the
-original verdict applies again unchanged and `create` should be removed rather
-than kept for symmetry with upstream. The command exists because there is
+If the operational data plane is ever cut back to nothing authoritative — **or if
+this plan is abandoned before phase 3 and the subject is never built at all** —
+the original verdict applies again unchanged and `create` should be removed, or
+never added, rather than kept for symmetry with upstream. The command exists because there is
 something to snapshot, not because upstream has a command of that name.

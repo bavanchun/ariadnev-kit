@@ -29,7 +29,11 @@ Large, and the phase where the `run` shim from phase 2 finally retires.
 - `av commands install|list|remove|search|show`.
 - `av skills install|list|remove|search|show|graph`.
 - `av codex-agent-runtime serve|register|unregister`.
-- The phase-2 `run` shim is **removed**.
+- The phase-2 `run` shim is **retained through 1.3.0** and removed in 1.4.0 —
+  see `plan.md`, "The `run` collision". This phase makes dispatch work; it does
+  not delete the fallthrough.
+- `run` inherits **no** legacy JSON or exit-code exemption — phase 2 moved those
+  to `workflow`, and dispatch must not silently acquire them.
 
 **Non-functional**
 - Streaming, not buffering. A dispatched skill can run for minutes; output
@@ -71,9 +75,12 @@ against `~/.codex/config.toml`. The registration half is small and safe; the
 serve half is a daemon. Land registration first — it is independently useful and
 independently revertable.
 
-**Retiring the shim.** Once `run <kit>/<skill>` dispatches, delete `run-shim.ts`
-and the legacy fallthrough. `av run <id-with-no-slash>` then errors with a
-message naming `av workflow run`. This must happen here, not at phase 13 — the
+**The shim stays.** Once `run <kit>/<skill>` dispatches, the no-slash
+fallthrough keeps working and keeps warning, through 1.3.0; it is deleted in
+1.4.0. Corrected 2026-08-28 — an earlier draft deleted it here, which would have
+shipped a deprecation warning no stable user ever saw. The discriminator stays
+unambiguous indefinitely (dispatch requires a slash), so retaining it costs
+nothing. What this phase owes is that dispatch and fallthrough coexist. The
 release checklist verifies it rather than performing it.
 
 ## Related Code Files
@@ -87,7 +94,7 @@ release checklist verifies it rather than performing it.
 - Create: `packages/cli/src/skill-env/lifecycle.ts` + test
 - Create: `packages/cli/src/cli/codex-agent-runtime-command.ts` + test
 - Modify: `packages/cli/src/cli/skill-env-command.ts` — extend to the five verbs
-- **Delete: `packages/cli/src/cli/run-shim.ts`** and its test
+- Modify: `packages/cli/src/cli/run-shim.ts` — the reserved-grammar branch now dispatches instead of erroring; the file is **not** deleted until 1.4.0
 - Modify: `packages/cli/src/cli/register-harness-commands.ts` — drop the fallthrough
 - Modify: `parity-manifest.json`
 
@@ -109,8 +116,9 @@ release checklist verifies it rather than performing it.
    child's exit code propagates. Assert **no orphan survives** any of the three
    paths — this is the phase that can leave processes behind.
 6. Wire `av run <kit>/<skill>`.
-7. **Delete `run-shim.ts`** and the fallthrough. Update the phase-2 tests to
-   assert the new error rather than the deprecation warning.
+7. **Keep `run-shim.ts`.** Assert dispatch and the warning fallthrough coexist:
+   `av run kit/skill` dispatches, `av run <no-slash>` still runs the harness and
+   still warns. Its comment names 1.4.0 as the removal release.
 8. Implement `skill-env` lifecycle: install, verify, repair, upgrade, remove.
    `remove` drops the record and leaves the cache — the oracle is explicit about
    this and it is the right call, since re-resolving is cheap and re-downloading
@@ -134,7 +142,7 @@ release checklist verifies it rather than performing it.
 - [ ] `--timeout` escalates TERM → grace → KILL
 - [ ] Child exit codes propagate
 - [ ] Dispatch to an unverified provider is refused, not guessed
-- [ ] **`run-shim.ts` deleted**; `av run <no-slash>` errors naming `av workflow run`
+- [ ] **`av run kit/skill` dispatches and `av run <no-slash>` still warns** — both asserted; the shim survives into 1.3.0
 - [ ] All five `skill` env verbs work; `remove` leaves the cache
 - [ ] `agents`, `commands`, `skills` share one implementation
 - [ ] `codex-agent-runtime register` is idempotent and backs up the prior TOML
@@ -166,7 +174,9 @@ fifteen chances to diverge.
 *Signal:* a `--json` envelope differing in shape between `agents list` and
 `skills list`. *Response:* one implementation, parameterized (step 9).
 
-**The shim outlives the phase.**
-*Signal:* `run-shim.ts` present after this phase merges. *Response:* its deletion
-is a success criterion here, and phase 13's checklist verifies rather than
-performs it — so a miss is caught twice.
+**The shim outlives its deprecation window.** The risk is no longer that it
+survives this phase — it is meant to — but that 1.4.0 ships with it still there.
+*Signal:* `run-shim.ts` present in a 1.4.0 release candidate. *Response:* its
+own comment names 1.4.0, and removal is the first item of that release's scope.
+Deprecation shims are famously immortal, so the date lives in the file rather
+than in anyone's memory.

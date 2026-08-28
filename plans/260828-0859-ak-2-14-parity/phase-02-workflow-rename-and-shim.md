@@ -32,8 +32,9 @@ Small, trivially revertable, and deliberately early.
 **Non-functional**
 - The deprecation warning goes to **stderr**, so `--json` consumers piping stdout
   are unaffected.
-- The shim is dated in its own comment with the phase that removes it (10) and
-  the release it must not survive (1.3.0 final).
+- The shim is dated in its own comment with the release that removes it (1.4.0).
+  It **ships in 1.3.0** — a deprecation warning no stable user sees is not a
+  deprecation path.
 
 ## Architecture
 
@@ -66,11 +67,13 @@ positional form needs the fallthrough.
 - Modify: `packages/cli/src/cli/register-harness-commands.test.ts`
 - Create: `packages/cli/src/cli/run-shim.ts` + test — the discriminator, isolated so its removal is one deletion
 - Modify: `packages/cli/src/cli/command-surface.test.ts`
+- **Modify: `packages/cli/src/cli/json-envelope.ts:38`** — `LEGACY_JSON_COMMANDS` contains `"run"`; the exemption belongs to the harness and must move to `workflow`
+- **Modify: `packages/cli/src/cli/exit-codes.ts:27`** — `LEGACY_EXIT_COMMANDS` likewise
 - Modify: `parity-manifest.json` — `run` still uncovered until phase 10
 - **Modify: `packages/cli/scripts/smoke-binary.mjs:51-53,161`** — the release gate; see below
 - **Modify: `packages/cli/scripts/smoke-binary.test.mjs`** — its fixtures encode the same grammar
-- Modify: `README.md:112,113,148,150` — the two command-table rows and two examples
-- Modify: `docs/graph-execution-architecture.md:27,40,45,46,47`
+- Modify: `README.md:107,112,113,139,148,149,150` — command-table rows, examples, **and the two legacy-exception lists at `:107`/`:139`**. `:149` is an `av --dry-run run …` example that a literal `av run` grep skips
+- Modify: `docs/graph-execution-architecture.md:5,27,40,45,46,47` — `:5` sits outside the example block
 - Modify: `kit/skills/av/SKILL.md:117` — the only kit-skill reference (`kit/skills/ariadnev/` has none)
 
 ## This phase breaks the release gate unless `smoke-binary.mjs` moves with it
@@ -123,9 +126,16 @@ fails.
    dispatch grammar, and update `smoke-binary.test.mjs`'s fixtures. Do this in the
    same commit as the rename — a release gate that is briefly red is a release
    gate the maintainer cannot cut through.
-7. Sweep every `av run` reference in README, docs, and `kit/skills/av/SKILL.md`.
-   A stale example is how a deprecation becomes permanent.
-8. Assert the warning is on stderr and stdout stays byte-identical under `--json`.
+7. **Move `run` out of both legacy-exemption lists and into `workflow`.** Those
+   lists carve out commands whose pre-envelope JSON shape and exit codes are
+   frozen for compatibility. The exemption was granted to the harness; if `run`
+   stays in them, then after phase 10 the *dispatch* command silently inherits a
+   compatibility carve-out it was never granted. Neither list has a test that
+   fails on this, which is exactly why it is a step rather than a note.
+8. Sweep every `av run` reference in README, docs, and `kit/skills/av/SKILL.md`,
+   including the `--dry-run` example at `README.md:149` that a literal `av run`
+   grep skips. A stale example is how a deprecation becomes permanent.
+9. Assert the warning is on stderr and stdout stays byte-identical under `--json`.
 
 ## Success Criteria
 
@@ -133,7 +143,8 @@ fails.
 - [ ] `av run <id>` still works and warns on stderr
 - [ ] `av run kit/skill` errors, naming phase 10
 - [ ] `--json` stdout byte-identical to before the rename
-- [ ] The shim is one file, with its removal phase named in a comment
+- [ ] The shim is one file, with its removal phase **and release (1.4.0)** named in a comment
+- [ ] **`run` no longer appears in `LEGACY_JSON_COMMANDS` or `LEGACY_EXIT_COMMANDS`; `workflow` does** — asserted
 - [ ] No `av run` examples left in README, docs, or skills
 - [ ] **`smoke-binary.mjs` updated in the same commit; the release smoke is green against the renamed surface** — asserted by running it against a locally built binary before the PR opens
 - [ ] `pnpm test` green
