@@ -7,10 +7,11 @@
 // Same case array as `src/storage/conformance.test.ts`. If this file starts
 // asserting something of its own, the two runtimes have stopped being compared.
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { storageConformanceCases } from "../src/storage/conformance-cases.js";
+import { removeStorageTree } from "../src/storage/operational-paths.js";
 import { selectDriver } from "../src/storage/select-driver.js";
 
 const driver = selectDriver();
@@ -37,7 +38,7 @@ try {
     }
   }
 } finally {
-  rmSync(root, { recursive: true, force: true });
+  removeStorageTree(root);
 }
 
 if (failures.length > 0) {

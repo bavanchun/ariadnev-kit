@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -9,6 +9,8 @@ import {
   isDerived,
   operationalPath,
   operationalRoot,
+  removeDerived,
+  removeStorageTree,
 } from "./operational-paths.js";
 
 describe("operational paths", () => {
@@ -19,7 +21,7 @@ describe("operational paths", () => {
   });
 
   afterEach(() => {
-    rmSync(home, { recursive: true, force: true });
+    removeStorageTree(home);
   });
 
   it("puts the operational root beside the other runtime roots", () => {
@@ -76,7 +78,7 @@ describe("operational paths", () => {
       symlinkSync(elsewhere, derivedRoot(home));
       expect(() => ensureOperationalDirectory(home, derivedRoot(home))).toThrow(/not a regular directory/);
     } finally {
-      rmSync(elsewhere, { recursive: true, force: true });
+      removeStorageTree(elsewhere);
     }
   });
 
@@ -84,5 +86,45 @@ describe("operational paths", () => {
     ensureOperationalDirectory(home, operationalRoot(home));
     writeFileSync(operationalPath(home, "projects.json"), "{}");
     expect(() => ensureOperationalDirectory(home, operationalPath(home, "projects.json"))).toThrow();
+  });
+});
+
+describe("throwing derived state away", () => {
+  let home: string;
+
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "ariadnev-home-"));
+  });
+
+  afterEach(() => {
+    removeStorageTree(home);
+  });
+
+  it("removes the whole derived tree and leaves the authoritative half", () => {
+    ensureOperationalDirectory(home, derivedPath(home, "shards"));
+    writeFileSync(derivedPath(home, "shards", "a.db"), "x");
+    writeFileSync(operationalPath(home, "projects.json"), "{}");
+
+    removeDerived(home);
+
+    expect(existsSync(derivedRoot(home))).toBe(false);
+    // The whole point of the split: this is the only copy there is.
+    expect(existsSync(operationalPath(home, "projects.json"))).toBe(true);
+  });
+
+  it("is a no-op when there is nothing derived yet", () => {
+    // `av analytics delete` on a fresh install must not be an error.
+    expect(() => removeDerived(home)).not.toThrow();
+  });
+
+  it("removes a tree that does not exist without complaining", () => {
+    expect(() => removeStorageTree(join(home, "never", "existed"))).not.toThrow();
+  });
+
+  it("removes a deep tree", () => {
+    mkdirSync(join(home, "a", "b", "c"), { recursive: true });
+    writeFileSync(join(home, "a", "b", "c", "f"), "x");
+    removeStorageTree(join(home, "a"));
+    expect(existsSync(join(home, "a"))).toBe(false);
   });
 });

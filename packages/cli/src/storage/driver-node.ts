@@ -10,6 +10,7 @@
 // carries the measurements explaining why.
 
 import {
+  checkpointAndClose,
   execTransaction,
   normalizeWriteResult,
   plainRow,
@@ -61,7 +62,7 @@ export const nodeDriver: StorageDriver = {
       exec: (sql) => database.exec(sql),
       prepare: (sql) => wrapStatement(database.prepare(sql)),
       transaction: (body) => execTransaction({ exec: (sql) => database.exec(sql) }, body),
-      close: () => database.close(),
+      close: () => checkpointAndClose(database),
     };
   },
 };

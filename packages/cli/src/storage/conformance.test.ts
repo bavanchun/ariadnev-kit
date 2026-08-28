@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { storageConformanceCases, type ConformanceContext } from "./conformance-cases.js";
 import { nodeDriver } from "./driver-node.js";
+import { removeStorageTree } from "./operational-paths.js";
 import { selectDriver, runningUnderBun } from "./select-driver.js";
 
 // The Bun half of this suite runs from `scripts/run-storage-conformance.ts`,
@@ -21,7 +22,7 @@ describe("storage conformance (node:sqlite)", () => {
   });
 
   afterAll(() => {
-    rmSync(root, { recursive: true, force: true });
+    removeStorageTree(root);
   });
 
   for (const conformanceCase of storageConformanceCases) {

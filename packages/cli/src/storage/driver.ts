@@ -81,6 +81,24 @@ export function normalizeWriteResult(result: { changes: number | bigint; lastIns
 }
 
 /**
+ * Fold the write-ahead log back into the database before closing.
+ *
+ * Bounds WAL growth on a long-lived index, and on Windows it is what lets the
+ * `-wal` and `-shm` sidecars go away with the database rather than outliving it
+ * — the difference between "delete the derived index" working and returning
+ * EBUSY. Best-effort: a read-only or already-closed handle cannot checkpoint,
+ * and failing to tidy up is not a reason to fail the close.
+ */
+export function checkpointAndClose(database: { exec(sql: string): void; close(): void }): void {
+  try {
+    database.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+  } catch {
+    /* not in WAL, read-only, or nothing to fold back */
+  }
+  database.close();
+}
+
+/**
  * BEGIN/COMMIT/ROLLBACK written once, over `exec`.
  *
  * Bun has `db.transaction(fn)` and Node does not, so implementing this per

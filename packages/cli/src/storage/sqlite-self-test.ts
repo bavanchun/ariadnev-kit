@@ -13,9 +13,10 @@
 // A real file rather than `:memory:`, because WAL is silently ignored on an
 // in-memory database — asking there would only ever confirm the question.
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { removeStorageTree } from "./operational-paths.js";
 import { selectDriver } from "./select-driver.js";
 import type { DriverName } from "./driver.js";
 
@@ -48,7 +49,7 @@ export function sqliteSelfTest(): SqliteSelfTestResult {
   } catch (error) {
     return { ok: false, driver: driver.name, fts5: false, wal: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
-    if (root) rmSync(root, { recursive: true, force: true });
+    if (root) removeStorageTree(root);
   }
 }
 
