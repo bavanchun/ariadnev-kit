@@ -1,7 +1,7 @@
 ---
 title: "ak-2-14-parity"
 description: "Cleanroom behavioral parity with AgentKit 2.14.0 for everything except auth, remote telemetry, and licensing: an operational data plane, ~21 new commands, a nine-provider matrix, and the ak-only skills — shipped as 1.3.0."
-status: pending
+status: in-progress
 priority: P1
 effort: "45-76d"
 tags: [cli, parity, adapters, storage, kit]
@@ -63,7 +63,7 @@ are installed and lint-clean. Released as `1.3.0`.
   |---|---|---|---|
   | `run` | becomes skill dispatch | phase 2 | one-release fallthrough shim + deprecation warning |
   | `uninstall` | refuses to delete user-modified files | phase 4 | warn on the changed path for one release |
-  | `update` | skips user-modified files | phase 4 | warn on the changed path for one release |
+  | `update` | skips user-modified files, **and widens from binary-only to binary-then-kits** | phase 4 | warn on the changed path for one release; `self-update` keeps the binary-only path under its own name |
   | `recover` | preview becomes the default | phase 8 | warn when an invocation that used to write now previews |
 
   `recover` is the sharpest of the three additions: a scripted `av recover <id>`
@@ -187,10 +187,16 @@ release gate, which is a bad trade at any schedule pressure.
 
 Observed on this machine, 2026-08-28, against `ak 2.14.0`.
 
-**Command surface.** ariadnev registers 24 top-level commands (read off
-`register-*.ts`): `adapters audit backups config contract doctor eval install
-journal kit list mcp migrate plan prefs query recover run skill telemetry
-uninstall unlock update validate`. AgentKit registers 42.
+**Command surface.** ariadnev registers 24 top-level commands: `adapters
+add-skill audit backups config contract doctor eval install journal kit list mcp
+migrate plan query recover run skill telemetry uninstall unlock update validate`.
+AgentKit registers 42 — confirmed by the phase 1 capture, which parsed exactly 42
+off the live `--help`.
+
+Read off the running program rather than off `register-*.ts`: an earlier
+hand-read of the sources listed `prefs`, which is `av config prefs`, and missed
+`add-skill`. The count was right and two of the names were not, which is the
+argument for `parity-manifest.json` being generated rather than written.
 
 **AgentKit's local store is far lighter than its command list suggests.** This
 finding decides the storage design:
@@ -245,7 +251,7 @@ Playwright dependency — a phase's worth of work on its own.
 **Scale.** 204 source files, ~27k LOC, 143 test files. `@clack/prompts ^0.8.2`
 already a dependency, so `av setup`'s wizard needs no new one.
 
-## The `run` collision
+## Two name collisions
 
 `av run` today is the workflow harness (`run`/`resume`/`status`/`cancel`,
 `register-harness-commands.ts`). `ak run <kit>/<skill> --target …` dispatches a
@@ -267,6 +273,27 @@ warning, or the deprecation path exists only on `dev`. Keeping the fallthrough
 through 1.3.0 costs nothing — dispatch requires a slash, so the no-slash
 discriminator stays unambiguous indefinitely — and it puts `run` on the same
 one-release footing as `uninstall`, `update`, and `recover`.
+
+### `update` and `self-update` — found by the phase 1 capture
+
+The second collision, and it was not in this plan until the oracle capture went
+looking. `av update` today is a **binary-only signed self-update**, which is
+upstream's `self-update`. Upstream's `update` is the wider refresh: the binary
+step first, then global/user kits, then project kits.
+
+So the pair does not map across by name:
+
+| Upstream | What it does | ariadnev today |
+|---|---|---|
+| `self-update` | signed binary update, nothing else | **this is what `av update` is** |
+| `update` | binary step, then kit content, wizard on a TTY | unregistered |
+
+Resolution, on the same footing as `run`: register `self-update` as the
+binary-only path, and widen `update` into the orchestrated refresh. A scripted
+`av update` keeps working — the binary step is still the first thing the wider
+command does — but it now does more afterwards, so it belongs in the semver
+table above rather than arriving unannounced. Both entries carry it in
+`parity-manifest.json`, so no later phase re-decides it.
 
 ## Where "y chang agentkit" is a trap
 
@@ -303,7 +330,7 @@ releases, not AgentKit's endpoints).
 
 | # | Phase | Depends on | Size | Status |
 |---|-------|------------|------|--------|
-| 1 | [Substrate spike and ADRs](./phase-01-substrate-spike-and-adrs.md) | — | **M-L** | Pending |
+| 1 | [Substrate spike and ADRs](./phase-01-substrate-spike-and-adrs.md) | — | **M-L** | **Completed** |
 | 2 | [`workflow` rename and `run` shim](./phase-02-workflow-rename-and-shim.md) | 1 | S | Pending |
 | 3 | [Activity event log](./phase-03-activity-event-log.md) | 1 | M | Pending |
 | 4 | [projects, init, new, setup](./phase-04-projects-init-new-setup.md) | 1, 3 | M | Pending |
@@ -364,7 +391,7 @@ the widest failure surface, and in phase 12's case a prompt-injection surface.
 
 ## Success Criteria
 
-- [ ] Phase 1's compiled-binary SQLite smoke green on every CI target before any command phase starts
+- [x] Phase 1's compiled-binary SQLite smoke green on every executed CI target — `linux-x64`, `darwin-arm64`, `windows-x64`
 - [ ] All 42 AgentKit names registered or in the divergence table
 - [ ] No in-scope command is a stub — asserted by test
 - [ ] Rebuild-equivalence invariant standing and green
