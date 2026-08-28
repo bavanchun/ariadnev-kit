@@ -19,9 +19,14 @@ changing anything under `packages/cli/src/`.
 
 ## Setup
 
-Requires **Node 20**, **pnpm 9**, and **Bun 1.3.14** — the versions CI pins in
+Requires **Node 24**, **pnpm 9**, and **Bun 1.3.14** — the versions CI pins in
 `.github/workflows/ci.yml`. A different Bun can produce a binary that behaves
 differently, which is the one mismatch worth avoiding.
+
+`engines.node` declares `>=22.13` rather than `>=24`, because 22.13 is the first
+release where `node:sqlite` is available without `--experimental-sqlite`. Below
+that floor the dev-side storage driver does not resolve at all. CI pins 24; 22.13
+is the lowest version a contributor can actually run the suite on.
 
 ```bash
 pnpm install --frozen-lockfile

@@ -191,7 +191,8 @@ live in a `derived/` subdirectory that can be deleted wholesale at any moment.
 - Modify: `.github/workflows/ci.yml:174,262` — Node 20 → 24
 - Modify: `.github/workflows/release.yml:40` — Node 20 → 24
 - Modify: `.github/workflows/release-candidate-build.yml:55,178` — Node 20 → 24
-- Modify: `package.json:6`, `packages/cli/package.json:33` — `engines.node` `>=18` → `>=22.5`
+- Modify: `package.json:6`, `packages/cli/package.json:33` — `engines.node` `>=18` → `>=22.13`
+- Modify: `CONTRIBUTING.md:22` — the prose "Requires **Node 20**", which no `node-version` grep finds
 - Modify: `packages/cli/scripts/smoke-binary.mjs` + `smoke-binary.test.mjs` — the SQLite/FTS5/WAL assertion in `checkSmokeOutput`, riding the existing `smoke-cross-platform` matrix
 - Modify: tsup + bun-build config — mark both sqlite modules external
 - Modify: `packages/cli/src/cli/contract-command.ts` — parity section
