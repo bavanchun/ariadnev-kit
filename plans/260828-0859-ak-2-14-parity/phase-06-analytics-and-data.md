@@ -35,6 +35,66 @@ empty test and starts being the thing that keeps the plan honest.
 - `disable` stops indexed reads **without** deleting — the two are distinct verbs
   because they answer different user intents.
 
+## Oracle observation — captured 2026-08-28 against 2.14.0
+
+Step 1, before any code. Four findings.
+
+### The seven data classes, and their default
+
+`ak data status --json` on this machine:
+
+```
+session_metrics, skill_invocations, ingestion_runs,
+ingestion_failures, change_log, outbox, content_shard
+```
+
+Every one `mode: "forever"`, `forever: true`. Retention is opt-in, as the phase
+assumed. Each class also carries a `forecast` — one/three/twelve-month byte
+projections with an explicit `"confidence": "low"` and the assumption stated in
+the payload: *"linear extrapolation of recent derived-data growth; not a
+guarantee"*. Every forecast read `0` here, which is what an honest extrapolation
+returns when the index has no growth history yet.
+
+### `data status --json` is not an envelope at all
+
+It returns a **bare JSON array**. Every other command captured across phases 3,
+4, 5 and this one wraps its payload in `{ schema_version, kind, data }`.
+
+ariadnev cannot follow this: `json-envelope.test.ts` gates every top-level
+command onto the shared envelope, and that gate exists because five private
+envelope shapes were the thing it was written to stop. **`av data status --json`
+emits the envelope**, with the class array under `data`. Recorded here as a
+deliberate divergence rather than discovered during phase 13's audit.
+
+### `analytics status --json` repeats `schema_version` inside `data`
+
+The same duplicate phase 3 dropped on `activity` and phase 4 confirmed absent on
+`projects`. Upstream is inconsistent about it between its own commands. The
+decision stands: one `schema_version`, at the top.
+
+Its `data` fields are worth matching:
+
+```
+enabled, serving_mode, health, will_auto_sync,
+staleness_reason, fact_count, last_successful_at
+```
+
+`serving_mode: "index"` and `health: "ready"` are the two that carry the
+lifecycle state this phase needs, and `staleness_reason` was
+`"generation-mismatch"` on a live index reporting `ready` — so staleness and
+health are independent axes, not one scale.
+
+### `retention --apply` deletes rows; `ingest` opens the database
+
+`ak data retention --help`: *"Preview is read-only; `--apply` deletes eligible
+derived rows from operational.db."* And `ak data ingest`: *"Opens operational.db
+and runs one ingest sweep across Claude and Codex session files."*
+
+Both are consistent with the derived-state doctrine — the rows deleted are
+derived, and the sources stay authoritative. The phase's stricter rule still
+applies to activity segments: retention unlinks a whole segment or leaves it
+alone, never partially rewrites an append-only file.
+
 ## Architecture
 
 **Oracle.** `ak analytics --help`: *"Control AgentKit's private local SQLite
