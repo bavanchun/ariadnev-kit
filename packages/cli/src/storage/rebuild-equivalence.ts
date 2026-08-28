@@ -19,6 +19,9 @@ import { rebuildIndex } from "../analytics/rebuild.js";
 import { runAnalyticsStatus } from "../cli/analytics-command.js";
 import { runDataStatus } from "../cli/data-command.js";
 import { enableAnalytics } from "../analytics/lifecycle.js";
+import { enableProject } from "../content-search/lifecycle.js";
+import { runContentSearchRebuild, runContentSearchSearch } from "../cli/content-search-command.js";
+import { registryPath } from "../projects/registry.js";
 import { activityRoot } from "./operational-paths.js";
 import type { SqlRow } from "./driver.js";
 
@@ -47,6 +50,7 @@ export const DERIVED_CONSUMERS: Readonly<Record<string, (typeof INDEX_TOUCHING_C
   "cli/analytics-command.ts": "analytics",
   "cli/data-command.ts": "data",
   "data/retention.ts": "data",
+  "content-search/shard.ts": "content-search",
 };
 
 export interface RebuildCase {
@@ -114,6 +118,43 @@ export const rebuildEquivalenceCases: readonly RebuildCase[] = [
     },
     observe(home) {
       return JSON.parse(runDataStatus({ home, now: REBUILD_AT, json: true })) as unknown;
+    },
+  },
+  {
+    command: "content-search",
+    note: "the same query returns the same hits after the shard is deleted and rebuilt",
+    seed(home) {
+      // A project, registered, opted in, with one file worth finding. The files
+      // under `project/` are the authoritative copy; the shard is not.
+      const project = join(home, "project");
+      mkdirSync(project, { recursive: true });
+      writeFileSync(join(project, "app.ts"), "export const REBUILD_MARKER = 1;\n");
+      mkdirSync(join(home, ".ariadnev"), { recursive: true });
+      writeFileSync(
+        registryPath(home),
+        JSON.stringify({
+          version: 1,
+          projects: [{ name: "project", dir: project, registered_at: REBUILD_AT, updated_at: REBUILD_AT }],
+        }),
+      );
+      enableProject(home, project, "project", REBUILD_AT);
+    },
+    rebuild(home) {
+      runContentSearchRebuild({ home, now: REBUILD_AT, project: "project", yes: true });
+    },
+    observe(home) {
+      // The search's own output, not the shard's rows: the invariant is about
+      // the answer a user gets surviving the loss of the cache. `elapsedMs`
+      // would differ between two runs for reasons that are not the point, so it
+      // is dropped — the hits, engine and tokens are what must match.
+      const { elapsedMs, ...rest } = JSON.parse(
+        runContentSearchSearch({ home, now: REBUILD_AT, project: "project", query: "REBUILD_MARKER", json: true }),
+      ).data as { elapsedMs: number; hits: unknown[] };
+      // Two empty results compare equal, so a case that stopped finding
+      // anything would go on passing while proving nothing. This is what keeps
+      // the comparison above meaningful.
+      if (rest.hits.length === 0) throw new Error("rebuild-equivalence: the seeded marker was not found — the case is vacuous");
+      return rest;
     },
   },
 ];

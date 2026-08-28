@@ -71,7 +71,16 @@ describe("every derived-state consumer is accounted for", () => {
     for (const path of typescriptFiles(SRC)) {
       const relative = path.slice(SRC.length + 1).split("\\").join("/");
       if (relative.startsWith("storage/")) continue;
-      if (!/\b(?:derivedPath|derivedRoot|removeDerived)\b/.test(readFileSync(path, "utf8"))) continue;
+      // Tests are exempt because the obligation is a command's, not a file's: a
+      // test that reaches for a derived path is asserting where state lives,
+      // which is the opposite of quietly depending on it. Registering one in
+      // `DERIVED_CONSUMERS` would mean naming a test as a command.
+      if (relative.endsWith(".test.ts")) continue;
+      // `contentRoot` is in this list because it is itself defined in terms of
+      // `derivedPath`: a helper that wraps a derived path would otherwise let a
+      // whole command reach derived state without matching the pattern, which
+      // is precisely the silent gap this check exists to close.
+      if (!/\b(?:derivedPath|derivedRoot|removeDerived|contentRoot)\b/.test(readFileSync(path, "utf8"))) continue;
       if (!(relative in DERIVED_CONSUMERS)) unregistered.push(relative);
     }
     expect(

@@ -33,6 +33,7 @@ const ROOT_DIRECTORY = ".ariadnev";
 const OPERATIONAL_DIRECTORY = "operational";
 const DERIVED_DIRECTORY = "derived";
 const ACTIVITY_DIRECTORY = "activity";
+const CONTENT_DIRECTORY = "content";
 
 /** `~/.ariadnev/operational`. `home` comes from the caller — `--home` overrides it. */
 export function operationalRoot(home: string): string {
@@ -63,6 +64,23 @@ export function derivedRoot(home: string): string {
 /** A path for an index, cache, or shard: rebuildable from the files beside it. */
 export function derivedPath(home: string, ...segments: string[]): string {
   return join(derivedRoot(home), ...segments);
+}
+
+/**
+ * `~/.ariadnev/operational/derived/content` — one full-text shard per project.
+ *
+ * UNDER `derived/`, WHERE THE CAPTURED SURFACE PUTS ITS OWN SHARDS ONE LEVEL
+ * HIGHER. A shard is rebuilt by re-reading the project's files, so it is
+ * derived by this plan's definition, and putting it anywhere else would exempt
+ * it from the one invariant that proves so: "delete every derived thing, rebuild,
+ * get the same answer" cannot test a file the delete does not reach.
+ *
+ * The opt-in marker deliberately does NOT live here — it is a decision, not a
+ * cache, and deleting derived state must never turn content indexing back on for
+ * someone who switched it off.
+ */
+export function contentRoot(home: string): string {
+  return derivedPath(home, CONTENT_DIRECTORY);
 }
 
 /** True when `path` sits under `derived/`, so deleting it loses nothing. */

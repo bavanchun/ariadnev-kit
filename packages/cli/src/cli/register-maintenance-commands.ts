@@ -20,7 +20,12 @@ import {
   runAnalyticsRebuild, runAnalyticsRefresh, runAnalyticsStatus,
 } from "./analytics-command.js";
 import { runDataIngest, runDataRetention, runDataStatus } from "./data-command.js";
+import {
+  runContentSearchDelete, runContentSearchDisable, runContentSearchEnable,
+  runContentSearchRebuild, runContentSearchSearch, runContentSearchStatus,
+} from "./content-search-command.js";
 import { DATA_CLASSES } from "../data/retention.js";
+import { DEFAULT_LIMIT, DEFAULT_TIMEOUT_MS } from "../content-search/query.js";
 import {
   runSessionsList,
   runSessionsRedact,
@@ -280,6 +285,7 @@ export function registerMaintenanceCommands(
   registerSessionsCommands(program);
   registerAnalyticsCommands(program);
   registerDataCommands(program);
+  registerContentSearchCommands(program);
 }
 
 /**
@@ -512,6 +518,75 @@ function registerAnalyticsCommands(program: Command): void {
         const global = program.opts<GlobalOpts>();
         emit(await withLifecycleLock(lifecycleRoots(global), `analytics ${verb}`, () =>
           run({ home: global.home, now: now(), json: !!opts.json })));
+      });
+  }
+}
+
+/**
+ * `av content-search enable | disable | status | search | rebuild | delete`.
+ *
+ * Every verb takes `--project` and none of them defaults it. Reads do not take
+ * the lifecycle lock — `status` and `search` are what someone runs while
+ * wondering whether something else is running — and every writing verb does.
+ */
+function registerContentSearchCommands(program: Command): void {
+  const content = program
+    .command("content-search")
+    .description("Opt-in per-project full-text search. The shard is plaintext at rest");
+
+  const now = () => new Date().toISOString();
+  // `.option`, not `.requiredOption`: Commander exits 1 when a required option
+  // is missing, and this table reserves 1 for "the command ran and the answer
+  // is no". The handlers refuse a missing `--project` themselves, which lands on
+  // the 2 the exit table assigns to a bad invocation and says which flag and why.
+  const withProject = (command: Command): Command =>
+    command.option("--project <name>", "registered project name or directory. Required; never inferred");
+
+  withProject(content.command("status"))
+    .description("Show whether one project is opted in, and its shard's health")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { project?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runContentSearchStatus({ home: global.home, now: now(), project: opts.project, json: !!opts.json }));
+    });
+
+  withProject(content.command("search"))
+    .description("Run a bounded query against one opted-in project")
+    .option("--query <text>", "search tokens. Parsed to plain tokens, never passed through as FTS syntax")
+    .option("--limit <n>", "maximum hits", String(DEFAULT_LIMIT))
+    .option("--timeout <ms>", "time bound in milliseconds", String(DEFAULT_TIMEOUT_MS))
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { project?: string; query?: string; limit?: string; timeout?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runContentSearchSearch({
+        home: global.home,
+        now: now(),
+        project: opts.project,
+        query: opts.query,
+        ...(opts.limit === undefined ? {} : { limit: Number(opts.limit) }),
+        ...(opts.timeout === undefined ? {} : { timeoutMs: Number(opts.timeout) }),
+        json: !!opts.json,
+      }));
+    });
+
+  for (const [verb, description, run] of [
+    ["enable", "Opt one project into local plaintext content search", runContentSearchEnable],
+    ["disable", "Stop indexing and searching without deleting the shard", runContentSearchDisable],
+    ["rebuild", "Delete and rebuild one project's shard from its files", runContentSearchRebuild],
+    ["delete", "Preview, then with --yes remove one project's shard files", runContentSearchDelete],
+  ] as const) {
+    withProject(content.command(verb))
+      .description(description)
+      .option("--json", "emit a stable versioned JSON envelope", false)
+      .action(async (opts: { project?: string; json?: boolean }) => {
+        const global = program.opts<GlobalOpts>();
+        // `--yes` is read from the program, not redeclared here. Commander
+        // resolves a flag to the outermost command that declares it, so a
+        // subcommand copy of a global flag is silently never populated — the
+        // disclosure gate accepted `--yes` and refused anyway until this was
+        // measured against the compiled binary.
+        emit(await withLifecycleLock(lifecycleRoots(global), `content-search ${verb}`, () =>
+          run({ home: global.home, now: now(), project: opts.project, yes: !!global.yes, json: !!opts.json })));
       });
   }
 }
