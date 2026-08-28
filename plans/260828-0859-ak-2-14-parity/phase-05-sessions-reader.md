@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "sessions reader"
-status: pending
+status: completed
 priority: P2
 effort: "3-5d"
 dependencies: [4]
@@ -139,3 +139,93 @@ how a read-only phase stops being read-only.
 *Signal:* any write in `redact.ts`. *Response:* the no-write assertion covers all
 flags. If real redaction is wanted later it is a separate phase with its own
 backup design — these are the user's files, not ariadnev's.
+
+
+## What shipped, and where it diverged
+
+Recorded for phase 13's audit. The probe that grounds all of this is
+`plans/reports/probe-260828-session-layouts.md`.
+
+### Codex is supported, because its layout was confirmed
+
+The phase expected Codex to be unconfirmable and planned to report it
+unsupported. It was found on disk: `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`,
+date-sharded, every record wrapping its body in `payload`. Supported on
+evidence, per the rule rather than against it.
+
+**OpenCode is the one reported unsupported.** It appears in the oracle's `stats`
+output and was not found here, so `--runtime opencode` fails by name and the
+stats envelope carries an `unreadable_runtimes` list. A silent zero would be
+indistinguishable from an agent nobody used.
+
+### Discovery is rooted at each sessions directory, not each agent home
+
+`~/.codex/auth.json` sits one level above `~/.codex/sessions/`. Rooting the walk
+lower keeps the credential file outside the traversal entirely, rather than
+excluding it with a filter someone has to keep correct. The Codex walk is also
+depth-bounded to the observed `YYYY/MM/DD` shape.
+
+### `redact` has no write path, and the absence is the guarantee
+
+The oracle's `redact` does carry `--apply` — *"Rewrite changed session files
+after taking a session-root backup"* — so this was a real decision, not a
+hypothetical. `redact.ts` names no function that could open one, and a test
+asserts that. Detection reuses `security/credential-sanitizer.ts`, the CLI's own
+output boundary, so a plan can never disagree with what this tool would mask on
+the way out.
+
+Findings report a line position and a match count, never the matched value: a
+report quoting the credential it found is a second copy of the problem.
+
+### `message_count` counts messages; the oracle counts lines
+
+`ak sessions list` reported 11,295 for a session where this reports 2,617. The
+difference is not a bug on either side: these files carry ten-plus record types
+and most are machinery. The session surveyed for the probe held 1,862
+`attachment` records against 348 `user` messages. A field named `message_count`
+that includes file-history snapshots is the one that needs explaining.
+
+### `--limit` counts messages, which is what its help says
+
+Found by running the compiled binary against a real 21 MB session, not by the
+suite: `show --limit 2` returned an **empty page**, because the limit was
+applied to lines and a real session opens with several metadata records before
+its first message. `readRecords` now takes a `keep` predicate and applies the
+limit to what survives it, with the cursor still advancing over what was
+dropped so the next page does not re-read it.
+
+### The preview is absent unless asked for
+
+`ak sessions list --json` printed a sentence written seconds earlier in the
+session running the probe, plus prose from two unrelated projects — the default
+output of the most-used verb. Here it is off by default, behind `--preview`, and
+truncated to 80 characters with newlines collapsed.
+
+### Tailing uses a byte offset, not a line cursor
+
+The first implementation re-read from the start each poll and skipped lines,
+which is twenty megabytes of reads per second to find one new message. `readFrom`
+resumes at a byte offset, stops before a trailing partial line so the next poll
+picks it up once the writer finishes, and starts over when the file shrinks —
+a file the owner truncated would otherwise be read mid-record.
+
+## Verification
+
+- 1688 tests passing, lint clean, typecheck clean.
+- The parser was measured against the **real** live session: 20,366,897 bytes on
+  disk, **65,536 bytes read** for a five-record window; a full scan parsed
+  11,469 records with 0 skipped.
+- Driven against the compiled binary on real data: `list` returned both runtimes
+  with Codex projects resolved from each session's own `cwd`; `stats` reported
+  Codex token counts as `unavailable` rather than zero; `--runtime opencode`
+  refused by name; `redact` found real credential matches in a Codex session and
+  left every file byte-identical, verified by comparing a size-and-mtime digest
+  across all session files before and after.
+
+## Unresolved
+
+- `packages/cli/src/cli/activity-command.ts` contains a raw NUL byte inside a
+  template literal, used as a composite map key separator. It works, but it makes
+  the file binary to `ripgrep` and similar tools. Spelling it `\u0000` would
+  produce the same string and keep the source searchable. Phase 3 code, left
+  alone here rather than widening this phase.

@@ -422,7 +422,7 @@
       "status": "in-scope",
       "target": "sessions",
       "phase": 5,
-      "note": "a reader over files another tool owns; no store of its own"
+      "note": "registered"
     },
     {
       "name": "versions",

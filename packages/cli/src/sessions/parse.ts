@@ -82,11 +82,21 @@ export function* streamLines(path: string, stats?: StreamStats): Generator<strin
   }
 }
 
-export interface ReadOptions {
+export interface ReadOptions<T = unknown> {
   /** 0-based line position to start from. Matches the oracle's `--cursor`. */
   readonly cursor?: number;
-  /** Maximum records to return. */
+  /** Maximum records to return, counted **after** `keep`. */
   readonly limit?: number;
+  /**
+   * Which parsed records count.
+   *
+   * The limit applies to what survives this, not to lines read, because these
+   * files are mostly not messages: a real session opens with several metadata
+   * records, so a line-counted `--limit 2` returns an empty page from a file
+   * full of conversation. The flag says "messages"; this is what makes that
+   * true.
+   */
+  readonly keep?: (record: T) => boolean;
   readonly stats?: StreamStats;
 }
 
@@ -106,9 +116,10 @@ export interface ParseResult<T> {
  * each time the file grew a corrupt line, which is precisely the situation
  * these files are in.
  */
-export function readRecords<T>(path: string, options: ReadOptions = {}): ParseResult<T> {
+export function readRecords<T>(path: string, options: ReadOptions<T> = {}): ParseResult<T> {
   const cursor = options.cursor ?? 0;
   const limit = options.limit ?? Number.POSITIVE_INFINITY;
+  const keep = options.keep;
   const entries: T[] = [];
   let skipped = 0;
   let position = 0;
@@ -128,14 +139,95 @@ export function readRecords<T>(path: string, options: ReadOptions = {}): ParseRe
     // A blank line is not corruption. Counting it as skipped would report data
     // loss where there was none.
     if (line.length === 0) continue;
+    let record: T;
     try {
-      entries.push(JSON.parse(line) as T);
+      record = JSON.parse(line) as T;
     } catch {
       skipped += 1;
+      continue;
     }
+    // Filtered before the limit is applied, and the cursor keeps advancing over
+    // what is dropped — so the next page resumes past this line rather than
+    // re-reading it.
+    if (keep && !keep(record)) continue;
+    entries.push(record);
   }
 
   return nextCursor === undefined ? { entries, skipped } : { entries, skipped, nextCursor };
+}
+
+export interface TailWindow<T> {
+  readonly entries: T[];
+  readonly skipped: number;
+  /** Byte offset to resume from. Feed straight back in on the next poll. */
+  readonly endOffset: number;
+}
+
+/**
+ * Read whatever was appended after `fromOffset`.
+ *
+ * A **byte** offset, not a line cursor, and that is the whole point of tailing
+ * separately from paging. Re-reading from the start each poll and skipping
+ * lines would cost the whole file every second — twenty megabytes of reads to
+ * find one new message on the sessions this was measured against.
+ *
+ * A trailing partial line is left unconsumed: `endOffset` stops before it, so
+ * the next poll picks it up once the writer has finished it. That is why the
+ * offset is returned rather than assumed to be the file size.
+ */
+export function readFrom<T>(path: string, fromOffset: number): TailWindow<T> {
+  const entries: T[] = [];
+  let skipped = 0;
+  let consumed = fromOffset;
+
+  let size: number;
+  try {
+    size = statSync(path).size;
+  } catch {
+    return { entries, skipped, endOffset: fromOffset };
+  }
+  // A file that shrank was replaced or truncated by its owner. Starting over
+  // is the only honest response; continuing from a stale offset would read the
+  // middle of a record as if it were the start of one.
+  if (size < fromOffset) return { entries, skipped, endOffset: 0 };
+  if (size === fromOffset) return { entries, skipped, endOffset: fromOffset };
+
+  let fd: number;
+  try {
+    fd = openSync(path, "r");
+  } catch {
+    return { entries, skipped, endOffset: fromOffset };
+  }
+  const decoder = new StringDecoder("utf8");
+  const buffer = Buffer.allocUnsafe(CHUNK_BYTES);
+  let pending = "";
+  let position = fromOffset;
+  try {
+    for (;;) {
+      const bytes = readSync(fd, buffer, 0, CHUNK_BYTES, position);
+      if (bytes === 0) break;
+      position += bytes;
+      pending += decoder.write(buffer.subarray(0, bytes));
+      let newline = pending.indexOf("\n");
+      while (newline !== -1) {
+        const line = pending.slice(0, newline).trim();
+        // Bytes are counted from the decoded text so a multi-byte character
+        // never leaves the offset mid-character.
+        consumed += Buffer.byteLength(pending.slice(0, newline + 1), "utf8");
+        pending = pending.slice(newline + 1);
+        newline = pending.indexOf("\n");
+        if (line.length === 0) continue;
+        try {
+          entries.push(JSON.parse(line) as T);
+        } catch {
+          skipped += 1;
+        }
+      }
+    }
+  } finally {
+    closeSync(fd);
+  }
+  return { entries, skipped, endOffset: consumed };
 }
 
 /**
