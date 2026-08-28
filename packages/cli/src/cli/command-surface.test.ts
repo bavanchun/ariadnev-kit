@@ -41,7 +41,11 @@ describe("commandSurface", () => {
   });
 
   it("knows which group commands take a positional of their own", () => {
+    // `run` keeps its positional while the deprecated spelling lives, and
+    // `workflow` is a pure group whose `run` child carries the workflow ID.
     expect(child("run")?.acceptsPositional).toBe(true);
+    expect(child("workflow", "run")?.acceptsPositional).toBe(true);
+    expect(child("workflow")?.acceptsPositional).toBe(false);
     expect(child("plan")?.acceptsPositional).toBe(false);
     expect(child("config")?.acceptsPositional).toBe(false);
   });

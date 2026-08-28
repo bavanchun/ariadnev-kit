@@ -331,7 +331,7 @@ releases, not AgentKit's endpoints).
 | # | Phase | Depends on | Size | Status |
 |---|-------|------------|------|--------|
 | 1 | [Substrate spike and ADRs](./phase-01-substrate-spike-and-adrs.md) | — | **M-L** | **Completed** |
-| 2 | [`workflow` rename and `run` shim](./phase-02-workflow-rename-and-shim.md) | 1 | S | Pending |
+| 2 | [`workflow` rename and `run` shim](./phase-02-workflow-rename-and-shim.md) | 1 | S | Completed |
 | 3 | [Activity event log](./phase-03-activity-event-log.md) | 1 | M | Pending |
 | 4 | [projects, init, new, setup](./phase-04-projects-init-new-setup.md) | 1, 3 | M | Pending |
 | 5 | [sessions reader](./phase-05-sessions-reader.md) | 4 | M | Pending |

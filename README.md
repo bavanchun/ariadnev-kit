@@ -104,13 +104,14 @@ Every top-level command accepts `--json`, and a test asserts that against the
 real command tree rather than a list. Most emit
 `{ schema_version, kind, data }` with a dot-namespaced `kind` (`list.kit`,
 `backups.verify`, `doctor.diagnose`). Five predate that envelope and keep their
-own shape as their contract — `contract`, `audit`, `config`, `run` and `eval`
+own shape as their contract — `contract`, `audit`, `config`, `workflow` and `eval`
 — which `LEGACY_JSON_COMMANDS` records so adding a sixth takes a deliberate
 edit.
 | `ariadnev eval [--skill <name>]` | Score kit skill quality; tier-1 static (free) always, tier-3 LLM judge when `ARIADNEV_EVAL_CMD` is set |
 | `ariadnev eval --suite --runner '<json-argv>' ...` | Run the source-checkout Tier 2 behavioral suite in fresh fixtures; emits one redacted JSON report and exits non-zero on fail or incomplete evidence |
-| `ariadnev run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
-| `ariadnev run resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
+| `ariadnev workflow run <workflow> [--runtime codex\|claude-code] [--instruction "…"] [--json]` | Validate, dry-run, or execute a provider-neutral workflow graph through the local durable runner |
+| `ariadnev workflow resume\|status\|cancel <run-id> [--json]` | Resume with pinned identity, inspect durable state, or request cooperative cancellation |
+| `ariadnev run <workflow>` | Deprecated spelling of `workflow run`, warning on stderr and removed in 1.4.0. `run <kit>/<skill>` is reserved for skill dispatch and refuses until that ships |
 | `ariadnev plan use\|show\|list\|resolve [--json]` | Point the current branch at a plan directory, show it with its phases, list every plan, or print the resolved directory path |
 | `ariadnev plan update <phase> <status>` / `check\|uncheck <phase>` / `status [status]` / `close` | Set a phase's status in both the phase file and the index table, or set the plan's own status. Acts on the branch's plan unless `--plan <name>` says otherwise |
 | `ariadnev plan phase <n>` / `search <query>` / `reindex` | Print one phase in full, search every plan's files, or re-read them all and report what is malformed — there is no index to rebuild, the files are the record |
@@ -136,7 +137,7 @@ because the environment is not ready.
 `doctor` is a deliberate exception and keeps its original mapping — `0` healthy,
 `1` degraded, `2` unhealthy. CI jobs gate on it, and adopting the table above
 would turn "this install is broken" into "you passed a bad flag" on the exit code
-alone. `audit`, `validate`, `eval`, `skill`, and `run` likewise keep the codes
+alone. `audit`, `validate`, `eval`, `skill`, and `workflow` likewise keep the codes
 they shipped with.
 
 ### Graph execution
@@ -145,9 +146,9 @@ The first public execution surface is local and read-only. Validate without a
 provider, probe with global `--dry-run`, or run explicitly on Codex/Claude Code:
 
 ```bash
-av run read-only-delivery --validate --json
-av --dry-run run read-only-delivery --runtime claude-code --json
-av run read-only-delivery --runtime claude-code --instruction "Find routing ownership and cite evidence" --json
+av workflow run read-only-delivery --validate --json
+av --dry-run workflow run read-only-delivery --runtime claude-code --json
+av workflow run read-only-delivery --runtime claude-code --instruction "Find routing ownership and cite evidence" --json
 ```
 
 Runs are event-sourced under `~/.ariadnev/runs/`, with private state snapshots,

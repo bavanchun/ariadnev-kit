@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "workflow rename and run shim"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1]
@@ -104,6 +104,50 @@ that `run --help` shows the reserved dispatch grammar. Both belong in this phase
 step 2, because a smoke that passes for the wrong reason is worse than one that
 fails.
 
+## Oracle observation — the dispatch grammar this phase reserves
+
+Captured from the live upstream binary on 2026-08-28 (2.14.0). Recorded rather
+than recalled, because phase 10 implements against it and this file is the only
+place the shape is written down.
+
+```
+Usage:
+  ak run <kit>/<skill> [args...] [flags]
+
+Options:
+      --json               Emit machine-readable JSON (implies --no-interactive)
+      --kits-dir string    Kits directory
+      --no-interactive     Disable interactive prompts (CI-safe)
+  -q, --quiet              Suppress non-error output on stderr
+      --target string      Adapter to dispatch to (default "claude-code")
+      --timeout duration   Per-invocation timeout (e.g. 30s, 2m). Zero disables.
+  -V, --verbose            Extra diagnostic output on stderr (loses to --quiet)
+  -y, --yes                Assume yes for all prompts
+
+Exit status:
+  0 success  1 command failure  2 invalid flags  4 unmet dependency  5 kit or skill not found
+```
+
+Two things phase 10 inherits from this and cannot decide for itself: the slash
+is **mandatory** in the grammar, which is what makes the discriminator sound
+rather than a guess; and dispatch has its own exit codes, including 5 for a
+missing kit or skill, which is outside this repository's own table and will
+need deciding then.
+
+## One correction to this phase, applied
+
+The steps said the reserved-grammar error should name phase 10. It does not, and
+must not: `review-audit-self-decision.md` forbids plan IDs and phase numbers in
+shipped code, and a user reading `av run engineer/scout` has no access to this
+plan. The message names the behavior instead — what the grammar is reserved for,
+that this release does not implement it, and what to type today.
+
+A second wording fix came out of running the built binary rather than the tests.
+The message first suggested `av workflow run engineer`, derived from the kit
+name. It reads as helpful and is not: a kit name is not a workflow ID, so the
+advice sends a confused user to a second error. It now names the grammar,
+`av workflow run <workflow>`, and a test asserts the derived form is absent.
+
 ## Implementation Steps
 
 1. **Oracle observation.** Capture `ak run --help` verbatim into this phase file
@@ -138,15 +182,15 @@ fails.
 
 ## Success Criteria
 
-- [ ] `av workflow run|resume|status|cancel` all work
-- [ ] `av run <id>` still works and warns on stderr
-- [ ] `av run kit/skill` errors, naming phase 10
-- [ ] `--json` stdout byte-identical to before the rename
-- [ ] The shim is one file, with its removal phase **and release (1.4.0)** named in a comment
-- [ ] **`run` no longer appears in `LEGACY_JSON_COMMANDS` or `LEGACY_EXIT_COMMANDS`; `workflow` does** — asserted
-- [ ] No `av run` examples left in README, docs, or skills
-- [ ] **`smoke-binary.mjs` updated in the same commit; the release smoke is green against the renamed surface** — asserted by running it against a locally built binary before the PR opens
-- [ ] `pnpm test` green
+- [x] `av workflow run|resume|status|cancel` all work
+- [x] `av run <id>` still works and warns on stderr
+- [x] `av run kit/skill` errors, naming what the grammar is reserved for (not a phase number — see the correction above)
+- [x] `--json` stdout byte-identical to before the rename
+- [x] The shim is one file, with its removal phase **and release (1.4.0)** named in a comment
+- [x] **`run` no longer appears in `LEGACY_JSON_COMMANDS` or `LEGACY_EXIT_COMMANDS`; `workflow` does** — asserted
+- [x] No `av run` examples left in README, docs, or skills
+- [x] **`smoke-binary.mjs` updated in the same commit; the release smoke is green against the renamed surface** — asserted by running it against a locally built binary before the PR opens
+- [x] `pnpm test` green — 580 tests across `src/cli` and `src/kit`, plus 19 in `smoke-binary.test.mjs`; `lint`, `check-brand-drift.mjs`, and `validate --check --strict` (0 errors) all clean
 
 ## Risk Assessment
 

@@ -43,12 +43,12 @@ command list short on purpose rather than duplicating a table that will drift.
      use|update|check|uncheck|status|close|archive|cleanup`, `journal
      create`, `mcp add|remove`, `kit refresh`, `adapters regenerate`,
      `skill install|verify|repair|upgrade|remove|run`, `backups restore`,
-     `run` (executing a workflow), `run resume|cancel`.
+     `workflow run` (executing a workflow), `workflow resume|cancel`.
    - `diagnostic` — inspects and reports health, safe to run anytime:
      `doctor` (without `--fix`).
 2. **Inspect before acting.** Run `av <cmd> --help` (and nested `av <cmd>
    <subcmd> --help` for grouped commands: `plan`, `journal`, `kit`, `mcp`,
-   `adapters`, `config`, `run`, `skill`) for the intended command before
+   `adapters`, `config`, `workflow`, `skill`) for the intended command before
    using it — this skill's list may lag the installed binary. For read-only
    scripted work, pass `--json` where the command supports it (see below) so
    output is parseable instead of scraped.
@@ -114,13 +114,14 @@ command.
 - **Config** — `av config prefs resolve [--json]`.
 - **Telemetry** — `av telemetry [status]` (off unless configured; opt out
   via `ARIADNEV_TELEMETRY_DISABLED=1`).
-- **Graph workflows** — `av run [--validate] [--json] <workflow>`, `av run
-  resume|status|cancel <run-id>`.
+- **Graph workflows** — `av workflow run [--validate] [--json] <workflow>`,
+  `av workflow resume|status|cancel <run-id>`. `av run <workflow>` is the
+  deprecated spelling and stops working in 1.4.0.
 
 ## `--json` availability
 
 Present on: `plan` subcommands, `journal validate`, `audit`, `contract`,
-`config prefs resolve`, `skill` actions, `run`. Absent on plain-text
+`config prefs resolve`, `skill` actions, `workflow`. Absent on plain-text
 commands like `list`, `doctor`, `validate`, `query`, `mcp list|show|verify`,
 `kit install-path`, `telemetry status` — confirm with `--help` before
 assuming an envelope exists; do not parse text output as if it were JSON.

@@ -17,7 +17,7 @@ import { hostAssetName, TARGETS, expectedHeader } from "./binary-targets.mjs";
  * Pure assertion over what the binary printed. Returns { ok, failures[] } so it
  * is unit-testable without spawning anything.
  */
-export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion, buildRoot }) {
+export function checkSmokeOutput({ versionOut, validateOut, workflowHelpOut, workflowRunHelpOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion, buildRoot }) {
   const failures = [];
 
   if (versionOut.trim() !== expectedVersion.trim()) {
@@ -58,8 +58,23 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
     failures.push("doctor did not report sqlite with fts5 and wal — the operational data plane cannot be built on this target");
   }
 
-  for (const token of ["resume", "status", "cancel", "--runtime <provider>", "--validate", "--json"]) {
-    if (!runHelpOut.includes(token)) failures.push(`run --help is missing ${token}`);
+  // The harness lifecycle, which now lives under `workflow`. The assertion is
+  // split across two levels because the surface is: the subcommand names are on
+  // the group, the runtime options are on `workflow run`. Asserting only one
+  // level would let half the lifecycle disappear from a release unnoticed.
+  for (const token of ["resume", "status", "cancel", "run"]) {
+    if (!workflowHelpOut.includes(token)) failures.push(`workflow --help is missing ${token}`);
+  }
+  for (const token of ["--runtime <provider>", "--validate", "--json"]) {
+    if (!workflowRunHelpOut.includes(token)) failures.push(`workflow run --help is missing ${token}`);
+  }
+
+  // `run` is reserved for skill dispatch and still fronts the harness for one
+  // release. Asserting the reserved grammar is advertised is what stops the
+  // rename from being half-done in a shipped binary — a `run` that no longer
+  // says what it is for is indistinguishable from one that was simply broken.
+  if (!runHelpOut.includes("<kit>/<skill>")) {
+    failures.push("run --help does not advertise the reserved <kit>/<skill> dispatch grammar");
   }
 
   try {
@@ -80,7 +95,7 @@ export function checkSmokeOutput({ versionOut, validateOut, runHelpOut, graphVal
   // binary instead of resolving at runtime. `/Users/` catches a macOS author's
   // machine; `buildRoot` catches the runner this actually runs on in CI, where
   // the path is `/home/runner/work/…` and the hardcoded pattern never fires.
-  const outputs = [versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut ?? ""];
+  const outputs = [versionOut, validateOut, workflowHelpOut, workflowRunHelpOut, runHelpOut, graphValidateOut, doctorOut ?? ""];
   if (outputs.some((output) => /\/Users\//.test(output))) {
     failures.push("output leaked an absolute dev path (/Users/…)");
   }
@@ -161,14 +176,21 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
   let versionOut = "";
   let validateOut = "";
+  let workflowHelpOut = "";
+  let workflowRunHelpOut = "";
   let runHelpOut = "";
   let graphValidateOut = "";
   let doctorOut = "";
   try {
     versionOut = run(bin, ["--version"]);
     validateOut = run(bin, ["validate"]);
+    workflowHelpOut = run(bin, ["workflow", "--help"]);
+    workflowRunHelpOut = run(bin, ["workflow", "run", "--help"]);
     runHelpOut = run(bin, ["run", "--help"]);
-    graphValidateOut = run(bin, ["run", "read-only-delivery", "--validate", "--json"]);
+    // Canonical spelling deliberately, not the deprecated one. A release gate
+    // exercising the shim would keep passing after the shim is deleted only by
+    // luck, and would say nothing about the command that survives.
+    graphValidateOut = run(bin, ["workflow", "run", "read-only-delivery", "--validate", "--json"]);
     // Exits 2 with no receipt, which is the normal state on a CI runner, so the
     // output is what matters rather than the code.
     doctorOut = runAllowingFailure(bin, ["doctor"]);
@@ -178,7 +200,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
 
   const { ok, failures } = checkSmokeOutput({
-    versionOut, validateOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion,
+    versionOut, validateOut, workflowHelpOut, workflowRunHelpOut, runHelpOut, graphValidateOut, doctorOut, expectedVersion,
     buildRoot: process.env.GITHUB_WORKSPACE ?? resolve(pkgDir, "..", ".."),
   });
   if (!ok) {

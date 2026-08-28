@@ -102,6 +102,9 @@ export const KNOWN_COMMANDS = [
   "list",
   "add-skill",
   "migrate",
+  "workflow",
+  // Deprecated spelling of `workflow`, removed in 1.4.0. Registered, so it
+  // belongs here — the guard tracks the surface as it is, not as it should be.
   "run",
   "config",
   "plan",
