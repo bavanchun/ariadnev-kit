@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 1,
+  "upstreamVersion": "2.14.0",
+  "capturedAt": "2026-08-28",
+  "ciBaselineSeconds": 340,
+  "commands": [
+    {
+      "name": "gui",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "starts the local API and opens ariadnev-web. Cloning a native desktop app against a download endpoint ariadnev does not operate would be a second product",
+      "target": "gui"
+    },
+    {
+      "name": "init",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "project bootstrap over the projects registry",
+      "target": "init"
+    },
+    {
+      "name": "journal",
+      "group": "Project lifecycle",
+      "subcommands": [
+        "create",
+        "list",
+        "show",
+        "validate"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "journal"
+    },
+    {
+      "name": "new",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "scaffold a new project",
+      "target": "new"
+    },
+    {
+      "name": "plan",
+      "group": "Project lifecycle",
+      "subcommands": [
+        "add-phase",
+        "archive",
+        "check",
+        "cleanup",
+        "close",
+        "create",
+        "kanban",
+        "list",
+        "migrate",
+        "parse",
+        "phase",
+        "reindex",
+        "resolve",
+        "search",
+        "show",
+        "status",
+        "uncheck",
+        "update",
+        "use",
+        "validate"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "plan"
+    },
+    {
+      "name": "projects",
+      "group": "Project lifecycle",
+      "subcommands": [
+        "add",
+        "list",
+        "prune",
+        "remove",
+        "show"
+      ],
+      "status": "in-scope",
+      "note": "the global project registry; a file, not an index (ADR 0014)",
+      "target": "projects"
+    },
+    {
+      "name": "self-update",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "the other half of the collision above: registers the binary-only signed update that `update` performs today, so the pair matches upstream",
+      "target": "self-update"
+    },
+    {
+      "name": "setup",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "first-run wizard; @clack/prompts is already a dependency",
+      "target": "setup"
+    },
+    {
+      "name": "uninstall",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "registered; phase 4 makes it refuse user-modified files, announced for one release",
+      "target": "uninstall"
+    },
+    {
+      "name": "update",
+      "group": "Project lifecycle",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "SECOND NAME COLLISION, found during the phase 1 capture. ariadnev's `update` is a binary-only signed self-update, which is upstream's `self-update`. Upstream's `update` is the wider refresh that runs the binary step and then kit content. Phase 4 widens this one and phase 13 announces it; the binary-only path keeps working through the window",
+      "target": "update"
+    },
+    {
+      "name": "agents",
+      "group": "Kits, skills & agents",
+      "subcommands": [
+        "install",
+        "list",
+        "remove",
+        "search",
+        "show"
+      ],
+      "status": "in-scope",
+      "note": "per-agent management; writes to the install surface",
+      "target": "agents"
+    },
+    {
+      "name": "content",
+      "group": "Kits, skills & agents",
+      "subcommands": [
+        "publish",
+        "queue",
+        "schedule"
+      ],
+      "status": "in-scope",
+      "note": "publish content to channels",
+      "target": "content"
+    },
+    {
+      "name": "kit",
+      "group": "Kits, skills & agents",
+      "subcommands": [
+        "init",
+        "install",
+        "install-path",
+        "list-kits",
+        "refresh",
+        "repair-install-mode",
+        "uninstall",
+        "validate"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "kit"
+    },
+    {
+      "name": "run",
+      "group": "Kits, skills & agents",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "NAME COLLISION. `run` is the workflow harness today and becomes skill dispatch in phase 2; the harness moves to `workflow`. A no-slash positional falls through to the harness for one release",
+      "target": "run"
+    },
+    {
+      "name": "skill",
+      "group": "Kits, skills & agents",
+      "subcommands": [
+        "install",
+        "remove",
+        "repair",
+        "upgrade",
+        "verify"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "skill"
+    },
+    {
+      "name": "skills",
+      "group": "Kits, skills & agents",
+      "subcommands": [
+        "graph",
+        "install",
+        "list",
+        "remove",
+        "search",
+        "show"
+      ],
+      "status": "in-scope",
+      "note": "browse and install kit skills",
+      "target": "skills"
+    },
+    {
+      "name": "codex-agent-runtime",
+      "group": "Runtime adapters",
+      "subcommands": [
+        "register",
+        "serve",
+        "unregister"
+      ],
+      "status": "excluded",
+      "note": "an internal dispatch daemon of the upstream adapter architecture. ariadnev reaches the same runtimes through its harness executors, which are not a command surface. Equivalent function, no equivalent name",
+      "target": null
+    },
+    {
+      "name": "mcp",
+      "group": "Runtime adapters",
+      "subcommands": [
+        "add",
+        "link",
+        "list",
+        "remove",
+        "show",
+        "verify"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "mcp"
+    },
+    {
+      "name": "migrate",
+      "group": "Runtime adapters",
+      "subcommands": [
+        "prefs",
+        "rollback"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "migrate"
+    },
+    {
+      "name": "activity",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "list",
+        "stats",
+        "tail"
+      ],
+      "status": "in-scope",
+      "note": "the activity event log — the first authoritative source",
+      "target": "activity"
+    },
+    {
+      "name": "analytics",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "delete",
+        "disable",
+        "enable",
+        "rebuild",
+        "refresh",
+        "status"
+      ],
+      "status": "in-scope",
+      "note": "local index only; no egress, which is a non-goal",
+      "target": "analytics"
+    },
+    {
+      "name": "audit",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "scripts"
+      ],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "audit"
+    },
+    {
+      "name": "backups",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "create",
+        "list",
+        "prune",
+        "restore",
+        "show",
+        "verify"
+      ],
+      "status": "in-scope",
+      "note": "registered; `create` reinstated by ADR 0015 once the subject exists",
+      "target": "backups"
+    },
+    {
+      "name": "changelog",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "reads ariadnev's own signed releases. The vendor endpoint half is out of scope by dependency, the function is not",
+      "target": "changelog"
+    },
+    {
+      "name": "commands",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "install",
+        "list",
+        "remove",
+        "search",
+        "show"
+      ],
+      "status": "in-scope",
+      "note": "per-slash-command management",
+      "target": "commands"
+    },
+    {
+      "name": "content-search",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "delete",
+        "disable",
+        "enable",
+        "rebuild",
+        "search",
+        "status"
+      ],
+      "status": "in-scope",
+      "note": "plaintext shards; FTS5 where available, plain scan as the fallback",
+      "target": "content-search"
+    },
+    {
+      "name": "data",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "ingest",
+        "retention",
+        "status"
+      ],
+      "status": "in-scope",
+      "note": "derived-data retention and bounded ingest",
+      "target": "data"
+    },
+    {
+      "name": "diagnostics",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "export"
+      ],
+      "status": "in-scope",
+      "note": "redacted support export",
+      "target": "diagnostics"
+    },
+    {
+      "name": "doctor",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "registered",
+      "target": "doctor"
+    },
+    {
+      "name": "feedback",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "export-only or an issue on ariadnev's own repository — open question 4. The vendor feedback registry is out of scope by dependency",
+      "target": "feedback"
+    },
+    {
+      "name": "help",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "excluded",
+      "note": "the CLI framework's own; present by construction, not implemented",
+      "target": null
+    },
+    {
+      "name": "recover",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "registered; phase 8 makes preview the default, announced for one release",
+      "target": "recover"
+    },
+    {
+      "name": "sessions",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "list",
+        "redact",
+        "show",
+        "stats",
+        "tail"
+      ],
+      "status": "in-scope",
+      "note": "a reader over files another tool owns; no store of its own",
+      "target": "sessions"
+    },
+    {
+      "name": "versions",
+      "group": "Inspect & diagnose",
+      "subcommands": [],
+      "status": "in-scope",
+      "note": "local versions of the CLI, kits, and skills",
+      "target": "versions"
+    },
+    {
+      "name": "watch",
+      "group": "Inspect & diagnose",
+      "subcommands": [
+        "dry-run",
+        "start",
+        "status",
+        "stop"
+      ],
+      "status": "in-scope",
+      "note": "default off, explicit repo allowlist, dry-run first — a prompt-injection surface",
+      "target": "watch"
+    },
+    {
+      "name": "api",
+      "group": "Account & advanced",
+      "subcommands": [
+        "start",
+        "status",
+        "stop"
+      ],
+      "status": "in-scope",
+      "note": "the local half only: health, status, version, dashboard. The LLM proxy depends on login credentials and licensed routing, both non-goals",
+      "target": "api"
+    },
+    {
+      "name": "config",
+      "group": "Account & advanced",
+      "subcommands": [
+        "prefs",
+        "start",
+        "status",
+        "stop"
+      ],
+      "status": "in-scope",
+      "note": "upstream `config` opens a hosted dashboard; ariadnev's manages configuration. Phase 11 gives the dashboard half to `gui`, and `config` keeps its current meaning",
+      "target": "config"
+    },
+    {
+      "name": "licenses",
+      "group": "Account & advanced",
+      "subcommands": [],
+      "status": "excluded",
+      "note": "licensing is a non-goal; the kit ships whole or not at all",
+      "target": null
+    },
+    {
+      "name": "login",
+      "group": "Account & advanced",
+      "subcommands": [],
+      "status": "excluded",
+      "note": "authentication against a vendor account ariadnev does not operate",
+      "target": null
+    },
+    {
+      "name": "logout",
+      "group": "Account & advanced",
+      "subcommands": [],
+      "status": "excluded",
+      "note": "clears credentials for an account that does not exist here",
+      "target": null
+    },
+    {
+      "name": "orchestrate",
+      "group": "Account & advanced",
+      "subcommands": [
+        "resume",
+        "start",
+        "status",
+        "stop"
+      ],
+      "status": "in-scope",
+      "note": "upstream restricts this to Darwin; open question 3 decides whether ariadnev does",
+      "target": "orchestrate"
+    },
+    {
+      "name": "whoami",
+      "group": "Account & advanced",
+      "subcommands": [],
+      "status": "excluded",
+      "note": "reports the identity behind login; nothing to report without it",
+      "target": null
+    }
+  ]
+}
