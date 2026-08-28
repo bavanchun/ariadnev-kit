@@ -335,7 +335,7 @@ releases, not AgentKit's endpoints).
 | 3 | [Activity event log](./phase-03-activity-event-log.md) | 1 | M | Completed |
 | 4 | [projects, init, new, setup](./phase-04-projects-init-new-setup.md) | 1, 3 | M | Completed |
 | 5 | [sessions reader](./phase-05-sessions-reader.md) | 4 | M | Completed |
-| 6 | [analytics and data](./phase-06-analytics-and-data.md) | 3, 5 | **L** | Pending |
+| 6 | [analytics and data](./phase-06-analytics-and-data.md) | 3, 5 | **L** | Completed |
 | 7 | [content-search shards](./phase-07-content-search-shards.md) | 6 | M | Pending |
 | 8 | [backups, recover, diagnostics, versions](./phase-08-backups-recover-diagnostics-versions.md) | 6 | M | Pending |
 | 9 | [Provider union](./phase-09-provider-union.md) | 1 | M-L | Pending |

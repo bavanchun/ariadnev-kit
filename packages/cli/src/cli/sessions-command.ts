@@ -14,6 +14,8 @@ import { statSync } from "node:fs";
 import { readFrom, readRecords } from "../sessions/parse.js";
 import { messageText, summarizeSession, tokenTotals, truncatePreview } from "../sessions/summarize.js";
 import { planRedactions } from "../sessions/redact.js";
+import { servingFromIndex } from "../analytics/lifecycle.js";
+import { openIndex } from "../analytics/rebuild.js";
 import { UsageError } from "./exit-codes.js";
 import { jsonEnvelope } from "./json-envelope.js";
 
@@ -175,6 +177,13 @@ export function runSessionsStats(opts: SessionsStatsOpts): string {
     throw new UsageError(`unknown --by: ${dimension}. Available: ${DIMENSIONS.join(", ")}`);
   }
 
+  // The index is a shortcut to the same answer, never a different one. When it
+  // is not being served the source scan below runs — and that scan is the
+  // reference implementation the index is checked against by
+  // `rebuild-equivalence`, not a degraded fallback.
+  const fromIndex = statsFromIndex(opts, metric, dimension);
+  if (fromIndex) return renderStats(fromIndex, metric, dimension, !!opts.json);
+
   const found = discoverSessions({
     home: opts.home,
     ...(opts.projects ? { projects: opts.projects } : {}),
@@ -211,22 +220,98 @@ export function runSessionsStats(opts: SessionsStatsOpts): string {
   }
 
   const rows = [...totals.entries()]
-    .map(([key, value]) => ({ metric, dimension, key, value, quality: quality.get(key) ?? "exact" }))
-    .sort((a, b) => b.value - a.value);
-  const total = rows.reduce((sum, row) => sum + row.value, 0);
+    .map(([key, value]) => ({ metric, dimension, key, value, quality: quality.get(key) ?? "exact" } as StatsRow));
+  return renderStats(rows, metric, dimension, !!opts.json);
+}
 
-  if (opts.json) {
+interface StatsRow {
+  readonly metric: string;
+  readonly dimension: string;
+  readonly key: string;
+  readonly value: number;
+  readonly quality: "exact" | "unavailable";
+}
+
+/**
+ * One renderer for both paths, so the index cannot present differently.
+ *
+ * The sort breaks ties by key. Two equal values ordered by insertion would come
+ * out in scan order one way and SQL group order the other, and the equivalence
+ * gate would then fail on an ordering that means nothing.
+ */
+function renderStats(rows: readonly StatsRow[], metric: string, dimension: string, json: boolean): string {
+  const ordered = [...rows].sort((a, b) => (b.value - a.value) || a.key.localeCompare(b.key));
+  const total = ordered.reduce((sum, row) => sum + row.value, 0);
+  if (json) {
     return jsonEnvelope(SESSIONS_SCHEMA_VERSION, "sessions.stats", {
-      rows,
+      rows: ordered,
       total,
       metric,
       dimension,
       unreadable_runtimes: [...UNSUPPORTED_AGENTS],
     });
   }
-  if (rows.length === 0) return "No sessions found for registered projects.";
-  const lines = rows.map((row) => `  ${row.key}: ${row.value}${row.quality === "exact" ? "" : "  (unavailable for this runtime)"}`);
+  if (ordered.length === 0) return "No sessions found for registered projects.";
+  const lines = ordered.map((row) => `  ${row.key}: ${row.value}${row.quality === "exact" ? "" : "  (unavailable for this runtime)"}`);
   return [`${metric} by ${dimension}`, ...lines, `  total: ${total}`].join("\n");
+}
+
+/** Fact kinds each metric sums. `sessions` counts rows instead of summing. */
+const METRIC_KIND: Readonly<Record<string, string>> = {
+  messages: "session.messages",
+  duration: "session.duration",
+  tokens: "session.tokens",
+};
+
+/**
+ * The same aggregate, read from the index.
+ *
+ * Returns `undefined` when the index is not being served, which is what sends
+ * the caller to the source scan. Project filtering happens in SQL rather than
+ * afterwards, so both paths filter on the same value.
+ */
+function statsFromIndex(opts: SessionsStatsOpts, metric: string, dimension: string): StatsRow[] | undefined {
+  if (!servingFromIndex(opts.home)) return undefined;
+  const column = dimension === "runtime" ? "runtime" : dimension === "model" ? "model" : "project";
+  const database = openIndex(opts.home);
+  try {
+    const filters = ["source = 'session'"];
+    const params: string[] = [];
+    if (metric === "sessions") {
+      // One kind, so a session is counted once rather than once per fact.
+      filters.push("kind = 'session.messages'");
+    } else {
+      filters.push("kind = ?");
+      params.push(METRIC_KIND[metric]!);
+    }
+    if (opts.projects?.length) {
+      filters.push(`project IN (${opts.projects.map(() => "?").join(", ")})`);
+      params.push(...opts.projects);
+    }
+    const aggregate = metric === "sessions" ? "COUNT(DISTINCT source_id)" : "SUM(value)";
+    const rows = database
+      .prepare(
+        `SELECT COALESCE(NULLIF(${column}, ''), 'unknown') AS k, ${aggregate} AS v, ` +
+          "GROUP_CONCAT(DISTINCT runtime) AS runtimes " +
+          `FROM facts WHERE ${filters.join(" AND ")} GROUP BY k`,
+      )
+      .all(...params);
+
+    return rows.map((row) => ({
+      metric,
+      dimension,
+      key: String(row.k),
+      value: Number(row.v ?? 0),
+      // Token counts exist only in Claude Code's records. A group containing any
+      // other runtime is `unavailable`, matching the scan — a zero reading as
+      // "none used" would be the wrong answer on both paths.
+      quality: metric === "tokens" && String(row.runtimes ?? "").split(",").some((name) => name !== "claude-code")
+        ? "unavailable"
+        : "exact",
+    } as StatsRow));
+  } finally {
+    database.close();
+  }
 }
 
 export interface SessionsRedactOpts {

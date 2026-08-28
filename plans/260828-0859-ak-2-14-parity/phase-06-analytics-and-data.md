@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "analytics and data"
-status: pending
+status: completed
 priority: P1
 effort: "5-8d"
 dependencies: [3, 5]
@@ -34,6 +34,66 @@ empty test and starts being the thing that keeps the plan honest.
 - Mode 0600; no credentials indexed.
 - `disable` stops indexed reads **without** deleting — the two are distinct verbs
   because they answer different user intents.
+
+## Oracle observation — captured 2026-08-28 against 2.14.0
+
+Step 1, before any code. Four findings.
+
+### The seven data classes, and their default
+
+`ak data status --json` on this machine:
+
+```
+session_metrics, skill_invocations, ingestion_runs,
+ingestion_failures, change_log, outbox, content_shard
+```
+
+Every one `mode: "forever"`, `forever: true`. Retention is opt-in, as the phase
+assumed. Each class also carries a `forecast` — one/three/twelve-month byte
+projections with an explicit `"confidence": "low"` and the assumption stated in
+the payload: *"linear extrapolation of recent derived-data growth; not a
+guarantee"*. Every forecast read `0` here, which is what an honest extrapolation
+returns when the index has no growth history yet.
+
+### `data status --json` is not an envelope at all
+
+It returns a **bare JSON array**. Every other command captured across phases 3,
+4, 5 and this one wraps its payload in `{ schema_version, kind, data }`.
+
+ariadnev cannot follow this: `json-envelope.test.ts` gates every top-level
+command onto the shared envelope, and that gate exists because five private
+envelope shapes were the thing it was written to stop. **`av data status --json`
+emits the envelope**, with the class array under `data`. Recorded here as a
+deliberate divergence rather than discovered during phase 13's audit.
+
+### `analytics status --json` repeats `schema_version` inside `data`
+
+The same duplicate phase 3 dropped on `activity` and phase 4 confirmed absent on
+`projects`. Upstream is inconsistent about it between its own commands. The
+decision stands: one `schema_version`, at the top.
+
+Its `data` fields are worth matching:
+
+```
+enabled, serving_mode, health, will_auto_sync,
+staleness_reason, fact_count, last_successful_at
+```
+
+`serving_mode: "index"` and `health: "ready"` are the two that carry the
+lifecycle state this phase needs, and `staleness_reason` was
+`"generation-mismatch"` on a live index reporting `ready` — so staleness and
+health are independent axes, not one scale.
+
+### `retention --apply` deletes rows; `ingest` opens the database
+
+`ak data retention --help`: *"Preview is read-only; `--apply` deletes eligible
+derived rows from operational.db."* And `ak data ingest`: *"Opens operational.db
+and runs one ingest sweep across Claude and Codex session files."*
+
+Both are consistent with the derived-state doctrine — the rows deleted are
+derived, and the sources stay authoritative. The phase's stricter rule still
+applies to activity segments: retention unlinks a whole segment or leaves it
+alone, never partially rewrites an append-only file.
 
 ## Architecture
 
@@ -168,3 +228,82 @@ load-bearing in practice even if not in principle.
 slow, `refresh` carries the load and `rebuild` is documented as recovery — but
 the equivalence invariant still holds, because that is what makes the index safe
 to delete at all.
+
+
+## What shipped, and where it diverged
+
+### The enable/disable setting lives outside `derived/`
+
+The one structural decision in the phase. "The user turned analytics off" is a
+choice, not a cached fact. Under `derived/` it would be erased by deleting the
+index — an operation ADR 0014 advertises as always safe — silently switching
+analytics back on for someone who disabled it for privacy. So the index is
+deletable and the decision about it survives, asserted by a test.
+
+### `rebuild` is `refresh` with the skip-list emptied
+
+Not two traversals. The phase's convergence risk is that an incremental path
+drifts from a full one because both exist and only one runs daily; here there is
+one `ingest` and a `full` flag, so there is nothing to drift. Only the full pass
+prunes sources that disappeared, because an incremental one cannot tell
+"deleted" from "not looked at".
+
+### `data status --json` emits the envelope; the captured surface emits a bare array
+
+Recorded in the oracle observation above. `json-envelope.test.ts` gates every
+top-level command onto one shape, and matching a one-off array would have meant
+either exempting this command from that gate or reintroducing the inconsistency
+the gate exists to prevent.
+
+### `analytics status`'s index version is `index_schema_version`
+
+Found by a test: passing the status object straight through as `data` put a
+bare `schema_version` inside the envelope, next to the envelope's own. They are
+unrelated numbers that drift independently, so the inner one is named apart.
+
+### Four health states, not three
+
+The phase asked for absent / disabled / corrupt. `stale` is a fourth: an index
+whose schema predates this build is readable and fixed by a rebuild, and calling
+it corrupt would send someone to delete a file that only needed refreshing. Each
+state prints the command that fixes it.
+
+## Measurements (step 11)
+
+Against the real local corpus — 30 Claude Code project directories and the Codex
+rollout tree — on the **compiled binary**:
+
+| | |
+|---|---|
+| sources | 217 |
+| facts indexed | 649 |
+| **rebuild** | **1,183 ms** |
+| **refresh, nothing changed** | **4 ms** |
+| index size | 328 KB |
+
+**Rebuild is a daily-viable operation, not a recovery tool.** The phase's risk
+item asked which it would be; at ~1.2 s "just delete it and rebuild" is advice a
+user will actually follow, so the index stays genuinely optional rather than
+load-bearing in practice. `refresh` is ~295× faster still and carries the
+routine load.
+
+### The index was world-readable, and is not now
+
+Measured, not assumed: SQLite creates its own file, so it landed at 0644 under
+the default umask. The index summarises the user's sessions. It and its WAL
+companions are now chmod 0600 after every open — after, because `-wal` and
+`-shm` are created by SQLite on its own schedule rather than once at creation.
+
+## Verification
+
+- 1746 tests passing; brand-drift, lint, typecheck and `validate --check
+  --strict` all clean.
+- **The invariant on real data, through the compiled binary:** `sessions stats`
+  returned byte-identical output with the index served, with the index deleted,
+  and after a rebuild — over a 70,329-message corpus.
+- Twelve index-vs-scan agreement cases in the suite (four metrics × three
+  dimensions), plus cases for falling back when the index is deleted mid-life
+  and when analytics is disabled.
+- `data retention` previews and applies through one body, so `--apply` cannot
+  remove something the preview did not name; a test asserts no session file is
+  touched by any class.
