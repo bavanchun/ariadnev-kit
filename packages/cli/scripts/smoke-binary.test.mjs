@@ -4,7 +4,13 @@ import { checkSmokeOutput, checkAssetHeader } from "./smoke-binary.mjs";
 import { hostAssetName, TARGETS, expectedHeader } from "./binary-targets.mjs";
 
 const goodValidate = "ariadnev validate — 21 skills, 13 agents, 6 hooks\n  all checks passed";
-const goodRunHelp = "run [options] [workflow]\nresume status cancel --runtime <provider> --validate --json";
+// The lifecycle moved under `workflow`, so the fixtures follow the two levels
+// the real help now has: subcommand names on the group, runtime options on
+// `workflow run`. `run` keeps a positional for one release and advertises what
+// the name is being reserved for.
+const goodWorkflowHelp = "workflow [options] [command]\n  run  resume  status  cancel";
+const goodWorkflowRunHelp = "workflow run [options] [workflow]\n--runtime <provider> --validate --json";
+const goodRunHelp = "run [options] [workflow]\nReserved for skill dispatch as run <kit>/<skill>";
 const goodGraphValidate = JSON.stringify({
   schemaVersion: 1,
   action: "validate",
@@ -24,6 +30,8 @@ function smoke(overrides = {}) {
   return checkSmokeOutput({
     versionOut: "0.6.0\n",
     validateOut: goodValidate,
+    workflowHelpOut: goodWorkflowHelp,
+    workflowRunHelpOut: goodWorkflowRunHelp,
     runHelpOut: goodRunHelp,
     graphValidateOut: goodGraphValidate,
     doctorOut: goodDoctor,
@@ -82,10 +90,24 @@ test("catches a leaked build root that is not under /Users — the CI case", () 
   assert.match(caught.failures.join(" "), /leak|path/i);
 });
 
-test("fails when the packaged run lifecycle or canonical graph is absent", () => {
-  const noLifecycle = smoke({ runHelpOut: "run [workflow]" });
+test("fails when the packaged workflow lifecycle or canonical graph is absent", () => {
+  const noLifecycle = smoke({ workflowHelpOut: "workflow [command]" });
   assert.equal(noLifecycle.ok, false);
-  assert.match(noLifecycle.failures.join(" "), /run --help/i);
+  assert.match(noLifecycle.failures.join(" "), /workflow --help/i);
+
+  // Split assertion, split failure: losing the runtime options is a different
+  // break from losing the subcommands, and a gate that reported them as one
+  // would send a maintainer to the wrong half of the surface.
+  const noOptions = smoke({ workflowRunHelpOut: "workflow run [workflow]" });
+  assert.equal(noOptions.ok, false);
+  assert.match(noOptions.failures.join(" "), /workflow run --help/i);
+
+  // A binary where the rename half-landed: the harness moved, but `run` no
+  // longer says what it is reserved for. Indistinguishable from a broken build
+  // to anyone reading the help, so the gate has to fail on it.
+  const noReservation = smoke({ runHelpOut: "run [options] [workflow]" });
+  assert.equal(noReservation.ok, false);
+  assert.match(noReservation.failures.join(" "), /dispatch grammar/i);
 
   const noGraph = smoke({ graphValidateOut: JSON.stringify({ schemaVersion: 1, status: "valid", graph: { nodes: 0, edges: 0 } }) });
   assert.equal(noGraph.ok, false);

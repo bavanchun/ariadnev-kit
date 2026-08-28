@@ -22,9 +22,12 @@ is wrong, it is much cheaper to find out now.
 ## Requirements
 
 **Functional**
-- `av activity list` — finite snapshot of recent events.
-- `av activity tail` — live stream of new events.
-- `av activity stats --window 7d` — usage aggregates by coding agent.
+- `av activity list [--limit N] [--since <cursor>]` — finite snapshot, newest
+  first, default limit 100.
+- `av activity tail` — live stream of new events only.
+- `av activity stats [--window 7d] [--kit <id>] [--runtime <name>]` — usage
+  aggregates by coding agent, with a `coverage` block naming what was read and
+  what was skipped.
 - Install, update, and workflow paths emit events.
 - All three support `--json` with a stable versioned envelope.
 
@@ -37,6 +40,100 @@ is wrong, it is much cheaper to find out now.
 - Mode 0600. No credentials, no command arguments that could contain secrets.
 - Bounded: a session that emits thousands of events must not produce an unbounded
   file or an unbounded read.
+- **Every event carries a monotonic, total, lexicographically sortable `id`.**
+  `--since` is a cursor over it. Timestamps cannot serve: they collide within a
+  millisecond and move backwards when the wall clock is adjusted.
+
+## Oracle observation — captured 2026-08-28 against 2.14.0
+
+Step 1, done before any code. Three things here were **not** in this phase as
+written, and two of them change the data shape rather than the surface.
+
+### `list`
+
+```
+Usage: ak activity list [flags]
+  --limit int      Maximum events to return (default 100)
+  --since string   Return events with IDs greater than this cursor
+  --json
+Exit status: 0 success, 1 command failure, 2 invalid flags or arguments
+```
+
+**`--since` is a cursor over event IDs, not a timestamp.** This phase planned a
+timestamped JSONL line and nothing else. A cursor needs an identifier that is
+**monotonic and total** — two events in the same millisecond must still order,
+and the ordering must survive a day-segment rollover. So each event carries an
+`id` that sorts lexicographically in emission order, and `list --since <id>`
+means strictly-greater-than. Without deciding this now, `--since` either cannot
+be built or gets bolted on as a second identity later.
+
+Timestamps alone cannot do this job: they collide under load, and they are
+wall-clock, so a clock adjustment can move them backwards.
+
+### `tail`
+
+```
+Usage: ak activity tail [flags]
+  --json
+Effects: Read-only. Streams local activity events.
+Output:  Streams events as they occur until interrupted.
+```
+
+No `--since`, no `--limit`. `tail` is new events only.
+
+### `stats`
+
+```
+Usage: ak activity stats [flags]
+  --kit string       Filter by kit ID
+  --runtime string   Filter by coding-agent runtime (codex, claude-code, opencode)
+  --window string    Lookback window (24h, 7d, 2w) (default "7d")
+  --json
+```
+
+Two filters this phase did not list, and a window grammar to match: `24h`,
+`7d`, `2w`.
+
+### The envelopes
+
+```json
+{ "schema_version": 1, "kind": "activity.list",
+  "data": { "events": [], "schema_version": 1, "total": 0 } }
+```
+
+This is **the shared envelope**, dot-namespaced — so `activity` uses
+`jsonEnvelope()` and does not join `LEGACY_JSON_COMMANDS`. The inner
+`schema_version` is a second, payload-level version and is deliberate: the
+envelope and the payload move independently.
+
+`stats` carries a `coverage` block that reports what it could and could not read:
+
+```json
+{ "rows": [], "total": 0,
+  "coverage": {
+    "sources": [ { "source": "activitylog", "parsed": 0, "skipped": 0 },
+                 { "source": "claude-session", "parsed": 0, "skipped": 0 } ],
+    "no_parser_runtimes": ["codex", "opencode"] },
+  "schema_version": 1 }
+```
+
+Worth copying, and worth trimming. **Copy** the honesty: an aggregate that
+cannot say what it failed to read is an aggregate that silently under-reports.
+**Trim** the second source — `claude-session` is the sessions reader, which is
+phase 5. Phase 3's `stats` reads its own activity log and reports exactly that
+one source, so the block starts truthful and grows a source in phase 5 rather
+than lying about one it does not have.
+
+### Empty state
+
+```
+$ ak activity list
+[i] No activity events found.
+$ echo $?
+0
+```
+
+Clean message, exit 0, as the phase already assumed.
 
 ## Architecture
 
@@ -116,6 +213,9 @@ property worth asserting.
 ## Success Criteria
 
 - [ ] `av activity list|tail|stats` all work, with `--json` envelopes
+- [ ] `list --since <id>` returns strictly later events, across a day rollover
+- [ ] `stats --kit` and `--runtime` filter, and `--window` parses `24h|7d|2w`
+- [ ] `stats` reports coverage honestly — one source in this phase, not two
 - [ ] Empty state is a clean message, exit 0
 - [ ] Install, update, and workflow emit events
 - [ ] An install with an unwritable log directory still succeeds — asserted

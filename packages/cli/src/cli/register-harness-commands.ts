@@ -24,6 +24,7 @@ import {
   type RunWorkflowActionV1,
   type RunWorkflowCommandInputV1,
 } from "./run-command.js";
+import { acceptLegacyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
 
 const CODEX_RUNTIME_VERSION = "0.147.0";
 const CLAUDE_CODE_RUNTIME_VERSION = "2.1.226";
@@ -188,20 +189,30 @@ function addRuntimeOptions(command: Command): Command {
     .option("--json", "emit a stable versioned JSON envelope", false);
 }
 
-export function registerHarnessCommands(program: Command): void {
-  const run = addRuntimeOptions(program
-    .command("run")
-    .description("Validate or execute a versioned graph workflow")
+type WorkflowRunOpts = RuntimeOpts & {
+  runId?: string;
+  initialState?: string;
+  validate?: boolean;
+};
+
+/** The options `workflow run` takes, and that the deprecated `run` still takes. */
+function addWorkflowRunOptions(command: Command): Command {
+  return addRuntimeOptions(command
     .argument("[workflow]", "canonical workflow ID")
     .option("--run-id <id>", "stable run ID (generated when omitted)")
     .option("--initial-state <json>", "initial graph state as a strict JSON object")
     .option("--validate", "compile and lint without probing or executing", false));
+}
 
-  run.action(async (workflow: string | undefined, opts: RuntimeOpts & {
-    runId?: string;
-    initialState?: string;
-    validate?: boolean;
-  }) => {
+/**
+ * The action body, shared by `av workflow run` and the deprecated `av run`.
+ *
+ * Shared rather than duplicated so the shim cannot drift from what it fronts:
+ * the two spellings must do the same thing for as long as both exist, and the
+ * only way to guarantee that is for there to be one of them.
+ */
+function workflowRunAction(program: Command) {
+  return async (workflow: string | undefined, opts: WorkflowRunOpts): Promise<void> => {
     const global = program.opts<GlobalOpts>();
     const action: RunWorkflowActionV1 = opts.validate ? "validate" : global.dryRun ? "dry-run" : "run";
     await execute(program, {
@@ -212,9 +223,22 @@ export function registerHarnessCommands(program: Command): void {
       ...(opts.instruction ? { instruction: opts.instruction } : {}),
       ...(opts.initialState ? { initialState: initialState(opts.initialState) } : {}),
     }, opts);
-  });
+  };
+}
 
-  addRuntimeOptions(run
+export function registerHarnessCommands(program: Command): void {
+  const runWorkflow = workflowRunAction(program);
+
+  const workflow = program
+    .command("workflow")
+    .description("Validate or execute a versioned graph workflow");
+
+  addWorkflowRunOptions(workflow
+    .command("run")
+    .description("Validate or execute a versioned graph workflow"))
+    .action(runWorkflow);
+
+  addRuntimeOptions(workflow
     .command("resume")
     .description("Resume a durable run with the original graph and runtime identity")
     .argument("<run-id>", "existing run ID"))
@@ -227,7 +251,7 @@ export function registerHarnessCommands(program: Command): void {
       }, opts);
     });
 
-  run
+  workflow
     .command("status")
     .description("Read durable status without invoking a provider")
     .argument("<run-id>", "existing run ID")
@@ -236,7 +260,7 @@ export function registerHarnessCommands(program: Command): void {
       await execute(program, { action: "status", runId: id }, opts);
     });
 
-  run
+  workflow
     .command("cancel")
     .description("Request cooperative cancellation for an active run")
     .argument("<run-id>", "existing run ID")
@@ -244,4 +268,33 @@ export function registerHarnessCommands(program: Command): void {
     .action(async (id: string, opts: { json?: boolean }) => {
       await execute(program, { action: "cancel", runId: id }, opts);
     });
+
+  registerDeprecatedRun(program, runWorkflow);
+}
+
+/**
+ * The old spelling, kept working for one release. Deleted in 1.4.0 with
+ * `run-shim.ts` — see that file for why the name had to move at all.
+ */
+function registerDeprecatedRun(
+  program: Command,
+  runWorkflow: (workflow: string | undefined, opts: WorkflowRunOpts) => Promise<void>,
+): void {
+  const run = addWorkflowRunOptions(program
+    .command("run")
+    .description("Reserved for skill dispatch as run <kit>/<skill>; a bare workflow ID is the deprecated spelling of workflow run"));
+
+  run.action(async (workflow: string | undefined, opts: WorkflowRunOpts) => {
+    acceptLegacyRun(workflow);
+    await runWorkflow(workflow, opts);
+  });
+
+  for (const moved of ["resume", "status", "cancel"] as const) {
+    run
+      .command(moved)
+      .description(`Moved to workflow ${moved}`)
+      .argument("<run-id>", "existing run ID")
+      .option("--json", "emit a stable versioned JSON envelope", false)
+      .action(() => refuseLegacyRunSubcommand(moved));
+  }
 }

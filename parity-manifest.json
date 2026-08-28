@@ -178,8 +178,8 @@
       "subcommands": [],
       "status": "in-scope",
       "target": "run",
-      "phase": 2,
-      "note": "NAME COLLISION. `run` is the workflow harness today and becomes skill dispatch in phase 2; the harness moves to `workflow`. A no-slash positional falls through to the harness for one release"
+      "phase": 10,
+      "note": "NAME COLLISION. `run` was the workflow harness; the harness moved to `av workflow` and the name is now reserved for skill dispatch, which phase 10 builds. A no-slash positional falls through to the harness with a deprecation warning until 1.4.0; a `<kit>/<skill>` positional refuses rather than being misrouted"
     },
     {
       "name": "skill",
@@ -264,7 +264,7 @@
       "status": "in-scope",
       "target": "activity",
       "phase": 3,
-      "note": "the activity event log — the first authoritative source"
+      "note": "the activity event log \u2014 the first authoritative source"
     },
     {
       "name": "analytics",
@@ -389,7 +389,7 @@
       "status": "in-scope",
       "target": "feedback",
       "phase": 13,
-      "note": "export-only or an issue on ariadnev's own repository — open question 4. The vendor feedback registry is out of scope by dependency"
+      "note": "export-only or an issue on ariadnev's own repository \u2014 open question 4. The vendor feedback registry is out of scope by dependency"
     },
     {
       "name": "help",
@@ -445,7 +445,7 @@
       "status": "in-scope",
       "target": "watch",
       "phase": 12,
-      "note": "default off, explicit repo allowlist, dry-run first — a prompt-injection surface"
+      "note": "default off, explicit repo allowlist, dry-run first \u2014 a prompt-injection surface"
     },
     {
       "name": "api",
