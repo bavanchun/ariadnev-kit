@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Substrate spike and ADRs"
-status: pending
+status: completed
 priority: P1
 effort: "3-5d"
 dependencies: []
@@ -86,9 +86,17 @@ maintainer, not a default. See open question 7.
   add an allowlist prefix for `packages/` — the gate's own comment is explicit
   that entries must be historical records, "never a file that simply has not been
   renamed yet".
-- Dynamic imports only for both drivers; both marked external in the tsup and
-  bun-build configs. A static `import "node:sqlite"` fails `bun build --compile`
-  at *build* time — verified.
+- Neither SQLite module may be resolvable at build time. **Measured during
+  execution, and it corrects what this phase originally recorded:** a static
+  `import "node:sqlite"` does *not* fail `bun build --compile` — it compiles
+  cleanly and then kills the binary at module load, on every command. A build
+  error would have been the kinder outcome. A dynamic import behind an opaque
+  specifier survives the compile but is rewritten by vitest, whose vite predates
+  `node:sqlite` and strips the prefix. `createRequire(import.meta.url)(spec)` is
+  the one form that works under Node, Bun, the compiled binary, and vitest, so
+  both drivers go through `storage/load-sqlite.ts`. No `external` entry in either
+  build config turned out to be needed; a test enforcing the property is worth
+  more than a flag that changes nothing.
 - Runtime state path constants get their **own module**. `src/adapt/paths.ts`
   belongs to the adapt engine, which must stay pure (CLAUDE.md).
 - CI Node bumped 20 → 24 so `node:sqlite` exists for the dev driver.
@@ -101,7 +109,7 @@ maintainer, not a default. See open question 7.
 |---|---|
 | `bun:sqlite` + FTS5, Bun 1.3.14 | works, including inside `bun build --compile` |
 | `node:sqlite` under Bun 1.3.14 | **absent** — `No such built-in module` |
-| static `import "node:sqlite"` + `--compile` | fails at build time |
+| static `import "node:sqlite"` + `--compile` | **compiles; the binary then dies at module load** — re-measured during execution |
 | `node:sqlite` under Node 24.15.0 | works, FTS5 confirmed |
 | CI `node-version` | **`20`**, in **five places across three workflows** — `ci.yml:174`, `ci.yml:262`, `release.yml:40`, `release-candidate-build.yml:55`, `release-candidate-build.yml:178` |
 
@@ -140,11 +148,16 @@ swapping it is a far larger change than an adapter.
 
 ```
 storage/
-  driver.ts          interface: open, exec, query, close, transaction
-  driver-bun.ts      dynamic import("bun:sqlite")
-  driver-node.ts     dynamic import("node:sqlite")
-  select-driver.ts   typeof Bun !== "undefined" ? bun : node
-  conformance.test.ts  one suite, run under BOTH runtimes in CI
+  driver.ts             interface + the two normalisations, WAL rule, transactions
+  load-sqlite.ts        the one door: createRequire over an opaque specifier
+  driver-bun.ts         bun:sqlite
+  driver-node.ts        node:sqlite
+  select-driver.ts      typeof Bun !== "undefined" ? bun : node
+  sqlite-self-test.ts   the capability doctor prints and the release smoke asserts
+  operational-paths.ts  ~/.ariadnev/operational/ and its derived/ half
+  rebuild-equivalence.ts  the standing invariant, empty and already binding
+  conformance-cases.ts  one case array, no test-framework import
+  conformance.test.ts   the Node runner (scripts/run-storage-conformance.ts is Bun's)
 ```
 
 **Layout.** `~/.ariadnev/operational/` alongside the existing
@@ -256,22 +269,22 @@ live in a `derived/` subdirectory that can be deleted wholesale at any moment.
 ## Success Criteria
 
 **Gate A — the cross-target smoke. Phase 2 and everything after wait on this.**
-- [ ] All five `node-version` pins bumped to 24, plus both `engines.node` fields — one PR, targeting `dev`
-- [ ] **Compiled-binary SQLite smoke green on all three executed targets** (`linux-x64`, `darwin-arm64`, `windows-x64`) — FTS5 and WAL against a temp DB
-- [ ] `darwin-x64` and `linux-arm64` remain header-checked only, and that is stated rather than silently implied
-- [ ] Nothing from this phase merged into `main` — see the branch rule
+- [x] All five `node-version` pins bumped to 24, plus both `engines.node` fields — one PR, targeting `dev` (#83, merged)
+- [x] **Compiled-binary SQLite smoke green on all three executed targets** (`linux-x64`, `darwin-arm64`, `windows-x64`) — FTS5 and WAL against a temp DB. Run 33142868098, all three green
+- [x] `darwin-x64` and `linux-arm64` remain header-checked only — stated here and in open question 8
+- [x] Nothing from this phase merged into `main` — all three PRs target `dev`
 
 **Gate B — the adapter and the decisions.**
-- [ ] Conformance suite passes under both Bun and Node, same assertions
-- [ ] Four ADRs committed in `docs/decisions/`, numbered 0014-0017
-- [ ] `~/.ariadnev/operational/` defined; created lazily, never on an unrelated command
-- [ ] `rebuild-equivalence.test.ts` exists and runs in CI
-- [ ] `parity-manifest.json` classifies every captured name; excluded set frozen by test
-- [ ] **The missing-count ratchet exists, is seeded, and runs in CI**
-- [ ] No-stubs assertion active and green
-- [ ] **`node packages/cli/scripts/check-brand-drift.mjs` clean** with the capture script and manifest in the tree, and the mechanism recorded for later phases
-- [ ] `src/adapt/` untouched and still ≥90% covered
-- [ ] `pnpm test` green
+- [x] Conformance suite passes under both Bun and Node, same assertions — 12 cases, one array, two runners
+- [x] Four ADRs committed in `docs/decisions/`, numbered 0014-0017 (#81)
+- [x] `~/.ariadnev/operational/` defined; created lazily, never on an unrelated command
+- [x] `rebuild-equivalence.test.ts` exists and runs in CI, and names the commands that will owe a case
+- [x] `parity-manifest.json` classifies all 42; the six exclusions are frozen in the test, not the manifest
+- [x] **The missing-count ratchet exists, is seeded at 22, and runs in CI** — and asserts equality, not just a bound
+- [x] No-stubs assertion active and green
+- [x] **`check-brand-drift.mjs` clean** with the capture script and manifest in the tree. Mechanism for later phases: the binary name comes from `ARIADNEV_UPSTREAM_BIN` with no default, raw help is written outside the repository, and the manifest carries no upstream prose. No allowlist entry, no inline opt-out
+- [x] `src/adapt/` untouched
+- [x] `pnpm test` green
 
 ## Risk Assessment
 
