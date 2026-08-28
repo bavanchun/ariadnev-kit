@@ -148,6 +148,53 @@ This is the whole argument for Gate A existing. None of it is reachable from a
 developer's Mac, and without `storage-gate-a.yml` the first place it would have
 appeared is a release.
 
+## What review found that the conformance suite did not
+
+The twelve cases proved the two drivers agree on everything they were asked
+about. A review asked what they were not asked about, and the answer was four
+divergences — each reproduced on Node 24.15.0 and Bun 1.3.14 before being
+touched, each now carrying a case.
+
+**The serious one ships silently.** Reading a column holding
+`9007199254740993`:
+
+| | result |
+|---|---|
+| `node:sqlite` | throws `Value is too large to be represented as a JavaScript number` |
+| `bun:sqlite` | returns `9007199254740992` |
+
+The dev runtime crashes loudly and **the shipped runtime corrupts the value
+quietly** — the worst way round, and invisible to every existing case because
+none of them stored a number that large. Both drivers now read integers
+losslessly and narrow in one place: a value that fits comes back as a `number`,
+one that does not stays a `bigint` rather than being rounded. `SqlValue` already
+declared `bigint`; it just stops being a promise neither driver kept.
+
+Three more of the same shape:
+
+- `run(true)` threw on node and stored `1` on bun, while `SqlValue` declared
+  boolean acceptable to both. SQLite has no boolean type; both bind `1`/`0` now.
+- `close()` twice threw on node and no-opped on bun, so a `finally` close after
+  an explicit one crashed under vitest and passed in the binary.
+- `ParityCommand.phase` was declared in TypeScript and absent from all 42
+  manifest entries. It had been written, then dropped by the very next
+  recapture, because the capture script's merge preserved three field names and
+  `phase` was not one of them. The merge now preserves the hand-written set by
+  name, and the ratchet fails if a command loses its phase.
+
+The lesson is not about SQLite. **A conformance suite proves agreement on the
+questions it asks**, and the two drivers' disagreements clustered exactly where
+nothing had thought to ask — the edges of the declared type. The four new cases
+are all on `SqlValue`'s own boundary.
+
+Two gate weaknesses were closed at the same time. `INDEX_TOUCHING_COMMANDS` is a
+closed list and could not notice a command nobody added to it, so
+`DERIVED_CONSUMERS` now requires anything reaching for a derived path outside
+`storage/` to name the command it belongs to. And the ratchet's real limitation
+— it compares top-level names only, so `run` and `update` already count as
+registered while meaning something else — is now recorded in phase 13, which is
+the audit that must not cite `missing = 0` as behavioural parity.
+
 ## The parity numbers, measured
 
 42 captured, and the parser agrees with the plan's count exactly.
