@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -251,5 +251,23 @@ describe("lifecycle", () => {
 
     writeFileSync(indexPath(a.home), "not a database");
     expect(analyticsStatus(a.home).staleness_reason).toMatch(/could not be read/);
+  });
+});
+
+describe("the index is private", () => {
+  it("is 0600, and so are its WAL companions", () => {
+    // SQLite creates these itself, so they land at whatever the umask allows —
+    // measured as 0644 on the machine this was built on. The index summarises
+    // the user's sessions; on a shared host that default is world-readable.
+    const a = sandbox();
+    seedActivity(a.home, "20260828", [event("install.completed", NOW)]);
+    rebuildIndex(a.home, { now: NOW, env: a.env });
+
+    if (process.platform === "win32") return;
+    for (const suffix of ["", "-wal", "-shm"]) {
+      const path = `${indexPath(a.home)}${suffix}`;
+      if (!existsSync(path)) continue;
+      expect(statSync(path).mode & 0o777, path).toBe(0o600);
+    }
   });
 });

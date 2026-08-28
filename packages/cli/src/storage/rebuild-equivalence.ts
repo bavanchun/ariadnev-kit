@@ -13,6 +13,13 @@
 // forgotten case would otherwise fail silently, which for an invariant is the
 // same as not having one.
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { rebuildIndex } from "../analytics/rebuild.js";
+import { runAnalyticsStatus } from "../cli/analytics-command.js";
+import { runDataStatus } from "../cli/data-command.js";
+import { enableAnalytics } from "../analytics/lifecycle.js";
+import { activityRoot } from "./operational-paths.js";
 import type { SqlRow } from "./driver.js";
 
 /**
@@ -34,7 +41,13 @@ export const INDEX_TOUCHING_COMMANDS = ["analytics", "content-search", "data"] a
  * path helper and fails on anything not registered here. Adding an entry points
  * at a command, and a registered command with no case fails `casesOwed`.
  */
-export const DERIVED_CONSUMERS: Readonly<Record<string, (typeof INDEX_TOUCHING_COMMANDS)[number]>> = {};
+export const DERIVED_CONSUMERS: Readonly<Record<string, (typeof INDEX_TOUCHING_COMMANDS)[number]>> = {
+  "analytics/lifecycle.ts": "analytics",
+  "analytics/rebuild.ts": "analytics",
+  "cli/analytics-command.ts": "analytics",
+  "cli/data-command.ts": "data",
+  "data/retention.ts": "data",
+};
 
 export interface RebuildCase {
   /** The `av` command whose observable output must survive the round trip. */
@@ -49,13 +62,61 @@ export interface RebuildCase {
   observe(home: string): SqlRow[] | unknown;
 }
 
+/** Activity segments are the cheapest authoritative source to seed. */
+function seedSources(home: string): void {
+  mkdirSync(activityRoot(home), { recursive: true });
+  const events = [
+    { v: 1, id: "1", ts: "2026-08-28T00:00:00.000Z", kind: "install.completed", runtime: "claude-code" },
+    { v: 1, id: "2", ts: "2026-08-28T00:00:01.000Z", kind: "workflow.completed", runtime: "codex", durationMs: 40 },
+  ];
+  writeFileSync(
+    join(activityRoot(home), "activity-20260828.jsonl"),
+    `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+  );
+}
+
+const REBUILD_AT = "2026-08-28T12:00:00.000Z";
+
 /**
- * Empty at phase 1, and that is the intended state.
+ * One case per index-touching command that is registered.
  *
- * Each phase that lands an index-touching command appends its case in the same
- * commit that registers the command.
+ * Each observes the command's own **output**, not the index behind it. That is
+ * the point: the invariant is about the answer a user gets surviving the loss
+ * of the cache, not about a table being reconstructible.
  */
-export const rebuildEquivalenceCases: readonly RebuildCase[] = [];
+export const rebuildEquivalenceCases: readonly RebuildCase[] = [
+  {
+    command: "analytics",
+    note: "status reports the same facts after the index is deleted and rebuilt",
+    seed(home) {
+      seedSources(home);
+      enableAnalytics(home, REBUILD_AT);
+    },
+    rebuild(home) {
+      rebuildIndex(home, { now: REBUILD_AT, env: {} });
+    },
+    observe(home) {
+      // `last_successful_at` is pinned by the fixed `now` above, so it compares
+      // by value rather than being excluded — excluding a field is how a
+      // comparison quietly stops covering the thing that changed.
+      return JSON.parse(runAnalyticsStatus({ home, now: REBUILD_AT, json: true })) as unknown;
+    },
+  },
+  {
+    command: "data",
+    note: "status reports the same classes after the index is deleted and rebuilt",
+    seed(home) {
+      seedSources(home);
+      enableAnalytics(home, REBUILD_AT);
+    },
+    rebuild(home) {
+      rebuildIndex(home, { now: REBUILD_AT, env: {} });
+    },
+    observe(home) {
+      return JSON.parse(runDataStatus({ home, now: REBUILD_AT, json: true })) as unknown;
+    },
+  },
+];
 
 /** Commands that are registered, own derived state, and still have no case. */
 export function casesOwed(registered: Iterable<string>): string[] {

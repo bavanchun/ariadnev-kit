@@ -16,6 +16,12 @@ import type { CommandRegistrationContext, GlobalOpts } from "./command-registrat
 import { runDoctor } from "./doctor-command.js";
 import { emit, emitError } from "./emit.js";
 import {
+  runAnalyticsDelete, runAnalyticsDisable, runAnalyticsEnable,
+  runAnalyticsRebuild, runAnalyticsRefresh, runAnalyticsStatus,
+} from "./analytics-command.js";
+import { runDataIngest, runDataRetention, runDataStatus } from "./data-command.js";
+import { DATA_CLASSES } from "../data/retention.js";
+import {
   runSessionsList,
   runSessionsRedact,
   runSessionsShow,
@@ -272,6 +278,8 @@ export function registerMaintenanceCommands(
 
   registerActivityCommands(program);
   registerSessionsCommands(program);
+  registerAnalyticsCommands(program);
+  registerDataCommands(program);
 }
 
 /**
@@ -450,5 +458,112 @@ function registerSessionsCommands(program: Command): void {
         redactEmails: !!opts.redactEmails,
         json: !!opts.json,
       }));
+    });
+}
+
+/**
+ * `av analytics status | enable | disable | refresh | rebuild | delete`.
+ *
+ * Every verb that touches the index takes the lifecycle lock; `status` does
+ * not, because it is what someone runs while wondering whether something else
+ * is running.
+ */
+function registerAnalyticsCommands(program: Command): void {
+  const analytics = program
+    .command("analytics")
+    .description("Control the private local analytics index. Nothing is transmitted");
+
+  const now = () => new Date().toISOString();
+
+  analytics
+    .command("status")
+    .description("Report whether the index is enabled, present and usable")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runAnalyticsStatus({ home: global.home, now: now(), json: !!opts.json }));
+    });
+
+  for (const [verb, description, run] of [
+    ["enable", "Enable the local analytics index", runAnalyticsEnable],
+    ["disable", "Stop serving from the index without deleting it", runAnalyticsDisable],
+    ["delete", "Delete the index. The enable/disable setting is kept", runAnalyticsDelete],
+  ] as const) {
+    analytics
+      .command(verb)
+      .description(description)
+      .option("--json", "emit a stable versioned JSON envelope", false)
+      .action(async (opts: { json?: boolean }) => {
+        const global = program.opts<GlobalOpts>();
+        emit(await withLifecycleLock(lifecycleRoots(global), `analytics ${verb}`, () =>
+          run({ home: global.home, now: now(), json: !!opts.json })));
+      });
+  }
+
+  for (const [verb, description, run] of [
+    ["refresh", "Bring the index up to date with the sources", runAnalyticsRefresh],
+    ["rebuild", "Discard the index and read every source again", runAnalyticsRebuild],
+  ] as const) {
+    analytics
+      .command(verb)
+      .description(description)
+      .option("--json", "emit a stable versioned JSON envelope", false)
+      .action(async (opts: { json?: boolean }) => {
+        const global = program.opts<GlobalOpts>();
+        emit(await withLifecycleLock(lifecycleRoots(global), `analytics ${verb}`, () =>
+          run({ home: global.home, now: now(), json: !!opts.json })));
+      });
+  }
+}
+
+/** `av data status | retention | ingest`. */
+function registerDataCommands(program: Command): void {
+  const data = program
+    .command("data")
+    .description("Inspect derived-data retention and run a bounded ingest sweep");
+
+  const now = () => new Date().toISOString();
+
+  data
+    .command("status")
+    .description("Show the default retention posture for each derived class")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runDataStatus({ home: global.home, now: now(), json: !!opts.json }));
+    });
+
+  data
+    .command("retention")
+    .description("Resolve, preview, or apply retention for one derived class")
+    .option("--class <name>", `derived data class (${DATA_CLASSES.join(", ")})`, "session_metrics")
+    .option("--days <n>", "retain this many days; omit for the `forever` default")
+    .option("--apply", "delete what the preview names. Derived data only", false)
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action(async (opts: { class?: string; days?: string; apply?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const run = () => runDataRetention({
+        home: global.home,
+        now: now(),
+        ...(opts.class ? { dataClass: opts.class } : {}),
+        ...(opts.days === undefined ? {} : { days: Number(opts.days) }),
+        apply: !!opts.apply,
+        json: !!opts.json,
+      });
+      // Only an apply mutates; a preview must not be blocked by a running
+      // command, since a preview is what someone reads before deciding.
+      emit(opts.apply
+        ? await withLifecycleLock(lifecycleRoots(global), "data retention --apply", run)
+        : run());
+    });
+
+  data
+    .command("ingest")
+    .description("Run one bounded ingest sweep over the local sources")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action(async (opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(await withLifecycleLock(lifecycleRoots(global), "data ingest", () =>
+        runDataIngest({ home: global.home, now: now(), json: !!opts.json })));
     });
 }

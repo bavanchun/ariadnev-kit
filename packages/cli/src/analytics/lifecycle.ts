@@ -80,7 +80,14 @@ export interface AnalyticsStatus {
   readonly serving_mode: "index" | "sources";
   readonly health: IndexHealth;
   readonly fact_count: number;
-  readonly schema_version: number;
+  /**
+   * The INDEX's schema version, not the envelope's.
+   *
+   * Named apart on purpose: inside a `data` payload, a bare `schema_version`
+   * reads as a duplicate of the envelope's own, and the two are unrelated
+   * numbers that would drift independently.
+   */
+  readonly index_schema_version: number;
   readonly last_successful_at?: string;
   /** Why the index is not being served, when it is not. */
   readonly staleness_reason?: string;
@@ -137,7 +144,7 @@ export function analyticsStatus(home: string): AnalyticsStatus {
     serving_mode: serving ? "index" : "sources",
     health,
     fact_count: facts,
-    schema_version: INDEX_SCHEMA_VERSION,
+    index_schema_version: INDEX_SCHEMA_VERSION,
     ...(state.last_successful_at ? { last_successful_at: state.last_successful_at } : {}),
     ...(reason ? { staleness_reason: reason } : {}),
   };

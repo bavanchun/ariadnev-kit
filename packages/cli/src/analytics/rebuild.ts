@@ -11,6 +11,7 @@
 // transaction gets the same result and cannot leave a half-deleted database
 // behind.
 
+import { chmodSync } from "node:fs";
 import { dirname } from "node:path";
 import { openDatabase } from "../storage/select-driver.js";
 import { ensureOperationalDirectory } from "../storage/operational-paths.js";
@@ -39,7 +40,28 @@ export function openIndex(home: string): StorageDatabase {
     database.close();
     throw error;
   }
+  restrictToOwner(path);
   return database;
+}
+
+/**
+ * 0600 on the database and its WAL companions.
+ *
+ * SQLite creates these itself, so they land at whatever the umask allows —
+ * measured as 0644 on this machine. This index summarises the user's sessions,
+ * and on a shared host the default would make it world-readable. Applied after
+ * every open because `-wal` and `-shm` are created and removed by SQLite on its
+ * own schedule, not once at creation.
+ */
+function restrictToOwner(path: string): void {
+  if (process.platform === "win32") return;
+  for (const target of [path, `${path}-wal`, `${path}-shm`]) {
+    try {
+      chmodSync(target, 0o600);
+    } catch {
+      // A companion file that does not exist yet is the ordinary case.
+    }
+  }
 }
 
 export interface BuildOptions extends Omit<IngestOptions, "full"> {

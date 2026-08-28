@@ -280,7 +280,7 @@
       "status": "in-scope",
       "target": "analytics",
       "phase": 6,
-      "note": "local index only; no egress, which is a non-goal"
+      "note": "registered"
     },
     {
       "name": "audit",
@@ -360,7 +360,7 @@
       "status": "in-scope",
       "target": "data",
       "phase": 6,
-      "note": "derived-data retention and bounded ingest"
+      "note": "registered"
     },
     {
       "name": "diagnostics",
