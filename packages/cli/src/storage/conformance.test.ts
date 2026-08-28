@@ -34,7 +34,7 @@ describe("storage conformance (node:sqlite)", () => {
   it("covers every case the Bun runner will", () => {
     // A case list that shrinks silently would let one runtime pass a suite the
     // other never ran. The count is the cheapest thing that notices.
-    expect(storageConformanceCases.length).toBeGreaterThanOrEqual(12);
+    expect(storageConformanceCases.length).toBeGreaterThanOrEqual(16);
     expect(new Set(storageConformanceCases.map((c) => c.name)).size).toBe(storageConformanceCases.length);
   });
 });

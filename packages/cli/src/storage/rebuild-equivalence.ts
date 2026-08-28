@@ -24,6 +24,18 @@ import type { SqlRow } from "./driver.js";
  */
 export const INDEX_TOUCHING_COMMANDS = ["analytics", "content-search", "data"] as const;
 
+/**
+ * Files outside `storage/` allowed to reach for a `derived/` path, and the
+ * command each one belongs to.
+ *
+ * `INDEX_TOUCHING_COMMANDS` above is a closed list, so on its own it cannot
+ * notice a *new* command that starts writing derived state without being named.
+ * This is the other half: the test enumerates everything importing a derived
+ * path helper and fails on anything not registered here. Adding an entry points
+ * at a command, and a registered command with no case fails `casesOwed`.
+ */
+export const DERIVED_CONSUMERS: Readonly<Record<string, (typeof INDEX_TOUCHING_COMMANDS)[number]>> = {};
+
 export interface RebuildCase {
   /** The `av` command whose observable output must survive the round trip. */
   readonly command: (typeof INDEX_TOUCHING_COMMANDS)[number];

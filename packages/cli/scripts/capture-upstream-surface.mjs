@@ -36,6 +36,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The classification is ours; this script only discovers names. Anything here
+// is preserved across recaptures.
+const HAND_WRITTEN = ["status", "target", "phase", "note"];
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..", "..");
 
@@ -142,7 +146,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       name,
       group,
       subcommands,
-      ...(decided.get(name) ? { status: decided.get(name).status, note: decided.get(name).note, target: decided.get(name).target } : { status: "unclassified", note: "", target: null }),
+      // Every hand-written field, by name. A field missing from this list is
+      // silently dropped on the next recapture, which is how `phase` vanished
+      // the first time: the classification was written, then a recapture ran.
+      ...(decided.get(name)
+        ? Object.fromEntries(HAND_WRITTEN.map((field) => [field, decided.get(name)[field] ?? null]))
+        : { status: "unclassified", target: null, phase: null, note: "" }),
     })),
   };
 

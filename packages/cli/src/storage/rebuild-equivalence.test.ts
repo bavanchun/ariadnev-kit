@@ -1,10 +1,11 @@
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { commandSurface } from "../cli/command-surface.js";
 import { derivedRoot, removeDerived, removeStorageTree } from "./operational-paths.js";
-import { casesOwed, INDEX_TOUCHING_COMMANDS, rebuildEquivalenceCases } from "./rebuild-equivalence.js";
+import { casesOwed, DERIVED_CONSUMERS, INDEX_TOUCHING_COMMANDS, rebuildEquivalenceCases } from "./rebuild-equivalence.js";
 
 /** The round trip ADR 0014 asserts: seed, build, delete, rebuild, compare. */
 function surviveDeletion(home: string, entry: (typeof rebuildEquivalenceCases)[number]): { before: unknown; after: unknown } {
@@ -46,5 +47,43 @@ describe("rebuild equivalence", () => {
   it("names the commands that will owe a case", () => {
     // A list that quietly emptied would make the check above vacuous forever.
     expect([...INDEX_TOUCHING_COMMANDS]).toEqual(["analytics", "content-search", "data"]);
+  });
+});
+
+const SRC = join(fileURLToPath(new URL(".", import.meta.url)), "..");
+
+function typescriptFiles(directory: string): string[] {
+  const found: string[] = [];
+  for (const entry of readdirSync(directory)) {
+    const path = join(directory, entry);
+    if (statSync(path).isDirectory()) found.push(...typescriptFiles(path));
+    else if (entry.endsWith(".ts")) found.push(path);
+  }
+  return found;
+}
+
+describe("every derived-state consumer is accounted for", () => {
+  it("lets nothing reach a derived/ path without naming the command it belongs to", () => {
+    // `INDEX_TOUCHING_COMMANDS` is a closed list and so cannot notice a command
+    // nobody added to it. This can: writing derived state means importing one of
+    // these helpers, and importing one means appearing here.
+    const unregistered: string[] = [];
+    for (const path of typescriptFiles(SRC)) {
+      const relative = path.slice(SRC.length + 1).split("\\").join("/");
+      if (relative.startsWith("storage/")) continue;
+      if (!/\b(?:derivedPath|derivedRoot|removeDerived)\b/.test(readFileSync(path, "utf8"))) continue;
+      if (!(relative in DERIVED_CONSUMERS)) unregistered.push(relative);
+    }
+    expect(
+      unregistered,
+      "these reach for derived state without naming a command: add each to DERIVED_CONSUMERS, " +
+        "and give that command a rebuild-equivalence case.",
+    ).toEqual([]);
+  });
+
+  it("names only commands that owe a case", () => {
+    for (const [file, command] of Object.entries(DERIVED_CONSUMERS)) {
+      expect(INDEX_TOUCHING_COMMANDS, `${file} names ${command}, which is not index-touching`).toContain(command);
+    }
   });
 });
