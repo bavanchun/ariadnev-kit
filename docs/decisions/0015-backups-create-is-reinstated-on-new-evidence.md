@@ -12,10 +12,8 @@ is reversed only when new evidence arrives or the context changes — never beca
 a later reviewer finds it uncomfortable.
 
 **The original verdict**, recorded as a non-goal in plan `260822-1407` after its
-red team:
-
-> `av backups create`. AgentKit's `create` snapshots a database; ariadnev has
-> none. Porting it would ship dead surface.
+red team: upstream's `backups create` snapshots a database, ariadnev has none,
+and porting it would ship dead surface.
 
 That reasoning was correct when written. `av backups` had `list`, `show`,
 `prune`, `restore`, and `verify` — all of them operating on backups produced as a
@@ -73,4 +71,4 @@ fix is a faster rebuild, not a fatter snapshot.
 If the operational data plane is ever cut back to nothing authoritative, the
 original verdict applies again unchanged and `create` should be removed rather
 than kept for symmetry with upstream. The command exists because there is
-something to snapshot, not because AgentKit has a command of that name.
+something to snapshot, not because upstream has a command of that name.

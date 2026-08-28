@@ -12,15 +12,15 @@ a SQLite database that owns all of it, and that is the decision this ADR exists
 to prevent, because it is very hard to reverse once commands start depending on
 it.
 
-The upstream being reimplemented already answered this, and its answer is worth
-copying. `ak analytics --help` states plainly: *"Session and activity sources
-remain authoritative; no remote analytics are sent."* Its lifecycle verbs for the
-analytics store are `enable`, `disable`, `rebuild`, `delete` — the vocabulary of
-a cache, not of a system of record. Inspecting `~/.agentkit/` on 2026-08-28
-matched that: `projects.json` is plain JSON with a lockfile, `backups/` is
-directories with manifests, `sessions list` reads Claude Code's own JSONL files
-and keeps no store at all, and the two SQLite files present in normal operation
-(`plans/plans.db`, `analytics/analytics.db`) are both reconstructible.
+The upstream kit being reimplemented already answered this, and its answer is
+worth copying. Its `analytics --help` states plainly that *"Session and activity
+sources remain authoritative; no remote analytics are sent."* Its lifecycle verbs
+for the analytics store are `enable`, `disable`, `rebuild`, `delete` — the
+vocabulary of a cache, not of a system of record. Inspecting upstream's state
+directory on 2026-08-28 matched that: its projects registry is plain JSON with a
+lockfile, its backups are directories with manifests, its `sessions list` reads
+Claude Code's own JSONL files and keeps no store at all, and the two SQLite files
+present in normal operation are both reconstructible.
 
 A single-binary CLI that a user installs with `curl | bash` has a specific
 failure profile. A corrupt cache should be a deleted directory, not a support

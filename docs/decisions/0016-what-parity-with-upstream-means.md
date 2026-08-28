@@ -1,4 +1,4 @@
-# 0016. What parity with AgentKit means
+# 0016. What parity with upstream means
 
 Date: 2026-08-28
 Status: Accepted
@@ -6,20 +6,20 @@ Status: Accepted
 ## Context
 
 The maintainer's instruction for plan `260828-0859-ak-2-14-parity` is that
-ariadnev must be *"tối thiểu y chang"* AgentKit 2.14.0 — at minimum, identical —
-excluding auth, remote telemetry, and licensing.
+ariadnev must be *"tối thiểu y chang"* the upstream kit at 2.14.0 — at minimum,
+identical — excluding auth, remote telemetry, and licensing.
 
 Taken literally that instruction is unimplementable, and the reason is worth
 stating rather than working around: **the exclusion set is not closed under
-dependency.** Four AgentKit commands outside the three excluded domains rest on
+dependency.** Four upstream commands outside the three excluded domains rest on
 plumbing inside them.
 
 | Command | What it depends on |
 |---|---|
 | `api`'s LLM proxy | `login` credentials and licensed routing |
-| `feedback send` | AgentKit's own feedback registry |
-| `gui` | AgentKit's hosted desktop-app download |
-| `changelog` | AgentKit's release endpoints |
+| `feedback send` | upstream's own feedback registry |
+| `gui` | upstream's hosted desktop-app download |
+| `changelog` | upstream's release endpoints |
 
 Without a definition, each of the thirteen phases would re-litigate this, and
 would reach a slightly different answer. Worse, two failure modes are available
@@ -27,16 +27,17 @@ and both look like progress: shipping a command that exists and returns "not
 implemented", which converts a known gap into a support ticket; or shipping a
 credential-handling daemon that has no possible client.
 
-There is a second reason a definition is needed. `~/.local/bin/ak` is a closed
-Mach-O binary with no source on this machine. Parity cannot be established by
-diffing code. It can only be established against observable behavior.
+There is a second reason a definition is needed. The upstream binary on this
+machine is a closed Mach-O executable with no source anywhere on disk. Parity
+cannot be established by diffing code. It can only be established against
+observable behavior.
 
 ## Decision
 
-**Parity means: every AgentKit 2.14.0 command exists in ariadnev with
-local-first semantics. Where a command's remote-vendor half cannot exist here, it
-maps to an ariadnev-owned equivalent, and the substitution is recorded in the
-divergence table below rather than silently made.**
+**Parity means: every upstream 2.14.0 command exists in ariadnev with local-first
+semantics. Where a command's remote-vendor half cannot exist here, it maps to an
+ariadnev-owned equivalent, and the substitution is recorded in the divergence
+table below rather than silently made.**
 
 Three corollaries:
 
@@ -58,19 +59,19 @@ Three corollaries:
 |---|---|---|
 | `login`, `logout`, `whoami`, `licenses` | excluded | auth and licensing, excluded by the maintainer |
 | `api` — LLM proxy half | excluded by dependency | serves licensed routing via `login` credentials; porting it ships a credential daemon with no client. The local half (health, status, version, dashboard) is in scope |
-| `gui` | ariadnev-owned equivalent | AgentKit's is a native desktop app it builds and hosts. ariadnev starts the local API and opens `ariadnev-web`, a dashboard that already exists. Cloning the native app means a second product and a webview dependency swamp inside a Bun binary, against a download endpoint ariadnev does not operate |
+| `gui` | ariadnev-owned equivalent | upstream's is a native desktop app it builds and hosts. ariadnev starts the local API and opens `ariadnev-web`, a dashboard that already exists. Cloning the native app means a second product and a webview dependency swamp inside a Bun binary, against a download endpoint ariadnev does not operate |
 | `feedback` | ariadnev-owned equivalent | remote telemetry is excluded; export-only, or an issue on ariadnev's own repository |
-| `changelog` | ariadnev-owned equivalent | reads ariadnev's own signed releases, not AgentKit's endpoints |
-| `run` | renamed collision | `av run` was the workflow harness. `run` becomes skill dispatch to match AgentKit; the harness becomes `av workflow`, behind a one-release deprecation shim |
-| `agentkit`, `ak` skills | merged, not imported | they are routers over *AgentKit's* CLI and catalog. ariadnev ships native `ariadnev` and `av` equivalents; importing verbatim would ship prose describing a CLI that does not exist |
+| `changelog` | ariadnev-owned equivalent | reads ariadnev's own signed releases, not upstream's endpoints |
+| `run` | renamed collision | `av run` was the workflow harness. `run` becomes skill dispatch to match upstream; the harness becomes `av workflow`, behind a one-release deprecation shim |
+| the two upstream router skills | merged, not imported | they are routers over *upstream's* CLI and catalog. ariadnev ships native `ariadnev` and `av` equivalents; importing verbatim would ship prose describing a CLI that does not exist |
 
 Two further rows are expected and are filled in by the phases that resolve them:
 whether `dsh` ships as a verified provider or a documented skipped one, and
-whether `orchestrate` matches AgentKit's Darwin-only restriction.
+whether `orchestrate` matches upstream's Darwin-only restriction.
 
 One divergence hides inside a covered command and is recorded here so it is not
 missed: if `dsh` ships unverified, then `av run --target dsh` refuses where
-`ak run --target dsh` works. `run` counts as registered and an audit over command
+upstream's equivalent works. `run` counts as registered and an audit over command
 names would pass, so this is a divergence row in its own right, not a footnote.
 
 ## Consequences
@@ -80,10 +81,16 @@ every name, that it is either registered or present in this table with a reason.
 Neither half can be satisfied by prose.
 
 Every ariadnev-owned equivalent is a place where ariadnev is deliberately not
-AgentKit. Shipping the local half and stating plainly that the remote half is
-unavailable is the honest pattern — and it is upstream's own: `ak versions
---help` says live version comparison is *"disabled until the AgentKit versions
-registry endpoint is deployed"*.
+upstream. Shipping the local half and stating plainly that the remote half is
+unavailable is the honest pattern — and it is upstream's own: its `versions
+--help` says live version comparison is disabled until a registry endpoint it has
+not deployed exists.
+
+**This ADR names an upstream product that the brand-drift gate is built to keep
+out of the tree, which is why it names none of its identifiers.** That gate's
+requirement is that no upstream identifier survives anywhere; the parity work
+does not get an exemption from it, and phase 1 owes a decision on how the parity
+tooling and manifest satisfy the gate.
 
 ## Revisiting
 

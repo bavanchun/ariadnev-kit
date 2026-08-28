@@ -12,7 +12,7 @@ not arrive"*. It weighed three postures and chose the one that costs nothing
 ongoing, on the explicit grounds that this is a private tool with one maintainer
 and no external users.
 
-On 2026-08-28 the maintainer asked for behavioral parity with AgentKit at a named
+On 2026-08-28 the maintainer asked for behavioral parity with upstream at a named
 version, 2.14.0. That request touches 0011 directly, and it would be dishonest to
 act on it while leaving 0011 reading as though nothing had changed. It would be
 equally dishonest to declare 0011 superseded, because most of it still holds.
@@ -29,10 +29,10 @@ that it is pursued by reimplementation rather than by synchronisation.**
 
 What does **not** change:
 
-- No upstream ref is recorded, and none is added. There is nothing to record:
-  `~/.local/bin/ak` is a closed Mach-O arm64 binary and no AgentKit source exists
-  on this machine or in any checkout. The sync path 0011 declined is not merely
-  unwanted, it is unavailable.
+- No upstream ref is recorded, and none is added. There is nothing to record: the
+  upstream binary is a closed Mach-O arm64 executable and no upstream source
+  exists on this machine or in any checkout. The sync path 0011 declined is not
+  merely unwanted, it is unavailable.
 - No re-sync mechanism is built. The `metadata.origin` markers keep the narrowed
   meaning 0011 gave them: provenance, not the input to a synchronisation
   mechanism.
@@ -41,12 +41,12 @@ What does **not** change:
 
 What **does** change:
 
-- Diffability against AgentKit was *"explicitly not a constraint"* under 0011.
+- Diffability against upstream was *"explicitly not a constraint"* under 0011.
   There is now a constraint, but it is a **behavioral** one, not a textual one:
   observable command behavior at 2.14.0, as defined in
-  [0016](./0016-what-parity-with-agentkit-means.md).
+  [0016](./0016-what-parity-with-upstream-means.md).
 - The method is **cleanroom behavioral reimplementation against a live oracle**.
-  AgentKit is installed; its `--help` output and `--json` envelopes are
+  The upstream CLI is installed; its `--help` output and `--json` envelopes are
   observable and are captured into the plan as contracts before any test is
   written. This is 0011's "port that content by hand" applied to behavior instead
   of files.
@@ -58,13 +58,18 @@ What **does** change:
 
 The cost 0011 accepted — upstream improvements do not arrive — is now paid down
 once, deliberately, at one named version, by rewriting behavior rather than by
-copying code. It does not become a standing obligation. AgentKit 2.15.0 arriving
+copying code. It does not become a standing obligation. Upstream's next release
 creates no work and no drift to reconcile.
 
 Because the oracle is a binary rather than a source tree, every parity claim has
 to rest on an observation someone actually made. That is a stricter evidentiary
 bar than diffing would have imposed, not a looser one, and it is the reason the
 plan requires an oracle-capture step per phase.
+
+The brand-drift gate keeps upstream identifiers out of the tree, and this
+amendment does not soften it. Reimplementing observable behavior never requires
+carrying upstream's names into the source; where the plan's tooling has to invoke
+the upstream binary, phase 1 owes a decision on how that satisfies the gate.
 
 ## Revisiting
 

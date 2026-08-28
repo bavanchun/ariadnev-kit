@@ -69,6 +69,24 @@ maintainer, not a default. See open question 7.
 - Four ADRs (see Architecture).
 
 **Non-functional**
+- **The brand-drift gate applies to this plan's tooling.**
+  `packages/cli/scripts/check-brand-drift.mjs` fails CI on any surviving upstream
+  identifier — the product name, and a bare `ak` as a standalone word — across
+  every tracked file except its allowlist. `plans/` is allowlisted ("dated plans
+  and reports describe work as it was scoped"), which is why this plan's own
+  prose passes; `docs/` and `packages/` are **not**. Discovered the hard way on
+  2026-08-28: the four ADRs failed this gate on their first push with 27 hits and
+  were rewritten to say "upstream" throughout, matching ADR 0011's existing house
+  style.
+
+  This is a live constraint on phase 1's own deliverables, not a documentation
+  footnote. `capture-upstream-surface.mjs` must invoke the upstream binary by
+  name, and `parity-manifest.json` records the surface it captured. Decide the
+  mechanism here, once, for every later phase: the gate offers a line-scoped
+  `brand-drift-allow: <reason>` comment, or the binary name can come from an
+  environment variable with a documented default. Do **not** add an allowlist
+  prefix for `packages/` — the gate's own comment is explicit that entries must
+  be historical records, "never a file that simply has not been renamed yet".
 - Dynamic imports only for both drivers; both marked external in the tsup and
   bun-build configs. A static `import "node:sqlite"` fails `bun build --compile`
   at *build* time — verified.
@@ -248,6 +266,7 @@ live in a `derived/` subdirectory that can be deleted wholesale at any moment.
 - [ ] `parity-manifest.json` classifies every captured name; excluded set frozen by test
 - [ ] **The missing-count ratchet exists, is seeded, and runs in CI**
 - [ ] No-stubs assertion active and green
+- [ ] **`node packages/cli/scripts/check-brand-drift.mjs` clean** with the capture script and manifest in the tree, and the mechanism recorded for later phases
 - [ ] `src/adapt/` untouched and still ≥90% covered
 - [ ] `pnpm test` green
 
