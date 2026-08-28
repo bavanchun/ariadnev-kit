@@ -138,8 +138,8 @@
       ],
       "status": "in-scope",
       "target": "agents",
-      "phase": 10,
-      "note": "per-agent management; writes to the install surface"
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "content",
@@ -209,8 +209,8 @@
       ],
       "status": "in-scope",
       "target": "skills",
-      "phase": 10,
-      "note": "browse and install kit skills"
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "codex-agent-runtime",
@@ -330,8 +330,8 @@
       ],
       "status": "in-scope",
       "target": "commands",
-      "phase": 10,
-      "note": "per-slash-command management"
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "content-search",

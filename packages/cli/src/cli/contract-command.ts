@@ -77,9 +77,9 @@ export const PARITY = {
   /** Names in the captured surface this project intends to expose. */
   inScope: 36,
   /** Of those, the ones Commander registers today. */
-  registered: 25,
+  registered: 28,
   /** The gap. Monotonically decreasing; zero is the phase 13 exit condition. */
-  missing: 11,
+  missing: 8,
 } as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -123,6 +123,11 @@ export const KNOWN_COMMANDS = [
   "kit",
   "mcp",
   "adapters",
+  // The catalog trio. One implementation, three registrations — see
+  // `catalog-artifact-command.ts` for why they are not three commands.
+  "skills",
+  "agents",
+  "commands",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {
