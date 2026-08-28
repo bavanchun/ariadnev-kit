@@ -83,10 +83,14 @@ pnpm --filter ariadnev build:binary   # needs Bun; outputs packages/cli/dist/ari
 
 | Command | Purpose |
 |---|---|
-| `ariadnev install [--provider a,b] [--global] [--dry-run]` | Install kit to providers; writes `.ariadnev/receipt.json` |
+| `ariadnev install [--provider a,b] [--global] [--force] [--dry-run]` | Install kit to providers; writes `.ariadnev/receipt.json`. A file you have edited since the last install is left alone and reported as skipped — `--force` overwrites it, backing it up first |
+| `ariadnev init [dir] [--provider a,b] [--project-id name] [--force]` | Set up a directory and register it as a project. Wraps `install`, so its receipt, backups and guards are the same ones |
+| `ariadnev new <name> [--provider a,b]` | Create a directory inside the current one, scaffold it, then `init` it. Takes a name, not a path — use `init <dir>` to set up a directory elsewhere |
+| `ariadnev projects <list\|add\|remove\|show\|prune>` | The index of directories ariadnev has initialized. `remove` and `prune` change the index only and delete nothing on disk; `prune --all` needs both `--force` and `--yes` |
+| `ariadnev setup [--step a,b] [--config file.json] [--no-interactive]` | Configure ariadnev. Writes no credentials — every field the schema marks sensitive is refused |
 | `ariadnev list [--global]` | Show kit contents + per-provider install state |
 | `ariadnev doctor [--global]` | Health-check the install against its receipt (files, hooks, settings bindings, version, and legacy skill directories recorded by an interrupted heal journal) |
-| `ariadnev uninstall [--provider a,b] [--global] [--dry-run]` | Remove a provider's install; preserves any file you've edited since install. Recovers an install interrupted before its receipt was written, and fails rather than reporting success when there is no install record at all |
+| `ariadnev uninstall [--provider a,b] [--global] [--force] [--yes]` | **Previews by default** — prints the plan and deletes nothing until you pass `--yes`. Every file is copied into `.ariadnev/backups/` before it is unlinked. A file you have edited since install is kept unless you pass `--force`; a file ariadnev did not install is reported and never deleted, under any flag. Recovers an install interrupted before its receipt was written, and fails rather than reporting success when there is no install record at all |
 | `ariadnev audit [kit\|scripts] [--global] [--json] [--strict]` | Classify every installed file against the receipt (`ok`/`modified`/`missing`/`untracked`), or scan the scripts the kit ships for privilege escalation, remote code execution, and writes outside the skill. Exits 1 on drift; `--strict` also fails on untracked files and flagged scripts |
 | `ariadnev skill <install\|verify\|repair\|upgrade\|remove\|run> [name] [args…]` | Manage the Python environment a skill's scripts need, and run those scripts under the right interpreter. Most skills import only the standard library and need no environment; those that do get one built from a pinned, hash-verified lock. `verify` reads installed metadata only — `--deep` additionally imports the packages in a timed-out child process |
 | `ariadnev backups list [--global]` | List timestamped backups with file counts |
