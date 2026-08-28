@@ -1,3 +1,4 @@
+import { recordActivity } from "../activity/emit.js";
 import type { Command } from "commander";
 import { lifecycleRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
 import { PROVIDER_IDS } from "../providers/index.js";
@@ -54,6 +55,10 @@ export function registerInstallCommands(program: Command, context: CommandRegist
       emit(summary);
       if (!global.dryRun) {
         context.record("install", { provider: providers.join(","), scope, count: results.length });
+        // One event per provider rather than one comma-joined row: `stats`
+        // groups by runtime, and a joined string is a category nobody asked for
+        // that no filter can match.
+        for (const provider of providers) recordActivity(global.home, "install.completed", { runtime: provider, status: "ok" });
       }
     });
 

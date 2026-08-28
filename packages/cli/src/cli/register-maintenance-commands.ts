@@ -1,4 +1,10 @@
 import { basename } from "node:path";
+import { recordActivity } from "../activity/emit.js";
+import {
+  runActivityList,
+  runActivityStats,
+  tailActivity,
+} from "./activity-command.js";
 import { executableRoot, lifecycleRoots, runUnlock, withLifecycleLock } from "../install/lifecycle-lock.js";
 import type { Command } from "commander";
 import { runBackupsList, runBackupsPrune, runBackupsRestore } from "./backups-command.js";
@@ -248,6 +254,83 @@ export function registerMaintenanceCommands(
       );
       emit(summary);
       if (exitCode !== 0) process.exitCode = exitCode;
-      if (!opts.check && exitCode === 0) context.record("update", {});
+      if (!opts.check && exitCode === 0) {
+        context.record("update", {});
+        // Two logs, deliberately: history answers "what did ariadnev do to this
+        // machine", activity answers "what has been happening lately". Neither
+        // can answer the other's question from the other's records.
+        recordActivity(global.home, "update.completed", { status: "ok" });
+      }
+    });
+
+  registerActivityCommands(program);
+}
+
+/**
+ * `av activity list | tail | stats` — reading the event log.
+ *
+ * Registered here beside `doctor` and `query` because it is an inspection
+ * surface, not a lifecycle one: nothing under `activity` writes.
+ */
+function registerActivityCommands(program: Command): void {
+  const activity = program
+    .command("activity")
+    .description("Inspect the local activity event log");
+
+  activity
+    .command("list")
+    .description("List recent local activity events, newest first")
+    .option("--limit <n>", "maximum events to return", "100")
+    .option("--since <cursor>", "return events with IDs greater than this cursor")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { limit?: string; since?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runActivityList({
+        home: global.home,
+        limit: Number(opts.limit),
+        ...(opts.since ? { since: opts.since } : {}),
+        json: !!opts.json,
+      }));
+    });
+
+  activity
+    .command("tail")
+    .description("Stream new local activity events until interrupted")
+    .option("--json", "emit one JSON event per line", false)
+    .action(async (opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      process.once("SIGINT", stop);
+      process.once("SIGTERM", stop);
+      try {
+        await tailActivity({
+          home: global.home,
+          json: !!opts.json,
+          signal: controller.signal,
+          onLine: emit,
+        });
+      } finally {
+        process.removeListener("SIGINT", stop);
+        process.removeListener("SIGTERM", stop);
+      }
+    });
+
+  activity
+    .command("stats")
+    .description("Summarize local skill usage by coding agent")
+    .option("--window <span>", "lookback window, for example 24h, 7d, 2w", "7d")
+    .option("--kit <id>", "filter by kit ID")
+    .option("--runtime <name>", "filter by coding-agent runtime")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { window?: string; kit?: string; runtime?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runActivityStats({
+        home: global.home,
+        ...(opts.window ? { window: opts.window } : {}),
+        ...(opts.kit ? { kit: opts.kit } : {}),
+        ...(opts.runtime ? { runtime: opts.runtime } : {}),
+        json: !!opts.json,
+      }));
     });
 }
