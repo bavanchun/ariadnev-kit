@@ -247,21 +247,35 @@ Generated from `src/providers/{resolver,spec-verified}.ts` — do not hand-edit;
 run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gates it.
 
 <!-- BEGIN provider-matrix (generated) -->
-| artifact | claude-code | codex | cursor | antigravity | opencode | generic |
-|---|---|---|---|---|---|---|
-| skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `.agents/skills/` | `.opencode/skills/` | `.agents/skills/` |
-| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*` | skip | `.opencode/agents/*.md` | skip |
-| command | `.claude/commands/*.md` | skip | skip | skip | `.opencode/commands/*.md` | skip |
-| rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` |
-| scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` |
-| env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` |
-| hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
-| outputStyle | skip | skip | skip | skip | skip | skip |
-| statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip |
+| artifact | claude-code | codex | cursor | antigravity | opencode | omp | grok | dsh | generic |
+|---|---|---|---|---|---|---|---|---|---|
+| skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `.agents/skills/` | `.opencode/skills/` | `.agents/skills/` | `.grok/skills/` | skip | `.agents/skills/` |
+| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*` | skip | `.opencode/agents/*.md` | `.agents/skills/av-*` | `.grok/agents/*.md` | skip | skip |
+| command | `.claude/commands/*.md` | skip | skip | skip | `.opencode/commands/*.md` | skip | skip | skip | skip |
+| rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` | `.grok/rules/*.md` | skip | `AGENTS.md` |
+| scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
+| env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
+| hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
+| outputStyle | skip | skip | skip | skip | skip | skip | skip | skip | skip |
+| statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
 <!-- END provider-matrix (generated) -->
 
 Cells marked `skip` are unverified target paths — ariadnev never guesses; it
 skips and logs them in the install summary. See `src/providers/spec-verified.ts`.
+
+**Nine providers are listed; eight are installable.** `dsh` is every-cell
+`skip`: it has no binary, no config home, and no adapter to read a layout from,
+so there is nothing to verify and nothing to write. It stays in the table
+because "this tool knows dsh and refuses to install it" is a different answer
+from "never heard of it", and only the first one explains an empty install.
+
+Two cells are worth reading the notes for. `omp` installs to `.agents/skills`
+rather than `~/.omp/agent/skills`: the latter is where the upstream CLI writes,
+but omp's own documentation calls `~/.omp/agent` its session-storage directory
+and names `.agent[s]/skills` canonical. And `grok`'s hooks `skip` even though
+`~/.grok/hooks` exists, because every hook currently resolves to
+`.claude/hooks/av/` — verifying that cell would install grok's hooks into
+claude-code's tree.
 
 ## Maintainer authoring
 

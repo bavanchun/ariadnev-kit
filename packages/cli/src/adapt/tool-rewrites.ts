@@ -33,6 +33,9 @@ const TABLES: Record<ProviderId, Rule[]> = {
   cursor: CURSOR_TOOLS,
   antigravity: [], // UNVERIFIED → identity (footer notes it)
   opencode: [], // UNVERIFIED → identity (footer notes it)
+  omp: [], // UNVERIFIED → identity (footer notes it)
+  grok: [], // UNVERIFIED → identity (footer notes it)
+  dsh: [], // UNVERIFIED → identity (footer notes it)
   generic: [],
   "test-provider": [], // mock: identity (unverified tool names)
 };

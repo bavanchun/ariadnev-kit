@@ -33,6 +33,42 @@ describe("resolver target matrix", () => {
     expect(CODEX_COMMANDS_DIR).toBe("commands");
   });
 
+  it("omp targets .agents/skills, not the ~/.omp/agent/skills the upstream CLI writes", () => {
+    // Pinned because the wrong path looks right from a directory listing. Both
+    // `~/.omp/agent/skills` and `~/.agents/skills` exist and are populated on
+    // the observation machine; omp's own runtime docs call `~/.omp/agent` the
+    // session-storage directory and name `.agent[s]/skills` canonical, with the
+    // only skills path beneath `agent/` being the auto-learn `managed-skills`
+    // bucket that defers to authored skills. Restoring the upstream path would
+    // install into a directory omp treats as scratch.
+    const r = getResolver("omp");
+    const target = r.targetFor(art("skill", "x"), ctx);
+    expect(target).toBe("/proj/.agents/skills/av-x");
+    expect(target).not.toContain(".omp/agent");
+  });
+
+  it("omp has no command target, because none was documented or observed", () => {
+    expect(getResolver("omp").targetFor(art("command", "c"), ctx)).toBeNull();
+  });
+
+  it("grok keeps its own Claude-shaped tree", () => {
+    // `~/.grok/` holds {agents,hooks,rules,skills} laid out as claude-code's
+    // tree does. Sending it to the neutral `.agents` root would write somewhere
+    // the observed layout says grok does not look.
+    const r = getResolver("grok");
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.grok/skills/av-x");
+    expect(r.targetFor(art("agent", "a"), ctx)).toBe("/proj/.grok/agents/a.md");
+  });
+
+  it("dsh resolves nothing at all, so the installer skips every kind", () => {
+    // The config entry exists only because the map is total over ProviderId.
+    // Every cell is unverified, so no path of it is ever reachable.
+    const r = getResolver("dsh");
+    for (const kind of ["skill", "agent", "command", "rules"] as const) {
+      expect(r.targetFor(art(kind === "rules" ? "rule" : kind, "x"), ctx), kind).toBeNull();
+    }
+  });
+
   it("opencode uses plural dirs", () => {
     const r = getResolver("opencode");
     expect(r.targetFor(art("skill", "x"), ctx)).toBe("/proj/.opencode/skills/av-x");
