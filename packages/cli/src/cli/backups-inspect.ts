@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { BACKUP_DIR_NAME, hashTarget, readBackupManifest, type BackupManifestEntry } from "../install/backup.js";
 import { EXIT, type ExitCode } from "./exit-codes.js";
 import { jsonEnvelope } from "./json-envelope.js";
+import { renderRebuildCheck, runRebuildCheck } from "./backups-create.js";
 
 export const BACKUPS_SCHEMA_VERSION = 1;
 
@@ -20,6 +21,18 @@ export interface BackupsInspectOpts {
   scope: "project" | "global";
   timestamp: string;
   json?: boolean;
+  /**
+   * Also prove the derived state this backup deliberately omits is
+   * reconstructible.
+   *
+   * `verify` answers "is this backup intact". A snapshot leaves the derived
+   * half out on purpose, so on its own that leaves "and can the omitted half be
+   * regenerated" unanswered — which is the question that decides whether the
+   * backup is actually enough to restore the machine.
+   */
+  rebuild?: boolean;
+  /** Throwaway home for the rebuild check. Never the live one. */
+  scratchHome?: string;
 }
 
 export interface BackupsResult {
@@ -88,7 +101,13 @@ export function runBackupsVerify(opts: BackupsInspectOpts): BackupsResult {
   // restorable as it ever was, and exactly as unproven — saying so in the exit
   // code is the difference between "checked" and "checkable".
   const clean = counts.corrupt === 0 && counts.missing === 0 && counts.unverifiable === 0;
-  const exitCode = entries.length === 0 || !clean ? EXIT.failed : EXIT.ok;
+  // A failed rebuild check fails the verify. Reporting it beside an `ok` would
+  // make "verified" mean "the files hash correctly and something else is
+  // broken", which is the reassurance-shaped answer this module already refuses
+  // to give for unverifiable entries.
+  const rebuilt = opts.rebuild && opts.scratchHome ? runRebuildCheck(opts.scratchHome) : undefined;
+  const rebuildOk = rebuilt === undefined || rebuilt.every((result) => result.equivalent);
+  const exitCode = entries.length === 0 || !clean || !rebuildOk ? EXIT.failed : EXIT.ok;
 
   if (opts.json) {
     return {
@@ -96,6 +115,7 @@ export function runBackupsVerify(opts: BackupsInspectOpts): BackupsResult {
         timestamp: opts.timestamp,
         entries: verified,
         counts,
+        ...(rebuilt ? { rebuild: rebuilt } : {}),
       }),
       exitCode,
     };
@@ -116,6 +136,7 @@ export function runBackupsVerify(opts: BackupsInspectOpts): BackupsResult {
   if (counts.unverifiable > 0) {
     lines.push("  unverifiable entries predate manifest digests — restorable, but not provable");
   }
+  if (rebuilt) lines.push(...renderRebuildCheck(rebuilt).lines);
   return { output: lines.join("\n"), exitCode };
 }
 

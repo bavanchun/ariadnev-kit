@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "backups, recover, diagnostics, versions"
-status: pending
+status: completed
 priority: P2
 effort: "3-5d"
 dependencies: [6]
@@ -116,16 +116,54 @@ registry either.
 
 ## Success Criteria
 
-- [ ] `backups create` snapshots every authoritative source and **no derived file** — both asserted
-- [ ] `verify --rebuild` passes, reusing phase 6's equivalence machinery
-- [ ] `recover --dry-run` is the default; writing requires `--yes`
-- [ ] **An invocation that used to write and now previews emits a one-release warning** — `recover` is an already-shipped command and this changes its behavior in a minor
-- [ ] A root outside persisted bundle roots requires explicit `--allow-root`
-- [ ] `diagnostics export` is allowlist-built and contains no credentials or home paths — asserted
-- [ ] `versions` works with no network
-- [ ] A snapshot taken during an active append is internally consistent
-- [ ] The phase-5 restore hardening is intact — its tests untouched and green
-- [ ] `pnpm test` green
+- [x] `backups create` snapshots every authoritative source and **no derived file**
+      — both asserted, and the exclusion is one predicate (`isDerived`) rather
+      than a roster, so it covers an index that does not exist yet
+- [x] `verify --rebuild` passes, reusing phase 6's equivalence machinery in a
+      throwaway home — never against the live index it is reassuring you about
+- [x] `recover` previews by default; writing requires `--yes`
+- [x] **The invocation that used to write and now previews emits a warning** —
+      on exactly that spelling, not on `--dry-run`, which already meant preview
+- [x] A root outside the authorised set requires explicit `--allow-root`, and
+      the flag only ever narrows what the existing guards already accept
+- [x] `diagnostics export` is allowlist-built and contains no credentials or home
+      paths — asserted in the suite and measured on the binary (0 occurrences)
+- [x] `versions` works with no network, and says why there is nothing to compare
+- [x] A snapshot taken during an active append is internally consistent —
+      segment-wise capture, trimmed at the last complete record
+- [x] The phase-5 restore hardening is intact — its tests untouched and green,
+      plus a new test reaching the refusal *through* `recover`
+- [x] `pnpm test` green — 1869 tests, 177 files
+
+## Measured on the compiled binary
+
+| check | result |
+|---|---|
+| `backups create` with a live 29 KB analytics index on disk | 3 authoritative files captured, **0 `.db` files in the backup** |
+| `verify --rebuild` | all three derived indexes (analytics, data, content-search) rebuilt to the same answer; exit 0 |
+| `diagnostics export --json` | 0 occurrences of the home path, 0 of token/secret/password |
+| `recover <id>` | previews, warns, writes nothing |
+| `recover <id> --yes` | restores 3 files, pre-restore backup taken |
+| `recover --allow-root /nowhere` | exit 2, nothing written |
+
+### One defect the binary found
+
+**A refused invocation was logged as a failed restore.** `recover --allow-root`
+pointing at the wrong root exits 2 without attempting anything, but the activity
+event fired on `writes` alone — leaving `backup.restored failed` in the log for
+a restore that never ran. The event is now gated on the command having actually
+proceeded. Only the binary shows this, because it is about what reaches the log
+across a whole invocation rather than what one function returns.
+
+### A note on `backups create` and the upstream mechanism
+
+The captured surface creates *"a consistent `operational.db` snapshot via VACUUM
+INTO"* — a SQLite mechanism for a SQLite subject. ariadnev's authoritative state
+is files, not a database, so `VACUUM INTO` has nothing to act on here. The
+consistency guarantee is met the way the subject requires: closed activity
+segments are immutable and copied verbatim, and the one file that can be
+appended to mid-snapshot is trimmed to its last complete record. Same property,
+different mechanism, because the subject is different.
 
 ## Risk Assessment
 

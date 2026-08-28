@@ -116,6 +116,8 @@ describe("the event vocabulary", () => {
       "workflow.started",
       "workflow.completed",
       "workflow.failed",
+      "backup.created",
+      "backup.restored",
     ]);
   });
 });
