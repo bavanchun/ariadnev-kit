@@ -23,8 +23,8 @@
 // computed; `ensureOperationalDirectory` is the only function that writes, and
 // callers reach for it when they are about to store something. A tool that
 // materialises a database during an unrelated invocation is worse than one that
-// does not — `~/.agentkit/operational/` did not exist on the machine this was
-// designed against until something needed it.
+// does not — on the machine this was designed against, the upstream CLI's own
+// operational directory did not exist until something actually needed it.
 
 import { chmodSync, lstatSync, mkdirSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
