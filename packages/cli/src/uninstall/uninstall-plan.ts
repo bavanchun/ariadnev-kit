@@ -1,8 +1,8 @@
 // Pure-ish uninstall planner: given a parsed receipt and injected fs reads,
 // decide exactly what to remove/preserve/unmerge. No writes happen here —
 // uninstall-execute.ts applies the plan this produces.
-import { createHash } from "node:crypto";
 import { join } from "node:path";
+import { classifyFiles, plannedDeletions, refusedDeletions } from "../install/file-classification.js";
 import {
   fromPortablePath,
   SUPPORTED_RECEIPT_SCHEMA_VERSIONS,
@@ -55,6 +55,21 @@ export interface PlanUninstallDeps {
    * whole lot. That is what happened — 55 files survived a full uninstall.
    */
   readFileContent(absPath: string): Buffer | string;
+  /**
+   * The files directly inside one directory, absolute. Optional: without it the
+   * plan simply carries no orphan rows. That costs the report, not the
+   * guarantee — an orphan is excluded from deletion by the shape of
+   * `plannedDeletions`, not by having been noticed here.
+   */
+  listFiles?(dir: string): string[];
+}
+
+export interface PlanUninstallOpts {
+  /**
+   * Widen deletion from `clean` to `clean | modified`. It cannot widen further:
+   * an orphan is not in either set, so no value of this flag reaches one.
+   */
+  force?: boolean;
 }
 
 function scopeRoot(scope: "project" | "global", home: string, cwd: string): string {
@@ -102,11 +117,13 @@ export function planUninstallFromJournal(
 }
 
 /**
- * Build the uninstall plan for one provider from its receipt record. Files
- * whose current content hash no longer matches the recorded hash (the user
- * edited them since install) are preserved, never removed — the same
- * ownership guarantee ck's "modified files are preserved" gives, made
- * explicit and test-provable via content hash instead of an opaque check.
+ * Build the uninstall plan for one provider from its receipt record.
+ *
+ * The clean/modified/orphan/missing decision is **not made here.** It belongs
+ * to `file-classification.ts`, and this asks it rather than re-deriving it: two
+ * implementations of "has the user edited this file" is exactly the drift the
+ * ownership design set out to avoid, and the moment they would disagree is the
+ * moment a file gets deleted.
  */
 export function planUninstall(
   receipt: Receipt,
@@ -114,6 +131,7 @@ export function planUninstall(
   home: string,
   cwd: string,
   deps: PlanUninstallDeps,
+  opts: PlanUninstallOpts = {},
 ): UninstallOp[] {
   if (!SUPPORTED_RECEIPT_SCHEMA_VERSIONS.includes(receipt.schemaVersion)) {
     throw new UninstallPlanError(
@@ -127,16 +145,14 @@ export function planUninstall(
 
   const ops: UninstallOp[] = [];
   const root = scopeRoot(install.scope, home, cwd);
+  const force = opts.force ?? false;
 
-  for (const file of install.files) {
-    const abs = fromPortablePath(file.path, home, cwd);
-    if (!deps.fileExists(abs)) continue; // already gone — nothing to do
-    const currentHash = createHash("sha256").update(deps.readFileContent(abs)).digest("hex");
-    if (currentHash === file.sha256) {
-      ops.push({ action: "remove-file", path: abs });
-    } else {
-      ops.push({ action: "preserve-file", path: abs, reason: "modified since install — not removed" });
-    }
+  const classified = classifyFiles({ receipt, providerIds: [providerId], home, cwd }, deps);
+  for (const file of plannedDeletions(classified, { force })) {
+    ops.push({ action: "remove-file", path: file.path });
+  }
+  for (const { path, reason } of refusedDeletions(classified, { force })) {
+    ops.push({ action: "preserve-file", path, reason });
   }
 
   const applied = install.hookBindings.filter((b) => b.applied);

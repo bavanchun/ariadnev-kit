@@ -18,6 +18,7 @@
 // one migration that would have renamed those 30 directories.
 
 import { createHash } from "node:crypto";
+import { dirname } from "node:path";
 import type { ProviderId } from "../providers/spec-verified.js";
 import { fromPortablePath, type Receipt } from "./install-receipt.js";
 
@@ -50,8 +51,38 @@ export interface ClassifyDeps {
    * through what should have been a complete uninstall.
    */
   readFileContent(absPath: string): Buffer | string;
-  /** Every file currently present in the scanned surface, absolute. */
-  listFiles(root: string): string[];
+  /**
+   * The files directly inside one directory, absolute, without recursing.
+   *
+   * Optional, and the orphan report is what is lost without it — never the
+   * safety property, which does not depend on knowing an orphan exists.
+   */
+  listFiles?(dir: string): string[];
+}
+
+/**
+ * The directories to scan for orphans: exactly the ones holding a file the
+ * receipt claims, and no others.
+ *
+ * Scanning a scope root instead would be wrong in both directions. The home
+ * root on the machine this was designed against holds 131 entries, 30 of them
+ * belonging to other tools — every one would be reported as an orphan, which is
+ * noise dressed as a finding, and it would invite someone to "clean up" a list
+ * that is mostly other people's work. A directory ariadnev actually wrote into
+ * is the only place a neighbouring file says anything about this install.
+ *
+ * Not recursive, for the same reason: a nested subtree we do not own is not our
+ * business. A subdirectory we *do* own arrives in this set on its own, carried
+ * in by the receipt entry for the file inside it.
+ */
+export function ownedDirectories(receipt: Receipt, home: string, cwd: string): string[] {
+  const dirs = new Set<string>();
+  for (const record of Object.values(receipt.installs)) {
+    for (const file of record?.files ?? []) {
+      dirs.add(dirname(fromPortablePath(file.path, home, cwd)));
+    }
+  }
+  return [...dirs].sort();
 }
 
 export interface ClassifyInput {
@@ -88,7 +119,6 @@ export function classifyFiles(input: ClassifyInput, deps: ClassifyDeps): Classif
   for (const providerId of input.providerIds) {
     const record = input.receipt.installs[providerId];
     if (!record) continue;
-    const root = record.scope === "global" ? input.home : input.cwd;
     for (const file of record.files) {
       const path = fromPortablePath(file.path, input.home, input.cwd);
       seen.add(path);
@@ -99,10 +129,16 @@ export function classifyFiles(input: ClassifyInput, deps: ClassifyDeps): Classif
       const matches = digest(deps.readFileContent(path)) === file.sha256;
       classified.push({ path, state: matches ? "clean" : "modified", providerId });
     }
-    for (const path of deps.listFiles(root)) {
-      if (seen.has(path) || ownedByAnyProvider.has(path)) continue;
-      seen.add(path);
-      classified.push({ path, state: "orphan" });
+  }
+
+  const listFiles = deps.listFiles;
+  if (listFiles) {
+    for (const dir of ownedDirectories(input.receipt, input.home, input.cwd)) {
+      for (const path of listFiles(dir)) {
+        if (seen.has(path) || ownedByAnyProvider.has(path)) continue;
+        seen.add(path);
+        classified.push({ path, state: "orphan" });
+      }
     }
   }
 

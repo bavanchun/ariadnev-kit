@@ -16,6 +16,8 @@ export interface UninstallHandlerOpts {
   cwd: string;
   timestamp: string;
   json?: boolean;
+  /** Also delete files edited since install. Orphans stay out of reach. */
+  force?: boolean;
 }
 
 export const UNINSTALL_SCHEMA_VERSION = 1;
@@ -47,8 +49,16 @@ export function renderUninstallSummary(
   for (const { providerId, result } of outcomes) {
     lines.push(`  ${providerId}: removed=${result.removed.length} preserved=${result.preserved.length}`);
     for (const p of result.preserved) {
-      lines.push(`      - kept (modified since install): ${p.path}`);
+      // The reason as the plan recorded it. It used to be hardcoded to
+      // "modified since install", which was true when that was the only way a
+      // file could be preserved and became a lie the moment a file could also
+      // be preserved for not being ours at all.
+      lines.push(`      - kept (${p.reason}): ${p.path}`);
     }
+  }
+  if (dryRun) {
+    lines.push("");
+    lines.push("Nothing was deleted. Re-run with --yes to apply this plan.");
   }
   return lines.join("\n");
 }
@@ -78,6 +88,10 @@ function runJournalRecovery(root: string, opts: UninstallHandlerOpts): Uninstall
     .map((p) => p.provider)
     .filter((id) => requested === null || requested.includes(id));
 
+  // No `force` here, and not by omission: the journal records intent, not
+  // hashes, so this path cannot tell a clean file from an edited one. A flag
+  // whose meaning is "also delete the edited ones" has nothing to select on,
+  // and forwarding it would suggest a distinction that was never available.
   const outcomes = recoverFromJournal(
     journal,
     providerIds,
@@ -109,7 +123,7 @@ export function runUninstall(opts: UninstallHandlerOpts): UninstallHandlerResult
     receipt,
     providerIds,
     { home: opts.home, cwd: opts.cwd },
-    { dryRun: opts.dryRun, timestamp: opts.timestamp },
+    { dryRun: opts.dryRun, timestamp: opts.timestamp, force: opts.force },
   );
 
   if (!opts.dryRun) {

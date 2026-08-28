@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { assertWithinRoots } from "../install/path-guard.js";
 import { cleanEmptyDirsUpward } from "../install/dir-cleanup.js";
@@ -44,7 +44,16 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
     if (op.action === "remove-file") {
       result.removed.push(op.path);
       if (opts.dryRun) continue;
-      if (existsSync(op.path)) unlinkSync(op.path);
+      // Copied out before it is unlinked, always. `--force` widens which files
+      // reach this branch; it never decides whether the copy is taken, because
+      // nothing else recovers a deletion. Settings and AGENTS.md have been
+      // backed up before rewrite since the beginning — a rewrite is reversible
+      // from the backup and a deletion is reversible from nothing, so the file
+      // that most needed the copy was the one not getting it.
+      if (existsSync(op.path)) {
+        backupPath(op.path, opts.backupRoot, "removed", opts.scopeRoot);
+        unlinkSync(op.path);
+      }
       cleanEmptyDirsUpward(dirname(op.path), opts.scopeRoot);
       continue;
     }
@@ -82,11 +91,22 @@ const realPlanDeps: PlanUninstallDeps = {
   // Bytes, deliberately: hashing a font read back as utf8 never matches the
   // receipt, so every binary file would look edited and be preserved forever.
   readFileContent: (p) => readFileSync(p),
+  // One level, no recursion: the caller only ever asks about a directory the
+  // receipt already claims a file in, and what lives in a subtree below it is
+  // not evidence about this install.
+  listFiles: (dir) => {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => join(dir, entry.name));
+  },
 };
 
 export interface UninstallKitOpts {
   dryRun?: boolean;
   timestamp: string;
+  /** Extend deletion to files the user has edited since install. Never to orphans. */
+  force?: boolean;
 }
 
 export interface UninstallKitOutcome {
@@ -120,7 +140,7 @@ export function uninstallKit(
     const install = receipt.installs[providerId];
     if (!install) continue;
     const root = install.scope === "global" ? ctx.home : ctx.cwd;
-    const ops = planUninstall(receipt, providerId, ctx.home, ctx.cwd, realPlanDeps);
+    const ops = planUninstall(receipt, providerId, ctx.home, ctx.cwd, realPlanDeps, { force: opts.force });
     const backupsParent = join(root, ".ariadnev", "backups");
     const result = executeUninstall(ops, {
       dryRun,
