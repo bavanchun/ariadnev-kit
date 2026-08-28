@@ -15,6 +15,13 @@ import { jsonEnvelope } from "./json-envelope.js";
 import type { CommandRegistrationContext, GlobalOpts } from "./command-registration-context.js";
 import { runDoctor } from "./doctor-command.js";
 import { emit, emitError } from "./emit.js";
+import {
+  runSessionsList,
+  runSessionsRedact,
+  runSessionsShow,
+  runSessionsStats,
+  tailSession,
+} from "./sessions-command.js";
 import { nowStamp } from "./timestamp.js";
 import { realUpdateDeps, runUpdate } from "./update-command.js";
 
@@ -264,6 +271,7 @@ export function registerMaintenanceCommands(
     });
 
   registerActivityCommands(program);
+  registerSessionsCommands(program);
 }
 
 /**
@@ -330,6 +338,116 @@ function registerActivityCommands(program: Command): void {
         ...(opts.window ? { window: opts.window } : {}),
         ...(opts.kit ? { kit: opts.kit } : {}),
         ...(opts.runtime ? { runtime: opts.runtime } : {}),
+        json: !!opts.json,
+      }));
+    });
+}
+
+/**
+ * `av sessions list | show | tail | stats | redact`.
+ *
+ * Registered beside `activity` because it is an inspection surface. It is a
+ * stricter one: these files belong to Claude Code and Codex, so every verb here
+ * reads and none writes — `redact` prints a plan and stops.
+ */
+function registerSessionsCommands(program: Command): void {
+  const sessions = program
+    .command("sessions")
+    .description("Read the session logs Claude Code and Codex write. Read-only");
+
+  const projectList = (value: string, previous: string[] = []) => [...previous, value];
+
+  sessions
+    .command("list")
+    .description("List sessions for registered projects, newest first")
+    .option("--project <name>", "project name to list; repeatable", projectList)
+    .option("--runtime <id>", "restrict to one runtime (claude-code, codex)")
+    .option("--limit <n>", "maximum sessions to return", String(50))
+    .option("--preview", "include a truncated preview of the last message", false)
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { project?: string[]; runtime?: string; limit?: string; preview?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runSessionsList({
+        home: global.home,
+        ...(opts.project ? { projects: opts.project } : {}),
+        ...(opts.runtime ? { runtime: opts.runtime } : {}),
+        limit: Number(opts.limit),
+        preview: !!opts.preview,
+        json: !!opts.json,
+      }));
+    });
+
+  sessions
+    .command("show")
+    .description("Show paginated session messages")
+    .argument("<project>", "registered project name")
+    .argument("<sessionId>", "session id")
+    .option("--cursor <n>", "0-based line cursor", String(0))
+    .option("--limit <n>", "maximum messages to return", String(200))
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((project: string, sessionId: string, opts: { cursor?: string; limit?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runSessionsShow({
+        home: global.home, project, sessionId,
+        cursor: Number(opts.cursor), limit: Number(opts.limit), json: !!opts.json,
+      }));
+    });
+
+  sessions
+    .command("tail")
+    .description("Stream messages appended after tail starts")
+    .argument("<project>", "registered project name")
+    .argument("<sessionId>", "session id")
+    .option("--json", "emit one JSON message per line", false)
+    .action(async (project: string, sessionId: string, opts: { json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      process.once("SIGINT", stop);
+      process.once("SIGTERM", stop);
+      try {
+        await tailSession({
+          home: global.home, project, sessionId,
+          json: !!opts.json, signal: controller.signal, onLine: emit,
+        });
+      } finally {
+        process.removeListener("SIGINT", stop);
+        process.removeListener("SIGTERM", stop);
+      }
+    });
+
+  sessions
+    .command("stats")
+    .description("Aggregate local session metrics")
+    .option("--project <name>", "project name to include; repeatable", projectList)
+    .option("--metric <name>", "tokens, messages, sessions or duration", "tokens")
+    .option("--by <dimension>", "runtime, model or project", "runtime")
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { project?: string[]; metric?: string; by?: string; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runSessionsStats({
+        home: global.home,
+        ...(opts.project ? { projects: opts.project } : {}),
+        ...(opts.metric ? { metric: opts.metric } : {}),
+        ...(opts.by ? { by: opts.by } : {}),
+        json: !!opts.json,
+      }));
+    });
+
+  sessions
+    .command("redact")
+    .description("Report credential-shaped strings in session files. Never rewrites them")
+    .option("--project <name>", "project name to scan; repeatable", projectList)
+    .option("--session <id>", "session id to scan; repeatable", projectList)
+    .option("--redact-emails", "also report email addresses", false)
+    .option("--json", "emit a stable versioned JSON envelope", false)
+    .action((opts: { project?: string[]; session?: string[]; redactEmails?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      emit(runSessionsRedact({
+        home: global.home,
+        ...(opts.project ? { projects: opts.project } : {}),
+        ...(opts.session ? { sessions: opts.session } : {}),
+        redactEmails: !!opts.redactEmails,
         json: !!opts.json,
       }));
     });

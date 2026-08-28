@@ -128,6 +128,7 @@ edit.
 | `ariadnev adapters regenerate [--global] [--json]` | Rebuild the adapter artifacts (`install-manifest.json`, skill paths/hashes, hook expectations, ownership) from the receipt. They are a projection for other tools to read — nothing in ariadnev reads them back |
 | `ariadnev config prefs resolve [--json]` | Show the settings in effect after both config layers are applied, which files they came from, and every key that was rejected. Notification destinations print as `<redacted>` |
 | `ariadnev activity list [--limit n] [--since <cursor>] [--json]` | Recent activity events, newest first. `--since` is a cursor over event IDs, so a poller never replays or skips |
+| `ariadnev sessions <list\|show\|tail\|stats\|redact>` | Read the session logs Claude Code and Codex write. Read-only throughout: `redact` reports credential-shaped strings and never rewrites another tool's files, and `list` omits message previews unless `--preview` is passed |
 | `ariadnev activity tail [--json]` | Stream new events until interrupted. Follows a cursor rather than a file handle, so it does not go quiet at the midnight segment rollover |
 | `ariadnev activity stats [--window 7d] [--kit id] [--runtime name] [--json]` | Usage aggregates by coding agent, with a coverage block reporting how many records were read and how many were unreadable |
 | `ariadnev query [installs\|doctor\|history]` | Show the local history log (`~/.ariadnev/history.jsonl`) of installs, doctor runs, and updates |
