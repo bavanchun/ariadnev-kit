@@ -1,9 +1,9 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { commandSurface } from "../cli/command-surface.js";
-import { derivedRoot } from "./operational-paths.js";
+import { derivedRoot, removeDerived, removeStorageTree } from "./operational-paths.js";
 import { casesOwed, INDEX_TOUCHING_COMMANDS, rebuildEquivalenceCases } from "./rebuild-equivalence.js";
 
 /** The round trip ADR 0014 asserts: seed, build, delete, rebuild, compare. */
@@ -11,7 +11,7 @@ function surviveDeletion(home: string, entry: (typeof rebuildEquivalenceCases)[n
   entry.seed(home);
   entry.rebuild(home);
   const before = entry.observe(home);
-  rmSync(derivedRoot(home), { recursive: true, force: true });
+  removeDerived(home);
   expect(existsSync(derivedRoot(home)), `${entry.command} keeps state outside derived/`).toBe(false);
   entry.rebuild(home);
   return { before, after: entry.observe(home) };
@@ -25,7 +25,7 @@ describe("rebuild equivalence", () => {
         const { before, after } = surviveDeletion(home, entry);
         expect(after).toEqual(before);
       } finally {
-        rmSync(home, { recursive: true, force: true });
+        removeStorageTree(home);
       }
     });
   }

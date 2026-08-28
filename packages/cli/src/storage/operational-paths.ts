@@ -26,7 +26,7 @@
 // does not — on the machine this was designed against, the upstream CLI's own
 // operational directory did not exist until something actually needed it.
 
-import { chmodSync, lstatSync, mkdirSync } from "node:fs";
+import { chmodSync, lstatSync, mkdirSync, rmSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
 const ROOT_DIRECTORY = ".ariadnev";
@@ -81,4 +81,33 @@ export function ensureOperationalDirectory(home: string, path: string): string {
   // mkdirSync's mode is masked by the process umask, so set it explicitly.
   if (process.platform !== "win32") chmodSync(path, 0o700);
   return path;
+}
+
+/**
+ * Delete a tree, tolerating Windows' refusal to remove a file another handle
+ * still has open.
+ *
+ * MEASURED, NOT ANTICIPATED. The first cross-target Gate A run passed all
+ * twelve SQLite conformance cases on windows-x64 — FTS5 and WAL included — and
+ * then failed removing the temp directory afterwards:
+ *
+ *   EBUSY: resource busy or locked, rm 'C:\...\Temp\ariadnev-storage-bun-OKkHKc'
+ *
+ * On Windows a file cannot be unlinked while a handle is open, and closing a
+ * SQLite database does not always return the handle before the next syscall
+ * runs. POSIX has no equivalent, so this never appears on Linux or macOS.
+ *
+ * This matters far past a test fixture. "Delete the derived index and rebuild
+ * it" is the operation ADR 0014 rests on, and `av analytics delete` is a
+ * command this plan will ship. Every caller rediscovering EBUSY on its own is
+ * how a doctrine becomes platform-specific by accident, so the retry lives here
+ * once, next to the paths it deletes.
+ */
+export function removeStorageTree(path: string): void {
+  rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+}
+
+/** Throw away every rebuildable artifact. Authoritative files are untouched. */
+export function removeDerived(home: string): void {
+  removeStorageTree(derivedRoot(home));
 }
