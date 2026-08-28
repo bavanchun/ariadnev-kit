@@ -9,16 +9,18 @@
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "starts the local API and opens ariadnev-web. Cloning a native desktop app against a download endpoint ariadnev does not operate would be a second product",
-      "target": "gui"
+      "target": "gui",
+      "phase": 11,
+      "note": "starts the local API and opens ariadnev-web. Cloning a native desktop app against a download endpoint ariadnev does not operate would be a second product"
     },
     {
       "name": "init",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "project bootstrap over the projects registry",
-      "target": "init"
+      "target": "init",
+      "phase": 4,
+      "note": "project bootstrap over the projects registry"
     },
     {
       "name": "journal",
@@ -30,16 +32,18 @@
         "validate"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "journal"
+      "target": "journal",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "new",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "scaffold a new project",
-      "target": "new"
+      "target": "new",
+      "phase": 4,
+      "note": "scaffold a new project"
     },
     {
       "name": "plan",
@@ -67,8 +71,9 @@
         "validate"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "plan"
+      "target": "plan",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "projects",
@@ -81,40 +86,45 @@
         "show"
       ],
       "status": "in-scope",
-      "note": "the global project registry; a file, not an index (ADR 0014)",
-      "target": "projects"
+      "target": "projects",
+      "phase": 4,
+      "note": "the global project registry; a file, not an index (ADR 0014)"
     },
     {
       "name": "self-update",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "the other half of the collision above: registers the binary-only signed update that `update` performs today, so the pair matches upstream",
-      "target": "self-update"
+      "target": "self-update",
+      "phase": 4,
+      "note": "the other half of the collision above: registers the binary-only signed update that `update` performs today, so the pair matches upstream"
     },
     {
       "name": "setup",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "first-run wizard; @clack/prompts is already a dependency",
-      "target": "setup"
+      "target": "setup",
+      "phase": 4,
+      "note": "first-run wizard; @clack/prompts is already a dependency"
     },
     {
       "name": "uninstall",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "registered; phase 4 makes it refuse user-modified files, announced for one release",
-      "target": "uninstall"
+      "target": "uninstall",
+      "phase": 4,
+      "note": "registered; phase 4 makes it refuse user-modified files, announced for one release"
     },
     {
       "name": "update",
       "group": "Project lifecycle",
       "subcommands": [],
       "status": "in-scope",
-      "note": "SECOND NAME COLLISION, found during the phase 1 capture. ariadnev's `update` is a binary-only signed self-update, which is upstream's `self-update`. Upstream's `update` is the wider refresh that runs the binary step and then kit content. Phase 4 widens this one and phase 13 announces it; the binary-only path keeps working through the window",
-      "target": "update"
+      "target": "update",
+      "phase": 4,
+      "note": "SECOND NAME COLLISION, found during the phase 1 capture. ariadnev's `update` is a binary-only signed self-update, which is upstream's `self-update`. Upstream's `update` is the wider refresh that runs the binary step and then kit content. Phase 4 widens this one and phase 13 announces it; the binary-only path keeps working through the window"
     },
     {
       "name": "agents",
@@ -127,8 +137,9 @@
         "show"
       ],
       "status": "in-scope",
-      "note": "per-agent management; writes to the install surface",
-      "target": "agents"
+      "target": "agents",
+      "phase": 10,
+      "note": "per-agent management; writes to the install surface"
     },
     {
       "name": "content",
@@ -139,8 +150,9 @@
         "schedule"
       ],
       "status": "in-scope",
-      "note": "publish content to channels",
-      "target": "content"
+      "target": "content",
+      "phase": 13,
+      "note": "publish content to channels"
     },
     {
       "name": "kit",
@@ -156,16 +168,18 @@
         "validate"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "kit"
+      "target": "kit",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "run",
       "group": "Kits, skills & agents",
       "subcommands": [],
       "status": "in-scope",
-      "note": "NAME COLLISION. `run` is the workflow harness today and becomes skill dispatch in phase 2; the harness moves to `workflow`. A no-slash positional falls through to the harness for one release",
-      "target": "run"
+      "target": "run",
+      "phase": 2,
+      "note": "NAME COLLISION. `run` is the workflow harness today and becomes skill dispatch in phase 2; the harness moves to `workflow`. A no-slash positional falls through to the harness for one release"
     },
     {
       "name": "skill",
@@ -178,8 +192,9 @@
         "verify"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "skill"
+      "target": "skill",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "skills",
@@ -193,8 +208,9 @@
         "show"
       ],
       "status": "in-scope",
-      "note": "browse and install kit skills",
-      "target": "skills"
+      "target": "skills",
+      "phase": 10,
+      "note": "browse and install kit skills"
     },
     {
       "name": "codex-agent-runtime",
@@ -205,8 +221,9 @@
         "unregister"
       ],
       "status": "excluded",
-      "note": "an internal dispatch daemon of the upstream adapter architecture. ariadnev reaches the same runtimes through its harness executors, which are not a command surface. Equivalent function, no equivalent name",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "an internal dispatch daemon of the upstream adapter architecture. ariadnev reaches the same runtimes through its harness executors, which are not a command surface. Equivalent function, no equivalent name"
     },
     {
       "name": "mcp",
@@ -220,8 +237,9 @@
         "verify"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "mcp"
+      "target": "mcp",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "migrate",
@@ -231,8 +249,9 @@
         "rollback"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "migrate"
+      "target": "migrate",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "activity",
@@ -243,8 +262,9 @@
         "tail"
       ],
       "status": "in-scope",
-      "note": "the activity event log — the first authoritative source",
-      "target": "activity"
+      "target": "activity",
+      "phase": 3,
+      "note": "the activity event log — the first authoritative source"
     },
     {
       "name": "analytics",
@@ -258,8 +278,9 @@
         "status"
       ],
       "status": "in-scope",
-      "note": "local index only; no egress, which is a non-goal",
-      "target": "analytics"
+      "target": "analytics",
+      "phase": 6,
+      "note": "local index only; no egress, which is a non-goal"
     },
     {
       "name": "audit",
@@ -268,8 +289,9 @@
         "scripts"
       ],
       "status": "in-scope",
-      "note": "registered",
-      "target": "audit"
+      "target": "audit",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "backups",
@@ -283,16 +305,18 @@
         "verify"
       ],
       "status": "in-scope",
-      "note": "registered; `create` reinstated by ADR 0015 once the subject exists",
-      "target": "backups"
+      "target": "backups",
+      "phase": null,
+      "note": "registered; `create` reinstated by ADR 0015 once the subject exists"
     },
     {
       "name": "changelog",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "in-scope",
-      "note": "reads ariadnev's own signed releases. The vendor endpoint half is out of scope by dependency, the function is not",
-      "target": "changelog"
+      "target": "changelog",
+      "phase": 8,
+      "note": "reads ariadnev's own signed releases. The vendor endpoint half is out of scope by dependency, the function is not"
     },
     {
       "name": "commands",
@@ -305,8 +329,9 @@
         "show"
       ],
       "status": "in-scope",
-      "note": "per-slash-command management",
-      "target": "commands"
+      "target": "commands",
+      "phase": 10,
+      "note": "per-slash-command management"
     },
     {
       "name": "content-search",
@@ -320,8 +345,9 @@
         "status"
       ],
       "status": "in-scope",
-      "note": "plaintext shards; FTS5 where available, plain scan as the fallback",
-      "target": "content-search"
+      "target": "content-search",
+      "phase": 7,
+      "note": "plaintext shards; FTS5 where available, plain scan as the fallback"
     },
     {
       "name": "data",
@@ -332,8 +358,9 @@
         "status"
       ],
       "status": "in-scope",
-      "note": "derived-data retention and bounded ingest",
-      "target": "data"
+      "target": "data",
+      "phase": 6,
+      "note": "derived-data retention and bounded ingest"
     },
     {
       "name": "diagnostics",
@@ -342,40 +369,45 @@
         "export"
       ],
       "status": "in-scope",
-      "note": "redacted support export",
-      "target": "diagnostics"
+      "target": "diagnostics",
+      "phase": 8,
+      "note": "redacted support export"
     },
     {
       "name": "doctor",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "in-scope",
-      "note": "registered",
-      "target": "doctor"
+      "target": "doctor",
+      "phase": null,
+      "note": "registered"
     },
     {
       "name": "feedback",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "in-scope",
-      "note": "export-only or an issue on ariadnev's own repository — open question 4. The vendor feedback registry is out of scope by dependency",
-      "target": "feedback"
+      "target": "feedback",
+      "phase": 13,
+      "note": "export-only or an issue on ariadnev's own repository — open question 4. The vendor feedback registry is out of scope by dependency"
     },
     {
       "name": "help",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "excluded",
-      "note": "the CLI framework's own; present by construction, not implemented",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "the CLI framework's own; present by construction, not implemented"
     },
     {
       "name": "recover",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "in-scope",
-      "note": "registered; phase 8 makes preview the default, announced for one release",
-      "target": "recover"
+      "target": "recover",
+      "phase": 8,
+      "note": "registered; phase 8 makes preview the default, announced for one release"
     },
     {
       "name": "sessions",
@@ -388,16 +420,18 @@
         "tail"
       ],
       "status": "in-scope",
-      "note": "a reader over files another tool owns; no store of its own",
-      "target": "sessions"
+      "target": "sessions",
+      "phase": 5,
+      "note": "a reader over files another tool owns; no store of its own"
     },
     {
       "name": "versions",
       "group": "Inspect & diagnose",
       "subcommands": [],
       "status": "in-scope",
-      "note": "local versions of the CLI, kits, and skills",
-      "target": "versions"
+      "target": "versions",
+      "phase": 8,
+      "note": "local versions of the CLI, kits, and skills"
     },
     {
       "name": "watch",
@@ -409,8 +443,9 @@
         "stop"
       ],
       "status": "in-scope",
-      "note": "default off, explicit repo allowlist, dry-run first — a prompt-injection surface",
-      "target": "watch"
+      "target": "watch",
+      "phase": 12,
+      "note": "default off, explicit repo allowlist, dry-run first — a prompt-injection surface"
     },
     {
       "name": "api",
@@ -421,8 +456,9 @@
         "stop"
       ],
       "status": "in-scope",
-      "note": "the local half only: health, status, version, dashboard. The LLM proxy depends on login credentials and licensed routing, both non-goals",
-      "target": "api"
+      "target": "api",
+      "phase": 11,
+      "note": "the local half only: health, status, version, dashboard. The LLM proxy depends on login credentials and licensed routing, both non-goals"
     },
     {
       "name": "config",
@@ -434,32 +470,36 @@
         "stop"
       ],
       "status": "in-scope",
-      "note": "upstream `config` opens a hosted dashboard; ariadnev's manages configuration. Phase 11 gives the dashboard half to `gui`, and `config` keeps its current meaning",
-      "target": "config"
+      "target": "config",
+      "phase": 11,
+      "note": "upstream `config` opens a hosted dashboard; ariadnev's manages configuration. Phase 11 gives the dashboard half to `gui`, and `config` keeps its current meaning"
     },
     {
       "name": "licenses",
       "group": "Account & advanced",
       "subcommands": [],
       "status": "excluded",
-      "note": "licensing is a non-goal; the kit ships whole or not at all",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "licensing is a non-goal; the kit ships whole or not at all"
     },
     {
       "name": "login",
       "group": "Account & advanced",
       "subcommands": [],
       "status": "excluded",
-      "note": "authentication against a vendor account ariadnev does not operate",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "authentication against a vendor account ariadnev does not operate"
     },
     {
       "name": "logout",
       "group": "Account & advanced",
       "subcommands": [],
       "status": "excluded",
-      "note": "clears credentials for an account that does not exist here",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "clears credentials for an account that does not exist here"
     },
     {
       "name": "orchestrate",
@@ -471,16 +511,18 @@
         "stop"
       ],
       "status": "in-scope",
-      "note": "upstream restricts this to Darwin; open question 3 decides whether ariadnev does",
-      "target": "orchestrate"
+      "target": "orchestrate",
+      "phase": 12,
+      "note": "upstream restricts this to Darwin; open question 3 decides whether ariadnev does"
     },
     {
       "name": "whoami",
       "group": "Account & advanced",
       "subcommands": [],
       "status": "excluded",
-      "note": "reports the identity behind login; nothing to report without it",
-      "target": null
+      "target": null,
+      "phase": null,
+      "note": "reports the identity behind login; nothing to report without it"
     }
   ]
 }

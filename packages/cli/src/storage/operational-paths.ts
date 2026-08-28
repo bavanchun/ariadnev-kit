@@ -27,7 +27,7 @@
 // operational directory did not exist until something actually needed it.
 
 import { chmodSync, lstatSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const ROOT_DIRECTORY = ".ariadnev";
 const OPERATIONAL_DIRECTORY = "operational";
@@ -104,6 +104,11 @@ export function ensureOperationalDirectory(home: string, path: string): string {
  * once, next to the paths it deletes.
  */
 export function removeStorageTree(path: string): void {
+  // Recursive + force + retry is an enthusiastic combination, and every caller
+  // builds its argument by joining a `home` that came from `--home`. An empty
+  // or relative one would resolve against the process CWD and delete something
+  // else entirely, so the cheap assertion goes first.
+  if (!isAbsolute(path)) throw new Error(`refusing to remove a relative path: ${path}`);
   // The retry loop is written out rather than delegated to `rmSync`'s own
   // `maxRetries`. Passing that option changed nothing on windows-x64 under Bun,
   // so it is not something this can rely on across both runtimes.
@@ -142,10 +147,11 @@ function describeTree(path: string): string {
  * only ever fires on Windows.
  */
 function sleepBriefly(milliseconds: number): void {
-  const until = Date.now() + milliseconds;
-  while (Date.now() < until) {
-    /* deliberate spin: bounded by the caller, and only reached on a failed unlink */
-  }
+  // `Atomics.wait` blocks the thread without spinning, works on the main thread
+  // in both Node and Bun, and keeps this function synchronous. A busy loop would
+  // burn a core for up to a second on the one path where the machine is already
+  // struggling to release a file handle.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
 /** Throw away every rebuildable artifact. Authoritative files are untouched. */

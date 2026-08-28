@@ -45,6 +45,18 @@ describe("parity ratchet", () => {
     expect(inScope(manifest).length + excluded(manifest).length).toBe(manifest.commands.length);
   });
 
+  it("keeps the phase that owns each unbuilt command", () => {
+    // `phase` was written once and then silently dropped by the next recapture,
+    // because the capture script's merge only preserved three fields by name.
+    // Nothing noticed until a review read the type and then the JSON.
+    const manifest = readParityManifest();
+    const unbuilt = missingCommands(manifest, registeredNames());
+    for (const command of inScope(manifest)) {
+      if (!unbuilt.includes(command.target as string)) continue;
+      expect(command.phase, `${command.name} is unbuilt and names no phase`).toEqual(expect.any(Number));
+    }
+  });
+
   it("gives every in-scope command a target and every excluded one a reason", () => {
     const manifest = readParityManifest();
     for (const command of inScope(manifest)) {
@@ -75,6 +87,14 @@ describe("what `av contract --json` reports", () => {
     expect(PARITY.registered + PARITY.missing).toBe(PARITY.inScope);
   });
 });
+
+// WHAT THIS RATCHET DOES NOT MEASURE. It compares top-level names only, so
+// `run` and `update` already count among the registered 14 while meaning
+// something other than their upstream namesakes — the manifest's own notes say
+// so. Reaching zero here is therefore necessary for parity and not sufficient
+// for it. The manifest already stores upstream subcommand lists that nothing
+// reads yet; phase 13's audit is where they have to start being compared, and
+// it must not cite "missing = 0" as behavioural parity on its own.
 
 describe("the excluded set is frozen", () => {
   // Written here rather than read from the manifest, so a later phase cannot

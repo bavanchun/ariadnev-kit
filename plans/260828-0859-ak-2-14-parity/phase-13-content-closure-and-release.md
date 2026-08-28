@@ -159,6 +159,22 @@ right, not as a footnote to phase 9.
 - [ ] `1.3.0` released over the signed channel
 - [ ] `pnpm test` green
 
+## What the ratchet does not prove
+
+Recorded in phase 1, where it was found, so this audit does not inherit a number
+and mistake it for a conclusion.
+
+`parity-ratchet.test.ts` compares **top-level names only**. `run` and `update`
+already count among the registered commands while meaning something other than
+their upstream namesakes, and a name-only shell would satisfy it. So
+`missing = 0` is necessary for parity and **not sufficient**, and this phase must
+not cite it as behavioural parity on its own.
+
+`parity-manifest.json` already stores each captured command's subcommand list,
+written by the phase 1 capture and read by nothing yet. This is the audit that
+has to start comparing them: for every in-scope name, the registered subcommand
+set against the captured one, with a stated reason for each difference.
+
 ## Risk Assessment
 
 **The audit finds gaps too late to fix.** Twelve phases of claimed progress, and

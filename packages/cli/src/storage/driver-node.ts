@@ -11,6 +11,7 @@
 
 import {
   checkpointAndClose,
+  bindable,
   execTransaction,
   normalizeWriteResult,
   plainRow,
@@ -32,6 +33,8 @@ interface NodeStatement {
   run(...params: SqlValue[]): { changes: number | bigint; lastInsertRowid: number | bigint };
   /** Releases the native statement. Present on bun:sqlite; absent on some node:sqlite minors. */
   finalize?(): void;
+  /** Return 64-bit integers as bigint rather than throwing on large ones. */
+  setReadBigInts?(enabled: boolean): void;
 }
 
 interface NodeDatabase {
@@ -47,10 +50,13 @@ interface NodeSqliteModule {
 const NODE_SQLITE = "node:sqlite";
 
 function wrapStatement(statement: NodeStatement): StorageStatement {
+  // Lossless integer reads. The narrowing back to `number` happens once, in
+  // `plainRow`, so both drivers answer identically at the far end.
+  statement.setReadBigInts?.(true);
   return {
-    all: (...params) => statement.all(...params).map(plainRow),
-    get: (...params) => plainRowOrUndefined(statement.get(...params)),
-    run: (...params) => normalizeWriteResult(statement.run(...params)),
+    all: (...params) => statement.all(...params.map(bindable)).map(plainRow),
+    get: (...params) => plainRowOrUndefined(statement.get(...params.map(bindable))),
+    run: (...params) => normalizeWriteResult(statement.run(...params.map(bindable))),
   };
 }
 
@@ -64,6 +70,7 @@ export const nodeDriver: StorageDriver = {
     // a handle on the database file. On Windows that makes the file
     // undeletable, which breaks the one operation ADR 0014 rests on. Caching by
     // SQL text both bounds the set and avoids re-preparing the same query.
+    let closed = false;
     const prepared = new Map<string, NodeStatement>();
     return {
       exec: (sql) => database.exec(sql),
@@ -77,6 +84,12 @@ export const nodeDriver: StorageDriver = {
       },
       transaction: (body) => execTransaction({ exec: (sql) => database.exec(sql) }, body),
       close: () => {
+        // node:sqlite throws "database is not open" on a second close and
+        // bun:sqlite no-ops, so a `finally { close() }` after an explicit close
+        // crashes under vitest and not in the binary. Measured; the flag is what
+        // stops the wrapper from having two behaviours.
+        if (closed) return;
+        closed = true;
         for (const statement of prepared.values()) {
           try {
             statement.finalize?.();

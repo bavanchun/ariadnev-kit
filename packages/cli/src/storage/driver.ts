@@ -25,6 +25,13 @@ export interface WriteResult {
   readonly lastInsertRowid: number;
 }
 
+/**
+ * Statements are cached by SQL text and reused (see either driver's `open`).
+ * That is safe only because every method here materialises its whole result
+ * synchronously before returning — no cursor is ever left open on a shared
+ * statement. Adding an `iterate()` to this interface would turn the cache into a
+ * shared-cursor bug, so it would need per-call statements instead.
+ */
 export interface StorageStatement {
   all(...params: SqlValue[]): SqlRow[];
   get(...params: SqlValue[]): SqlRow | undefined;
@@ -67,7 +74,44 @@ export type RawRow = Record<string, unknown>;
  * visible at the call site, and because both drivers must do it identically.
  */
 export function plainRow(row: RawRow): SqlRow {
-  return { ...row } as SqlRow;
+  const plain: SqlRow = {};
+  for (const [column, value] of Object.entries(row)) plain[column] = narrowInteger(value as SqlValue);
+  return plain;
+}
+
+/**
+ * SQLite's INTEGER is 64-bit and JavaScript's number is not.
+ *
+ * MEASURED, because the two drivers disagreed in the worst possible direction.
+ * Reading a column holding 9007199254740993:
+ *
+ *   node:sqlite  throws "Value is too large to be represented as a JavaScript number"
+ *   bun:sqlite   silently returns 9007199254740992
+ *
+ * So the dev runtime crashed loudly and the SHIPPED runtime corrupted the data
+ * quietly. Both drivers now read integers as bigint and narrow here: a value
+ * that fits comes back as a number, and one that does not stays a bigint rather
+ * than being rounded. `SqlValue` already declared bigint, so nothing about the
+ * contract changes — it just stops being a promise neither driver kept.
+ *
+ * A bigint that reaches `JSON.stringify` throws, which is the right place for a
+ * value that genuinely does not fit to become someone's problem.
+ */
+export function narrowInteger(value: SqlValue): SqlValue {
+  if (typeof value !== "bigint") return value;
+  return value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value;
+}
+
+/**
+ * What a driver will actually accept as a bound parameter.
+ *
+ * Also measured: `run(true)` throws "Provided value cannot be bound" on
+ * node:sqlite and stores 1 on bun:sqlite. `SqlValue` includes boolean, so the
+ * type system was approving code half the implementations reject. SQLite has no
+ * boolean type; 1 and 0 is what it stores either way.
+ */
+export function bindable(value: SqlValue): Exclude<SqlValue, boolean> {
+  return typeof value === "boolean" ? (value ? 1 : 0) : value;
 }
 
 /** Same, for a result that may be absent. */
@@ -80,14 +124,19 @@ export function normalizeWriteResult(result: { changes: number | bigint; lastIns
   return { changes: Number(result.changes), lastInsertRowid: Number(result.lastInsertRowid) };
 }
 
+/** Row ids and change counts stay numbers — both are far below 2^53 in practice. */
+
 /**
  * Fold the write-ahead log back into the database before closing.
  *
  * Bounds WAL growth on a long-lived index, and on Windows it is what lets the
  * `-wal` and `-shm` sidecars go away with the database rather than outliving it
  * — the difference between "delete the derived index" working and returning
- * EBUSY. Best-effort: a read-only or already-closed handle cannot checkpoint,
- * and failing to tidy up is not a reason to fail the close.
+ * EBUSY. Best-effort in a stronger sense than the `catch` suggests: a busy
+ * checkpoint does not throw, it returns a `busy=1` row that `exec` discards. So
+ * with a second live connection to the same file the sidecars survive the close
+ * silently. Single-connection use is the assumption everywhere today; the day
+ * that stops being true, this is where to look.
  */
 export function checkpointAndClose(database: { exec(sql: string): void; close(): void }): void {
   try {

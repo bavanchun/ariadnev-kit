@@ -102,6 +102,52 @@ export const storageConformanceCases: readonly ConformanceCase[] = [
     }),
   },
   {
+    name: "keeps a 64-bit integer that does not fit a JavaScript number",
+    run: (context) => withDatabase(context, ":memory:", (db) => {
+      // The divergence that made this case necessary: reading 9007199254740993
+      // threw on node:sqlite and silently returned ...992 on bun:sqlite. The
+      // shipped runtime was the one losing data quietly.
+      db.exec("CREATE TABLE big(n INTEGER)");
+      db.exec("INSERT INTO big VALUES (9007199254740993)");
+      const value = db.prepare("SELECT n FROM big").get()?.n;
+      check(typeof value === "bigint", `large integer came back as ${typeof value}`);
+      check(value === 9007199254740993n, `large integer was rounded to ${value}`);
+    }),
+  },
+  {
+    name: "hands back ordinary integers as numbers, not bigints",
+    run: (context) => withDatabase(context, ":memory:", (db) => {
+      // Lossless reads must not turn every count into a bigint — that would
+      // break JSON.stringify on values that fit perfectly well.
+      db.exec("CREATE TABLE small(n INTEGER)");
+      db.exec("INSERT INTO small VALUES (42)");
+      const value = db.prepare("SELECT n FROM small").get()?.n;
+      check(value === 42 && typeof value === "number", `small integer came back as ${typeof value} ${String(value)}`);
+    }),
+  },
+  {
+    name: "binds booleans the way SQLite stores them",
+    run: (context) => withDatabase(context, ":memory:", (db) => {
+      // `run(true)` threw on node:sqlite and stored 1 on bun:sqlite, while
+      // SqlValue promised booleans were acceptable to both.
+      db.exec("CREATE TABLE flag(on_off INTEGER)");
+      db.prepare("INSERT INTO flag(on_off) VALUES (?)").run(true);
+      db.prepare("INSERT INTO flag(on_off) VALUES (?)").run(false);
+      checkEqual(db.prepare("SELECT on_off FROM flag ORDER BY rowid").all(), [{ on_off: 1 }, { on_off: 0 }], "bound booleans");
+    }),
+  },
+  {
+    name: "closes twice without complaining",
+    run: (context) => {
+      // node:sqlite threw "database is not open" on the second close and
+      // bun:sqlite did not, so a `finally { close() }` crashed under vitest and
+      // passed in the binary.
+      const database = context.open(":memory:");
+      database.close();
+      database.close();
+    },
+  },
+  {
     name: "matches through an FTS5 virtual table",
     run: (context) => withDatabase(context, ":memory:", (db) => {
       // FTS5 is a compile-time SQLite option. Bun bundles its own SQLite off
