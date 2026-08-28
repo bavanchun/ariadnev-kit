@@ -1,7 +1,7 @@
 ---
 phase: 10
 title: "Skill dispatch and catalog"
-status: pending
+status: completed
 priority: P1
 effort: "5-10d"
 dependencies: [2, 9]
@@ -180,3 +180,78 @@ survives this phase — it is meant to — but that 1.4.0 ships with it still th
 own comment names 1.4.0, and removal is the first item of that release's scope.
 Deprecation shims are famously immortal, so the date lives in the file rather
 than in anyone's memory.
+
+
+## Corrections to this phase document
+
+Written during planning, before the code was read. Three items did not survive
+contact with the repository.
+
+**`codex-agent-runtime` is out of scope, not in it.** This document lists it in
+Requirements, Related Code Files, Implementation Steps and Success Criteria.
+`parity-manifest.json` marks it `"status": "excluded"`, and
+`parity-ratchet.test.ts` pins it in a frozen list of "the six names this plan
+decided to exclude" — a list whose own comment says it exists so that "a later
+phase cannot improve the parity number by reclassifying a command instead of
+building it." The manifest and its test are the parity authority; this prose is
+not. Building it would have added a daemon and an editor for a TOML file
+ariadnev does not own, in service of a command the plan had already decided it
+does not need, for zero movement on the ratchet. The exclusion note is also
+correct on the merits: ariadnev reaches codex through its harness executor,
+which is not a command surface.
+
+**`skill`'s five verbs already existed.** Step 8 and the Related Code Files
+entry say to "extend `skill-env-command.ts` to the five verbs". All five —
+install, verify, repair, upgrade, remove — plus `run` were already implemented
+and registered. The one real difference from upstream is the argument: upstream
+takes `<kit>/<skill>`, ariadnev takes a bare skill name, because ariadnev ships
+one embedded kit. Nothing was changed here.
+
+**Dispatch does not get exit codes 4 and 5.** Upstream's `ak run --help`
+documents `4 unmet dependency` and `5 kit or skill not found`. This project has
+a four-value exit table that predates dispatch and is pinned by a regression
+test, and this phase's own requirement is that `run` inherits no exemption from
+it. The two upstream codes therefore map onto the existing table — not found is
+`2`, a missing adapter binary is `3` — and the compromise is recorded in
+`resolve-skill-ref.ts`: a script cannot tell a typo from a deleted kit on the
+code alone, only on the message.
+
+## What the adapter table could actually verify
+
+The plan says dispatch is "gated on phase 9's matrix". That gate is necessary
+but not sufficient: phase 9 verified where a provider's *files* go, which says
+nothing about how to *invoke* it. So the invocation table was built the same way
+phase 9's matrix was — by measurement. Each entry was read off that binary's own
+`--help` on this machine:
+
+| provider | binary | non-interactive | prompt |
+|---|---|---|---|
+| claude-code | `claude` | `-p` | positional |
+| codex | `codex` | `exec` | positional |
+| cursor | `cursor-agent` | `-p` | positional |
+| omp | `omp` | `-p` | positional |
+
+`grok` and `dsh` are not installed here, so neither could be read the same way
+and neither gets an entry. Both are refused with the skip-and-log honesty the
+installer uses for an unverified cell.
+
+## What binary verification caught
+
+Two defects that no unit test in this phase would have found, because both were
+defects in what the tests were asserting *about*:
+
+1. **`list --installed` reported nothing after a successful install.** Installed
+   state was derived from the receipt by matching an artifact's name against its
+   file paths — but the installed directory is `av-scout`, not `scout`, so the
+   match answered "no" for everything. Replaced with the resolver's own
+   `targetFor` plus a filesystem check, which cannot be wrong in that way and
+   also sees an install this command did not perform.
+2. **`remove` left the artifact's directory standing.** Deleting the planned
+   files left an empty `.claude/skills/av-scout`, and since `list` decides from
+   that directory's existence, a removed skill still reported as installed. Now
+   pruned with the same `cleanEmptyDirsUpward` helper uninstall uses, including
+   its refusal to climb past a kind root.
+
+## Ratchet
+
+`agents`, `skills` and `commands` registered: missing 11 → 8.
