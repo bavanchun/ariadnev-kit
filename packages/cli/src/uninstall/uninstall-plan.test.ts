@@ -228,4 +228,60 @@ describe("--force, and the line it cannot cross", () => {
       });
     }
   });
+
+  // codex and cursor both resolve to ~/.agents/skills, so one global install of
+  // each records the same absolute paths twice. Removing either used to delete
+  // the shared files outright and leave the other provider reporting every one
+  // of them missing.
+  describe("a path another install in the same receipt still claims", () => {
+    const shared = "/home/u/.agents/skills/av-plan/SKILL.md";
+    const ownOnly = "/home/u/.agents/skills/av-plan/references/only-cursor.md";
+
+    function coLocated(): Receipt {
+      const record = (files: string[]) => ({
+        timestamp: "t1",
+        scope: "global" as const,
+        files: files.map((path) => ({ path: path.replace("/home/u/", "~/"), sha256: sha256("original") })),
+        agentsMdManaged: false,
+        hookBindings: [],
+        skipped: [],
+      });
+      return {
+        schemaVersion: 1,
+        ariadnevVersion: "1.3.0",
+        installs: {
+          codex: record([shared]),
+          cursor: record([shared, ownOnly]),
+        },
+      } as unknown as Receipt;
+    }
+
+    const onDisk = { [shared]: "original", [ownOnly]: "original" };
+
+    it("is preserved rather than removed", () => {
+      const ops = planUninstall(coLocated(), "cursor", home, cwd, makeDeps(onDisk));
+      expect(ops.filter((o) => o.action === "remove-file").map((o) => o.path)).toEqual([ownOnly]);
+      expect(ops).toContainEqual({
+        action: "preserve-file",
+        path: shared,
+        reason: expect.stringContaining("codex"),
+      });
+    });
+
+    // Without this the guard would read as "never delete a co-claimed path" and
+    // the last provider could never clean up after itself.
+    it("is removed once no other install claims it", () => {
+      const receipt = coLocated();
+      delete (receipt.installs as Record<string, unknown>).codex;
+      const ops = planUninstall(receipt, "cursor", home, cwd, makeDeps(onDisk));
+      expect(ops.filter((o) => o.action === "remove-file").map((o) => o.path).sort()).toEqual(
+        [ownOnly, shared].sort(),
+      );
+    });
+
+    it("stays preserved under --force, because force is about user edits, not ownership", () => {
+      const ops = planUninstall(coLocated(), "cursor", home, cwd, makeDeps(onDisk), { force: true });
+      expect(ops.filter((o) => o.action === "remove-file").map((o) => o.path)).toEqual([ownOnly]);
+    });
+  });
 });

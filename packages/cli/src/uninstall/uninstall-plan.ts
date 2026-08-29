@@ -147,8 +147,26 @@ export function planUninstall(
   const root = scopeRoot(install.scope, home, cwd);
   const force = opts.force ?? false;
 
+  // Providers can share a destination root — codex and cursor both resolve to
+  // `~/.agents/skills` — so one receipt records the same absolute path under
+  // each. Deleting on this provider's claim alone removes files the other
+  // install still owns and still needs, and its next `doctor` reports every one
+  // of them missing. Ownership is the whole receipt's, not one record's.
+  // Deliberately not subject to --force: force overrides "the user edited this",
+  // and this is not that.
+  const claimedElsewhere = new Map<string, string>();
+  for (const [otherId, other] of Object.entries(receipt.installs)) {
+    if (otherId === providerId || !other) continue;
+    for (const file of other.files) claimedElsewhere.set(fromPortablePath(file.path, home, cwd), otherId);
+  }
+
   const classified = classifyFiles({ receipt, providerIds: [providerId], home, cwd }, deps);
   for (const file of plannedDeletions(classified, { force })) {
+    const owner = claimedElsewhere.get(file.path);
+    if (owner) {
+      ops.push({ action: "preserve-file", path: file.path, reason: `still installed for ${owner}` });
+      continue;
+    }
     ops.push({ action: "remove-file", path: file.path });
   }
   for (const { path, reason } of refusedDeletions(classified, { force })) {
