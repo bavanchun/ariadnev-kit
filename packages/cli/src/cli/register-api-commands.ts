@@ -1,13 +1,13 @@
 // `av api`, `av gui`, and the `config` aliases that operate the same daemon.
 //
-// ONE DAEMON, NOT TWO. Upstream runs two servers — `ak api` on 8765 and the
-// `ak config` dashboard on 8766 — because they do different jobs there: one
-// proxies model traffic, the other serves a UI. ariadnev ships no proxy, so the
-// two would be the same read-only server twice, on two ports, with two pidfiles
-// to leave behind.
+// ONE DAEMON, NOT TWO. The upstream CLI runs two servers — an api on 8765 and a
+// dashboard on 8766 — because they do different jobs there: one proxies model
+// traffic, the other serves a UI. ariadnev ships no proxy, so the two would be
+// the same read-only server twice, on two ports, with two pidfiles to leave
+// behind.
 //
 // `av config` is untouched and still means "inspect ariadnev's own
-// configuration". Upstream's bare `ak config` opens a dashboard; taking that
+// configuration". Upstream's bare `config` opens a dashboard; taking that
 // spelling would overwrite a meaning this CLI already has, which the parity
 // manifest explicitly protects. `av gui` is the command that opens something,
 // and `register-config-commands.ts` records why the `config` verbs stay absent.

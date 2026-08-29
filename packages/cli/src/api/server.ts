@@ -24,8 +24,8 @@ import { timingSafeEqual } from "node:crypto";
 import { UnavailableError, UsageError } from "../cli/exit-codes.js";
 import { handleRequest, type RouteContext } from "./routes.js";
 
-/** One above upstream's dashboard, so `ak api` (8765) and `ak config` (8766)
- *  can both be running on the same machine while this one starts. */
+/** One above the upstream CLI's dashboard, so its own api (8765) and dashboard
+ *  (8766) can both be running on this machine while ariadnev's daemon starts. */
 export const DEFAULT_PORT = 8767;
 export const DEFAULT_BIND = "127.0.0.1";
 export const TOKEN_ENV = "ARIADNEV_API_TOKEN";

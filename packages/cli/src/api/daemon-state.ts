@@ -2,7 +2,8 @@
 //
 // WHY A FILE AND NOT A PROCESS SCAN. The process-management rules forbid finding
 // a daemon by matching a command line, and for a good reason: `pkill -f av` on a
-// machine that also runs `ak` is how someone kills a stranger's process. The
+// machine that also runs the upstream CLI is how someone kills a stranger's
+// process. The
 // pidfile is written by the daemon's own parent at spawn time, so a pid found
 // here is a pid this install started — nothing else can put one here.
 //
