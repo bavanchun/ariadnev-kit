@@ -24,6 +24,7 @@
     "sessions-reader",
     "skill-dispatch",
     "sqlite-storage-adapter",
+    "uninstall-keeps-co-claimed-files",
     "watch-and-orchestrate",
     "workflow-rename-and-run-shim"
   ]
