@@ -13,7 +13,7 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { isProviderId } from "../providers/index.js";
 import type { ProviderId } from "../providers/spec-verified.js";
 import { DEFAULT_TARGET, invocationFor } from "../dispatch/adapter-invocation.js";
-import { parseSkillRef, resolveSkill } from "../dispatch/resolve-skill-ref.js";
+import { parseSkillRef, resolveSkill, type ResolveDeps } from "../dispatch/resolve-skill-ref.js";
 import { spawnStreaming } from "../dispatch/spawn-stream.js";
 import { EXIT, UnavailableError, UsageError } from "./exit-codes.js";
 import { jsonEnvelope } from "./json-envelope.js";
@@ -67,7 +67,7 @@ export function parseTimeout(raw: string | undefined): number {
 }
 
 /** `--kits-dir`, else `$ARIADNEV_KITS_DIR`, else `./kits`. */
-export function kitsDirFor(opts: DispatchOpts, env: NodeJS.ProcessEnv): string {
+export function kitsDirFor(opts: { cwd: string; kitsDir?: string }, env: NodeJS.ProcessEnv): string {
   return opts.kitsDir ?? env.ARIADNEV_KITS_DIR ?? join(opts.cwd, "kits");
 }
 
@@ -95,19 +95,30 @@ function resolveTarget(raw: string | undefined): ProviderId {
   return target;
 }
 
+/**
+ * The filesystem side of skill resolution.
+ *
+ * Exported because `av watch` dispatches skills too, and a second copy of this
+ * object would be a second answer to "where do kits live" — the kind of drift
+ * that shows up as one command finding a skill the other cannot.
+ */
+export function realResolveDeps(cwd: string, kitsDir: string): ResolveDeps {
+  return {
+    kitsDir,
+    embedded: { name: EMBEDDED_KIT_NAME, root: getKitRoot(cwd) },
+    dirExists,
+    fileExists: (p) => existsSync(p),
+    listKits: () => listDirs(kitsDir),
+    listSkills: (kitRoot) => listDirs(join(kitRoot, "skills")),
+  };
+}
+
 export async function runDispatch(opts: DispatchOpts, env: NodeJS.ProcessEnv = process.env): Promise<DispatchResult> {
   const ref = parseSkillRef(opts.ref);
   const target = resolveTarget(opts.target);
   const kitsDir = kitsDirFor(opts, env);
 
-  const skill = resolveSkill(ref, {
-    kitsDir,
-    embedded: { name: EMBEDDED_KIT_NAME, root: getKitRoot(opts.cwd) },
-    dirExists,
-    fileExists: (p) => existsSync(p),
-    listKits: () => listDirs(kitsDir),
-    listSkills: (kitRoot) => listDirs(join(kitRoot, "skills")),
-  });
+  const skill = resolveSkill(ref, realResolveDeps(opts.cwd, kitsDir));
 
   const invocation = invocationFor(target, skill, opts.args);
   const timeoutMs = parseTimeout(opts.timeout);

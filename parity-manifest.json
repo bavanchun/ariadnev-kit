@@ -445,7 +445,7 @@
       "status": "in-scope",
       "target": "watch",
       "phase": 12,
-      "note": "default off, explicit repo allowlist, dry-run first \u2014 a prompt-injection surface"
+      "note": "registered; off by default, per-repository allowlist, dry-run posture, local rate limit before dispatch, one daemon per repo. Issue text is fenced by a per-invocation nonce and the fences are neutralised in the payload. ADR 0018 records which mitigations are structural and which are advisory"
     },
     {
       "name": "api",
@@ -513,7 +513,7 @@
       "status": "in-scope",
       "target": "orchestrate",
       "phase": 12,
-      "note": "upstream restricts this to Darwin; open question 3 decides whether ariadnev does"
+      "note": "registered; cross-platform where upstream is Darwin-only. Open question 3 answered: the supervisor is phase 10's spawn-stream with no platform-specific mechanism, and matching the restriction would mean CI could never exercise it on its Linux runners"
     },
     {
       "name": "whoami",

@@ -1,7 +1,7 @@
 ---
 phase: 12
 title: "watch and orchestrate"
-status: pending
+status: completed
 priority: P3
 effort: "5-8d"
 dependencies: [10, 11]
@@ -190,3 +190,75 @@ one place is the entire reason to share it.
 Cutting phase 12 leaves the parity claim short by two commands, recorded in the
 divergence table — a far better outcome than shipping a rushed autonomous agent
 that answers strangers.
+
+## Open question 3, answered: cross-platform, not Darwin-only
+
+Upstream restricts `orchestrate` to Darwin and returns an unsupported error
+elsewhere. ariadnev does not. The supervisor here is phase 10's
+`spawn-stream.ts` — plain Node/Bun process handling with no platform-specific
+mechanism in it — so matching the restriction would import an implementation
+limit as though it were a contract. The deciding argument is the one the
+question itself raises: *"Matching means CI cannot exercise it on Linux
+runners."* A restriction that also disables its own testing is not worth
+inheriting. The real-process orphan test therefore runs on every push, on Linux,
+rather than only on the maintainer's laptop.
+
+## Corrections to this phase document
+
+**The allowlist needed no fifth subcommand.** The requirement asked for "an
+explicit repo allowlist", and the obvious reading is a command that edits one.
+That would be a subcommand upstream does not have, which phase 13's audit would
+then report as extra surface. What ships instead: `start --yes` records the
+repository in `allowlist.json` and reports that it did, `status` prints the
+standing decision, and revoking is editing one line out of a JSON array. The
+requirement's own second sentence is what it satisfies — *"Enabling it is a
+deliberate act, per repository"* — with no new verb.
+
+**The fence defence is two mechanisms, not one.** The document specifies a
+per-invocation nonce, which handles a guessed *fixed* delimiter. It does not
+handle a **guessed nonce**, which is the third fixture the document itself asks
+for. So the payload is also passed through `neutralizeFences`, which rewrites any
+line that is entirely a `<<<…>>>` fence before framing. An attacker who somehow
+knows the nonce still cannot close the block, because the closing line does not
+survive into the payload. The cost is real and accepted: an issue legitimately
+discussing this format reads oddly.
+
+**`watch stop` cannot prove identity the way `av api stop` can.** Phase 11's
+daemon proves itself by answering on its port; a watcher listens on nothing, so
+there is no equivalent question to ask and the check is pid liveness alone. A
+recycled pid therefore reads as a live watcher, which makes `start` refuse rather
+than spawn — the safe direction — and makes `stop` print the pid it is about to
+signal.
+
+## What binary verification caught
+
+**A running watcher was invisible to `av watch status`.** `status` with no
+argument listed the *allowlist*, and a watcher started in preview mode is not
+allowlisted, because previewing needs no permission. So `av watch start
+--daemon` without `--yes` produced a live background process that spawns coding
+agents and did not appear in `status` at all — the exact daemon someone forgets
+about. Found by running the detached watcher on the binary and reading the status
+line, not by any test. Fixed with `knownRepos`, which unions the allowlist with
+every repository that has state or a pidfile on disk, and pinned by two tests.
+
+## What was verified live, not just in tests
+
+- `orchestrate` on a five-job diamond: dependencies ordered, the two independent
+  jobs in one wave, a failing job's dependent `skipped` rather than failed, exit 1.
+- **`orchestrate stop` from a different process** against a job that traps TERM
+  and holds a grandchild: TERM ignored, escalated to KILL of the process
+  **group**, grandchild gone, zero strays.
+- A cyclic graph refused before anything spawned, exit 2.
+- `watch dry-run` against a real repository through `gh`: read path works, state
+  written, **allowlist still absent**.
+- `--yes` gate: without it nothing is allowlisted; with it the repository is
+  recorded and `status` shows it. Run in a disposable home so no standing
+  permission was left behind.
+- The detached watcher: starts, is visible in `status`, refuses a second start
+  for the same repository (exit 3), stops cleanly, **zero orphans**.
+
+## Ratchet
+
+6 → 4. `watch` and `orchestrate` registered; `changelog`, `content`, `feedback`
+and `self-update` remain for phase 13.
+\n

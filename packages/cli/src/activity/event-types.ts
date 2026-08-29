@@ -44,6 +44,15 @@ export const ACTIVITY_KINDS = [
   // that was killed without being asked — both worth being able to see.
   "api.started",
   "api.stopped",
+  // Watching a repository and answering strangers. Recorded because this is the
+  // one path where something outside the machine causes an agent to run on it,
+  // and "what did it reply to, and when" must be answerable afterwards.
+  "watch.responded",
+  "watch.stopped",
+  // Orchestrated job graphs. `started` and `finished` per run rather than per
+  // job: a run is the unit a person resumes or stops.
+  "orchestrate.started",
+  "orchestrate.finished",
 ] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
