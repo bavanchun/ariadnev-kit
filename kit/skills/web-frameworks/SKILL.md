@@ -1,6 +1,16 @@
 ---
 name: av:web-frameworks
 description: "Use when building Next.js apps with App Router, RSC, SSR, ISR, and caching, or Turborepo monorepos with shared dependencies, task graphs, and build optimization."
+user-invocable: true
+when_to_use: "Invoke for Next.js, RSC, SSR, ISR, Turborepo, or caching."
+category: frameworks
+keywords: [nextjs, turborepo, ssr, isr, rsc]
+license: MIT
+argument-hint: "[framework] [feature]"
+metadata:
+  origin: ported
+  author: upstream
+  version: "1.0.0"
 ---
 
 # Web Frameworks
@@ -96,6 +106,12 @@ and do not mix both or copy an old ISR recipe blindly.
 Use the project's icon library consistently. Hide decorative icons from
 assistive technology and give icon-only controls an accessible name. Do not use
 emoji as product-interface icons when a stable library icon exists.
+
+## Release channels
+
+Track stable Next.js security releases separately from canary framework drift.
+Production apps stay on a patched stable release line; reach for a canary-only
+pin when reproducing a specific upstream issue, not to obtain a feature.
 
 ## Legacy utility warning
 

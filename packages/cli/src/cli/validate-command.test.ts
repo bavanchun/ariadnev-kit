@@ -506,7 +506,9 @@ describe("av-invocation findings", () => {
   });
 
   it("keeps the real kit clean under --strict", () => {
-    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
+    // The surface is what switches the check on. Without it this filtered an
+    // empty list and passed no matter what landed in the kit.
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true, surface: commandSurface() });
     const errors = result.findings.filter((f) => f.kind === "av-invocation" && (f.level ?? "error") === "error");
     expect(errors, "a new phantom invocation landed in a skill that is not exempt").toEqual([]);
   });

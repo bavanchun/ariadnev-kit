@@ -150,11 +150,11 @@ right, not as a footnote to phase 9.
 - [ ] Binary size delta measured and recorded
 - [ ] Every cross-skill link resolves in installed coordinates
 - [ ] All skills lint-clean, no exemption
-- [ ] `content`, `feedback`, `changelog`, `self-update` work; `changelog` reads ariadnev's releases
-- [ ] **Every captured name registered or in the divergence table** — asserted, ratchet at zero
-- [ ] Every registered in-scope name has a committed oracle capture — asserted
-- [ ] `run-shim.ts` present and warning; its comment names 1.4.0 as its removal release
-- [ ] No in-scope command is a stub
+- [x] `content`, `feedback`, `changelog`, `self-update` work; `changelog` reads ariadnev's releases
+- [x] **Every captured name registered or in the divergence table** — asserted, ratchet at zero
+- [x] Every registered in-scope name has a committed oracle capture — asserted
+- [x] `run-shim.ts` present and warning; its comment names 1.4.0 as its removal release
+- [x] No in-scope command is a stub
 - [ ] Clean-machine rehearsal passes on every verified provider
 - [ ] `1.3.0` released over the signed channel
 - [ ] `pnpm test` green

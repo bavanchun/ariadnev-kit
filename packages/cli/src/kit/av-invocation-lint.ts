@@ -108,6 +108,10 @@ export function checkInvocation(argv: string[], surface: CommandSurface): Mismat
 
   for (let i = 0; i < argv.length; i++) {
     const raw = argv[i];
+    // Everything past `--` is argv for the program av is invoking, not av's own.
+    // `av skill run <name> -- script.py -o out.png` hands `-o` to the script;
+    // reporting it would ask the author to delete a correct line.
+    if (raw === "--") break;
     if (/^--?[A-Za-z]/.test(raw)) {
       const flag = raw.split("=")[0].replace(TRAILING_PUNCTUATION, "");
       if (!scopes.some((scope) => scope.flags.has(flag))) {

@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { Command } from "commander";
 import { commandSurface, surfaceOf } from "./command-surface.js";
 import { buildProgram } from "../index.js";
+import { registerQualityCommands } from "./register-quality-commands.js";
+import type { CommandRegistrationContext } from "./command-registration-context.js";
+import type { runValidate } from "./validate-command.js";
 import { lintAvInvocations, type CommandNode } from "../kit/av-invocation-lint.js";
+
+const context: CommandRegistrationContext = {
+  version: "0.0.0",
+  outColor: () => false,
+  record: () => undefined,
+};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -108,11 +118,29 @@ describe("commandSurface", () => {
    * hands it over.
    */
   it("reaches validate through the real command wiring", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const exitCode = process.exitCode;
-    await buildProgram().parseAsync(["node", "ariadnev", "validate"]);
-    process.exitCode = exitCode;
-    expect(log.mock.calls.flat().join("\n")).toContain("av-invocation");
+    // Asserted against the registration, not against the kit's output. The
+    // earlier version looked for an `av-invocation` finding in the live kit,
+    // which proved the handover only for as long as the kit carried a defect
+    // to find — it failed the day the last one was fixed. Supplying the
+    // surface makes no observable difference on a clean kit, so a test that
+    // reads output cannot tell the two apart at all.
+    let received: Parameters<typeof runValidate>[0] | undefined;
+    const program = new Command();
+    registerQualityCommands(program, context, {
+      validate: (opts) => {
+        received = opts;
+        return {
+          ok: true,
+          findings: [],
+          counts: { skills: 0, agents: 0, hooks: 0 },
+          heldFindings: [],
+          warnings: [],
+          summary: "",
+        };
+      },
+    });
+    await program.parseAsync(["node", "ariadnev", "validate"]);
+    expect(received?.surface, "the registration must hand validate the command surface").toBeDefined();
   });
 
   it("lints the kit's own documented invocations against itself", () => {
