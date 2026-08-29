@@ -23,3 +23,13 @@ export function registerConfigCommands(program: Command, _context: CommandRegist
       if (exitCode !== 0) process.exitCode = exitCode;
     });
 }
+
+// NO `config start | status | stop` HERE, THOUGH UPSTREAM HAS THEM. Two things
+// in this repository already decided that, and both are older than this phase.
+// The parity manifest's note says `config` keeps its ariadnev meaning and the
+// dashboard half goes to `gui`. And `command-surface.test.ts` pins those three
+// names as *phantoms* — commands kit prose references and this CLI does not
+// have — because the kit inherited "start it with `av config start --port 3456`"
+// from upstream, where it opens a plans dashboard. Registering the names would
+// not make that sentence true; it would only stop the lint from saying it is
+// false. `av api start` is the daemon and `av gui` is the thing that opens.

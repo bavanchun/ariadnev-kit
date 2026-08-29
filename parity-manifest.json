@@ -11,7 +11,7 @@
       "status": "in-scope",
       "target": "gui",
       "phase": 11,
-      "note": "starts the local API and opens ariadnev-web. Cloning a native desktop app against a download endpoint ariadnev does not operate would be a second product"
+      "note": "registered; starts the local API and opens the daemon's own dashboard page. ariadnev-web turned out to be a static documentation site with no client for a local API, so the phase's documented degrade applies rather than the binding it expected"
     },
     {
       "name": "init",
@@ -458,7 +458,7 @@
       "status": "in-scope",
       "target": "api",
       "phase": 11,
-      "note": "the local half only: health, status, version, dashboard. The LLM proxy depends on login credentials and licensed routing, both non-goals"
+      "note": "registered; the local half only. The LLM proxy depends on login credentials and licensed routing, both non-goals"
     },
     {
       "name": "config",
@@ -472,7 +472,7 @@
       "status": "in-scope",
       "target": "config",
       "phase": 11,
-      "note": "upstream `config` opens a hosted dashboard; ariadnev's manages configuration. Phase 11 gives the dashboard half to `gui`, and `config` keeps its current meaning"
+      "note": "registered; upstream `config` opens a hosted dashboard, ariadnev's manages configuration. `gui` and `api` own the dashboard half. config's start/status/stop stay unregistered on purpose: the kit's inherited prose promises a plans dashboard behind that spelling, and registering the name would stop the av-invocation lint from reporting a promise that is still false"
     },
     {
       "name": "licenses",

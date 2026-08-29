@@ -141,6 +141,8 @@ edit.
 | `ariadnev activity tail [--json]` | Stream new events until interrupted. Follows a cursor rather than a file handle, so it does not go quiet at the midnight segment rollover |
 | `ariadnev activity stats [--window 7d] [--kit id] [--runtime name] [--json]` | Usage aggregates by coding agent, with a coverage block reporting how many records were read and how many were unreadable |
 | `ariadnev query [installs\|doctor\|history]` | Show the local history log (`~/.ariadnev/history.jsonl`) of installs, doctor runs, and updates |
+| `ariadnev api <start\|status\|stop> [--bind addr] [--port n] [--auth-token @file] [--foreground] [--json]` | A local, **read-only** HTTP view of the operational data plane. Binds `127.0.0.1:8767`; a non-loopback bind without a token is refused, and a token, once set, is required on every request. Each data route returns byte-for-byte what the matching `av … --json` command prints, so the two cannot drift. **No LLM proxy** — upstream's proxy depends on `login`, which is a non-goal. On a port collision it reports the holder rather than moving to another port, and `stop` proves the process on the recorded port is ariadnev's before signalling it |
+| `ariadnev gui [--no-open] [--port n]` | Start the API if it is not up and open its dashboard in a browser. No native window and no download link: the page is served by the daemon this command just started |
 | `ariadnev add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `ariadnev migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
 
