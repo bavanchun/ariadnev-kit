@@ -184,8 +184,12 @@ instead of "teach the edge about channels".
 
 ## Success Criteria
 
-- [ ] A `-beta` version is published and installable by explicit opt-in.
-      *Code complete on both sides; needs the edge deployed and a release cut.*
+- [x] A `-beta` version is published and installable by explicit opt-in.
+      `ariadnev@1.3.0-beta.1` is a prerelease carrying 10 assets including
+      `checksums.txt.sig`. The edge serves it only when asked:
+      `/download/…?version=1.3.0-beta.1` answers 200 while `/version` still
+      answers `1.1.0`, and `av update --check --to 1.3.0-beta.1` resolves the
+      pin while a bare `av update --check` reports "up to date".
 - [x] Bare install and bare `av update` select the stable release with a beta
       published — asserted by a test that fails if the selection logic changes.
       Belt and braces: finalization never marks a beta latest (asserted as a
