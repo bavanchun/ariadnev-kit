@@ -125,6 +125,30 @@ The table above says 6 reference files exceed the 800-line cap. Measured on
 `payment-integration/references/multi-provider-order-management-patterns.md`
 (821).
 
+**All eight were split, and a second read on 2026-08-29 confirmed the work.**
+Content is conserved line-for-line in every case (each original's new length plus
+its new sibling's equals the original exactly), no file was deleted or renamed,
+no heading appears in two files of a split pair, and every new file is cited by
+its owning SKILL.md. No reference file under `references/` exceeds 800 today.
+
+**The cap does not reach three files that ship anyway.** `readReferenceFiles`
+looks only at a directory literally named `references/`, so a skill that names
+the directory differently is never linted at all:
+
+| File | Lines |
+|---|---|
+| `mcp-builder/reference/node-mcp-server.md` | 918 |
+| `mcp-builder/reference/mcp-best-practices.md` | 915 |
+| `frontend-development/resources/complete-examples.md` | 871 |
+
+This is a wider hole than the non-recursion already recorded in
+`skill-lint.ts`: that comment anticipates `references/<subdir>/`, not a
+different directory name. `install-plan.ts` copies recursively and by whatever
+name, so all three reach a user's disk at their full length while the rule
+reads as satisfied. Out of scope here — the phase enumerated its eight targets
+by name — but the criterion "every reference file ≤800" is true only of the
+directory the linter happens to look in.
+
 ### What a real section looks like
 
 `docs/av-skill-authoring-spec.md:143-176` states the bar; `pm/SKILL.md:39-75`
@@ -248,11 +272,44 @@ reader transcripts alone, with per-finding provenance checked against
 introduced ≥ 4 → **100% second reads for all 69 remaining Tier A skills**, plus
 the 9 remaining Tier B. This is not maintainer takeover: the loop catches its
 own regressions, and the number that would justify takeover is *escapes*
-(defects found after a completed loop), tracked separately — 2 so far, both
-`cti-expert`. Reads are batch-shaped (one reader per ≤15-skill batch diff) and
+(defects found after a completed loop), tracked separately — **10 so far**, in
+three files. Reads are batch-shaped (one reader per ≤15-skill batch diff) and
 every fix diff gets a fresh re-read, no exceptions, because the fix pass is
 the measured entry point for new defects and its diff is the cheapest read in
 the pipeline.
+
+### Escape record (2026-08-29)
+
+Eight escapes found in two files, both of which had completed the loop —
+`journal` in Tier A batch 4, whose fix pass was explicitly titled "correct
+runtime claims", and the `journal-writer` agent in the agents wave.
+
+| File | Claim as written | Truth |
+|---|---|---|
+| `kit/skills/journal/SKILL.md` | `av journal create … --summary … --stdin <<'EOF'` | neither flag exists; the body arrives via `--body` |
+| `kit/skills/journal/SKILL.md` | "Optional flags: `--date`, `--project`" | neither exists; the real ones are `--component`, `--status`, `--json` |
+| `kit/agents/journal-writer.md` | same `--summary` / `--stdin` invocation | as above |
+| `kit/agents/journal-writer.md` | entries land in `./plans/journals/` as `YYYY-MM-DD-<slug>.md` | `<docsDir>/journal/` as `<YYMMDD-HHMM>-<slug>.md` |
+
+All eight are one class: an invocation copied from the upstream tool and never
+run. Every one is contradicted by `av journal create --help` in under a second,
+which is what makes them worth counting — the reader brief already says to
+verify flags against the CLI, so the brief was not followed rather than
+insufficient. **The four prose claims sit outside any code fence**, where the
+`av-invocation` lint deliberately never looks, so no gate could have caught
+them.
+
+The other four are worse, and the timestamps say so. The lint landed at
+15:01 on 2026-08-23 (`c2b5564`); `journal-writer` had been authored at 12:57
+(`b023f7e`), but Tier A batch 4 merged at 22:31 (`cae7523`) — seven hours
+*after* the gate that flags this exact line was live. The warning was printing
+throughout the review and the batch merged over it. A warning nobody is
+required to clear is a warning nobody reads, which is the same defect as the
+filler this phase was built to catch, one level up.
+
+Escapes are now 10 across three files. The threshold that would justify
+maintainer takeover was never given a number, so this does not trip one; it
+does say the cheapest possible check is the one being skipped.
 
 **Two taxonomy gaps the tally exposed, closed from the next batch on:**
 - Readers are told to hunt for gates that restate text elsewhere, but the
@@ -320,6 +377,51 @@ the routing gate. Re-run the collision check after every batch.
    batch diff; a fresh re-read of every fix diff.
 7. Ratchet reaches zero.
 
+### Second-read coverage (2026-08-29)
+
+| Unit | Evidence | Covered |
+|---|---|---|
+| Tier C pilot (`cti-expert`, `fable-thinking` onward) | narrative above, three passes recorded | yes |
+| Calibration batch (15 skills) | `reports/audit-260823-1440-tier-a-calibration-tally.md` | yes |
+| Tier A batches 3-7 | paired `correct Tier A batch N runtime claims` commit per batch | yes |
+| Tier B batch 1 | `reports/audit-260823-2017…` + `…-2022-fix-diff-reread.md` | yes |
+| Tier B batch 2 | `reports/audit-260829-1505-tier-b-batch-2-second-read.md` | yes |
+| Reference-file splits (8) | `reports/audit-260829-1500-reference-split-second-read.md` | yes |
+| Tier A batch 2 (`fa03799`, 12 skills) | `reports/audit-260829-1600-tier-a-batch-2-and-agent-wave-second-read.md` | yes |
+| Agent waves (16 agents) | same report | yes |
+
+Every unit is now read. The two that were last to be covered were the right
+ones to suspect: both of the escapes found earlier on 2026-08-29 came from
+them, and reading them produced **14 more defects, none of which any gate could
+catch**.
+
+The agent wave also surfaced a class the brief did not predict and no rule
+models: **frontmatter granting less than the body instructs.** Four agents were
+told to write reports or delegate with no `Write`/`Task` grant — `code-reviewer`
+worst, since "scout-based edge case detection" is the differentiator in its own
+description and it had no capability to do it. Capabilities were granted per
+maintainer decision.
+
+**Escapes now 24 across 12 files** (2 `cti-expert`, 8 in the two journal files,
+2 in Tier A batch 2, 12 across eight agents, `journal-writer` appearing in both
+of the last two). A further four sit outside the units, in the
+`.prefs.journal.auto` check that four skills present as a working gate against
+an envelope key that is not there.
+
+The count keeps rising because reading keeps finding, not because quality is
+falling — which is the argument for the reader, not against it. The threshold
+that would justify maintainer takeover was never given a number and this does
+not set one; what the number does say is that every unit read so far has
+returned defects, and none of them was reachable by a gate.
+
+Both second reads run on 2026-08-29 found real defects, and **the two batches
+failed in opposite directions**: the reference splits were clean and only the
+*plan's* description of them was wrong, while Tier B batch 2 had zero
+fabricated claims and four load-bearing deletions. A reader brief written for
+one of those misses the other, which is the argument for keeping the brief's
+two halves — verify every claim, and flag what a trim removed — rather than
+collapsing it to whichever half last caught something.
+
 ## Success Criteria
 
 - [x] `kit/skills-lint-exempt.json` is deleted.
@@ -333,10 +435,10 @@ the routing gate. Re-run the collision check after every batch.
       burn-down. Collisions were resolved by differentiating (final strict validation).
 - [x] Every `## Workflow position` names ≥1 `av:<slug>` (final strict
       validation).
-- [ ] Second-reader review completed for every skill in every tier, by a
+- [x] Second-reader review completed for every skill in every tier, by a
       different model/agent with fresh context — never the authoring session —
       and every fix diff re-read the same way. (Raised from "≥20% of Tier A"
-      by the calibration result.)
+      by the calibration result.) Closed 2026-08-29; coverage table above.
 - [ ] `pnpm test` green at every merge, not only at the end.
 
 ## Risk Assessment

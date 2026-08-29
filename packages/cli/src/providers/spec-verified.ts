@@ -16,6 +16,11 @@
 //               cross-tool layout (`.agents/`, `AGENTS.md`) that WAS observed
 //               working in another provider. Weaker, and labelled as such.
 //   none        No evidence. The cell is false and the installer skips it.
+//
+// The `omp`/`grok`/`dsh` rows are justified in full by
+// `plans/reports/observation-260828-grok-omp.md`, which records what was tried
+// for each and why it stopped where it did. A cell not justified there cannot
+// be `verified: true`.
 
 export type ProviderId =
   | "claude-code"
@@ -23,6 +28,9 @@ export type ProviderId =
   | "cursor"
   | "antigravity"
   | "opencode"
+  | "omp"
+  | "grok"
+  | "dsh"
   | "generic"
   | "test-provider";
 
@@ -152,6 +160,92 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       statusline: none("no statusline surface observed in `opencode debug config`"),
     },
     toolNames: none("no observation of which tool names opencode accepts"),
+  },
+  omp: {
+    // A BINARY IS PRESENT AND THE CELLS ARE STILL `convention`. That is not an
+    // oversight, it is the ladder working. `omp read skill://<name>` looked like
+    // a local load check; a probe skill planted in both candidate layouts was
+    // rejected with "Available: none" while `omp config` confirmed discovery was
+    // enabled — so that subcommand resolves a per-session registry, not the
+    // discovery pipeline, and proves nothing either way. The only remaining
+    // probe is `omp --print`, which spends the user's model credits, and a cell
+    // is not worth someone's money to certify.
+    //
+    // THE PATH IS NOT `~/.omp/agent/skills`, WHICH IS WHERE THE UPSTREAM CLI
+    // WROTE. Per omp's own runtime docs, read out of the installed binary
+    // (`omp read omp://skills.md`): `~/.omp/agent` is `PI_CODING_AGENT_DIR`,
+    // the session-storage directory; the only skills path beneath it is
+    // `managed-skills`, the auto-learn bucket at priority 5 that always defers
+    // to an authored skill. The canonical native location is `.agent[s]/skills`.
+    // Both directories exist and are populated on the observation machine, so a
+    // directory listing would have "confirmed" either one — which is exactly the
+    // confusion this ladder exists to catch.
+    observedVersion: "omp/18.0.4 (no local load-check surface)",
+    observedOn: null,
+    paths: {
+      skill: convention(".agents/skills is the canonical native location per omp's own skills.md, and the same root codex was observed reading; the layout is non-recursive with a required description"),
+      agent: convention("installed as skill-like dirs under the same .agents/skills root, as for cursor"),
+      command: none("no command surface documented or observed for omp"),
+      rules: convention("AGENTS.md is the cross-tool convention observed working in codex"),
+      scripts: convention("same .agents tree as the skill root above; execution itself was not observed"),
+      env: convention("template file only — nothing reports reading it"),
+      hook: none("omp documents its own hook surface, but nothing was observed firing"),
+      outputStyle: none("no equivalent concept observed in this provider's surfaces"),
+      statusline: none("no statusline surface observed for omp"),
+    },
+    toolNames: none("no observation of which tool names omp accepts"),
+  },
+  grok: {
+    // Files in a known-good layout, and no binary to run. `~/.grok/` holds
+    // {agents,hooks,rules,skills} in a Claude-shaped tree with real skills in
+    // it, but seeing them on disk proves only that something wrote there.
+    // Without a binary nothing can be watched loading, so `convention` is the
+    // ceiling and the honest level.
+    observedVersion: null,
+    observedOn: null,
+    paths: {
+      skill: convention("~/.grok/skills matches the Claude-shaped layout observed working in claude-code; no grok binary on PATH to observe a load"),
+      agent: convention("~/.grok/agents is populated in the same Claude-shaped tree; not observed loading"),
+      command: none("no ~/.grok/commands directory exists and no command surface was observed"),
+      rules: convention("~/.grok/rules is present in the same tree; AGENTS.md is the cross-tool convention"),
+      scripts: convention("same ~/.grok tree as the skill root above"),
+      env: convention("template file only — nothing reports reading it"),
+      // `~/.grok/hooks` is populated in the Claude-shaped tree, so the instinct
+      // is to verify this cell. It stays `none` for a mechanical reason found
+      // by regenerating the matrix: the resolver hard-wires every hook to
+      // `.claude/hooks/av/`, so a verified cell here would install grok's hooks
+      // into claude-code's directory. Writing into another provider's tree is
+      // worse than skipping, and giving grok its own hook root needs evidence
+      // that grok reads it — which needs a binary that is not on this machine.
+      hook: none("~/.grok/hooks exists, but the hook target resolves to `.claude/hooks/av/` for every provider; verifying this cell would install into claude-code's tree rather than grok's"),
+      outputStyle: none("no output-style directory present in the observed tree"),
+      statusline: none("no statusline surface observed for grok"),
+    },
+    toolNames: none("no observation — no grok binary on PATH"),
+  },
+  dsh: {
+    // NOTHING AT ALL. No binary on PATH, no `~/.dsh`, and absent even from the
+    // upstream CLI's own adapters directory. Every cell is `none`, the installer
+    // skips and logs, and the README says skipped.
+    //
+    // This is the correct outcome rather than a failure to try: a guessed path
+    // would put the installer to work writing into a location nobody has
+    // confirmed exists, which is worse than a documented gap because it looks
+    // like success.
+    observedVersion: null,
+    observedOn: null,
+    paths: {
+      skill: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      agent: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      command: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      rules: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      scripts: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      env: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      hook: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      outputStyle: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+      statusline: none("no dsh binary, no ~/.dsh, and no adapter to read a layout from"),
+    },
+    toolNames: none("no dsh binary to observe"),
   },
   generic: {
     // Not a product, so "observed" is not a category that can apply. Every

@@ -103,7 +103,8 @@ Before sending the final message, verify each item:
 
 ## Runtime note
 
-Claude Code runs Kongming on `fable`. The Codex adapter keeps that portable
-frontmatter unchanged while emitting a Codex-only `gpt-5.6-sol` model override
-with `high` reasoning effort. Other runtimes may omit `fable` and use their
-default model — still follow this protocol, and say so in your output.
+Claude Code runs Kongming on `fable`. No adapter carries that anywhere else:
+`agentToToml` emits `name`, `description`, `sandbox_mode`, and
+`developer_instructions` only, so on Codex — and on every other provider —
+Kongming runs on the runtime's default model. Follow this protocol regardless,
+and say in your output which model you actually ran on.

@@ -1,6 +1,15 @@
 ---
 name: av:shopify
 description: "Use when building Shopify apps, extensions, or themes with Shopify CLI, GraphQL Admin API, Polaris, Liquid, checkout customization, webhooks, and billing integration."
+user-invocable: true
+when_to_use: "Invoke for Shopify apps, themes, extensions, or billing."
+category: frameworks
+keywords: [shopify, polaris, liquid, checkout]
+argument-hint: "[extension-type] [feature]"
+metadata:
+  origin: ported
+  author: upstream
+  version: "1.0.0"
 ---
 
 # Shopify Development

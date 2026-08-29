@@ -212,6 +212,17 @@ describe("lintAvInvocations — what it deliberately does not read", () => {
     expect(tokens("```ts\nconst x = `av plan create`;\n```\n")).toEqual([]);
   });
 
+  it("stops at `--`, because everything after it belongs to another program", () => {
+    // `av skill run ai-artist -- scripts/generate.py -o out.png` hands `-o` to
+    // generate.py. Reading it as av's own flag told the author to remove a flag
+    // that was never av's, and a linter that cries wolf gets ignored wholesale.
+    expect(tokens("```bash\nav validate -- scripts/generate.py -o out.png\n```\n")).toEqual([]);
+  });
+
+  it("still checks the flags that come before the separator", () => {
+    expect(tokens("```bash\nav validate --nope -- -o out.png\n```\n")).toEqual(["warning:--nope"]);
+  });
+
   it("does not check a flag that is not attached to an invocation", () => {
     // Deliberately free of any denial word: the point is that an unattached
     // flag is never read at all, not that the sentence excused it.

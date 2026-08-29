@@ -23,8 +23,14 @@ export const EXIT = {
 
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
 
-/** Commands predating this table, whose exit codes are their own contract. */
-export const LEGACY_EXIT_COMMANDS = ["doctor", "audit", "validate", "eval", "skill", "run"] as const;
+/**
+ * Commands predating this table, whose exit codes are their own contract.
+ *
+ * `workflow` was spelled `run` until the harness was renamed. The carve-out
+ * belongs to the harness, not to the word: `run` now fronts skill dispatch,
+ * which is new surface and takes the table above like anything else new.
+ */
+export const LEGACY_EXIT_COMMANDS = ["doctor", "audit", "validate", "eval", "skill", "workflow"] as const;
 
 export class UsageError extends Error {
   readonly exitCode = EXIT.usage;

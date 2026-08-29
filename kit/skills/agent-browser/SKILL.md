@@ -132,7 +132,8 @@ it.
 ## Quality gates
 
 - [ ] `agent-browser skills get core` was read in this session before the first
-      non-install command — this file is a stub and carries no command reference.
+      non-install command — the few commands shown here are the entry points,
+      not the reference, and flags change between releases.
 - [ ] Every click/fill/type targets an `@eN` ref from a snapshot taken after the
       last navigation or DOM change; a ref from a stale snapshot is the usual
       cause of "element not found".

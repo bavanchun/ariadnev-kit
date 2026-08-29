@@ -15,7 +15,24 @@ import { commandSurface } from "./command-surface.js";
 import { getKitRoot } from "../kit/embedded-kit.js";
 import { loadConfig, realLoadDeps } from "../config/load-config.js";
 
-export function registerQualityCommands(program: Command, context: CommandRegistrationContext): void {
+/**
+ * Injected so the surface handover can be proven without a defect to observe.
+ *
+ * `ValidateOpts.surface` is optional, and a registration that forgets it turns
+ * the av-invocation check off in silence. That used to be caught by asserting
+ * the live kit reported a finding — which only worked while the kit carried
+ * one, and stopped meaning anything the moment it was clean. A seam here proves
+ * the handover against a fixture instead of against the kit's health.
+ */
+export interface QualityCommandDeps {
+  readonly validate: typeof runValidate;
+}
+
+export function registerQualityCommands(
+  program: Command,
+  context: CommandRegistrationContext,
+  deps: QualityCommandDeps = { validate: runValidate },
+): void {
   program
     .command("validate")
     .description("Lint the kit source (frontmatter, sizes, references, cross-skill routing) without installing")
@@ -23,7 +40,7 @@ export function registerQualityCommands(program: Command, context: CommandRegist
     .option("--strict", "count orphan and dangling reference warnings as failures", false)
     .option("--json", "emit the machine envelope instead of the text report", false)
     .action((opts: { check?: boolean; strict?: boolean; json?: boolean }) => {
-      const { summary, ok } = runValidate({
+      const { summary, ok } = deps.validate({
         check: !!opts.check,
         strict: !!opts.strict,
         json: !!opts.json,

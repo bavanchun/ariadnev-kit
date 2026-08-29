@@ -423,18 +423,18 @@ describe("av-invocation findings", () => {
       .findings.filter((f) => f.kind === "av-invocation");
 
   it("errors on a phantom subcommand in SKILL.md, at the file's own line number", () => {
-    seed("Scaffold it with `av plan create`.");
+    seed("Publish it with `av plan publish`.");
     const found = invocations();
     expect(found).toHaveLength(1);
     expect(found[0].level ?? "error").toBe("error");
     expect(found[0].skill).toBe("foo");
     expect(found[0].message).toContain("foo/SKILL.md:");
-    expect(found[0].message).toContain("av plan create");
+    expect(found[0].message).toContain("av plan publish");
     // The line has to point into the file, frontmatter included — a body-relative
     // number sends the reader fourteen lines short of the defect.
     const line = Number(/SKILL\.md:(\d+)/.exec(found[0].message)![1]);
     expect(readFileSync(join(tmp, "skills", "foo", "SKILL.md"), "utf8").split("\n")[line - 1]).toContain(
-      "av plan create",
+      "av plan publish",
     );
   });
 
@@ -454,7 +454,7 @@ describe("av-invocation findings", () => {
   });
 
   it("reads reference files too", () => {
-    seed("See [notes](references/notes.md).", { refs: { "notes.md": "Run `av plan add-phase 2`.\n" } });
+    seed("See [notes](references/notes.md).", { refs: { "notes.md": "Run `av plan publish`.\n" } });
     expect(invocations()).toMatchObject([
       { level: "error", message: expect.stringContaining("foo/references/notes.md:1") },
     ]);
@@ -506,7 +506,9 @@ describe("av-invocation findings", () => {
   });
 
   it("keeps the real kit clean under --strict", () => {
-    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true });
+    // The surface is what switches the check on. Without it this filtered an
+    // empty list and passed no matter what landed in the kit.
+    const result = runValidate({ kitRoot: resolveKitRoot(process.cwd()), strict: true, surface: commandSurface() });
     const errors = result.findings.filter((f) => f.kind === "av-invocation" && (f.level ?? "error") === "error");
     expect(errors, "a new phantom invocation landed in a skill that is not exempt").toEqual([]);
   });

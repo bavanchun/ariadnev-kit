@@ -159,13 +159,30 @@ function backupRelPath(target: string, scopeRoot: string): string {
  * target does not exist. `label` classifies the entry for display; it no
  * longer takes part in the path, so it cannot cause a collision.
  */
-export function backupPath(target: string, backupRoot: string, label: string, scopeRoot: string): void {
+export function backupPath(
+  target: string,
+  backupRoot: string,
+  label: string,
+  scopeRoot: string,
+  /**
+   * Store these bytes instead of copying `target`.
+   *
+   * For the one file a snapshot can catch mid-write: the activity log's current
+   * segment, truncated at its last complete record. `originalPath` still names
+   * the real file, so restore puts it back where it came from — only the stored
+   * content differs, and it differs by being a valid prefix rather than a torn
+   * copy. Everything below is shared, so a snapshot entry is hashed, recorded
+   * and restored by exactly the code an install-time backup uses.
+   */
+  content?: Buffer,
+): void {
   if (!existsSync(target)) return;
   const relPath = backupRelPath(target, scopeRoot);
   const dest = join(backupRoot, relPath);
   mkdirSync(dirname(dest), { recursive: true });
   if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
-  cpSync(target, dest, { recursive: true });
+  if (content === undefined) cpSync(target, dest, { recursive: true });
+  else writeFileSync(dest, content);
 
   // A writer, so it reads defensively. `readBackupManifest` throws on a corrupt
   // manifest, which is right for restore — but this runs during install,

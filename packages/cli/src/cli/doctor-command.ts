@@ -13,8 +13,12 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { packageVersion } from "../version.js";
 import { scoreAudit } from "../doctor/audit-score.js";
 import { coral, teal, amber, faint, bar, symbols, type StyleOpts } from "../ui/style.js";
+import { sqliteSelfTest, sqliteSelfTestSummary } from "../storage/sqlite-self-test.js";
 import { ed25519SelfTest } from "./update-signature.js";
 import { readJournal } from "../install/intent-journal.js";
+import { readContentState, shardHealth } from "../content-search/lifecycle.js";
+import { shardStats } from "../content-search/shard.js";
+import { processAlive, readDaemonRecord } from "../api/daemon-state.js";
 
 export interface DoctorHandlerOpts {
   home: string;
@@ -112,19 +116,95 @@ function cryptoLine(opts: StyleOpts): string {
     : `  ${coral(symbols.fail, opts)} ed25519: UNAVAILABLE — \`ariadnev update\` cannot verify a release on this platform`;
 }
 
+/**
+ * Whether this binary's SQLite has what the operational data plane needs.
+ *
+ * Stated for the same reason as the line above: Bun bundles its own SQLite off
+ * macOS, so the build a user downloads may differ from the one anybody ran by
+ * hand, and FTS5 is a compile-time option rather than a guarantee. The release
+ * smoke asserts this line on every target it can execute.
+ */
+function storageLine(opts: StyleOpts): string {
+  const result = sqliteSelfTest();
+  const glyph = result.ok ? teal(symbols.ok, opts) : coral(symbols.fail, opts);
+  return `  ${glyph} ${sqliteSelfTestSummary(result)}`;
+}
+
+/**
+ * One line per project that has opted into content search.
+ *
+ * Nothing at all when no project has, which is the common case and the default:
+ * a health line about a feature nobody turned on is noise. When shards do exist
+ * the line names the state and, for anything that is not `ready`, the fix — the
+ * same four states analytics reports, needing the same four different actions.
+ */
+function contentShardLines(home: string, opts: StyleOpts): string[] {
+  const projects = readContentState(home).projects.filter((entry) => entry.enabled);
+  return projects.map((entry) => {
+    const health = shardHealth(shardStats(home, entry.dir));
+    const glyph = health === "ready" ? teal(symbols.ok, opts)
+      : health === "corrupt" ? coral(symbols.fail, opts)
+      : amber(symbols.warn, opts);
+    const fix = health === "ready" ? "" : `  ↳ av content-search rebuild --project ${entry.name}`;
+    return `  ${glyph} content shard (${entry.name}): ${health}${fix ? faint(fix, opts) : ""}`;
+  });
+}
+
+/**
+ * The state of the local API daemon, when there is one to report.
+ *
+ * Silent when no daemon has ever run here — same rule as the shard lines above:
+ * a health line about a feature nobody turned on is noise.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO IS PROBE THE PORT. Confirming that the
+ * process on the recorded port is really ours means an HTTP request with a
+ * timeout, and `runDoctor` is synchronous by contract — every caller, the `--fix`
+ * path and ten tests included, would become async so that `av doctor` could
+ * spend up to two seconds waiting on a socket that is dead. The two states
+ * provable from the pidfile alone are reported here, and the third — a port held
+ * by something that is not ariadnev — is what `av api status` performs the probe
+ * to answer, and what `av api start` refuses on.
+ */
+function apiDaemonLines(home: string, opts: StyleOpts): string[] {
+  const record = readDaemonRecord(home);
+  if (record === null) return [];
+  if (processAlive(record.pid)) {
+    return [`  ${teal(symbols.ok, opts)} api daemon: running (pid ${record.pid}, ${record.bind}:${record.port})`];
+  }
+  return [
+    `  ${amber(symbols.warn, opts)} api daemon: stale record for pid ${record.pid}, which is no longer running`,
+    faint("      ↳ run  av api stop", opts),
+  ];
+}
+
 export function renderDoctorSummary(
   status: DoctorStatus,
   findings: ProviderFinding[],
   opts: StyleOpts = { color: false },
+  home?: string,
 ): string {
   const head = `${coral("ariadnev", opts)} doctor — ${status}`;
+  const shards = home ? [...contentShardLines(home, opts), ...apiDaemonLines(home, opts)] : [];
   if (status === "not-installed") {
     // The crypto line belongs here too: it is a property of the binary, not of
     // the install, and someone diagnosing a platform problem has no receipt yet.
-    return `${head}\n  no receipt found — run \`ariadnev install\` first\n${cryptoLine(opts)}`;
+    // The shard lines are here for the same reason one level out — a shard
+    // belongs to the home, not to the receipt, so someone asking why their
+    // search is empty must not have to install the kit first to be told.
+    return [
+      `${head}\n  no receipt found — run \`ariadnev install\` first`,
+      cryptoLine(opts),
+      storageLine(opts),
+      ...shards,
+    ].join("\n");
   }
   const { score } = scoreAudit(findings);
-  const lines: string[] = [`${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`, cryptoLine(opts)];
+  const lines: string[] = [
+    `${head}   ${faint("health", opts)} ${bar(score, opts)} ${score}`,
+    cryptoLine(opts),
+    storageLine(opts),
+    ...shards,
+  ];
   if (findings.length === 0) {
     lines.push(`  ${teal(symbols.ok, opts)} all checks passed`);
     return lines.join("\n");
@@ -187,6 +267,6 @@ export function runDoctor(opts: DoctorHandlerOpts): DoctorHandlerResult {
     const data = { status, exitCode, findings: allFindings, ...(opts.fix ? { fixed: fixLines } : {}) };
     return { status, exitCode, summary: jsonEnvelope(DOCTOR_SCHEMA_VERSION, "doctor.diagnose", data) };
   }
-  const summary = [renderDoctorSummary(status, allFindings, { color: !!opts.color }), ...fixLines].join("\n");
+  const summary = [renderDoctorSummary(status, allFindings, { color: !!opts.color }, opts.home), ...fixLines].join("\n");
   return { status, exitCode, summary };
 }

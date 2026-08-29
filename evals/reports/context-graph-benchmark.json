@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-24T05:33:39.027Z",
+  "generatedAt": "2026-08-29T09:31:07.827Z",
   "environment": {
     "platform": "darwin",
     "arch": "arm64",
@@ -12,7 +12,7 @@
   },
   "frozenInputs": {
     "corpusId": "ariadnev-context-v1",
-    "corpusDigest": "sha256:77d4112db2d9273fd800790cb2c68a07ba87108728859535bbb85eb6507a7645",
+    "corpusDigest": "sha256:fd1fa7ae8f527fbcb19734d808dded5de7fe212520b2f0f3d095dd3478359bb7",
     "queryDigest": "sha256:36823730f4026e4b207085f308a56cca812773527c61298dd1a4f4e7989acbb6",
     "frozenAt": "2026-08-08T14:30:00.000Z",
     "seed": 260808,
@@ -230,30 +230,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 2.536375,
-            "p95Ms": 3.022875,
-            "maxMs": 3.044334
+            "p50Ms": 5.035292,
+            "p95Ms": 5.842083,
+            "maxMs": 6.082459
           },
           "query": {
             "samples": 390,
-            "p50Ms": 0.223166,
-            "p95Ms": 0.279959,
-            "maxMs": 0.647417
+            "p50Ms": 0.433375,
+            "p95Ms": 0.53275,
+            "maxMs": 1.300875
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 0.203209,
-            "p95Ms": 0.258375,
-            "maxMs": 0.722417
+            "p50Ms": 0.397291,
+            "p95Ms": 0.500708,
+            "maxMs": 1.503375
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 186364
+        "indexBytes": 186606
       },
       "externalDependencies": []
     },
@@ -454,30 +454,30 @@
         "cold": {
           "indexBuild": {
             "samples": 30,
-            "p50Ms": 3.21875,
-            "p95Ms": 3.480166,
-            "maxMs": 3.777291
+            "p50Ms": 6.429292,
+            "p95Ms": 7.046417,
+            "maxMs": 7.14225
           },
           "query": {
             "samples": 390,
-            "p50Ms": 1.025166,
-            "p95Ms": 1.138334,
-            "maxMs": 2.12625
+            "p50Ms": 2.075625,
+            "p95Ms": 2.24,
+            "maxMs": 3.849917
           }
         },
         "warm": {
           "query": {
             "samples": 1300,
-            "p50Ms": 1.013875,
-            "p95Ms": 1.185375,
-            "maxMs": 2.424459
+            "p50Ms": 2.017666,
+            "p95Ms": 2.223375,
+            "maxMs": 3.488375
           }
         }
       },
       "index": {
         "documents": 26,
         "privateDocumentsExcluded": 0,
-        "indexBytes": 188668,
+        "indexBytes": 188910,
         "edges": 24
       },
       "externalDependencies": []

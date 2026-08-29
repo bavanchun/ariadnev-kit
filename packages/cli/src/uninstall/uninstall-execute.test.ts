@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { executeUninstall } from "./uninstall-execute.js";
+import { readBackupManifest } from "../install/backup.js";
 import type { UninstallOp } from "./uninstall-plan.js";
 
 let sandbox: string;
@@ -111,5 +112,23 @@ describe("executeUninstall", () => {
       executeUninstall(ops, { dryRun: false, allowedRoots: [root], backupRoot: join(sandbox, "backups"), scopeRoot: root }),
     ).toThrow();
     expect(existsSync(outside)).toBe(true);
+  });
+});
+
+describe("a deleted file is recoverable", () => {
+  it("copies a file into the backup root before unlinking it", () => {
+    // Settings and AGENTS.md were backed up before rewrite from the start; the
+    // deleted files were not. That is backwards — a rewrite can be undone from
+    // the backup, a deletion can be undone from nothing at all.
+    const skillFile = writeFile(".claude/skills/brainstorm/SKILL.md", "the only copy");
+    const backupRoot = join(sandbox, "backups");
+    executeUninstall([{ action: "remove-file", path: skillFile }], {
+      dryRun: false, allowedRoots: [root], backupRoot, scopeRoot: root,
+    });
+
+    expect(existsSync(skillFile)).toBe(false);
+    const entry = readBackupManifest(backupRoot).find((e) => e.originalPath === skillFile);
+    expect(entry).toBeDefined();
+    expect(readFileSync(join(backupRoot, entry!.relPath), "utf8")).toBe("the only copy");
   });
 });

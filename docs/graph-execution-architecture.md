@@ -2,7 +2,7 @@
 
 ## Overview
 
-`av run` is ariadnev's local execution control plane. It compiles a canonical,
+`av workflow` is ariadnev's local execution control plane. It compiles a canonical,
 provider-neutral workflow from `kit/workflows/`, enforces policy before provider
 execution, and records enough private durable state to resume after interruption.
 Codex and Claude Code implement the same executor contract; provider settings do
@@ -24,27 +24,27 @@ kit assets and are embedded in standalone binaries alongside their schema.
 Validate a canonical graph without probing a runtime:
 
 ```bash
-av run read-only-delivery --validate --json
+av workflow run read-only-delivery --validate --json
 ```
 
 Probe a selected runtime and show whether the graph can run, without creating a
 run:
 
 ```bash
-av --dry-run run read-only-delivery --runtime claude-code --json
+av --dry-run workflow run read-only-delivery --runtime claude-code --json
 ```
 
 Start and operate a durable run:
 
 ```bash
-av run read-only-delivery \
+av workflow run read-only-delivery \
   --runtime claude-code \
   --instruction "Find the module that owns routing and cite the source file" \
   --json
 
-av run status <run-id> --json
-av run resume <run-id> --runtime claude-code --instruction "..." --json
-av run cancel <run-id> --json
+av workflow status <run-id> --json
+av workflow resume <run-id> --runtime claude-code --instruction "..." --json
+av workflow cancel <run-id> --json
 ```
 
 `resume` requires the original instruction digest, workspace identity, compiled

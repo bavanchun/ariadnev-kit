@@ -35,6 +35,10 @@ export const INSTALL_SURFACE: readonly string[] = [
   ".codex",
   ".config/opencode",
   ".cursor",
+  // grok keeps its own Claude-shaped tree, so it is the one provider added in
+  // the 9-provider union that needs a prefix of its own — `omp` and `dsh` both
+  // resolve under `.agents`, which is already here.
+  ".grok",
   ".opencode",
   ".test-provider",
   ".ariadnev",

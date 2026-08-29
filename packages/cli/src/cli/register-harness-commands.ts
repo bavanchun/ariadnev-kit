@@ -24,6 +24,10 @@ import {
   type RunWorkflowActionV1,
   type RunWorkflowCommandInputV1,
 } from "./run-command.js";
+import { classifyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
+import { DISPATCH_TARGETS } from "../dispatch/adapter-invocation.js";
+import { runDispatch } from "./run-dispatch-command.js";
+import { recordActivity } from "../activity/emit.js";
 
 const CODEX_RUNTIME_VERSION = "0.147.0";
 const CLAUDE_CODE_RUNTIME_VERSION = "2.1.226";
@@ -149,6 +153,17 @@ async function execute(
   const cancel = () => controller.abort("process-signal");
   process.once("SIGINT", cancel);
   process.once("SIGTERM", cancel);
+  const startedAt = Date.now();
+  // Only a real execution is worth an event. `validate` and `dry-run` neither
+  // start a run nor invoke a provider, so recording them would inflate every
+  // usage aggregate with work that never happened.
+  const observed = input.action === "run" || input.action === "resume";
+  if (observed) {
+    recordActivity(global.home, "workflow.started", {
+      runtime: input.runtime,
+      workflow: input.workflow,
+    });
+  }
   try {
     try {
       const result = await runWorkflowCommand({
@@ -157,8 +172,24 @@ async function execute(
         signal: controller.signal,
       }, runtimeDeps(global, opts, input.action === "run" || input.action === "resume"));
       emit(formatRunWorkflowResult(result, !!opts.json));
+      if (observed) {
+        recordActivity(global.home, result.ok ? "workflow.completed" : "workflow.failed", {
+          runtime: input.runtime,
+          workflow: input.workflow,
+          status: result.status,
+          durationMs: Date.now() - startedAt,
+        });
+      }
       if (!result.ok) process.exitCode = 1;
     } catch (error) {
+      if (observed) {
+        recordActivity(global.home, "workflow.failed", {
+          runtime: input.runtime,
+          workflow: input.workflow,
+          status: "error",
+          durationMs: Date.now() - startedAt,
+        });
+      }
       if (!opts.json) throw error;
       const result = Object.freeze({
         schemaVersion: 1 as const,
@@ -188,20 +219,30 @@ function addRuntimeOptions(command: Command): Command {
     .option("--json", "emit a stable versioned JSON envelope", false);
 }
 
-export function registerHarnessCommands(program: Command): void {
-  const run = addRuntimeOptions(program
-    .command("run")
-    .description("Validate or execute a versioned graph workflow")
+type WorkflowRunOpts = RuntimeOpts & {
+  runId?: string;
+  initialState?: string;
+  validate?: boolean;
+};
+
+/** The options `workflow run` takes, and that the deprecated `run` still takes. */
+function addWorkflowRunOptions(command: Command): Command {
+  return addRuntimeOptions(command
     .argument("[workflow]", "canonical workflow ID")
     .option("--run-id <id>", "stable run ID (generated when omitted)")
     .option("--initial-state <json>", "initial graph state as a strict JSON object")
     .option("--validate", "compile and lint without probing or executing", false));
+}
 
-  run.action(async (workflow: string | undefined, opts: RuntimeOpts & {
-    runId?: string;
-    initialState?: string;
-    validate?: boolean;
-  }) => {
+/**
+ * The action body, shared by `av workflow run` and the deprecated `av run`.
+ *
+ * Shared rather than duplicated so the shim cannot drift from what it fronts:
+ * the two spellings must do the same thing for as long as both exist, and the
+ * only way to guarantee that is for there to be one of them.
+ */
+function workflowRunAction(program: Command) {
+  return async (workflow: string | undefined, opts: WorkflowRunOpts): Promise<void> => {
     const global = program.opts<GlobalOpts>();
     const action: RunWorkflowActionV1 = opts.validate ? "validate" : global.dryRun ? "dry-run" : "run";
     await execute(program, {
@@ -212,9 +253,22 @@ export function registerHarnessCommands(program: Command): void {
       ...(opts.instruction ? { instruction: opts.instruction } : {}),
       ...(opts.initialState ? { initialState: initialState(opts.initialState) } : {}),
     }, opts);
-  });
+  };
+}
 
-  addRuntimeOptions(run
+export function registerHarnessCommands(program: Command): void {
+  const runWorkflow = workflowRunAction(program);
+
+  const workflow = program
+    .command("workflow")
+    .description("Validate or execute a versioned graph workflow");
+
+  addWorkflowRunOptions(workflow
+    .command("run")
+    .description("Validate or execute a versioned graph workflow"))
+    .action(runWorkflow);
+
+  addRuntimeOptions(workflow
     .command("resume")
     .description("Resume a durable run with the original graph and runtime identity")
     .argument("<run-id>", "existing run ID"))
@@ -227,7 +281,7 @@ export function registerHarnessCommands(program: Command): void {
       }, opts);
     });
 
-  run
+  workflow
     .command("status")
     .description("Read durable status without invoking a provider")
     .argument("<run-id>", "existing run ID")
@@ -236,7 +290,7 @@ export function registerHarnessCommands(program: Command): void {
       await execute(program, { action: "status", runId: id }, opts);
     });
 
-  run
+  workflow
     .command("cancel")
     .description("Request cooperative cancellation for an active run")
     .argument("<run-id>", "existing run ID")
@@ -244,4 +298,89 @@ export function registerHarnessCommands(program: Command): void {
     .action(async (id: string, opts: { json?: boolean }) => {
       await execute(program, { action: "cancel", runId: id }, opts);
     });
+
+  registerDeprecatedRun(program, runWorkflow);
+}
+
+interface DispatchFlags {
+  target?: string;
+  timeout?: string;
+  kitsDir?: string;
+  json?: boolean;
+}
+
+/**
+ * Run one dispatch, forwarding the terminal's Ctrl-C to the spawned agent.
+ *
+ * The handler is installed for the duration of the run and removed after. A
+ * dispatched agent is detached into its own process group precisely so that a
+ * signal reaches its children too, and the cost of that is that the terminal's
+ * own Ctrl-C no longer arrives for free — this is where it is paid back.
+ */
+async function dispatch(program: Command, ref: string, args: string[], opts: DispatchFlags): Promise<void> {
+  const global = program.opts<GlobalOpts>();
+  const controller = new AbortController();
+  const onInterrupt = (): void => controller.abort();
+  process.on("SIGINT", onInterrupt);
+  try {
+    const result = await runDispatch({
+      ref,
+      args,
+      cwd: global.cwd,
+      home: global.home,
+      signal: controller.signal,
+      ...(opts.target ? { target: opts.target } : {}),
+      ...(opts.timeout ? { timeout: opts.timeout } : {}),
+      ...(opts.kitsDir ? { kitsDir: opts.kitsDir } : {}),
+      ...(opts.json ? { json: true } : {}),
+    });
+    if (result.output) emit(result.output);
+    // Set rather than thrown: the child's code is an answer to propagate, not
+    // an error of ariadnev's. Throwing would also print a message where the
+    // child has already said everything there is to say.
+    process.exitCode = result.exitCode;
+  } finally {
+    process.off("SIGINT", onInterrupt);
+  }
+}
+
+/**
+ * `av run` — skill dispatch, plus the harness spelling it replaced.
+ *
+ * Both senses live on one command because they have to: Commander binds a name
+ * once, and the whole point of the slash discriminator is that a single `run`
+ * can serve both without a flag. The legacy half is deleted in 1.4.0 along with
+ * `run-shim.ts`; the dispatch half is what the name now means.
+ */
+function registerDeprecatedRun(
+  program: Command,
+  runWorkflow: (workflow: string | undefined, opts: WorkflowRunOpts) => Promise<void>,
+): void {
+  const run = addWorkflowRunOptions(program
+    .command("run")
+    .description("Dispatch a skill as run <kit>/<skill>; a bare workflow ID is the deprecated spelling of workflow run"))
+    // Everything after the reference belongs to the skill, including flags the
+    // skill defines and this CLI has never heard of.
+    .argument("[args...]", "arguments passed through to the dispatched skill")
+    .allowUnknownOption()
+    .option("--target <provider>", `adapter to dispatch to: ${DISPATCH_TARGETS.join(" | ")}`)
+    .option("--timeout <duration>", "per-invocation timeout (30s, 2m); zero disables it")
+    .option("--kits-dir <dir>", "kits directory (default: ./kits or $ARIADNEV_KITS_DIR)");
+
+  run.action(async (workflow: string | undefined, args: string[], opts: WorkflowRunOpts & DispatchFlags) => {
+    if (classifyRun(workflow) === "legacy-workflow") {
+      await runWorkflow(workflow, opts);
+      return;
+    }
+    await dispatch(program, workflow as string, args ?? [], opts);
+  });
+
+  for (const moved of ["resume", "status", "cancel"] as const) {
+    run
+      .command(moved)
+      .description(`Moved to workflow ${moved}`)
+      .argument("<run-id>", "existing run ID")
+      .option("--json", "emit a stable versioned JSON envelope", false)
+      .action(() => refuseLegacyRunSubcommand(moved));
+  }
 }

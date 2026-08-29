@@ -28,9 +28,16 @@ describe("exit codes", () => {
   it("names every command that predates the table", () => {
     // A command left off this list would be free to adopt the new codes without
     // anyone deciding to; the point is that adopting them is a decision.
-    for (const command of ["doctor", "audit", "validate", "eval", "skill", "run"]) {
+    for (const command of ["doctor", "audit", "validate", "eval", "skill", "workflow"]) {
       expect(LEGACY_EXIT_COMMANDS).toContain(command);
     }
+  });
+
+  it("exempts the harness and not the name it used to have", () => {
+    // Same reasoning as the JSON list: `run` now fronts skill dispatch, and a
+    // command introduced after this table was written has no grandfathered
+    // exit codes to protect.
+    expect(LEGACY_EXIT_COMMANDS).not.toContain("run");
   });
 });
 

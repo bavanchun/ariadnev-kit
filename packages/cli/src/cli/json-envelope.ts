@@ -24,15 +24,20 @@ export function jsonEnvelope(schemaVersion: number, kind: string, data: unknown)
  * | `contract` | `protocol_version: "2"`, a string, not a number    |
  * | `audit`    | `protocol_version` with the payload spread flat    |
  * | `config`   | camelCase `schemaVersion`, payload flat            |
- * | `run`      | camelCase `schemaVersion`, payload flat            |
+ * | `workflow` | camelCase `schemaVersion`, payload flat            |
  * | `eval`     | camelCase `schemaVersion`, payload flat            |
  *
  * `validate` is **not** here despite appearing on an earlier draft of this list:
  * it emits no JSON at all, so it has no shape to preserve. It is a surface still
  * to be added, and it gets the envelope when it is.
  *
+ * `workflow` was spelled `run` until the harness was renamed. The exemption
+ * follows the harness rather than the name: `run` is now reserved for skill
+ * dispatch, and dispatch was never granted a compatibility carve-out. Leaving
+ * `run` here would have handed the new command a frozen shape it does not have.
+ *
  * Mirrors `LEGACY_EXIT_COMMANDS` in `exit-codes.ts`, for the same reason: the
  * point of writing the exception down is that adding to it takes a deliberate
  * edit rather than happening by drift.
  */
-export const LEGACY_JSON_COMMANDS = ["contract", "audit", "config", "run", "eval"] as const;
+export const LEGACY_JSON_COMMANDS = ["contract", "audit", "config", "workflow", "eval"] as const;

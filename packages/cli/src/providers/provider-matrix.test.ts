@@ -43,7 +43,7 @@ describe("matrixToMarkdown", () => {
   it("renders a header + one row per artifact with skip for unverified", () => {
     const md = matrixToMarkdown();
     const lines = md.split("\n");
-    expect(lines[0]).toBe("| artifact | claude-code | codex | cursor | antigravity | opencode | generic |");
+    expect(lines[0]).toBe("| artifact | claude-code | codex | cursor | antigravity | opencode | omp | grok | dsh | generic |");
     expect(lines).toHaveLength(2 + MATRIX_ARTIFACTS.length);
     expect(md).toContain("| skill | `.claude/skills/`");
     expect(md).toContain("skip"); // antigravity agent etc.

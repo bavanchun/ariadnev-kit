@@ -1,6 +1,9 @@
 # 0011 — Upstream is a one-time fork, not a tracked branch
 
-- Status: accepted
+- Status: accepted. Amended 2026-08-28 by
+  [0017](./0017-parity-amends-the-one-time-fork-decision.md) — the core decision
+  (no upstream ref, no re-sync) stands; a named-version *behavioral* parity
+  target now exists, pursued by reimplementation.
 - Date: 2026-08-15
 
 ## Context

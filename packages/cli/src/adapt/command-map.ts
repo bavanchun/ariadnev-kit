@@ -18,6 +18,12 @@ const COMMAND_DIR: Record<ProviderId, string> = {
   cursor: "commands",
   antigravity: "commands",
   opencode: "commands", // plural — verified vs generate-opencode.py
+  // None of these three has a verified command target, so the resolver's
+  // `commandPath` is null for all of them and this leaf name is never joined
+  // into a real path. It is here because the map is total over `ProviderId`.
+  omp: "commands",
+  grok: "commands",
+  dsh: "commands",
   generic: "commands",
   "test-provider": "commands",
 };

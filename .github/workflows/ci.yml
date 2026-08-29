@@ -171,7 +171,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "20"
+          node-version: "24"
           cache: pnpm
 
       - name: Setup Bun
@@ -220,6 +220,14 @@ jobs:
         # the merged tree, where a drop is attributable to one push.
         run: pnpm exec vitest run
 
+      - name: Storage conformance (bun:sqlite)
+        # vitest runs this same case array on Node against node:sqlite. This is
+        # the other half: the driver the shipped binary actually carries, which
+        # vitest can never reach because vitest runs on Node. Two runtimes, one
+        # set of assertions — a second copy of them would drift, and the drift
+        # would only surface in a release.
+        run: bun packages/cli/scripts/run-storage-conformance.ts
+
       - name: Test scripts + hooks (node:test)
         run: |
           find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
@@ -259,7 +267,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "20"
+          node-version: "24"
           cache: pnpm
 
       - name: Setup Bun
@@ -337,6 +345,14 @@ jobs:
 
       - name: Test + Coverage gate
         run: pnpm run coverage
+
+      - name: Storage conformance (bun:sqlite)
+        # vitest runs this same case array on Node against node:sqlite. This is
+        # the other half: the driver the shipped binary actually carries, which
+        # vitest can never reach because vitest runs on Node. Two runtimes, one
+        # set of assertions — a second copy of them would drift, and the drift
+        # would only surface in a release.
+        run: bun packages/cli/scripts/run-storage-conformance.ts
 
       - name: Deterministic provisional docs bundle
         run: |

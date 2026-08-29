@@ -7,10 +7,15 @@
 import { Command, type Option } from "commander";
 import type { CommandNode, CommandSurface } from "../kit/av-invocation-lint.js";
 import type { CommandRegistrationContext } from "./command-registration-context.js";
+import { registerApiCommands } from "./register-api-commands.js";
+import { registerAutonomyCommands } from "./register-autonomy-commands.js";
+import { registerVendorCommands } from "./register-vendor-commands.js";
+import { registerArtifactCommands } from "./register-artifact-commands.js";
 import { registerCatalogCommands } from "./register-catalog-commands.js";
 import { registerConfigCommands } from "./register-config-commands.js";
 import { registerHarnessCommands } from "./register-harness-commands.js";
 import { registerInstallCommands } from "./register-install-commands.js";
+import { registerProjectCommands } from "./register-project-commands.js";
 import { registerMaintenanceCommands } from "./register-maintenance-commands.js";
 import { registerQualityCommands } from "./register-quality-commands.js";
 import { registerTier1Commands } from "./register-tier1-commands.js";
@@ -88,10 +93,15 @@ function surfaceProgram(): Command {
     record: () => undefined,
   };
   registerInstallCommands(program, context);
+  registerProjectCommands(program, context);
   registerMaintenanceCommands(program, context);
   registerQualityCommands(program, context);
   registerCatalogCommands(program, context);
+  registerArtifactCommands(program);
   registerConfigCommands(program, context);
+  registerApiCommands(program);
+  registerAutonomyCommands(program);
+  registerVendorCommands(program);
   registerTier1Commands(program, context);
   registerHarnessCommands(program);
   return program;

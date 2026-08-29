@@ -1,6 +1,16 @@
 ---
 name: av:ui-styling
 description: "Use when styling UIs with shadcn/ui and Tailwind CSS for accessible components, themes, dark mode, responsive layouts, design systems, tokens, and color customization."
+user-invocable: true
+when_to_use: "Invoke for shadcn, Tailwind, themes, or component styling."
+category: frontend
+keywords: [shadcn, radix, tailwind, themes]
+license: MIT
+argument-hint: "[component or layout]"
+metadata:
+  origin: ported
+  author: upstream
+  version: "1.0.0"
 ---
 
 # UI Styling
@@ -50,7 +60,8 @@ Tailwind project uses a JavaScript config file.
 5. Compose around domain boundaries. Avoid wrappers that merely rename props.
 
 Use the repository's package manager when different. Verify current CLI options
-with `shadcn --help`; do not invent flags from memory.
+with `pnpm dlx shadcn@latest --help` — the CLI is never installed globally by
+this flow, so a bare `shadcn` will not resolve. Do not invent flags from memory.
 
 ## Tailwind workflow
 

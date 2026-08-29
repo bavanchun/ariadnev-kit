@@ -70,6 +70,37 @@ describe("provider verification evidence", () => {
     expect(SPEC_VERIFIED.antigravity.observedVersion).toBeNull();
   });
 
+  it("does not let a binary alone promote a provider to observed", () => {
+    // `omp` is installed and runnable here, and every cell is still
+    // `convention`. The probe that looked like a load check (`omp read
+    // skill://<name>`) reported "Available: none" for a skill planted in both
+    // candidate layouts while discovery was enabled, so it resolves a session
+    // registry rather than the discovery pipeline. The only probe left spends
+    // the user's model credits.
+    for (const kind of KINDS) {
+      expect(SPEC_VERIFIED.omp.paths[kind].level, `omp.${kind} claims observation`).not.toBe("observed");
+    }
+    expect(SPEC_VERIFIED.omp.observedOn, "omp records no observation date").toBeNull();
+    expect(SPEC_VERIFIED.omp.observedVersion).toMatch(/no local load-check surface/);
+  });
+
+  it("keeps grok at convention, since no binary exists here to watch it load", () => {
+    for (const kind of KINDS) {
+      expect(SPEC_VERIFIED.grok.paths[kind].level, `grok.${kind} claims observation`).not.toBe("observed");
+    }
+    expect(SPEC_VERIFIED.grok.observedVersion).toBeNull();
+  });
+
+  it("verifies nothing at all for dsh", () => {
+    // No binary, no home directory, no adapter to read a layout from. Every
+    // cell false means the installer skips and logs, which this table treats as
+    // correct behaviour — a guessed path would be the failure.
+    for (const kind of KINDS) {
+      expect(isVerified("dsh", kind), `dsh.${kind} is verified without evidence`).toBe(false);
+    }
+    expect(SPEC_VERIFIED.dsh.toolNames.verified).toBe(false);
+  });
+
   it("excludes the internal mock from the evidence requirement", () => {
     expect(EVIDENCE_REQUIRED_PROVIDERS).not.toContain("test-provider");
     expect(EVIDENCE_REQUIRED_PROVIDERS).toContain("codex");

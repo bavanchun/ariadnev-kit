@@ -32,7 +32,19 @@ describe("the legacy JSON list", () => {
    * an unpinned list cannot do that.
    */
   it("is exactly the five commands whose shape predates the envelope", () => {
-    expect([...LEGACY_JSON_COMMANDS]).toEqual(["contract", "audit", "config", "run", "eval"]);
+    expect([...LEGACY_JSON_COMMANDS]).toEqual(["contract", "audit", "config", "workflow", "eval"]);
+  });
+
+  /**
+   * The harness was renamed from `run` to `workflow`, and its carve-out moved
+   * with it. `run` now fronts skill dispatch — new surface, which gets the
+   * shared envelope. Had the old name stayed on this list, dispatch would have
+   * inherited a frozen JSON shape nobody ever granted it, and nothing else in
+   * the tree would have failed to say so.
+   */
+  it("exempts the harness and not the name it used to have", () => {
+    expect(LEGACY_JSON_COMMANDS).toContain("workflow");
+    expect(LEGACY_JSON_COMMANDS).not.toContain("run");
   });
 
   /**

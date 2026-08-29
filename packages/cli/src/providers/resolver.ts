@@ -118,6 +118,56 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     scriptsDir: ".opencode/scripts",
     envFile: ".opencode/.env.example",
   },
+  omp: {
+    // `.agents/skills`, NOT `~/.omp/agent/skills`. The upstream CLI writes the
+    // latter, but omp's own runtime docs call `~/.omp/agent` the session-storage
+    // directory and name `.agent[s]/skills` as the canonical native location —
+    // the only skills path under `agent/` is `managed-skills`, the auto-learn
+    // bucket that defers to authored skills. Both directories exist on the
+    // observation machine, so copying the upstream path would have looked right.
+    rulesMode: "agents-md",
+    base: (_k, ctx) => pickBase(ctx),
+    skillDir: ".agents/skills",
+    // Same skill-shaped shim as cursor, in the same shared root, for the same
+    // reason: omp discovers one level under `skills/` and nothing else.
+    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}`,
+    commandPath: null,
+    outputStylePath: null,
+    rulePath: null,
+    scriptsDir: ".agents/scripts",
+    envFile: ".agents/.env.example",
+  },
+  grok: {
+    // Claude-shaped, because that is what `~/.grok/` actually holds:
+    // {agents,hooks,rules,skills} laid out exactly as claude-code's tree. No
+    // binary here to observe a load, so every cell is `convention`.
+    rulesMode: "dir",
+    base: (_k, ctx) => pickBase(ctx),
+    skillDir: ".grok/skills",
+    agentPath: (n) => `.grok/agents/${n}.md`,
+    commandPath: null,
+    outputStylePath: null,
+    rulePath: (n) => `.grok/rules/${n}.md`,
+    scriptsDir: ".grok/scripts",
+    envFile: ".grok/.env.example",
+  },
+  dsh: {
+    // EVERY CELL IS UNVERIFIED, SO NONE OF THESE PATHS IS EVER USED. The config
+    // exists because `CONFIGS` is a total map over `ProviderId` and the type
+    // system requires an entry; `isVerified` gates every one of them to false,
+    // so the installer skips and logs. The values are the neutral layout rather
+    // than a guess at dsh's own, precisely so that if this row is ever reached
+    // by mistake it writes somewhere conventional instead of somewhere invented.
+    rulesMode: "agents-md",
+    base: (_k, ctx) => pickBase(ctx),
+    skillDir: ".agents/skills",
+    agentPath: null,
+    commandPath: null,
+    outputStylePath: null,
+    rulePath: null,
+    scriptsDir: ".agents/scripts",
+    envFile: ".agents/.env.example",
+  },
   generic: {
     rulesMode: "agents-md",
     base: (_k, ctx) => pickBase(ctx),

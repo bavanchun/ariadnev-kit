@@ -20,6 +20,16 @@ import {
   summarizePlan,
   type PlanSummary,
 } from "../plan/plan-pointer.js";
+import { buildBoard, parsePlan, renderBoard, renderParsed } from "../plan/plan-board.js";
+import {
+  appendPhaseRow,
+  nextPhaseNumber,
+  phaseFileName,
+  phaseTableRow,
+  planDirName,
+  renderPhaseMd,
+  renderPlanMd,
+} from "../plan/plan-scaffold.js";
 import {
   checkPlanIntegrity,
   readField,
@@ -369,4 +379,185 @@ export function runPlanCleanup(opts: PlanOpts, deps: PlanDeps, archive = false):
   ];
   for (const plan of finished) lines.push(`  ${plan}`);
   return { output: lines.join("\n"), exitCode: EXIT.ok };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scaffolding and projections.
+//
+// The six verbs upstream has that this did not. Each one is built on the same
+// `PlanDeps` as everything above, so `--dry-run` and the injected filesystem
+// work for them without a second story about where plans live.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** `plan create` and `add-phase` write; nothing else in this section does. */
+function refuseInDryRun(opts: PlanOpts, what: string): void {
+  if (opts.dryRun) throw new UsageError(`--dry-run: ${what} would write files, so it did nothing`);
+}
+
+/**
+ * Bootstrap a plan directory.
+ *
+ * The timestamp comes from the caller so a test is not a clock, and the
+ * directory name follows the convention every plan in this repository already
+ * uses: `<YYMMDD-HHMM>-<slug>`.
+ */
+export function runPlanCreate(
+  title: string,
+  opts: PlanOpts,
+  deps: PlanDeps,
+  extras: { stamp: string; description?: string; priority?: string; use?: boolean } = { stamp: "" },
+): PlanResult {
+  if (!title.trim()) throw new UsageError("plan create needs a title");
+  const name = planDirName(extras.stamp, title);
+  const dir = planDir(opts, name);
+  // Refusing an existing directory rather than merging into it: two plans under
+  // one name is a state neither `use` nor `resolve` can describe.
+  if (deps.listDir(dir) !== null) throw new UsageError(`${opts.plansDir}/${name} already exists`);
+  refuseInDryRun(opts, "plan create");
+
+  deps.writeFile(`${dir}/plan.md`, renderPlanMd({
+    title,
+    created: extras.stamp.slice(0, 6),
+    ...(extras.description ? { description: extras.description } : {}),
+    ...(extras.priority ? { priority: extras.priority } : {}),
+  }));
+
+  // Pointed at only when asked. Creating a plan is not the same act as
+  // switching this branch's work to it, and conflating them means a `create`
+  // run to sketch an idea silently redirects `plan show`.
+  if (extras.use) runPlanUse(name, opts, deps);
+
+  if (opts.json) return { output: envelope("plan.create", { plan: name, dir, selected: !!extras.use }), exitCode: EXIT.ok };
+  return {
+    output: [`ariadnev plan — created ${opts.plansDir}/${name}`, extras.use ? `  and pointed ${pointerKey(deps)} at it` : ""]
+      .filter(Boolean)
+      .join("\n"),
+    exitCode: EXIT.ok,
+  };
+}
+
+/** Append `phase-NN-<slug>.md` and a row in the plan's phase table. */
+export function runPlanAddPhase(
+  name: string | undefined,
+  title: string,
+  opts: PlanOpts,
+  deps: PlanDeps,
+  extras: { dependencies?: readonly number[] } = {},
+): PlanResult {
+  if (!title.trim()) throw new UsageError("plan add-phase needs a title");
+  const plan = requirePlan(name, opts, deps);
+  const dir = planDir(opts, plan);
+  const phase = nextPhaseNumber(deps.listDir(dir) ?? []);
+  const file = phaseFileName(phase, title);
+  refuseInDryRun(opts, "plan add-phase");
+
+  deps.writeFile(`${dir}/${file}`, renderPhaseMd({ phase, title, ...(extras.dependencies ? { dependencies: extras.dependencies } : {}) }));
+
+  // The index row is best-effort: a plan.md with no phase table is unusual but
+  // not broken, and failing the whole command over a missing table would lose
+  // the phase file that was already written.
+  const planMd = deps.readFile(`${dir}/plan.md`);
+  const updated = planMd === null ? null : appendPhaseRow(planMd, phaseTableRow(phase, title, file));
+  if (updated !== null) deps.writeFile(`${dir}/plan.md`, updated);
+
+  if (opts.json) return { output: envelope("plan.add-phase", { plan, phase, file, indexed: updated !== null }), exitCode: EXIT.ok };
+  return {
+    output: [`ariadnev plan — added ${plan}/${file}`, updated === null ? "  plan.md has no phase table, so no row was added" : ""]
+      .filter(Boolean)
+      .join("\n"),
+    exitCode: EXIT.ok,
+  };
+}
+
+/** Phases as a board, for one plan or for every plan. */
+export function runPlanKanban(name: string | undefined, opts: PlanOpts, deps: PlanDeps): PlanResult {
+  const names = name ? [requirePlan(name, opts, deps)] : listPlans(deps, opts);
+  const summaries = names.map((plan) => readPlan(deps, opts, plan)).filter((summary): summary is PlanSummary => summary !== null);
+  const columns = buildBoard(summaries);
+  if (opts.json) return { output: envelope("plan.kanban", { columns }), exitCode: EXIT.ok };
+  return { output: renderBoard(columns), exitCode: EXIT.ok };
+}
+
+/** One plan as structured data, checkbox progress included. */
+export function runPlanParse(name: string | undefined, opts: PlanOpts, deps: PlanDeps): PlanResult {
+  const plan = requirePlan(name, opts, deps);
+  const summary = readPlan(deps, opts, plan) as PlanSummary;
+  const parsed = parsePlan(summary, readPlanFiles(deps, opts, plan));
+  if (opts.json) return { output: envelope("plan.parse", parsed), exitCode: EXIT.ok };
+  return { output: renderParsed(parsed), exitCode: EXIT.ok };
+}
+
+/**
+ * Check one plan's shape.
+ *
+ * The same `checkPlanIntegrity` that `reindex` runs over every plan, aimed at
+ * one — which is the difference between the two verbs and the reason both
+ * exist. Upstream exits 3 for an invalid plan; this exits 1, because
+ * `exit-codes.ts` gives 3 the meaning "the environment is not ready" and an
+ * invalid plan is a negative answer to the question that was asked.
+ */
+export function runPlanValidate(name: string | undefined, opts: PlanOpts, deps: PlanDeps): PlanResult {
+  const plan = requirePlan(name, opts, deps);
+  const findings = checkPlanIntegrity(readPlanFiles(deps, opts, plan));
+  const ok = findings.length === 0;
+  if (opts.json) return { output: envelope("plan.validate", { plan, valid: ok, findings }), exitCode: ok ? EXIT.ok : EXIT.failed };
+  if (ok) return { output: `ariadnev plan — ${plan} is valid`, exitCode: EXIT.ok };
+  return {
+    output: [`ariadnev plan — ${plan} has ${findings.length} problem(s)`, ...findings.map((f) => `  ${f.file}: ${f.problem}`)].join("\n"),
+    exitCode: EXIT.failed,
+  };
+}
+
+/**
+ * Move plan directories that live outside the configured plans root into it.
+ *
+ * UPSTREAM'S VERSION IMPORTS INTO A PLAN STORE; THERE IS NO STORE HERE. The
+ * files are the record — `reindex` says so out loud — so the only thing left to
+ * import is *location*: a plan directory sitting in some other folder, which
+ * `list`, `use` and `resolve` will never find because they only look under the
+ * configured root.
+ *
+ * Sources are named by the caller rather than discovered. A command that walks
+ * a repository looking for anything containing a `plan.md` and then moves it is
+ * one bad guess away from relocating someone's unrelated directory.
+ */
+export function runPlanMigrate(from: string, opts: PlanOpts, deps: PlanDeps): PlanResult {
+  const source = from.startsWith("/") ? from : `${opts.cwd}/${from}`;
+  const entries = deps.listDir(source);
+  if (entries === null) throw new UsageError(`no directory at ${from}`);
+
+  const candidates = isPlanDirectory(entries)
+    ? [{ name: source.split("/").filter(Boolean).at(-1) as string, dir: source }]
+    : entries
+        .filter((entry) => isPlanDirectory(deps.listDir(`${source}/${entry}`) ?? []))
+        .map((entry) => ({ name: entry, dir: `${source}/${entry}` }));
+
+  if (candidates.length === 0) throw new UsageError(`${from} holds no plan directory (a plan directory contains plan.md)`);
+  if (!deps.moveDir) throw new UnavailableError("importing plans needs a filesystem this caller did not provide");
+
+  const planned = candidates.map((candidate) => ({
+    ...candidate,
+    to: planDir(opts, candidate.name),
+    // Reported rather than overwritten. A collision here would destroy an
+    // existing plan, and renaming it silently would break the pointer that
+    // names it.
+    conflict: deps.listDir(planDir(opts, candidate.name)) !== null,
+  }));
+  const movable = planned.filter((entry) => !entry.conflict);
+
+  if (!opts.dryRun) {
+    for (const entry of movable) deps.moveDir(entry.dir, entry.to);
+  }
+
+  if (opts.json) {
+    return {
+      output: envelope("plan.migrate", { dryRun: !!opts.dryRun, imported: movable.map((e) => e.name), skipped: planned.filter((e) => e.conflict).map((e) => e.name) }),
+      exitCode: planned.some((entry) => entry.conflict) ? EXIT.failed : EXIT.ok,
+    };
+  }
+  const lines = [`ariadnev plan migrate — ${opts.dryRun ? "would import" : "imported"} ${movable.length} plan(s) into ${opts.plansDir}/`];
+  for (const entry of planned) {
+    lines.push(entry.conflict ? `  ${entry.name}: skipped, ${opts.plansDir}/${entry.name} already exists` : `  ${entry.name}`);
+  }
+  return { output: lines.join("\n"), exitCode: planned.some((entry) => entry.conflict) ? EXIT.failed : EXIT.ok };
 }

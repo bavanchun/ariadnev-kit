@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { Command } from "commander";
 import { commandSurface, surfaceOf } from "./command-surface.js";
 import { buildProgram } from "../index.js";
+import { registerQualityCommands } from "./register-quality-commands.js";
+import type { CommandRegistrationContext } from "./command-registration-context.js";
+import type { runValidate } from "./validate-command.js";
 import { lintAvInvocations, type CommandNode } from "../kit/av-invocation-lint.js";
+
+const context: CommandRegistrationContext = {
+  version: "0.0.0",
+  outColor: () => false,
+  record: () => undefined,
+};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -23,9 +33,12 @@ describe("commandSurface", () => {
   });
 
   it("carries the phantoms' absence — the whole reason the lint has a surface", () => {
-    expect(child("plan", "create")).toBeUndefined();
-    expect(child("plan", "add-phase")).toBeUndefined();
+    // `plan create` and `plan add-phase` were here until 2026-08-29, when they
+    // were built. A phantom leaving this list because the command now exists is
+    // the list working; what it must never do is leave because someone wanted
+    // the lint quiet.
     expect(child("plan", "publish")).toBeUndefined();
+    expect(child("plan", "sync")).toBeUndefined();
     expect(child("config", "start")).toBeUndefined();
     expect(child("config", "stop")).toBeUndefined();
     expect(child("config", "status")).toBeUndefined();
@@ -41,7 +54,11 @@ describe("commandSurface", () => {
   });
 
   it("knows which group commands take a positional of their own", () => {
+    // `run` keeps its positional while the deprecated spelling lives, and
+    // `workflow` is a pure group whose `run` child carries the workflow ID.
     expect(child("run")?.acceptsPositional).toBe(true);
+    expect(child("workflow", "run")?.acceptsPositional).toBe(true);
+    expect(child("workflow")?.acceptsPositional).toBe(false);
     expect(child("plan")?.acceptsPositional).toBe(false);
     expect(child("config")?.acceptsPositional).toBe(false);
   });
@@ -101,15 +118,33 @@ describe("commandSurface", () => {
    * hands it over.
    */
   it("reaches validate through the real command wiring", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const exitCode = process.exitCode;
-    await buildProgram().parseAsync(["node", "ariadnev", "validate"]);
-    process.exitCode = exitCode;
-    expect(log.mock.calls.flat().join("\n")).toContain("av-invocation");
+    // Asserted against the registration, not against the kit's output. The
+    // earlier version looked for an `av-invocation` finding in the live kit,
+    // which proved the handover only for as long as the kit carried a defect
+    // to find — it failed the day the last one was fixed. Supplying the
+    // surface makes no observable difference on a clean kit, so a test that
+    // reads output cannot tell the two apart at all.
+    let received: Parameters<typeof runValidate>[0] | undefined;
+    const program = new Command();
+    registerQualityCommands(program, context, {
+      validate: (opts) => {
+        received = opts;
+        return {
+          ok: true,
+          findings: [],
+          counts: { skills: 0, agents: 0, hooks: 0 },
+          heldFindings: [],
+          warnings: [],
+          summary: "",
+        };
+      },
+    });
+    await program.parseAsync(["node", "ariadnev", "validate"]);
+    expect(received?.surface, "the registration must hand validate the command surface").toBeDefined();
   });
 
   it("lints the kit's own documented invocations against itself", () => {
     expect(lintAvInvocations("`av plan use <name>` then `av plan show --json`", surface)).toEqual([]);
-    expect(lintAvInvocations("`av plan create`", surface)).toMatchObject([{ severity: "error", token: "create" }]);
+    expect(lintAvInvocations("`av plan publish`", surface)).toMatchObject([{ severity: "error", token: "publish" }]);
   });
 });
