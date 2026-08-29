@@ -5,6 +5,26 @@
     "ariadnev": "1.2.0"
   },
   "changesets": [
-    "p11-open-beta-channel"
+    "activity-event-log",
+    "analytics-and-derived-data",
+    "backups-verbs",
+    "catalog-commands",
+    "content-feedback-changelog-self-update",
+    "content-search-shards",
+    "current-release-tag-accepts-prerelease",
+    "kit-content-corrections",
+    "local-api-and-gui",
+    "node-24-toolchain",
+    "ownership-aware-install-lifecycle",
+    "p11-open-beta-channel",
+    "plan-mcp-and-migrate-subcommands",
+    "project-lifecycle-commands",
+    "provider-union-omp-grok-dsh",
+    "recover-previews-by-default",
+    "sessions-reader",
+    "skill-dispatch",
+    "sqlite-storage-adapter",
+    "watch-and-orchestrate",
+    "workflow-rename-and-run-shim"
   ]
 }
