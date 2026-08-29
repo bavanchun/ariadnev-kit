@@ -25,7 +25,10 @@ Journals are work history under `<project>/plans/journals/`. They are not durabl
 3. Persist with the CLI (scriptable; no `$EDITOR`):
 
 ```bash
-av journal create "<title>" --summary "<one-line summary>" --stdin <<'EOF'
+av journal create "<title>" \
+  --component <name> \
+  --status Resolved \
+  --body "$(cat <<'EOF'
 ## What happened
 ...
 
@@ -35,9 +38,15 @@ av journal create "<title>" --summary "<one-line summary>" --stdin <<'EOF'
 ## Next steps
 ...
 EOF
+)"
 ```
 
-Optional flags: `--date YYYY-MM-DD`, `--project <registry-name>`.
+Optional flags: `--component <name>` (what the entry is about), `--status
+Resolved | Ongoing | Blocked | Abandoned` (default `Resolved`), `--json`.
+
+The entry lands under the configured docs dir as `journal/<YYMMDD-HHMM>-<slug>.md`.
+Two entries sharing a minute and a title produce the same name; the second is
+refused with "already exists", never written over the first.
 
 4. Validate when needed:
 

@@ -11,16 +11,18 @@ export const DESCRIPTION_MAX = 200;
 export const SKILL_MAX_LINES = 300;
 export const SKILL_MAX_LINES_CEILING = 400;
 /**
- * 800, raised from 300. Measured over the 463 reference files the loader
- * actually sees: 83 exceed 300 and 6 exceed 800. A limit two thirds of the
- * corpus-by-weight violates is not a limit, it is a warning generator — and it
- * was suppressed for exactly the files that tripped it. 800 leaves 6 genuine
- * outliers (822-1718 lines) to answer for themselves.
+ * 800, raised from 300. When the cap was chosen, 83 of the 463 reference files
+ * the loader sees exceeded 300 and 8 exceeded 800 (822-1718 lines). A limit two
+ * thirds of the corpus-by-weight violates is not a limit, it is a warning
+ * generator — and it had been suppressed for exactly the files that tripped it.
+ * All eight outliers have since been split; nothing the loader sees exceeds 800.
  *
- * "The loader actually sees" is load-bearing: `readReferenceFiles` does not
- * recurse, so `references/<subdir>/*.md` is never linted. Counted recursively
- * the corpus is 500 files, 89 over 300 and 8 over 800 — two outliers this rule
- * cannot reach. They install anyway; the copy in `install-plan.ts` is recursive.
+ * What the loader sees is narrower than what ships, in two ways.
+ * `readReferenceFiles` does not recurse, so `references/<subdir>/*.md` goes
+ * unlinted; and it matches the directory name literally, so a skill that calls
+ * the directory `reference/` or `resources/` is never reached at all. Three
+ * files sit over the cap that way today. `install-plan.ts` copies recursively
+ * and by any name, so all of them reach a user's disk at full length.
  */
 export const REFERENCE_MAX_LINES = 800;
 export const REQUIRED_SECTIONS = [

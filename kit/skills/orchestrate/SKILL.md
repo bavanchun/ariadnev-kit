@@ -1,6 +1,16 @@
 ---
 name: av:orchestrate
 description: "Use when coordinating parallel or staged jobs across headless coding-agent runtimes and subagents with capability routing, isolated worktrees, resumable capture, and arbiter review."
+user-invocable: true
+when_to_use: "Invoke when work should be split across multiple headless runtimes or in-session subagents, routed by task capability and risk, isolated where needed, and reviewed before handoff."
+category: dev-tools
+keywords: [orchestrate, headless, multi-agent, internal, subagents, live-routing, model-routing, capability, risk, worktree, resume, parallel, arbiter]
+argument-hint: "<job-spec.yaml | task description | --resume <run-dir>> [--yes] [--internal]"
+license: MIT
+metadata:
+  origin: ported
+  author: upstream
+  version: "1.4.0"
 ---
 
 # Orchestrate
@@ -100,6 +110,32 @@ Return one report containing outcome and authority boundary; job graph; route
 and evidence per job; worktree/file ownership; statuses, artifacts, and checks;
 integration and arbiter findings with disposition; remaining blockers; and the
 next safe action. For resumable work, update the durable job spec too.
+
+Everything a run produces lives under one directory. `<run-dir>` throughout the
+references means this directory, and `--resume` takes its path:
+
+```text
+plans/reports/orchestrate-<timestamp>/     # this is <run-dir>
+  jobs.yaml
+  runtimes.json
+  state.json
+  report.md
+  worktrees/
+    <job-id>/
+  <job-id>/
+    command.txt         # CLI jobs only
+    stdout.txt          # CLI jobs only
+    stderr.txt          # CLI jobs only
+    result.md           # internal jobs only
+    status.json
+    artifacts/
+    attempt-<n>/
+plans/reports/orchestrate-history.jsonl    # appended once per run, across runs
+```
+
+`orchestrate-history.jsonl` is what makes cross-run metrics possible; without it
+the advisory-evidence rule in `references/harness-profiles.md` has nothing to
+read.
 
 ## Quality gates
 

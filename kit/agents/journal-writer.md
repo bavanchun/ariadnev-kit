@@ -48,16 +48,17 @@ Before completing any journal entry, verify each item:
 After drafting the entry, persist it with the first-class CLI (scriptable; no `$EDITOR`):
 
 ```bash
-av journal create "<title>" --summary "<one-line summary>" --stdin <<'EOF'
+av journal create "<title>" --component <name> --status Resolved --body "$(cat <<'EOF'
 <body markdown>
 EOF
+)"
 ```
 
 Validate with `av journal validate <slug>` when useful. AgentWiki publish from this agent is deferred — report `AgentWiki publish skipped` and keep the local file.
 
 ## Journal Entry Structure
 
-Create entries in `./plans/journals/` via `av journal create` (filename `YYYY-MM-DD-<slug>.md`). Journals preserve chronological work context; they do not replace current product documentation, accepted ADRs, conformance evidence, or runbooks. Each entry should include:
+Create entries via `av journal create`, which writes them under the configured docs dir as `journal/<YYMMDD-HHMM>-<slug>.md`. Journals preserve chronological work context; they do not replace current product documentation, accepted ADRs, conformance evidence, or runbooks. Each entry should include:
 
 ```markdown
 # [Concise Title of the Issue/Event]
