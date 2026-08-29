@@ -126,10 +126,14 @@ edit.
 | `ariadnev plan update <phase> <status>` / `check\|uncheck <phase>` / `status [status]` / `close` | Set a phase's status in both the phase file and the index table, or set the plan's own status. Acts on the branch's plan unless `--plan <name>` says otherwise |
 | `ariadnev plan phase <n>` / `search <query>` / `reindex` | Print one phase in full, search every plan's files, or re-read them all and report what is malformed — there is no index to rebuild, the files are the record |
 | `ariadnev plan archive [--force]` / `cleanup [--archive]` | Move a finished plan under `plans/archive/`; `cleanup` lists (or moves) every finished plan. Archiving unfinished work needs `--force` |
+| `ariadnev plan create <title> [--use]` / `add-phase <title> [--depends 1,2]` | Scaffold `plans/<YYMMDD-HHMM>-<slug>/plan.md`, or append the next `phase-NN-<slug>.md` and a row in the plan's table. Phase numbers are max + 1, never a reused gap. `create` does not repoint the branch unless `--use` says so, and refuses an existing directory rather than merging into it. Both templates are written to pass `plan validate` |
+| `ariadnev plan kanban [name]` / `parse` / `validate` | Phases as a board grouped by status; a plan as structured data with per-phase checkbox progress; or one plan's format checked, exiting 1 when it is invalid. An unrecognised phase status gets its own board column rather than being relabelled |
+| `ariadnev plan migrate <from>` | Move plan directories that live elsewhere in the repo into the plans root, so `list`, `use` and `resolve` can see them. Sources are named, never discovered by walking; a name already taken is reported and skipped, never overwritten |
 | `ariadnev journal create <title> [--component] [--status] [--body]` | Write a dated entry under the docs dir. Never overwrites an existing one |
 | `ariadnev journal list\|show <term>\|validate [--json]` | List entries newest first, print one, or check every entry has a title, date, status, and body |
 | `ariadnev kit install-path <provider> [--global] [--json]` | Show where each artifact kind would be written for a provider, including the kinds that would be skipped |
 | `ariadnev kit refresh` | Discard the extracted kit cache and extract it again |
+| `ariadnev mcp link <name> [--to-project] [--allow-secrets]` | Mirror a server between the project and user scopes. A copy, never a move. Writing a server that carries env **values** into `.mcp.json` needs `--allow-secrets`, because that file is usually committed and an MCP server's env is where its API keys live |
 | `ariadnev mcp list\|show\|add\|remove\|verify [--global] [--json]` | Inspect and edit the MCP servers configured for this project (`.mcp.json`) or for you (`~/.claude.json`); `verify` starts each server and checks it completes the MCP initialize handshake. Writes are atomic, backed up, and preserve every key they do not understand |
 | `ariadnev adapters regenerate [--global] [--json]` | Rebuild the adapter artifacts (`install-manifest.json`, skill paths/hashes, hook expectations, ownership) from the receipt. They are a projection for other tools to read — nothing in ariadnev reads them back |
 | `ariadnev config prefs resolve [--json]` | Show the settings in effect after both config layers are applied, which files they came from, and every key that was rejected. Notification destinations print as `<redacted>` |
@@ -151,6 +155,8 @@ edit.
 | `ariadnev self-update` | An alias for `ariadnev update`: the signed, binary-only replacement of the running executable |
 | `ariadnev add-skill <name> [--description "…"]` | Scaffold a new canonical skill |
 | `ariadnev migrate [--provider id] [--global] [--dry-run]` | Relocate files when a provider's path convention changes |
+| `ariadnev migrate prefs [--global]` | Import a pre-rename config file into ariadnev's own. Refuses to merge when both exist — picking a winner per key would silently change settings you set — and never writes back to the legacy file |
+| `ariadnev migrate rollback [--to <timestamp>]` | Put back what the last `migrate` moved and forget it ran. Restores through the same path `backups restore` uses, so it takes a pre-restore safety copy, verifies digests, and inherits the guard that refuses to write outside ariadnev's install surface |
 
 ### Exit codes
 

@@ -10,6 +10,7 @@ import { readAppliedState } from "../migrate/applied-state.js";
 import { planMigrations } from "../migrate/plan-migrations.js";
 import { executeMigrations } from "../migrate/execute-migrations.js";
 import { nowStamp } from "./timestamp.js";
+import { runMigratePrefs, runMigrateRollback } from "./migrate-extras.js";
 
 function defaultManifestPath(): string {
   // dist/index.js and portable-manifest.json are siblings in the published pkg;
@@ -60,7 +61,7 @@ export function runMigrate(opts: MigrateHandlerOpts): { moved: number; dryRun: b
 }
 
 export function registerMigrate(program: Command): void {
-  program
+  const migrate = program
     .command("migrate")
     .description("Relocate installed files when provider path conventions change")
     .option("--provider <id>", "limit to one provider")
@@ -83,4 +84,49 @@ export function registerMigrate(program: Command): void {
       );
       emit(summary);
     });
+
+  // Subcommands on a command that also has its own action. Commander runs the
+  // parent action only when no subcommand matched, so `av migrate` keeps
+  // meaning what it did and the two verbs sit beside it rather than under a
+  // second top-level name.
+  migrate
+    .command("prefs")
+    .description("Import a pre-rename config file into ariadnev's own")
+    .option("--global", "operate on ~/ instead of ./", false)
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((o: { global?: boolean; json?: boolean }) => {
+      const g = program.opts<{ home: string; cwd: string; dryRun?: boolean }>();
+      finishExtras(runMigratePrefs({
+        home: g.home ?? homedir(),
+        cwd: g.cwd ?? process.cwd(),
+        global: !!o.global,
+        json: !!o.json,
+        dryRun: !!g.dryRun,
+        timestamp: nowStamp(),
+      }));
+    });
+
+  migrate
+    .command("rollback")
+    .description("Put back what the last `av migrate` moved, and forget it ran")
+    .option("--to <timestamp>", "roll back to a named backup instead of the newest")
+    .option("--global", "operate on ~/ instead of ./", false)
+    .option("--json", "emit the machine envelope instead of the text report", false)
+    .action((o: { to?: string; global?: boolean; json?: boolean }) => {
+      const g = program.opts<{ home: string; cwd: string; dryRun?: boolean }>();
+      finishExtras(runMigrateRollback({
+        home: g.home ?? homedir(),
+        cwd: g.cwd ?? process.cwd(),
+        global: !!o.global,
+        json: !!o.json,
+        dryRun: !!g.dryRun,
+        timestamp: nowStamp(),
+        ...(o.to ? { to: o.to } : {}),
+      }));
+    });
+}
+
+function finishExtras({ output, exitCode }: { output: string; exitCode: number }): void {
+  if (output) emit(output);
+  if (exitCode !== 0) process.exitCode = exitCode;
 }
