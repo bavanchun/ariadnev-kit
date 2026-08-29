@@ -336,8 +336,14 @@ export function registerMaintenanceCommands(
       emit(result.output);
     });
 
+  // `self-update` is upstream's name for exactly this: a signed, binary-only
+  // replacement of the running executable. ariadnev's `update` has always been
+  // that, and the parity manifest records the collision — upstream's `update`
+  // is the wider refresh. An alias rather than a second command, because two
+  // registrations of one behaviour drift the first time only one is edited.
   program
     .command("update")
+    .alias("self-update")
     .description("Self-update to the latest ariadnev release (--check to only report, --to to pin an exact version)")
     .option("--global", "check ~/ scope", false)
     .option("--check", "only report whether an update exists; don't install", false)
