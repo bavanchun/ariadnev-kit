@@ -86,13 +86,28 @@ test("all workflow actions are pinned to full SHAs and checkout disables persist
 test("the privileged gh helper can hold a whole candidate artifact", () => {
   // spawnSync defaults to a 1MB buffer and the candidate zip is ~192MB, so every
   // binary download failed as an opaque "GitHub API request failed". Both blocks
-  // download it, so both need the bound, and it is the same ceiling they assert
-  // on candidate contents.
+  // download it, so both need the bound. It sizes the compressed download only —
+  // the expanded contents are bounded separately and higher.
   for (const file of [publish, finalize]) {
     const helper = readWorkflow(file).split("\n").find((line) => line.includes("spawnSync(\"gh\""));
     assert.ok(helper, `${file} has no gh helper`);
     assert.match(helper, /maxBuffer:\s*536870912/, file);
   }
+});
+
+test("publisher and finalizer bound candidate expansion at the same ceiling", () => {
+  // The guard is written out twice. Raising one copy alone leaves the finalizer
+  // rejecting candidates the publisher already accepted, and it surfaces at the
+  // step that ships to users rather than the one that builds.
+  const ceilings = [publish, finalize].map((file) => {
+    const guard = readWorkflow(file)
+      .split("\n")
+      .find((line) => line.includes("candidate expands beyond the byte limit"));
+    assert.ok(guard, `${file} has no expansion guard`);
+    return /sum,\s*size\)\s*=>\s*sum\s*\+\s*size,\s*0\)\s*<=\s*(\d+)/.exec(guard)?.[1];
+  });
+  assert.ok(ceilings[0], "publisher expansion ceiling is unreadable");
+  assert.equal(ceilings[0], ceilings[1]);
 });
 
 test("privileged publisher and finalizer run blocks contain no expression interpolation", () => {
