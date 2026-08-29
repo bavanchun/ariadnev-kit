@@ -134,7 +134,11 @@ jobs:
           const listing = execFileSync("unzip", ["-Z1", "candidate/candidate.zip"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
           ok(listing.length <= 32 && listing.every((name) => /^[A-Za-z0-9][A-Za-z0-9._@+-]*$/.test(name)), "unsafe candidate inventory");
           const sizes = execFileSync("unzip", ["-l", "candidate/candidate.zip"], { encoding: "utf8" }).split("\n").map((line) => /^\s*(\d+)\s+(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})\s+\d{2}:\d{2}\s+(.+)$/.exec(line)).filter(Boolean).map((match) => Number(match[1]));
-          ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 536870912, "candidate expands beyond the byte limit");
+          # Must match the publisher's expansion ceiling. A finalizer stricter
+          # than the publisher rejects exactly the candidates the publisher
+          # accepted, and it fails at the step that ships rather than the step
+          # that builds. The shared-ceiling test keeps the two in step.
+          ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 1073741824, "candidate expands beyond the byte limit");
           execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
           const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
           ok(attestation.schemaVersion === 2 && attestation.schema === "https://ariadnev.com/schemas/release-artifact-attestation.schema.json" && attestation.artifactName === artifactName, "attestation schema drift");
