@@ -1,7 +1,7 @@
 ---
 phase: 11
 title: "api, config, gui"
-status: pending
+status: completed
 priority: P2
 effort: "5-10d"
 dependencies: [6, 8]
@@ -164,3 +164,109 @@ CLI is missing that query, and it should be added there first.
 endpoint".
 *Signal:* any non-GET route. *Response:* out of scope here. Mutation over HTTP
 needs an auth story, and auth is a non-goal of this whole plan.
+
+## Corrections to this phase document
+
+Written after the work, from evidence the document could not have had.
+
+**`av config start | status | stop` were not built, and should not be.** The
+Requirements section asked for them. Two things already in the repository said
+otherwise and both are older than this phase. The parity manifest's note on
+`config` says ariadnev's `config` keeps its own meaning and the dashboard half
+goes to `gui`. And `command-surface.test.ts` pins those three names as
+*phantoms* — names kit prose references that this CLI deliberately does not have
+— because the kit inherited "start it with `av config start --port 3456`" from
+upstream, where it opens a **plans dashboard**. Registering the names would not
+make that sentence true. It would only stop the av-invocation lint from
+reporting that it is false, turning a caught phantom into an uncaught wrong
+promise. The three tests that failed when the aliases were briefly registered
+are the record of this.
+
+The Architecture section had already reached the same place without saying so:
+it describes exactly one daemon, under `operational/api/`, and gives the
+browser-opening job to `gui`.
+
+**`--no-window` was not added.** It exists upstream to skip a native window on
+Wails builds. ariadnev has no native window on any build, so the flag could only
+ever be a no-op. `gui --no-open` covers the real need.
+
+**Upstream's exit 7 is spelled `usage` (2) here.** `ak` uses a dedicated code for
+"security violation: non-loopback bind without auth token". ariadnev's exit table
+has four values and inventing a fifth for one command would be a second contract;
+a bind that cannot be honoured without a token is a flag combination that cannot
+be honoured, which is what `usage` means.
+
+**The doctor check does not probe the port.** It reports the two states provable
+from the pidfile — running, and a stale record for a dead pid — and stops there.
+Confirming that the process on the port is really ours means an HTTP request with
+a timeout, and `runDoctor` is synchronous by contract; making it async so that
+`av doctor` could spend two seconds on a dead socket is a bad trade for one line.
+The third state, a port held by something foreign, is what `av api status`
+performs the probe to answer and what `av api start` refuses on.
+
+## Open question 2, answered: the `ariadnev-web` binding does not exist
+
+The phase expected `av gui` to open the sibling web project against this API, and
+recorded a degrade path in case the binding could not be made. It could not.
+`ariadnev-web` is `apps/docs` plus `apps/site` — a static documentation and
+marketing site. There is no dashboard route and no client for a local API
+anywhere in it; the only matches for a loopback address in the whole repository
+are in Playwright config and test harnesses.
+
+So the documented degrade is what shipped: the daemon serves its own status page
+at `/`, and `av gui` opens that. It is a real page, served by the process the
+command just started. What was ruled out is the thing upstream does when its GUI
+assets are missing — print a link to a desktop-app download — because ariadnev
+operates no such endpoint, and a command whose success case is a dead link is
+worse than one that opens something small and true.
+
+## What binary verification caught
+
+Both defects were invisible to a green suite, because both live in the gap
+between the parent process and the daemon it spawns.
+
+**`--auth-token` was silently dropped by the detach.** `av api start
+--auth-token secret` validated the token in the parent and then spawned a child
+that received neither the flag nor the environment variable, so the daemon came
+up serving every route unauthenticated — while the user had every reason to
+believe it was protected. Proven on the binary (`no token -> 200`), fixed by
+forwarding the resolved token through the child's environment, and pinned by
+splitting the argv-and-environment construction into `daemonSpawnPlan`, which is
+pure and can be asserted without starting anything. The same test asserts the
+token does **not** appear on argv, which is the fix a hurry would have reached
+for and which would publish the token to every process listing on the machine.
+
+The non-loopback half of this failed closed rather than open: the child ran its
+own bind check, found no token, and refused — so `--bind 0.0.0.0 --auth-token`
+never produced an exposed daemon, only a misleading "the port is already held by
+something else". Two layers of the same guard, and the outer one was the broken
+one.
+
+**A daemon with a token could not be stopped from a shell without it.** `stop`
+probes `/health` to prove identity, gets a 401, cannot confirm the daemon and
+correctly refuses to signal it — but reported "nothing identified itself", which
+sends the user hunting for a stray process instead of for their own token. Fixed
+by recording `tokenRequired` (the fact, never the token) in the pidfile so the
+refusal can name the real cause. The guard was not weakened; only the message
+was.
+
+## What was verified live, not just in tests
+
+- `start` twice → one daemon (`pgrep` count 1), and `gui` on a running daemon
+  starts no second one.
+- Every declared route answers; `POST` is 405; `/api/projects` is byte-identical
+  to `av projects list --json`.
+- A stale pidfile: doctor warns, `stop` cleans it, nothing is signalled.
+- A **foreign** process (a `python3 -m http.server`) on the recorded port:
+  `status` reports it, `stop` refuses, `start` refuses — and the foreign process
+  was still alive afterwards, which is the property that matters.
+- A port collision with no pidfile: reported, no record written, no port
+  incremented, zero orphans.
+- Token enforced (401/401/200 for none, wrong, right).
+- **Zero orphaned daemons after every one of the above.**
+
+## Ratchet
+
+8 → 6. `api` and `gui` registered; `changelog`, `content`, `feedback`,
+`orchestrate`, `self-update` and `watch` remain.
+

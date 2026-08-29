@@ -18,6 +18,7 @@ import { ed25519SelfTest } from "./update-signature.js";
 import { readJournal } from "../install/intent-journal.js";
 import { readContentState, shardHealth } from "../content-search/lifecycle.js";
 import { shardStats } from "../content-search/shard.js";
+import { processAlive, readDaemonRecord } from "../api/daemon-state.js";
 
 export interface DoctorHandlerOpts {
   home: string;
@@ -149,6 +150,33 @@ function contentShardLines(home: string, opts: StyleOpts): string[] {
   });
 }
 
+/**
+ * The state of the local API daemon, when there is one to report.
+ *
+ * Silent when no daemon has ever run here — same rule as the shard lines above:
+ * a health line about a feature nobody turned on is noise.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO IS PROBE THE PORT. Confirming that the
+ * process on the recorded port is really ours means an HTTP request with a
+ * timeout, and `runDoctor` is synchronous by contract — every caller, the `--fix`
+ * path and ten tests included, would become async so that `av doctor` could
+ * spend up to two seconds waiting on a socket that is dead. The two states
+ * provable from the pidfile alone are reported here, and the third — a port held
+ * by something that is not ariadnev — is what `av api status` performs the probe
+ * to answer, and what `av api start` refuses on.
+ */
+function apiDaemonLines(home: string, opts: StyleOpts): string[] {
+  const record = readDaemonRecord(home);
+  if (record === null) return [];
+  if (processAlive(record.pid)) {
+    return [`  ${teal(symbols.ok, opts)} api daemon: running (pid ${record.pid}, ${record.bind}:${record.port})`];
+  }
+  return [
+    `  ${amber(symbols.warn, opts)} api daemon: stale record for pid ${record.pid}, which is no longer running`,
+    faint("      ↳ run  av api stop", opts),
+  ];
+}
+
 export function renderDoctorSummary(
   status: DoctorStatus,
   findings: ProviderFinding[],
@@ -156,7 +184,7 @@ export function renderDoctorSummary(
   home?: string,
 ): string {
   const head = `${coral("ariadnev", opts)} doctor — ${status}`;
-  const shards = home ? contentShardLines(home, opts) : [];
+  const shards = home ? [...contentShardLines(home, opts), ...apiDaemonLines(home, opts)] : [];
   if (status === "not-installed") {
     // The crypto line belongs here too: it is a property of the binary, not of
     // the install, and someone diagnosing a platform problem has no receipt yet.

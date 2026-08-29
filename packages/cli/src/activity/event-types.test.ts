@@ -120,6 +120,8 @@ describe("the event vocabulary", () => {
       "backup.restored",
       "dispatch.started",
       "dispatch.completed",
+      "api.started",
+      "api.stopped",
     ]);
   });
 });

@@ -37,6 +37,13 @@ export const ACTIVITY_KINDS = [
   // `completed` is the signal worth being able to see.
   "dispatch.started",
   "dispatch.completed",
+  // The local API daemon. Recorded for the same reason dispatch is: this is the
+  // one thing ariadnev starts that outlives the command starting it, and "was
+  // something of mine listening on this machine at 02:00" has no other answer.
+  // A `started` with no matching `stopped` is a daemon that is still up, or one
+  // that was killed without being asked — both worth being able to see.
+  "api.started",
+  "api.stopped",
 ] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];

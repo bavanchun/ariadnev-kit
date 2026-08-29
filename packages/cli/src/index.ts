@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { emit, emitError, setEmitTransform } from "./cli/emit.js";
 import type { CommandRegistrationContext } from "./cli/command-registration-context.js";
+import { registerApiCommands } from "./cli/register-api-commands.js";
 import { registerArtifactCommands } from "./cli/register-artifact-commands.js";
 import { registerCatalogCommands } from "./cli/register-catalog-commands.js";
 import { registerConfigCommands } from "./cli/register-config-commands.js";
@@ -63,6 +64,7 @@ export function buildProgram(): Command {
   registerCatalogCommands(program, context);
   registerArtifactCommands(program);
   registerConfigCommands(program, context);
+  registerApiCommands(program);
   registerTier1Commands(program, context);
   registerHarnessCommands(program);
 
