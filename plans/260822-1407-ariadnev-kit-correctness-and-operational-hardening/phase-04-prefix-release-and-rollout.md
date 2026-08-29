@@ -114,12 +114,68 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
       unit coverage in `packages/cli/src/doctor/diagnose.test.ts`.
 - [x] The README provider matrix is unchanged and `av validate --check` is green
       (final local verification, 2026-08-24).
-- [ ] Release published with 5 binaries + checksums; smoke test passed.
-- [ ] Root inventory recorded before heal; every one healed; `av doctor` clean.
+- [x] Release published with 5 binaries + checksums; smoke test passed.
+      `ariadnev@1.3.0-beta.1`, 2026-08-30: build plus cross-platform smoke on
+      macOS and Windows all green; 10 assets including `checksums.txt.sig`.
+- [x] Root inventory recorded before heal; every one healed; `av doctor` clean.
+      See "Rollout observations" below. Healed to `healthy 100` across
+      claude-code (1570), codex (1503), cursor (1503).
 - [ ] One skill invoked successfully per provider post-heal.
+      claude-code proven — this repo's own session loaded the `av-*` catalogue
+      from `~/.claude/skills` immediately after the install. codex and cursor
+      still owe a real invocation; a file listing is not proof.
 - [ ] The rollback recipe executed end-to-end on a sandbox, returning a working
-      install.
+      install. **Blocked, not skipped** — see "Rollback is not executable yet".
 - [ ] `ariadnev.com/version` serves the new version.
+      Correctly still `1.1.0`: the edge must not move to a prerelease. This
+      criterion belongs to the stable cut, not the beta rehearsal.
+
+## Rollout observations (beta rehearsal, 2026-08-30)
+
+### Inventory before touching anything
+
+| Root | before | after |
+|---|---|---|
+| `~/.claude/skills` | 0 `av-*`, 107 `ak-*` | 105 `av-*` + 16 agents, `ak-*` untouched |
+| `~/.agents/skills` | **105 `av-*` husks**, 105 `ak-*` | 105 skills + 16 agents, `ak-*` untouched |
+| `~/.cursor/skills` | 0 `av-*`, 101 `ak-*` | unchanged — cursor writes to `~/.agents/` |
+| `~/.codex/skills` | absent | absent |
+
+No receipt existed anywhere — not at `~/.ariadnev/receipt.json`, not in any
+project. `av doctor --global` answered `not-installed` and reported nothing,
+because the legacy check keys on a prior receipt. **An orphan set with no
+receipt at all is invisible to doctor.** The husks dated 2026-08-23 and had lost
+every `SKILL.md` while keeping `references/`, `scripts/`, `data/`. `av install`
+absorbed them; none survived.
+
+### ak/av coexistence — decided
+
+av owns the shared global roots and improves there. ak moves to project scope,
+kept deliberately so a current upstream is always pullable for comparison. Not
+executed in the same session that was running ak's own skills; retiring `ak-*`
+from `~/.claude/skills` breaks the running agent until it reinstalls, so it is a
+separate deliberate step. Until then the doubled catalogue stands.
+
+### Two providers claim one root, and uninstall does not notice
+
+`codex` and `cursor` both resolve to `~/.agents/skills/`. The receipt records
+**1485 of 1503 paths twice**, once under each. Observed on a sandbox `HOME`:
+`av uninstall --provider cursor --yes` reported `removed=1503 preserved=0` and
+took codex from `healthy 100` to `degraded 0`, every co-claimed file gone.
+Recoverable — doctor names each missing file and `av install` restores them —
+but a user with both providers who removes one silently breaks the other.
+Uninstall should preserve paths another install in the same receipt still claims.
+
+### Rollback is not executable yet
+
+The recipe is `av update --to <prev>`. The only previously published release is
+`1.1.0`, which predates release signing, so the binary refuses it by design:
+`1.1.0 predates release signing and cannot be verified — the binary was NOT
+replaced`. This is exactly the entry condition's warning, arriving from the
+other direction: phase 5 shipped first, as required, which leaves nothing signed
+to roll back *to*. The rehearsal needs two signed releases. Cut a second beta and
+roll `beta.2 → beta.1`; that is the first point where the recipe can be executed
+rather than asserted.
 
 ## Risk Assessment
 

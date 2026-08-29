@@ -235,7 +235,12 @@ Both have teeth now: removing the check fails exactly those two.
       root and a `relPath` containing `..`; a malformed manifest is rejected by
       schema, not cast.
 - [x] No `process.env.ARIADNEV_*` read is *trusted* before `scopeProcessEnv()`; the one that decides whether scoping runs at all asks `cwdDotenvDeclares` instead, and a test fails on any new pre-scope read.
-- [ ] The release carrying all of the above is published **before** phase 4's.
+- [x] The release carrying all of the above is published **before** phase 4's.
+      `ariadnev@1.3.0-beta.1`, published 2026-08-30, ahead of any phase 4 cut.
+      Verified on the shipped binary rather than inferred from the commit:
+      `av update --to 1.1.0` answers "1.1.0 predates release signing and cannot
+      be verified — the binary was NOT replaced", and an `http://` base override
+      is discarded for the real domain by the protocol guard.
 - [x] `pnpm test` green — 1206.
 
 ## Risk Assessment
