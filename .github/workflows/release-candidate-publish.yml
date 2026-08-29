@@ -106,12 +106,12 @@ jobs:
           const listing = execFileSync("unzip", ["-Z1", "candidate/candidate.zip"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
           ok(listing.length <= 32 && listing.every((name) => /^[A-Za-z0-9][A-Za-z0-9._@+-]*$/.test(name)), "unsafe candidate inventory");
           const sizes = execFileSync("unzip", ["-l", "candidate/candidate.zip"], { encoding: "utf8" }).split("\n").map((line) => /^\s*(\d+)\s+(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})\s+\d{2}:\d{2}\s+(.+)$/.exec(line)).filter(Boolean).map((match) => Number(match[1]));
-          # Bounds expansion, not download: the compressed artifact is already
-          # capped above. Five Bun binaries carry a copy of the embedded kit
-          # each, so the expanded total grows five times faster than the kit
-          # does — it reached 99.8% of a 512MiB ceiling while still passing, and
-          # the next kit addition tipped it. A zip bomb is orders of magnitude
-          # past this; the real ratio here is under 3x.
+          // Bounds expansion, not download: the compressed artifact is already
+          // capped above. Five Bun binaries carry a copy of the embedded kit
+          // each, so the expanded total grows five times faster than the kit
+          // does — it reached 99.8% of a 512MiB ceiling while still passing, and
+          // the next kit addition tipped it. A zip bomb is orders of magnitude
+          // past this; the real ratio here is under 3x.
           ok(sizes.length === listing.length && sizes.every((size) => Number.isSafeInteger(size) && size >= 0) && sizes.reduce((sum, size) => sum + size, 0) <= 1073741824, "candidate expands beyond the byte limit");
           execFileSync("unzip", ["-q", "candidate/candidate.zip", "-d", "candidate"]);
           const attestation = JSON.parse(readFileSync("candidate/release-artifact-attestation.json", "utf8"));
