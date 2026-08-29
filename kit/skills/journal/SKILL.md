@@ -16,7 +16,7 @@ metadata:
 
 Capture a concise technical journal for the current session, then persist it with the first-class CLI.
 
-Journals are work history under `<project>/plans/journals/`. They are not durable product or decision authority — record lasting decisions in the project's ADR or current docs owner.
+Journals are work history under the configured docs dir, in `journal/`. They are not durable product or decision authority — record lasting decisions in the project's ADR or current docs owner.
 
 ## Workflow
 
@@ -94,8 +94,10 @@ unaffected by any preference or flag.
 The **automatic** journal step at the end of the `av:plan`, `/av:cook`,
 `/av:fix`, `av:ship`, and `av:bootstrap` skills honors:
 - The `--skip-journal` flag on the invoking skill.
-- The `journal.auto` config preference (default: `true`).
-  Set with: `av config prefs set journal.auto false` (or `true` to re-enable).
+- The `auto` preference (default: `true`), set in `.ariadnev/journal.yaml` or the
+  `journal:` block of `.ariadnev/config.yaml`. There is no CLI setter —
+  `av config prefs` only has `resolve`, and its envelope carries no journal
+  fields. Check the resolved value with `node scripts/resolve-config.cjs --json`.
 
 Precedence when a workflow decides whether to run the automatic step: flag >
 project config > user config > default (`true`). When the automatic step is

@@ -98,9 +98,11 @@ With `--mode all`, each variation is written next to `-o` as
 **129 curated prompts** extracted from awesome-nano-banana-pro-prompts:
 
 ```bash
-# Search prompts (--domain awesome is required: the other domains in core.py
-# point at CSVs this skill does not ship, and a bare query errors "File not found")
+# Two of core.py's seven domains ship a CSV: `awesome` and `platform`. Always
+# pass one of them. Omitting --domain lets detect_domain() route on keywords and
+# fall back to `style`, whose CSV is absent — that is the "File not found" path.
 python3 scripts/search.py "<query>" --domain awesome
+python3 scripts/search.py "<query>" --domain platform
 
 # View all prompts
 cat data/awesome-prompts.csv
@@ -177,7 +179,8 @@ Next: regenerate with --mode creative|wild, change -ar/--size, or hand off.
       of <concept>" prompt, which is not a curated result.
 - [ ] Every reported file exists on disk: the script prints `✗ Error:` but still
       exits 0, so the exit code proves nothing.
-- [ ] `search.py` was always called with `--domain awesome`.
+- [ ] `search.py` was always called with `--domain awesome` or `--domain
+      platform` — the only two whose CSV ships.
 - [ ] The request was a rendered asset, not a brand identity or poster system —
       those belong to `av:design`.
 

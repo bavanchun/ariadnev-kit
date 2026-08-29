@@ -32,7 +32,7 @@ If real user Chrome state is not needed, use `agent-browser` state commands afte
 After auth is available, run tests normally. If real user Chrome state is not needed:
 ```bash
 agent-browser open https://example.com/dashboard
-agent-browser screenshot -o profile.png
+agent-browser screenshot profile.png
 ```
 
 If real user Chrome state is needed:

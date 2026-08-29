@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage
+tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage, Write, Edit, Task(Explore)
 memory: project
 description: >-
   Comprehensive code review with scout-based edge case detection. Use after
@@ -51,9 +51,9 @@ Before submitting any review, verify each item:
 ## Review Process
 
 **1. Edge Case Scouting (do first).** Get the changed files with
-`git diff --name-only HEAD~1`, then use `/av:scout` with an edge-case prompt —
-affected dependents, data flow risks, boundary conditions, async races, state
-mutations — and wait for its results before reviewing.
+`git diff --name-only HEAD~1`, then delegate an edge-case scout — dependents,
+data flow risks, boundaries, async races, state mutations — through the runtime's
+delegation capability, not a slash command, and wait for its results.
 
 **2. Initial analysis.** Read the given plan file and focus on recently changed
 files via `git diff`. For a full-codebase pass, compact with `repomix` first.

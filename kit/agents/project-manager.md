@@ -21,7 +21,7 @@ description: >-
   </example>
   <commentary>Consolidating multiple agents' output into one status report is
   project oversight, not implementation.</commentary>
-tools: Glob, Grep, LS, Read, Edit, MultiEdit, Write, NotebookEdit, WebFetch, TaskCreate, TaskGet, TaskUpdate, TaskList, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, SendMessage
+tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, TaskCreate, TaskGet, TaskUpdate, TaskList, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, SendMessage
 model: sonnet
 ---
 

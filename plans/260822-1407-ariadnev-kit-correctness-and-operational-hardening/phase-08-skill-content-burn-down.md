@@ -387,13 +387,32 @@ the routing gate. Re-run the collision check after every batch.
 | Tier B batch 1 | `reports/audit-260823-2017…` + `…-2022-fix-diff-reread.md` | yes |
 | Tier B batch 2 | `reports/audit-260829-1505-tier-b-batch-2-second-read.md` | yes |
 | Reference-file splits (8) | `reports/audit-260829-1500-reference-split-second-read.md` | yes |
-| **Tier A batch 2** (`fa03799`, 12 skills) | commit body records corrections found "while verifying" — one pass, no separate reader named | **no** |
-| **Agent waves** (16 agents) | no reader transcript | **no** |
+| Tier A batch 2 (`fa03799`, 12 skills) | `reports/audit-260829-1600-tier-a-batch-2-and-agent-wave-second-read.md` | yes |
+| Agent waves (16 agents) | same report | yes |
 
-The two uncovered units are not a guess: **both escapes found on 2026-08-29
-came from them** — `journal` sits in Tier A batch 4 but `journal-writer` is an
-agent-wave file, and the agent waves have no reader on record at all. The
-criterion stays unticked until those two are read.
+Every unit is now read. The two that were last to be covered were the right
+ones to suspect: both of the escapes found earlier on 2026-08-29 came from
+them, and reading them produced **14 more defects, none of which any gate could
+catch**.
+
+The agent wave also surfaced a class the brief did not predict and no rule
+models: **frontmatter granting less than the body instructs.** Four agents were
+told to write reports or delegate with no `Write`/`Task` grant — `code-reviewer`
+worst, since "scout-based edge case detection" is the differentiator in its own
+description and it had no capability to do it. Capabilities were granted per
+maintainer decision.
+
+**Escapes now 24 across 12 files** (2 `cti-expert`, 8 in the two journal files,
+2 in Tier A batch 2, 12 across eight agents, `journal-writer` appearing in both
+of the last two). A further four sit outside the units, in the
+`.prefs.journal.auto` check that four skills present as a working gate against
+an envelope key that is not there.
+
+The count keeps rising because reading keeps finding, not because quality is
+falling — which is the argument for the reader, not against it. The threshold
+that would justify maintainer takeover was never given a number and this does
+not set one; what the number does say is that every unit read so far has
+returned defects, and none of them was reachable by a gate.
 
 Both second reads run on 2026-08-29 found real defects, and **the two batches
 failed in opposite directions**: the reference splits were clean and only the
@@ -416,10 +435,10 @@ collapsing it to whichever half last caught something.
       burn-down. Collisions were resolved by differentiating (final strict validation).
 - [x] Every `## Workflow position` names ≥1 `av:<slug>` (final strict
       validation).
-- [ ] Second-reader review completed for every skill in every tier, by a
+- [x] Second-reader review completed for every skill in every tier, by a
       different model/agent with fresh context — never the authoring session —
       and every fix diff re-read the same way. (Raised from "≥20% of Tier A"
-      by the calibration result.)
+      by the calibration result.) Closed 2026-08-29; coverage table above.
 - [ ] `pnpm test` green at every merge, not only at the end.
 
 ## Risk Assessment

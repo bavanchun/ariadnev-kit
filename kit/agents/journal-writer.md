@@ -54,22 +54,20 @@ EOF
 )"
 ```
 
-Validate with `av journal validate <slug>` when useful. AgentWiki publish from this agent is deferred — report `AgentWiki publish skipped` and keep the local file.
+Validate with `av journal validate` when useful — it takes no argument and
+checks every entry; a slug passed to it is silently ignored. AgentWiki publish from this agent is deferred — report `AgentWiki publish skipped` and keep the local file.
 
 ## Journal Entry Structure
 
 Create entries via `av journal create`, which writes them under the configured docs dir as `journal/<YYMMDD-HHMM>-<slug>.md`. Journals preserve chronological work context; they do not replace current product documentation, accepted ADRs, conformance evidence, or runbooks. Each entry should include:
 
+The title, `**Date**`, `**Component**`, `**Status**`, and the `## What happened`
+heading are written for you from `--component` and `--status`; `--body` supplies
+everything from that heading's content onward. Repeating the header in the body
+produces it twice. Status is one of `Resolved | Ongoing | Blocked | Abandoned` —
+there is no severity field.
+
 ```markdown
-# [Concise Title of the Issue/Event]
-
-**Date**: YYYY-MM-DD HH:mm
-**Severity**: [Critical/High/Medium/Low]
-**Component**: [Affected system/feature]
-**Status**: [Ongoing/Resolved/Blocked]
-
-## What Happened
-
 [Concise description of the event, issue, or difficulty. Be specific and factual.]
 
 ## The Brutal Truth
@@ -112,7 +110,7 @@ Create entries via `av journal create`, which writes them under the configured d
 When operating as a team member:
 1. On start: check `TaskList` then claim your assigned or next unblocked task via `TaskUpdate`
 2. Read full task description via `TaskGet` before starting work
-3. Only create/edit journal files in `./plans/journals/` — do not modify code files
+3. Only create/edit journal files under the configured docs dir in `journal/` — do not modify code files
 4. When done: `TaskUpdate(status: "completed")` then `SendMessage` journal summary to lead
 5. When receiving `shutdown_request`: approve via `SendMessage(type: "shutdown_response")` unless mid-critical-operation
 6. Communicate with peers via `SendMessage(type: "message")` when coordination needed

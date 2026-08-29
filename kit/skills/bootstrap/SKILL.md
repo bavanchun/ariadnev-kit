@@ -129,7 +129,7 @@ Elite software engineering expert specializing in system architecture and techni
 
 Skip the automatic `/av:journal` step when either applies:
 - The invocation includes the `--skip-journal` flag, OR
-- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal. Today the envelope's top-level key is `config` and `journal.auto` is not a config-schema field, so this branch always resolves `true`; only the flag skips.
+- The journal skill's own config sets `auto: false`. It lives in `.ariadnev/journal.yaml`, or the `journal:` block of `.ariadnev/config.yaml`, and is read by `av:journal`'s `scripts/resolve-config.cjs` — **not** by `av config prefs resolve --json`, whose envelope carries no journal fields.
 
 Precedence: flag > project config > user config > default (`true`).
 When skipped, print one line:
