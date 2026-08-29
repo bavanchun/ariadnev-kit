@@ -84,19 +84,14 @@ export const DIVERGENCES: readonly Divergence[] = [
     reason: "repairs mixed Claude Code native/project-plugin state, which is upstream's plugin distribution model; ariadnev installs files directly and `av doctor --fix` covers drift",
   },
 
-  // ─── unbuilt: honest gaps, owned by the phase that owns the command ─────
-  { command: "plan", subcommand: "create", kind: "unbuilt", reason: "plan scaffolding is done by the kit's plan skill, not the CLI" },
-  { command: "plan", subcommand: "add-phase", kind: "unbuilt", reason: "phases are added by the kit's plan skill writing the file, same as `plan create`" },
-  { command: "plan", subcommand: "kanban", kind: "unbuilt", reason: "a board view; `av plan list` and `status` cover the data" },
-  { command: "plan", subcommand: "migrate", kind: "unbuilt", reason: "migrates legacy upstream plan layouts ariadnev never wrote" },
-  { command: "plan", subcommand: "parse", kind: "unbuilt", reason: "prints a plan file as structured data; nothing in ariadnev consumes that yet, so it is not built" },
-  { command: "plan", subcommand: "validate", kind: "unbuilt", reason: "checks a plan file against a schema ariadnev does not define; not built" },
-  { command: "audit", subcommand: "kit", kind: "extra", reason: "`av audit kit` is the default target and names what it audits; the upstream command audits files with no target word" },
-  { command: "mcp", subcommand: "link", kind: "unbuilt", reason: "mirrors MCP servers from one adapter config into another; a real gap, not built" },
-  { command: "migrate", subcommand: "prefs", kind: "unbuilt", reason: "migrates preferences from a predecessor tool ariadnev never wrote files for" },
-  { command: "migrate", subcommand: "rollback", kind: "unbuilt", reason: "not built; `av recover` covers restoring from a backup" },
+  // ─── unbuilt: none. All nine were built on 2026-08-29. ────────────────
+  // The `unbuilt` kind stays in the union rather than being deleted with its
+  // last row: it is the classification a future gap needs, and removing it
+  // would mean the next person finding one has to invent a name for it, or
+  // quietly file it as `declined`.
 
   // ─── extra: ariadnev has it and upstream does not ───────────────────────
+  { command: "audit", subcommand: "kit", kind: "extra", reason: "`av audit kit` is the default target and names what it audits; the upstream command audits files with no target word" },
   { command: "run", subcommand: "resume", kind: "extra", reason: "the deprecated harness shim's own verb, removed with the shim in 1.4.0" },
   { command: "run", subcommand: "status", kind: "extra", reason: "a harness verb reached through the deprecated `run` spelling; lives on as `av workflow status`" },
   { command: "run", subcommand: "cancel", kind: "extra", reason: "a harness verb reached through the deprecated `run` spelling; lives on as `av workflow cancel`" },

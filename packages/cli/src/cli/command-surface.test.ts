@@ -23,9 +23,12 @@ describe("commandSurface", () => {
   });
 
   it("carries the phantoms' absence — the whole reason the lint has a surface", () => {
-    expect(child("plan", "create")).toBeUndefined();
-    expect(child("plan", "add-phase")).toBeUndefined();
+    // `plan create` and `plan add-phase` were here until 2026-08-29, when they
+    // were built. A phantom leaving this list because the command now exists is
+    // the list working; what it must never do is leave because someone wanted
+    // the lint quiet.
     expect(child("plan", "publish")).toBeUndefined();
+    expect(child("plan", "sync")).toBeUndefined();
     expect(child("config", "start")).toBeUndefined();
     expect(child("config", "stop")).toBeUndefined();
     expect(child("config", "status")).toBeUndefined();
@@ -114,6 +117,6 @@ describe("commandSurface", () => {
 
   it("lints the kit's own documented invocations against itself", () => {
     expect(lintAvInvocations("`av plan use <name>` then `av plan show --json`", surface)).toEqual([]);
-    expect(lintAvInvocations("`av plan create`", surface)).toMatchObject([{ severity: "error", token: "create" }]);
+    expect(lintAvInvocations("`av plan publish`", surface)).toMatchObject([{ severity: "error", token: "publish" }]);
   });
 });

@@ -223,3 +223,56 @@ export async function runMcpVerify(name: string | undefined, opts: McpOpts, deps
   lines.push(`  ${results.length} server(s) checked, ${failed.length} failed`);
   return { output: lines.join("\n"), exitCode: failed.length > 0 ? EXIT.failed : EXIT.ok };
 }
+
+/**
+ * Copy a server's definition from the scope that has it into the other one.
+ *
+ * UPSTREAM CALLS THIS "MIRROR INTO ANOTHER ADAPTER CONFIG". ariadnev reads and
+ * writes two configs — the project's `.mcp.json` and the user's `~/.claude.json`
+ * — so mirroring here means moving a definition between those two scopes: take
+ * a server you configured for one project and make it yours everywhere, or pin
+ * a personal server into a repository so a teammate gets it too.
+ *
+ * A copy, never a move. The source is left alone, because `link` that silently
+ * removed the original would be `mv` wearing the wrong name, and the recovery
+ * for it is retyping a config with an API key in it.
+ *
+ * The env is copied verbatim, keys and values both — a mirrored server that
+ * cannot authenticate is not mirrored. That is also why this refuses to write
+ * into a project config by default: a personal server's credentials landing in
+ * a repository is a leak, and it takes an explicit flag to say you meant it.
+ */
+export function runMcpLink(name: string, opts: McpOpts & { toProject?: boolean; allowSecrets?: boolean }): McpResult {
+  const entry = loadBoth(opts).entries.find((e) => e.name === name);
+  if (!entry) {
+    if (opts.json) return { output: envelope("mcp.link", { name, found: false }), exitCode: EXIT.failed };
+    return { output: `ariadnev mcp — no server named "${name}"`, exitCode: EXIT.failed };
+  }
+
+  const target = opts.toProject ? projectConfigPath(opts.cwd) : userConfigPath(opts.home);
+  const source = entry.scope === "project" ? projectConfigPath(opts.cwd) : userConfigPath(opts.home);
+  if (target === source) {
+    throw new UsageError(`"${name}" is already in ${target} — \`link\` copies between the project and user scopes`);
+  }
+
+  const envKeys = Object.keys(entry.env ?? {});
+  if (opts.toProject && envKeys.length > 0 && !opts.allowSecrets) {
+    // The one case worth refusing rather than warning about: this writes a file
+    // that is usually committed, and an MCP server's env is where its API keys
+    // live.
+    throw new UsageError(
+      `"${name}" carries ${envKeys.length} env value(s) (${envKeys.sort().join(", ")}) and ${target} is usually committed. ` +
+        `Pass --allow-secrets if you really mean to put them in the repository.`,
+    );
+  }
+
+  const server: McpServer = {
+    command: entry.command,
+    ...(entry.args ? { args: entry.args } : {}),
+    ...(entry.env ? { env: entry.env } : {}),
+  };
+  const backup = writeConfig(target, withServer(readParsed(target), name, server), !!opts.dryRun);
+  const data = { name, from: source, to: target, backup, dryRun: !!opts.dryRun };
+  if (opts.json) return { output: envelope("mcp.link", data), exitCode: EXIT.ok };
+  return { output: `ariadnev mcp — ${opts.dryRun ? "would mirror" : "mirrored"} "${name}" from ${source} into ${target}`, exitCode: EXIT.ok };
+}

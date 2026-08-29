@@ -13,7 +13,8 @@ import { loadConfig, realLoadDeps } from "../config/load-config.js";
 import { emit } from "./emit.js";
 import { EXIT, UsageError } from "./exit-codes.js";
 import { runKitInstallPath, runKitRefresh } from "./kit-command.js";
-import { realVerifyDeps, runMcpAdd, runMcpList, runMcpRemove, runMcpShow, runMcpVerify } from "./mcp-command.js";
+import { planStamp } from "../plan/plan-scaffold.js";
+import { realVerifyDeps, runMcpAdd, runMcpLink, runMcpList, runMcpRemove, runMcpShow, runMcpVerify } from "./mcp-command.js";
 import {
   runPlanArchive,
   runPlanCheck,
@@ -27,6 +28,12 @@ import {
   runPlanStatus,
   runPlanUpdate,
   runPlanUse,
+  runPlanAddPhase,
+  runPlanCreate,
+  runPlanKanban,
+  runPlanMigrate,
+  runPlanParse,
+  runPlanValidate,
   type PlanDeps,
 } from "./plan-command.js";
 import { runJournalCreate, runJournalList, runJournalShow, runJournalValidate, type JournalDeps } from "./journal-command.js";
@@ -149,6 +156,79 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     if (output) emit(output);
     if (exitCode !== EXIT.ok) process.exitCode = exitCode;
   };
+
+  plan
+    .command("create")
+    .description("Bootstrap a new plan directory from the template")
+    .argument("<title>", "what the plan is called")
+    .option("--description <text>", "one-line summary for the frontmatter")
+    .option("--priority <p>", "P1 | P2 | P3")
+    .option("--use", "also point this branch at the new plan", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((title: string, o: { description?: string; priority?: string; use?: boolean; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanCreate(title, opts, deps, {
+        stamp: planStamp(new Date()),
+        ...(o.description ? { description: o.description } : {}),
+        ...(o.priority ? { priority: o.priority } : {}),
+        ...(o.use ? { use: true } : {}),
+      }));
+    });
+
+  plan
+    .command("add-phase")
+    .description("Append a new phase-NN-<slug>.md to a plan, and a row in its table")
+    .argument("<title>", "what the phase is called")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--depends <list>", "comma-separated phase numbers this one waits on")
+    .option("--json", "emit the machine envelope", false)
+    .action((title: string, o: { plan?: string; depends?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      const dependencies = o.depends
+        ? o.depends.split(",").map((part) => positiveInt(part.trim(), "--depends"))
+        : undefined;
+      finish(runPlanAddPhase(o.plan, title, opts, deps, dependencies ? { dependencies } : {}));
+    });
+
+  plan
+    .command("kanban")
+    .description("Show plan phases as a board, grouped by status")
+    .argument("[name]", "one plan instead of all of them")
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string | undefined, o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanKanban(name, opts, deps));
+    });
+
+  plan
+    .command("parse")
+    .description("Print a plan as structured data, with checkbox progress per phase")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanParse(o.plan, opts, deps));
+    });
+
+  plan
+    .command("validate")
+    .description("Check one plan's directory format; exits 1 when it is invalid")
+    .option("--plan <name>", "act on this plan instead of the branch's")
+    .option("--json", "emit the machine envelope", false)
+    .action((o: { plan?: string; json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanValidate(o.plan, opts, deps));
+    });
+
+  plan
+    .command("migrate")
+    .description("Move plan directories from elsewhere in the repo into the plans root")
+    .argument("<from>", "a plan directory, or a directory holding several")
+    .option("--json", "emit the machine envelope", false)
+    .action((from: string, o: { json?: boolean }) => {
+      const { opts, deps } = planOpts(o.json);
+      finish(runPlanMigrate(from, opts, deps));
+    });
 
   plan
     .command("list")
@@ -414,6 +494,25 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
       });
       emit(output);
       if (exitCode !== EXIT.ok) process.exitCode = exitCode;
+    });
+
+  mcp
+    .command("link")
+    .description("Mirror a server between the project and user scopes (a copy, never a move)")
+    .argument("<name>")
+    .option("--to-project", "mirror into .mcp.json instead of your own config", false)
+    .option("--allow-secrets", "permit env values to be written into the repository config", false)
+    .option("--json", "emit the machine envelope", false)
+    .action((name: string, o: { toProject?: boolean; allowSecrets?: boolean; json?: boolean }) => {
+      const global = program.opts<GlobalOpts>();
+      finish(runMcpLink(name, {
+        home: global.home,
+        cwd: global.cwd,
+        json: !!o.json,
+        dryRun: !!global.dryRun,
+        ...(o.toProject ? { toProject: true } : {}),
+        ...(o.allowSecrets ? { allowSecrets: true } : {}),
+      }));
     });
 
   mcp

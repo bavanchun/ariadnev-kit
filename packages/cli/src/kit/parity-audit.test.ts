@@ -67,14 +67,15 @@ describe("the subcommand audit", () => {
     }
   });
 
-  it("still reports honest gaps rather than explaining them away", () => {
-    // The audit is worth nothing if every row can be labelled `respelled`.
-    // These four are real absences and are recorded as such.
-    const unbuilt = DIVERGENCES.filter((d) => d.kind === "unbuilt").map((d) => `${d.command} ${d.subcommand}`);
-    expect(unbuilt).toContain("plan create");
-    expect(unbuilt).toContain("mcp link");
-    expect(unbuilt).toContain("migrate rollback");
-    expect(divergenceTally().unbuilt).toBeGreaterThan(0);
+  it("has no unbuilt gap left, and says so as a number rather than a summary", () => {
+    // This assertion was `toBeGreaterThan(0)` while nine subcommands were
+    // missing, so that no report could claim parity over them. They were built
+    // on 2026-08-29 and it now asserts the opposite fact. What keeps it honest
+    // either way is the pair of bidirectional checks above: a new gap with no
+    // row fails the first, and a row for a gap that no longer exists fails the
+    // second. Neither can be satisfied by editing this number.
+    expect(divergenceTally().unbuilt).toBe(0);
+    expect(DIVERGENCES.filter((d) => d.kind === "unbuilt")).toEqual([]);
   });
 
   it("gives every row a reason long enough to be one", () => {
@@ -85,11 +86,15 @@ describe("the subcommand audit", () => {
 });
 
 describe("what this audit concludes", () => {
-  it("does not claim behavioural parity from the ratchet's zero", () => {
-    // Stated as an assertion so it cannot be quietly dropped from a summary:
-    // names are complete, subcommand sets are not, and the difference is
-    // recorded rather than rounded off.
+  it("reaches its conclusion from the subcommand sets, never from the ratchet alone", () => {
+    // Both halves, asserted together. The ratchet says every captured NAME is
+    // registered; the tally says every captured SUBCOMMAND is accounted for and
+    // none of them is simply absent. The first has never been sufficient on its
+    // own, and stating them side by side is what stops it being quoted that way.
     expect(missingCommands(manifest, registeredNames())).toEqual([]);
-    expect(divergenceTally().unbuilt).toBeGreaterThan(0);
+    expect(divergenceTally().unbuilt).toBe(0);
+    // What remains is difference with a reason, not absence.
+    const tally = divergenceTally();
+    expect(tally.respelled + tally.declined + tally.extra).toBe(DIVERGENCES.length);
   });
 });
