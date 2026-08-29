@@ -57,8 +57,9 @@ To understand an unfamiliar project: read the repository instructions, root
 README, and docs navigation; locate architecture, ownership, and runbook context
 by purpose rather than assumed filename; and verify every document against
 current source, tests, configuration, and runtime evidence. When context is
-missing or conflicting, use `/av:scout ext` (preferred) or `/av:scout` for
-targeted discovery. Reach for `repomix` — including
+missing or conflicting, delegate targeted discovery through the runtime's
+agent-delegation capability, briefed from `av:scout` (a subagent cannot invoke a
+slash command). Reach for `repomix` — including
 `repomix --remote <github-repo-url>` — only when a broad snapshot materially
 helps.
 

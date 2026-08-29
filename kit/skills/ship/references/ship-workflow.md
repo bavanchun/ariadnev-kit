@@ -157,12 +157,13 @@ git fetch origin <target> && git merge origin/<target> --no-edit
 
 ## Step 8: Journal (background)
 
-**Skip if:** the shared "Journal step — opt-out" applies. Either the
-`--skip-journal` flag was passed, or `av config prefs resolve --json | jq -r
-'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command
-errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt
-or missing config never suppresses the automatic journal. Precedence: flag > project
-config > user config > default (`true`). Print one line and continue to Step 9:
+**Skip if:** the shared "Journal step — opt-out" applies — the `--skip-journal`
+flag was passed, or the journal skill's own config sets `auto: false`
+(`.ariadnev/journal.yaml`, or the `journal:` block of `.ariadnev/config.yaml`,
+read by `av:journal`'s `scripts/resolve-config.cjs`). That is a different config
+system from `av config prefs resolve --json`, whose envelope carries no journal
+fields. Precedence: flag > project config > user config > default (`true`).
+Print one line and continue to Step 9:
 - `journal skipped by --skip-journal` (flag), or
 - `journal skipped by preference` (config).
 
@@ -173,7 +174,7 @@ Write a technical journal entry capturing this ship session. Run as **background
 1. Invoke `/av:journal` skill via `journal-writer` subagent in background:
    - Topic: summary of shipped changes (from commit messages + diff stats)
    - Include: what was shipped, key decisions, technical challenges encountered
-   - Output: saved to `./plans/journals/` directory
+   - Output: saved under the configured docs dir, in `journal/`
    - Authority: chronological work record only; durable decisions belong in
      current docs or ADRs
 2. Don't wait for completion — continue to next step immediately.

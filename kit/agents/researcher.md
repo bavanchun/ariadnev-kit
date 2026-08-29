@@ -1,6 +1,6 @@
 ---
 name: researcher
-tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage
+tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage, Write, Edit
 description: >-
   Use this agent to research software development topics: evaluating
   technologies, finding documentation, comparing packages and open source

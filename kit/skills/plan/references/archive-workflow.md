@@ -20,7 +20,7 @@ Read the plan directory:
 Respect the shared "Journal step — opt-out" contract before prompting. Skip the
 entire journal sub-step silently — do NOT ask — when either applies:
 - The invocation includes the `--skip-journal` flag, OR
-- `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` returns `false`. If the command errors or prints anything other than the exact string `false`, treat as `true` (default) — corrupt or missing config never suppresses the automatic journal.
+- The journal skill's own config sets `auto: false` — `.ariadnev/journal.yaml`, or the `journal:` block of `.ariadnev/config.yaml`, read by `av:journal`'s `scripts/resolve-config.cjs`. Not `av config prefs resolve --json`; that envelope carries no journal fields.
 
 Precedence: flag > project config > user config > default (`true`). When
 skipped, print one line and jump to Step 3:
@@ -33,7 +33,7 @@ If user selects "Yes":
 - Analyze the information in previous steps.
 - Use delegate_agent capability with `subagent_type="journal-writer"` in parallel to document all plans.
 - Journal entries should be concise and focused on the most important events, key changes, impacts, and decisions.
-- Keep journal entries in the `./plans/journals/` directory.
+- Keep journal entries where `av journal create` writes them: the configured docs dir, in `journal/`.
 - Treat journals as chronological work records; move durable rules to current
   docs or ADRs.
 

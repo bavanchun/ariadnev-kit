@@ -152,7 +152,7 @@ each naming what to run and what to load.
 
 ### Journal step — opt-out
 
-Skip the automatic `/av:journal` step when the invocation carries `--skip-journal`, OR when `av config prefs resolve --json | jq -r 'if .prefs.journal.auto == false then "false" else "true" end'` prints exactly `false` — any error or other output means `true`: corrupt or missing config never suppresses the journal. Precedence: flag > project config > user config > default (`true`).
+Skip the automatic `/av:journal` step when the invocation carries `--skip-journal`, or when the journal skill's own config sets `auto: false` — `.ariadnev/journal.yaml`, or the `journal:` block of `.ariadnev/config.yaml`, read by `av:journal`'s `scripts/resolve-config.cjs`. That is a different config system from `av config prefs resolve --json`, whose envelope carries no journal fields. Precedence: flag > project config > user config > default (`true`).
 When skipped, print one line: `journal skipped by --skip-journal` (flag) or `journal skipped by preference` (config). Explicit `/av:journal` and `av journal create` are unaffected.
 
 ### Whole-Plan Consistency Gate

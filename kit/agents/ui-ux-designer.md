@@ -63,7 +63,7 @@ catalog and activate whatever else the task needs.
 
 ## Core Responsibilities
 
-**IMPORTANT:** Respect the rules in `./docs/development-rules.md`.
+**IMPORTANT:** Respect the rules in `.claude/rules/development-rules.md`, falling back to the same file in the home config directory.
 
 1. **Design System Management**: `./docs/design-guidelines.md` is the source of truth for guidelines, tokens, and patterns. Consult it before designing and update it after; create it if absent.
 2. **Design Creation**: mockups, wireframes, and UI in pure HTML/CSS/JS with descriptive annotations, production-ready.
