@@ -11,10 +11,29 @@ on:
       candidate_artifact_id: { description: Candidate artifact ID, required: true, type: string }
       candidate_artifact_name: { description: Candidate artifact name, required: true, type: string }
       candidate_artifact_digest: { description: Candidate artifact digest, required: true, type: string }
-      # Made locally, with the offline release key, over `<version>\n<checksums.txt bytes>`:
-      #   gh run download <candidate_run_id> -n <candidate_artifact_name> -D c
-      #   { printf '%s\n' "<version>"; cat c/checksums.txt; } \
-      #     | openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key | base64 | tr -d '\n'
+      # Made locally, with the offline release key, over `<version>\n<checksums.txt bytes>`.
+      # `<version>` is bare — no `ariadnev@` prefix — because that is what the
+      # shipped binary verifies against.
+      #
+      #   gh run download <candidate_run_id> --repo <owner>/<repo> \
+      #     -n <candidate_artifact_name> -D c
+      #   { printf '%s\n' "<version>"; cat c/checksums.txt; } > payload.bin
+      #   openssl pkeyutl -sign -rawin -in payload.bin \
+      #     -inkey ~/.config/ariadnev/release-signing.key | base64 | tr -d '\n'
+      #
+      # The payload goes through a file, not a pipe: OpenSSL 3.x needs the input
+      # size up front for a oneshot signature and fails a pipe with "unable to
+      # determine file size for oneshot operation".
+      #
+      # The key path is the one this workflow's compiled-in public half pairs
+      # with. An older placeholder at ~/ariadnev-release.key predates the
+      # rotation and produces a signature that fails verification here.
+      #
+      # Dispatch from the release tag, not from a branch:
+      #   gh workflow run finalize-release.yml --ref <tag> -f ...
+      # The exact-ref guard below requires it, so the workflow that finalizes a
+      # release is by construction the one that shipped in it.
+      #
       # This workflow only ever verifies. The key never becomes an Actions secret,
       # because that would move the trust root from the maintainer to the GitHub
       # account — the same substitution the signature exists to prevent.
