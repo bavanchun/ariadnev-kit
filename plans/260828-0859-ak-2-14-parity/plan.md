@@ -341,7 +341,7 @@ releases, not AgentKit's endpoints).
 | 9 | [Provider union](./phase-09-provider-union.md) | 1 | M-L | Completed |
 | 10 | [Skill dispatch and catalog](./phase-10-skill-dispatch-and-catalog.md) | 2, 9 | **L** | Completed |
 | 11 | [api, config, gui](./phase-11-api-config-gui.md) | 6, 8 | **L** | Completed |
-| 12 | [watch and orchestrate](./phase-12-watch-and-orchestrate.md) | 10, 11 | **L** | Pending |
+| 12 | [watch and orchestrate](./phase-12-watch-and-orchestrate.md) | 10, 11 | **L** | Completed |
 | 13 | [Content closure and release](./phase-13-content-closure-and-release.md) | all | M | Pending |
 
 **Execution order: 1 → 2, 3 → 4 → 5 → 6 → (7, 8 in parallel) → 11 → 12 → 13.**

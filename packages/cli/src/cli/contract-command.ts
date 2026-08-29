@@ -77,9 +77,9 @@ export const PARITY = {
   /** Names in the captured surface this project intends to expose. */
   inScope: 36,
   /** Of those, the ones Commander registers today. */
-  registered: 30,
+  registered: 32,
   /** The gap. Monotonically decreasing; zero is the phase 13 exit condition. */
-  missing: 6,
+  missing: 4,
 } as const;
 
 // Every command name registered in buildProgram(). The guard test fails if the
@@ -132,6 +132,10 @@ export const KNOWN_COMMANDS = [
   // start/status/stop over the same daemon and so does not appear twice.
   "api",
   "gui",
+  // The two that act without a person watching. `watch` previews unless it is
+  // told otherwise — see ADR 0018.
+  "watch",
+  "orchestrate",
 ] as const;
 
 export function runContract(opts: ContractOpts): ContractResult {

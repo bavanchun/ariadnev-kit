@@ -122,6 +122,10 @@ describe("the event vocabulary", () => {
       "dispatch.completed",
       "api.started",
       "api.stopped",
+      "watch.responded",
+      "watch.stopped",
+      "orchestrate.started",
+      "orchestrate.finished",
     ]);
   });
 });

@@ -36,6 +36,14 @@ export interface SpawnRequest {
   readonly onStderr: (chunk: string) => void;
   /** Aborting forwards SIGINT to the child's group. */
   readonly signal?: AbortSignal;
+  /**
+   * The child's pid, as soon as it exists.
+   *
+   * `orchestrate` records it so that `stop`, running in a *different* process
+   * minutes later, knows which group to signal. Nothing else needs it — a
+   * dispatched skill is torn down by the same process that started it.
+   */
+  readonly onSpawn?: (pid: number) => void;
 }
 
 export type ForcedEnd = "timeout" | "cancelled" | null;
@@ -91,6 +99,8 @@ export function spawnStreaming(request: SpawnRequest): Promise<SpawnOutcome> {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
+
+    if (child.pid !== undefined) request.onSpawn?.(child.pid);
 
     let forced: ForcedEnd = null;
     let escalated = false;

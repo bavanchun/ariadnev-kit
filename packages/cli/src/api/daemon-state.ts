@@ -26,13 +26,24 @@ import { ensureOperationalDirectory, operationalPath } from "../storage/operatio
 
 const PIDFILE = "api.pid";
 
-/** `~/.ariadnev/operational/api` — outside `derived/`: nothing can rebuild it. */
-export function daemonRoot(home: string): string {
-  return operationalPath(home, "api");
+/**
+ * Which daemon's record. `api` has one; `watch` has one per repository.
+ *
+ * A slot rather than a second copy of this module: the record shape, the atomic
+ * private write, the truncated-file handling and the liveness check are the same
+ * problem for both, and a second implementation would drift on exactly the parts
+ * that are easy to get subtly wrong.
+ */
+export const API_SLOT = ["api"] as const;
+export type DaemonSlot = readonly string[];
+
+/** `~/.ariadnev/operational/<slot>` — outside `derived/`: nothing rebuilds it. */
+export function daemonRoot(home: string, slot: DaemonSlot = API_SLOT): string {
+  return operationalPath(home, ...slot);
 }
 
-export function pidfilePath(home: string): string {
-  return join(daemonRoot(home), PIDFILE);
+export function pidfilePath(home: string, slot: DaemonSlot = API_SLOT): string {
+  return join(daemonRoot(home, slot), PIDFILE);
 }
 
 export interface DaemonRecord {
@@ -63,16 +74,16 @@ export interface DaemonRecord {
  *
  * 0600 because the file names a port a token may be guarding.
  */
-export function writeDaemonRecord(home: string, record: DaemonRecord): void {
-  ensureOperationalDirectory(home, daemonRoot(home));
-  writeFileSync(pidfilePath(home), `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
+export function writeDaemonRecord(home: string, record: DaemonRecord, slot: DaemonSlot = API_SLOT): void {
+  ensureOperationalDirectory(home, daemonRoot(home, slot));
+  writeFileSync(pidfilePath(home, slot), `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
 }
 
 /** The recorded daemon, or null when there is no file or it is unreadable. */
-export function readDaemonRecord(home: string): DaemonRecord | null {
+export function readDaemonRecord(home: string, slot: DaemonSlot = API_SLOT): DaemonRecord | null {
   let raw: string;
   try {
-    raw = readFileSync(pidfilePath(home), "utf8");
+    raw = readFileSync(pidfilePath(home, slot), "utf8");
   } catch {
     return null;
   }
@@ -97,8 +108,8 @@ export function readDaemonRecord(home: string): DaemonRecord | null {
 }
 
 /** Release the claim. Safe to call when there is nothing to release. */
-export function clearDaemonRecord(home: string): void {
-  rmSync(pidfilePath(home), { force: true });
+export function clearDaemonRecord(home: string, slot: DaemonSlot = API_SLOT): void {
+  rmSync(pidfilePath(home, slot), { force: true });
 }
 
 /**

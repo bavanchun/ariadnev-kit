@@ -8,6 +8,7 @@ import { Command, type Option } from "commander";
 import type { CommandNode, CommandSurface } from "../kit/av-invocation-lint.js";
 import type { CommandRegistrationContext } from "./command-registration-context.js";
 import { registerApiCommands } from "./register-api-commands.js";
+import { registerAutonomyCommands } from "./register-autonomy-commands.js";
 import { registerArtifactCommands } from "./register-artifact-commands.js";
 import { registerCatalogCommands } from "./register-catalog-commands.js";
 import { registerConfigCommands } from "./register-config-commands.js";
@@ -98,6 +99,7 @@ function surfaceProgram(): Command {
   registerArtifactCommands(program);
   registerConfigCommands(program, context);
   registerApiCommands(program);
+  registerAutonomyCommands(program);
   registerTier1Commands(program, context);
   registerHarnessCommands(program);
   return program;
