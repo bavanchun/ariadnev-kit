@@ -1,7 +1,7 @@
 ---
 phase: 13
 title: "Content closure and release"
-status: pending
+status: partial
 priority: P1
 effort: "3-4d"
 dependencies: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -212,3 +212,114 @@ all three.
 with no deprecation path. *Response:* steps 9 and 10 verify both. If either
 fails, the release is not a minor — say so and bump accordingly rather than
 shipping a version number that misrepresents the change.
+
+## Status: partial. Step 1's stop condition is not met.
+
+Step 1 is a gate, and the phase calls it *"a stop, not a warning"*:
+
+> `260822-1407` phases 4, 5, and 11 released and the `av-` prefix heal live.
+> Skill import does not start until the prefix heal is live, or it lands in a
+> half-migrated skill root.
+
+Measured 2026-08-29:
+
+| gate | state |
+|---|---|
+| lint exemption gone (ADR 0013) | **clear** — ADR closed 2026-08-24, no exemption list in `skill-lint.ts` |
+| `260822-1407` phase 4 released | **not clear** — "In progress; release and rehearsal pending" |
+| `260822-1407` phase 5 released | **not clear** — "In progress; merged to dev, release cut pending" |
+| latest published tag | `ariadnev@1.2.1-beta.0` — a prerelease |
+
+So the skill half of this phase (steps 2-6: import `bro`, `sowat`, `sumup`,
+`diagram`; merge `ak`→`av` and `agentkit`→`ariadnev`; links; lint) **did not
+start**, and the release (step 12) is a maintainer action on a beta that has not
+been finalised. Everything that does not touch the skill root or the release
+channel was completed.
+
+## What was completed
+
+**Step 7 — the four vendor-facing commands.** `content`, `feedback`,
+`changelog`, and `self-update`, each mapping a remote-vendor half onto something
+ariadnev owns, per phase 1's ADR.
+
+**Step 8 — the parity audit, including the half the ratchet cannot see.**
+
+**Step 9** — `av run <workflow>` still routes to the harness and still warns,
+naming 1.4.0; `av run <kit>/<skill>` dispatches. **Step 10** — the stub guard
+passes over the whole surface.
+
+## Open question 4, answered: both, with export as the default
+
+The question was export-only or `gh issue create`, and noted the second is more
+useful and more surface. Doing only the first leaves the report nowhere to go;
+doing only the second makes every `av feedback` a network write. So `av
+feedback` prints the report, `--export` writes it, and `--submit --yes` opens
+an issue on ariadnev's own repository. `--submit` without `--yes` previews.
+
+Every field is sanitized, not just `--attach-diagnostics`. A body pasted from a
+terminal carries whatever was on that terminal, and this text is on its way to a
+public issue.
+
+## The audit: names are complete, behaviour is not
+
+**The ratchet reached zero.** Every one of the 36 in-scope names from the 2.14.0
+capture is registered, and the six excluded ones each carry a reason. That is
+what phase 1 set out to measure, and it is measured.
+
+**It is not behavioural parity, and the phase said in advance that it would not
+be.** `parity-audit.ts` reads the captured subcommand lists the manifest has
+stored since phase 1 and compares them against the live surface. Twenty-two
+subcommand-level differences, every one classified and reasoned, asserted in
+both directions so the table cannot go stale:
+
+| kind | count | meaning |
+|---|---|---|
+| respelled | 5 | present under a different top-level name — `ak kit install` is `av install` |
+| declined | 4 | a decision exists not to build it (`config start/status/stop`, `kit repair-install-mode`) |
+| **unbuilt** | **9** | **a real gap**: `plan add-phase/create/kanban/migrate/parse/validate`, `mcp link`, `migrate prefs/rollback` |
+| extra | 4 | ariadnev has it and upstream does not (`run resume/status/cancel`, `audit kit`) |
+
+**Nine unbuilt subcommands is the honest headline of this phase**, and it is
+exactly the outcome the "What the ratchet does not prove" section anticipated:
+a name-only ratchet at zero over a surface that is not yet behaviourally
+complete. They are recorded rather than rounded off, and a test asserts the
+`unbuilt` count stays above zero so no summary can quietly claim otherwise.
+
+**A naive comparison lied on its first run, in both directions.** It reported all
+six of `backups`' verbs and all five of `skill`'s as missing, because those
+commands take their verb as a *positional argument* and Commander reports no
+subcommands for them — `av backups create` works. `POSITIONAL_VERBS` is what
+stops that false positive, and a test pins it. Without it this audit would have
+reported fifteen gaps that do not exist, and the real nine would have been lost
+in them.
+
+## What binary verification caught
+
+**`av changelog` printed `0001-01-01`.** `gh` returns GitHub's zero date for a
+release that was never published, and it passed the `typeof … === "string"`
+coercion and rendered as a date. This is the same defect phase 11 explicitly
+rejected for `api status` — *"a timestamp that has to be recognised as a
+sentinel is a shape that will be read as real"* — reintroduced two phases later
+in a different command. Found by running it against the real repository, not by
+any test. Now null, rendered as `unpublished`, and pinned.
+
+## What remains, and who it belongs to
+
+1. **Skill import** (`bro`, `sowat`, `sumup`, `diagram`) and the two router
+   merges. Blocked on step 1's gate. `diagram` is 109 files / 3.6 MB and needs
+   its attribution and vendored mermaid version preserved, a binary-size
+   measurement, a `diagram_runtime` doctor check, and its determinism test run.
+2. **The 1.3.0 release.** A maintainer action: it needs the signed channel, and
+   `260822-1407` phases 4 and 5 finalised first. The release notes must lead
+   with the four behaviour changes to already-shipped commands — `run` →
+   `workflow`, `uninstall` refusing modified files, `update` skipping them, and
+   `recover` defaulting to preview — and each must ship its deprecation warning
+   in that release. `recover` matters most: a script whose restore silently
+   becomes a preview believes it succeeded.
+3. **The nine unbuilt subcommands**, now recorded in `parity-audit.ts` rather
+   than undiscovered.
+
+## Ratchet
+
+4 → **0**. Every captured in-scope name is registered.
+\n

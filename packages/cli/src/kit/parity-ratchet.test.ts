@@ -13,7 +13,7 @@ import { excluded, inScope, missingCommands, readParityManifest } from "./parity
 //
 // Seeded at the phase 1 measurement. Every phase that closes a gap lowers it in
 // the same commit — the test below says so out loud when you forget.
-const MISSING_CEILING = 4;
+const MISSING_CEILING = 0;
 
 /** Top-level command names Commander actually has, aliases and `help` aside. */
 function registeredNames(): string[] {

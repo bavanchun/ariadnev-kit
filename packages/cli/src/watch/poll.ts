@@ -1,36 +1,22 @@
 // Reading issues, through `gh`, read-only.
 //
-// WHY `gh` AND NOT AN HTTP CLIENT. Authentication is the whole reason. `gh`
-// already holds the maintainer's credentials, refreshes them, and honours
-// `GH_TOKEN`/enterprise hosts; reimplementing that here would mean ariadnev
-// handling a GitHub token, which is a credential it has no other reason to
-// touch. The cost is a dependency on a binary being installed, which is
-// reported rather than assumed.
+// The runner itself lives in `github/gh.ts` — `feedback` and `changelog` reach
+// GitHub the same way, and the interesting part (what happens when `gh` is
+// missing) should have one answer.
 //
 // EVERY CALL HERE IS A READ. Posting lives in `postComment` below and is the one
 // exception, reached only after the allowlist, the rate limit and the dry-run
 // gate have all been passed — see `watch-command.ts`.
 
-import { spawnSync } from "node:child_process";
 import { UnavailableError } from "../cli/exit-codes.js";
+import { realGh as sharedGh, type GhRunner } from "../github/gh.js";
 import type { IssueRef } from "./respond.js";
 import { repoSlug, type RepoRef } from "./state.js";
 
-export interface GhRunner {
-  (args: readonly string[]): { status: number | null; stdout: string; stderr: string };
-}
+export type { GhRunner } from "../github/gh.js";
 
 export function realGh(): GhRunner {
-  return (args) => {
-    const result = spawnSync("gh", [...args], { encoding: "utf8", timeout: 30_000 });
-    if (result.error && (result.error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new UnavailableError(
-        "`gh` is not on PATH. `av watch` reads and writes GitHub through the GitHub CLI so that " +
-          "ariadnev never handles a token of its own; install it from https://cli.github.com and run `gh auth login`.",
-      );
-    }
-    return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
-  };
+  return sharedGh("av watch");
 }
 
 interface RawIssue {
