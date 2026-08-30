@@ -12,6 +12,11 @@ prevent specific costly actions. Its single-source-of-truth
 spine is the deletion test and drift-resistance rules in `doc-content-rules.md`;
 apply those, do not restate them here.
 
+Before creating or updating a root agent context file, load
+`references/practical-principles-for-setting-up-and-running-tests.md` and apply
+it to test-related guidance. Keep the result project-specific and filtered by
+the rules below; do not paste the reference wholesale into the context file.
+
 ## Keep-or-cut filter
 
 Run every candidate line through four questions:
@@ -72,6 +77,16 @@ yourself.
 A pre-tool-call hook (e.g. Claude Code's PreToolUse) is the other deterministic
 option. Uppercase markdown ("NEVER PUSH") is not enforcement.
 
+## Installer-managed block
+
+`av install` writes the kit's rules into the `AGENTS.md` it targets between
+`<!-- ariadnev:start -->` and `<!-- ariadnev:end -->`, replaces that block on
+every reinstall, and `av uninstall` strips it. Treat it as read-only: author,
+audit, and mine **around** it, never inside it. A line added inside the block
+is lost on the next install, and a cut inside it comes back. Report the block's
+line count separately so the budget you propose is the budget the user
+controls.
+
 ## Activation scope
 
 Keep any single file lean; split by *when it must load*, not by compressing text:
@@ -92,4 +107,7 @@ loader behavior as an evergreen fact.
 
 Add a line only when the agent repeats a mistake, review catches something it
 should have known, or the user re-types a prior correction. A large file written
-before any run is mostly cost.
+before any run is mostly cost. `/av:docs agents` operationalizes this rule by
+mining bounded git and CI history for the required evidence; with `--source`
+it additionally surfaces editor-directed imperatives and sync invariants from
+the current source tree, gated by corroboration rather than recurrence.
