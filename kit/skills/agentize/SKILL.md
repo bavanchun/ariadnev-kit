@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to expose existing code as a reusable CLI or MCP tool."
 category: dev-tools
 keywords: [agentize, mcp, cli, monorepo, npm, cloudflare, docker, agent-tool]
-argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--yagni]"
+argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--advice] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -27,7 +27,7 @@ Principles: understand before wrap · agent-centric tool design · one source of
 ## Usage
 
 ```text
-/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--yagni]
+/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--advice] [--yagni]
 ```
 
 | Flag | Effect |
@@ -37,6 +37,8 @@ Principles: understand before wrap · agent-centric tool design · one source of
 | `--cli` | CLI only |
 | `--auto` *(default)* | analyze, decide, and implement without questions |
 | `--ask` | after analysis, interview the user before implementing |
+| `--ultra` | fan the analysis/decision phase as a best-of-5 verifier pass (see Ultra Verifier Mode) |
+| `--advice` | run under `kongming` advisory supervision (see Advisory supervision) |
 | `--yagni` | challenge and cut scope not needed for the stated outcome; pass the literal flag to every downstream skill and subagent |
 
 Without `--yagni`, deliver every requested capability in full and add nothing
@@ -145,7 +147,10 @@ nothing CLI- or MCP-specific.
 `MCP_TRANSPORT`, then `--transport stdio|sse|http`, defaulting to stdio. Read
 `references/mcp-transports.md` before writing the server: it carries the entry
 switch, per-transport wiring, bearer auth for SSE and HTTP, the tool-registration
-schema, and the health endpoints. Read `references/deployment-guide.md` before
+schema, and the health endpoints. For a public remote server, prefer OAuth 2.1 +
+PKCE over plain bearer — follow `references/oauth-streamable-http.md`. For
+tool-heavy or chained workloads, consider Code Mode per `references/code-mode.md`.
+Read `references/deployment-guide.md` before
 committing to a target: it carries the Cloudflare Workers, Docker, and PaaS recipes.
 
 ### 6. Harden
@@ -177,6 +182,14 @@ Run in order; do not skip a step.
 Hand off a repo that is ready to publish: green CI, complete `docs/`, the companion
 skill staged at `claude/skills/<tool-name>/`, the decision record from phase 3, and a
 release checklist in the plan directory. Close by printing the handoff block below.
+
+## Ultra Verifier Mode (`--ultra`)
+
+Phases 0-1 run once, then the Agentization Map and decision record (phases 2-3)
+fan to five independent read-only candidates in one wave; one strongest-model
+verifier picks the winning record unchanged, or rejects all and hard-stops.
+Rubric, candidate task, and the `--ask` interview rule:
+`references/ultra-and-advisory-modes.md`.
 
 ## Output format
 
@@ -234,6 +247,14 @@ Next: /av:cook <plan-path> for any remaining implementation.
 - [ ] The decision record names every capability that was cut and why — an
       unexplained omission is the failure that record exists to prevent
 
+## Advisory supervision (`--advice`)
+
+Runs this skill under `kongming` supervision at four checkpoints — after
+Scout/Analyze, before the phase 3 decision record, before the phase 7 package
+handoff, and when stuck. It never bypasses this skill's hard gates, tests,
+review blockers, or security policy. Checkpoints and the shared protocol:
+`references/ultra-and-advisory-modes.md`.
+
 ## Workflow position
 
 **Typically follows:** `av:brainstorm`, when it is not yet settled that a CLI or MCP
@@ -270,5 +291,8 @@ extract a `core/` from.
 | Running the `--ask` interview (phase 3) | `references/challenge-framework.md` |
 | Creating the repo layout (phase 4) | `references/monorepo-layout.md` |
 | Writing the MCP server (phase 5) | `references/mcp-transports.md` |
+| Securing a public Streamable HTTP server (phase 5) | `references/oauth-streamable-http.md` |
+| Tool-heavy or chained MCP workloads (phases 3, 5) | `references/code-mode.md` |
+| Running `--ultra` or `--advice` | `references/ultra-and-advisory-modes.md` |
 | Wiring credentials into either adapter (phase 5) | `references/auth-resolution-chain.md` |
 | Choosing and configuring a deploy target (phases 5–6) | `references/deployment-guide.md` |

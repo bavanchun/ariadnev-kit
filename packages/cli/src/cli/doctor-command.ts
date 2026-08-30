@@ -67,6 +67,13 @@ function realDeps(): DiagnoseDeps {
       }
     },
     readSettingsJson: (p) => (existsSync(p) ? readFileSync(p, "utf8") : null),
+    readHookRuntimeMarker: (p) => {
+      try {
+        return readFileSync(p, "utf8");
+      } catch {
+        return null;
+      }
+    },
     hookExecutable: (p) => {
       if (!existsSync(p)) return false;
       // Hooks are Node .cjs scripts run by the host (Claude Code) with node — so

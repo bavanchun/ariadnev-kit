@@ -45,9 +45,10 @@ export interface AvInvocationAllowlistEntry {
 }
 
 /**
- * Shrink-only ceiling on `kit/av-invocation-allowlist.json`. The two entries it
- * ships are the `plans-kanban` skill and one file inside `coding-level`, both
- * waiting on a content decision this lint cannot make. A third entry means the
+ * Shrink-only ceiling on `kit/av-invocation-allowlist.json`. The one entry it
+ * ships is the `plans-kanban` skill, waiting on a content decision this lint
+ * cannot make (the `coding-level` entry left when that skill's prose was
+ * rewritten against the commands the CLI registers). A second entry means the
  * list is growing, and a growing quarantine turns into the old blanket
  * exemption with extra steps.
  *
@@ -56,7 +57,7 @@ export interface AvInvocationAllowlistEntry {
  * out in a review comment first. `--strict` fails the gate when the current
  * list exceeds this number.
  */
-export const MAX_INVOCATION_ALLOWLIST_ENTRIES = 2;
+export const MAX_INVOCATION_ALLOWLIST_ENTRIES = 1;
 
 /** Absent or malformed ⇒ empty, which is the safe direction: the gate goes back
  *  to reporting every phantom as an error. */

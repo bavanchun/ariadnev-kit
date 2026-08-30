@@ -50,6 +50,11 @@ TanStack Start and a general frontend skill when architecture is unchanged.
 - [remix-icon-integration.md](references/remix-icon-integration.md) — Remix Icon
   installation, usage, and accessibility.
 
+### Build order
+
+- [implementation-checklist.md](references/implementation-checklist.md) — the
+  step order for a new app or monorepo, each step mapped to its owning reference.
+
 Resolve version-sensitive details against installed packages and current official
 documentation.
 

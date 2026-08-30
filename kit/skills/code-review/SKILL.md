@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to review diffs, PRs, commits, or full codebases."
 category: utilities
 keywords: [review, quality, verification, reliability]
-argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]] [--yagni]"
+argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]] [--ultra] [--advice] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -196,6 +196,34 @@ are the durable source of truth; runtime tracking is only a working view.
 
 Verify. Scout. Question. Then implement. Evidence. Then claim.
 
+## Ultra Verifier Mode (`--ultra`)
+
+When `--ultra` is present, run the review as a best-of-5 verifier pass. The
+controller runs the Stage 1 spec-compliance pass once, then fans **Stage 2**
+(quality review) out to exactly five independent read-only reviewers in one
+parallel wave over a shared evidence packet, and runs the final verification
+gate once at the end.
+
+- **Candidate task:** each reviewer independently produces a complete Stage 2
+  review of the same scope with evidence (`file:line`) per finding.
+- **Finalizer — union, not winner:** a single strongest-model verifier
+  evidence-validates every candidate's findings, drops those it cannot confirm
+  against cited evidence, and returns the **deduplicated union** of validated
+  findings. The 1-20 ranking only orders severity and confidence; it never
+  selects one review wholesale, because a real defect may surface in only one
+  (possibly lower-ranked) candidate.
+- **Conflict:** `--ultra` hard-conflicts with `codebase parallel` (both own the
+  multi-reviewer strategy). Passing both is a hard-stop naming both, never a
+  silent resolution.
+
+Full mechanics — evidence packet, anonymization, the five-usable-candidate gate
+with one bounded re-dispatch, the fail-closed runtime rule, reject-all, and the
+Stage mapping — are in `../av-brainstorm/references/ultra-verifier-mode.md`.
+`--ultra` composes with the `#PR` / `COMMIT` / `--pending` / non-parallel
+`codebase` input modes and with `--yagni`. It is a best-of-5 verifier mode
+inspired by LLM-as-a-Verifier, not the full framework; never claim its
+logprob/tournament algorithm.
+
 ## Output format
 
 Wrap the `code-reviewer` subagent's `## Code Review Summary` (its template lives
@@ -243,12 +271,28 @@ Proof/risk: the review asserts which ladder rung the change cleared
 (`unit` / `integration` / `e2e` / `platform`) from the Verification block; it
 never raises the rung by reading code alone.
 
+## Advisory supervision (`--advice`)
+
+When `--advice` is present, run this skill under `kongming` supervision. The
+shared protocol — the advisory-only role, the invocation shape, and the
+never-bypass rule — lives in `../av-cook/references/advisory-supervision.md`;
+read it first. Spawn `kongming` at these checkpoints:
+
+- **After Stage 1 (spec compliance) and after Stage 2 (quality review)** —
+  pass scope, findings with evidence, and tentative severity; ask for
+  go/no-go, missed risks, and over-reach.
+- **When stuck** — contradictory evidence, unclear ownership, or repeated
+  inconclusive scouting; pass approaches tried and the exact obstacle.
+- **Before publishing a high-stakes verdict** (BLOCKED on a public contract,
+  a security finding, or a large refactor) — get counsel first.
+
+`--advice` composes with every input mode, including `codebase parallel`; it
+never bypasses evidence rules or the verification gates.
+
 ## Workflow position
 
 **Typically follows:** `/av:cook` (review after implementation), `/av:fix`
 (review after bug fix), and `/av:scout` (edge cases scouted before dispatch).
 **Typically precedes:** `/av:ship` (ship after review passes) and `/av:test`
 when the Verification block found no runnable suite and one must be written.
-**Related:** `/av:review-pr` reviews a GitHub PR with `--reply`/`--merge`
-capabilities; this skill reviews the diff without posting. `/av:security`
-takes over when findings are trust-boundary defects that need a STRIDE audit.
+**Related:** `/av:review-pr` reviews a GitHub PR with `--reply`/`--merge`; this skill reviews the diff without posting. `/av:security` takes over when findings are trust-boundary defects that need a STRIDE audit.

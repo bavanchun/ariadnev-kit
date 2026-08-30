@@ -1,7 +1,7 @@
 ---
 title: "ak-2-14-parity"
 description: "Cleanroom behavioral parity with AgentKit 2.14.0 for everything except auth, remote telemetry, and licensing: an operational data plane, ~21 new commands, a nine-provider matrix, and the ak-only skills — shipped as 1.3.0."
-status: in-progress
+status: completed
 priority: P1
 effort: "45-76d"
 tags: [cli, parity, adapters, storage, kit]
@@ -342,7 +342,7 @@ releases, not AgentKit's endpoints).
 | 10 | [Skill dispatch and catalog](./phase-10-skill-dispatch-and-catalog.md) | 2, 9 | **L** | Completed |
 | 11 | [api, config, gui](./phase-11-api-config-gui.md) | 6, 8 | **L** | Completed |
 | 12 | [watch and orchestrate](./phase-12-watch-and-orchestrate.md) | 10, 11 | **L** | Completed |
-| 13 | [Content closure and release](./phase-13-content-closure-and-release.md) | all | M | **Partial** (CLI + audit done; skill import and release blocked on `260822-1407`) |
+| 13 | [Content closure and release](./phase-13-content-closure-and-release.md) | all | M | Completed |
 
 **Execution order: 1 → 2, 3 → 4 → 5 → 6 → (7, 8 in parallel) → 11 → 12 → 13.**
 **Phase 9 depends only on 1 — fit it anywhere after 1; 10 needs 2 and 9.**

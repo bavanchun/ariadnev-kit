@@ -38,6 +38,15 @@ export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
 
 /**
+ * Where the session-init hook reads the kit's coding-level output styles from.
+ * They live inside the hook's own install dir because the hook, not the
+ * provider, consumes them — and because everything this tool writes must sit
+ * under a root the provider matrix declares. `.claude/output-styles/` is probed
+ * first and stays reserved for styles the user authors natively.
+ */
+export const CLAUDE_OUTPUT_STYLES_SIDECAR_DIR = `${CLAUDE_HOOKS_DIR}/output-styles`;
+
+/**
  * Namespace prefix for installed skill directories.
  *
  * Every skills root this tool writes is shared: `~/.agents/skills` is read

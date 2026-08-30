@@ -138,6 +138,10 @@ export const SCHEMA = {
     thinkingLanguage: projectField.optionalStr("Language used for reasoning, when the project prefers one."),
     responseLanguage: projectField.optionalStr("Language used for responses, when the project prefers one."),
   },
+  // Consumed by the session-init hook: 0-5 selects the coding-level output
+  // style it injects at session start; -1 injects nothing. Project layer, like
+  // the other keys that describe how this workspace wants to be worked in.
+  codingLevel: projectField.int(-1, "Coding-level output style injected at session start (-1 disables, 0-5 selects a level)."),
   project: {
     type: projectField.str("auto", "Project type, or `auto` to detect it."),
     packageManager: projectField.str("auto", "Package manager, or `auto` to detect it."),

@@ -279,6 +279,28 @@ describe("executeInstall + dry-run", () => {
     expect(settings.hooks.SubagentStop).toBeDefined();
   });
 
+  it("hooks: the runtime marker is written beside the hooks and recorded in the receipt", () => {
+    // The hook library reads this marker from the hooks directory to learn
+    // which runtime launched it; without it the session-state family exits
+    // silently. It is an owned file like any other: receipted, so uninstall
+    // takes it back.
+    const kitRoot = join(sandbox, "kit-with-marker");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "session-state");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(join(hookDir, "hook.json"), JSON.stringify({ event: "Stop", description: "persist state" }));
+    const hookKit = loadKit(kitRoot);
+    installKit(hookKit, ["claude-code"], ctx, { timestamp: "20260603-000090" });
+
+    const marker = join(ctx.cwd, ".claude/hooks/av/.ariadnev-runtime.json");
+    expect(existsSync(marker)).toBe(true);
+    expect(JSON.parse(readFileSync(marker, "utf8"))).toEqual({ schemaVersion: 1, runtime: "claude-code" });
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
+    const recorded = receipt.installs["claude-code"].files.map((f: { path: string }) => f.path);
+    expect(recorded).toContain(".claude/hooks/av/.ariadnev-runtime.json");
+  });
+
   it("hooks: non-claude providers skip-and-log", () => {
     const kitRoot = join(sandbox, "kit-with-hooks2");
     mkdirSync(join(kitRoot, "skills"), { recursive: true });
@@ -315,11 +337,11 @@ describe("full-kit install smoke (v2 roster)", () => {
     "advise", "agent-browser", "agentize", "ai-artist",
     "ai-multimodal", "ariadnev", "ask", "autoresearch",
     "av",
-    "backend-development", "better-auth", "bootstrap", "brainstorm",
+    "backend-development", "better-auth", "bootstrap", "brainstorm", "bro",
     "chrome-profile", "code-review", "codex-goal", "coding-level",
     "common", "context-engineering", "cook", "copywriting",
     "cti-expert", "databases", "debug", "deep-swe",
-    "deploy", "design", "devops", "docs",
+    "deploy", "design", "devops", "diagram", "docs",
     "docs-seeker", "document-skills", "excalidraw", "fable-thinking",
     "find-skills", "fix", "folder-context", "frontend-design",
     "frontend-development", "git", "github", "gkg",
@@ -335,7 +357,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "repomix", "research", "research-prompt", "retro",
     "review-pr", "scenario", "scout", "security",
     "security-scan", "sequential-thinking", "shader", "ship",
-    "shopify", "show-off", "skill-creator", "stitch",
+    "shopify", "show-off", "skill-creator", "sowat", "stitch", "sumup",
     "tanstack", "team", "tech-graph", "test",
     "threejs", "ui-styling", "ui-ux-pro-max", "use-mcp",
     "vibe", "watzup", "web-design-guidelines", "web-frameworks",
@@ -367,7 +389,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "usage-quota-cache-refresh",
   ];
 
-  it("kit ships exactly the 105-skill + 16-agent roster + 14 hooks", () => {
+  it("kit ships exactly the 109-skill + 16-agent roster + 14 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);
@@ -386,6 +408,14 @@ describe("full-kit install smoke (v2 roster)", () => {
     }
     for (const h of HOOKS) {
       expect(existsSync(join(ctx.cwd, ".claude/hooks/av", `${h}.cjs`)), h).toBe(true);
+    }
+    // The coding-level output styles land inside the hook directory, which is
+    // what session-init reads, and never as a native provider surface — the
+    // runtime's own output-styles/ stays the user's.
+    for (const level of ["0-eli5", "1-junior", "2-mid", "3-senior", "4-lead", "5-god"]) {
+      const style = `coding-level-${level}.md`;
+      expect(existsSync(join(ctx.cwd, ".claude/hooks/av/output-styles", style)), style).toBe(true);
+      expect(existsSync(join(ctx.cwd, ".claude/output-styles", style)), style).toBe(false);
     }
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));
     expect(Object.keys(settings.hooks).sort()).toEqual([

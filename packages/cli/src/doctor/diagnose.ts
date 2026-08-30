@@ -1,8 +1,9 @@
 // Pure health-check core for `ariadnev doctor`. Reads a parsed receipt +
 // injected fs/spawn adapters, returns findings — no fs/spawn calls happen
 // here directly, so this is fully unit-testable without a real install.
-import { fromPortablePath, receiptVersion, type Receipt } from "../install/install-receipt.js";
+import { fromPortablePath, receiptVersion, toPortablePath, type Receipt, type ReceiptInstall } from "../install/install-receipt.js";
 import type { HealRemoval } from "../install/install-heal.js";
+import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerPath, isHookRuntimeMarkerValid } from "../install/hook-runtime-marker.js";
 
 // Tri-state (plus warning). `pass`/`skip` are informational rows; only `fail`
 // affects the exit code (see deriveStatus). `warning` surfaces but never fails.
@@ -30,6 +31,8 @@ export interface DiagnoseDeps {
   readSettingsJson(absPath: string): string | null;
   /** Spawn-check a hook file; true if it exits 0 against an empty stdin payload. */
   hookExecutable(absPath: string): boolean;
+  /** Read the hook runtime marker at the given absolute path; null if missing/unreadable. */
+  readHookRuntimeMarker(absPath: string): string | null;
 }
 
 export interface DiagnoseOpts {
@@ -42,6 +45,45 @@ export interface DiagnoseOpts {
 
 function isHookFile(path: string): boolean {
   return path.includes(".claude/hooks/av/") && path.endsWith(".cjs") && !path.includes("_lib/");
+}
+
+function isHookRuntimeMarker(path: string): boolean {
+  return path.includes(".claude/hooks/av/") && path.endsWith(HOOK_RUNTIME_MARKER_FILE);
+}
+
+// A hook install without its runtime marker is the failure nothing else
+// reports: every hook still loads and exits 0, and the session-state family
+// simply never writes. Presence and shape are checked here rather than in the
+// receipt loop so an install whose receipt predates the marker is caught too.
+function hookRuntimeMarkerFinding(
+  providerId: string,
+  install: ReceiptInstall,
+  deps: DiagnoseDeps,
+  opts: DiagnoseOpts,
+): ProviderFinding | null {
+  if (!install.files.some((f) => isHookFile(f.path))) return null;
+  const abs = hookRuntimeMarkerPath(install.scope === "global" ? opts.home : opts.cwd);
+  const shown = toPortablePath(abs, opts.home, opts.cwd);
+  const text = deps.readHookRuntimeMarker(abs);
+  if (text === null) {
+    return {
+      providerId,
+      level: "fail",
+      weight: 8,
+      remedy: "ariadnev install",
+      message: `hook runtime marker missing: ${shown} — session-state hooks stay silent without it`,
+    };
+  }
+  if (!isHookRuntimeMarkerValid(text, providerId)) {
+    return {
+      providerId,
+      level: "fail",
+      weight: 8,
+      remedy: "ariadnev install",
+      message: `hook runtime marker does not name ${providerId}: ${shown}`,
+    };
+  }
+  return null;
 }
 
 function settingsPathFor(scope: "project" | "global", home: string, cwd: string): string {
@@ -105,6 +147,8 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
     const before = findings.length;
 
     for (const file of install.files) {
+      // The marker check below owns this file, so it is one row, not two.
+      if (isHookRuntimeMarker(file.path)) continue;
       const abs = fromPortablePath(file.path, opts.home, opts.cwd);
       if (!deps.fileExists(abs)) {
         findings.push({ providerId, level: "fail", weight: 10, remedy: "ariadnev install", message: `missing file: ${file.path}` });
@@ -114,6 +158,9 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
         findings.push({ providerId, level: "fail", weight: 8, remedy: "ariadnev install", message: `hook failed to execute: ${file.path}` });
       }
     }
+
+    const marker = hookRuntimeMarkerFinding(providerId, install, deps, opts);
+    if (marker) findings.push(marker);
 
     if (applied.length > 0) {
       const settingsAbs = settingsPathFor(install.scope, opts.home, opts.cwd);

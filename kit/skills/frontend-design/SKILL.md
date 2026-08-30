@@ -214,7 +214,7 @@ If you're about to write any of these, stop and rewrite the element with differe
 - **Components**: default unstyled shadcn; mixed icon families; monospace as costume for "technical"; custom scrollbars and reinvented form controls; modal as the first thought in product UI.
 - **Content**: "John Doe", "Acme Corp", lorem ipsum, round fake numbers, AI copy clichés, meta-labels, em-dashes in UI copy.
 
-Every ban has a legitimate exception path: the user explicitly asked for it, or the existing brand genuinely uses it. Exceptions are stated out loud, never silent.
+Every ban has a legitimate exception path: the user explicitly asked for it, or the existing brand genuinely uses it. Exceptions are stated out loud, never silent. The converged, medium-agnostic version of this list (for skills producing non-code design output — slides, posters, logos, banners, showcase pages) lives at `./references/design-quality-preflight.md`; this section stays the exhaustive, code-specific authority, so keep new bans here, not duplicated there.
 
 ## Asset & Analysis References
 
@@ -226,6 +226,7 @@ Every ban has a legitimate exception path: the user explicitly asked for it, or 
 | Optimization | `./references/technical-overview.md` |
 | Motion timing, GSAP/Motion recipes | `./references/motion-craft.md` |
 | Animations (anime.js) | `./references/animejs.md` |
+| Shared anti-slop preflight (other design skills) | `./references/design-quality-preflight.md` |
 Quick start: `./references/ai-multimodal-overview.md`
 
 **Assets**: Generate images with `av:ai-multimodal`, process with `av:media-processing`
@@ -249,7 +250,8 @@ Deeper material behind the overview references above — read on demand, not by 
 
 Return the design read and aesthetic thesis, files/components changed, token and
 interaction decisions, responsive/accessibility behavior, visual evidence at
-representative viewports, checks run, and remaining fidelity gaps.
+representative viewports, checks run, and remaining fidelity gaps — laid out with
+the handoff template in `../av-design/references/handoff-gate.md`.
 
 ## Quality gates
 
@@ -282,6 +284,8 @@ Run this against your output. Each item is pass/fail — fix EVERY failure befor
 
 If 3+ items fail on first pass, return to the Direction Menu, escalate one
 dimension, and re-run every failed check.
+
+**Handoff.** The checks above cover craft/detail and usability/accessibility in depth. Before presenting, also confirm context fit (not a template that would work unchanged for a different product) and implementation safety (verified across the required viewports, no broken assets) — the remaining dimensions of `../av-design/references/handoff-gate.md`. Fix a failing dimension now, or list it under "Known limitations" in the handoff; never ship a known failure silently.
 
 ## Workflow position
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync, writeFileSync, lstatSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { gunzipSync } from "node:zlib";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { materializeEmbeddedKit, embeddedFlatRoot, getKitRoot, cacheRoot } from "./embedded-kit.js";
@@ -30,6 +31,7 @@ function walkAssets(dir: string, base: string, acc: Record<string, Buffer>): Rec
 /** The bytes an embedded asset decodes back to. */
 function assetBytes(key: string): Buffer {
   const asset = EMBEDDED_ASSETS[key];
+  if (asset.gz !== undefined) return gunzipSync(Buffer.from(asset.gz, "base64"));
   return asset.b64 !== undefined ? Buffer.from(asset.b64, "base64") : Buffer.from(asset.text ?? "", "utf8");
 }
 
@@ -60,6 +62,24 @@ describe("embedded-kit", () => {
     expect(existsSync(join(root, "hooks", "session-init", "hook.cjs"))).toBe(true);
     expect(existsSync(join(root, "workflows", "schema", "workflow.schema.json"))).toBe(true);
     expect(existsSync(join(root, "workflows", "read-only-delivery.json"))).toBe(true);
+  });
+
+  it("extracts without the system temp dir, so publishing never crosses a filesystem", () => {
+    // On Linux /tmp is routinely a tmpfs while ~/.cache is on the root disk;
+    // staging there made the publishing rename fail with EXDEV. Pointing the
+    // temp dir at a path that does not exist proves extraction no longer
+    // touches it: staging is a sibling of the cache dir.
+    const prevTmp = process.env.TMPDIR;
+    process.env.TMPDIR = join(cache, "definitely-absent-tmp");
+    try {
+      const root = materializeEmbeddedKit();
+      expect(existsSync(join(root, "skills", "cook", "SKILL.md"))).toBe(true);
+    } finally {
+      if (prevTmp === undefined) delete process.env.TMPDIR;
+      else process.env.TMPDIR = prevTmp;
+    }
+    // Staging is removed by the rename; only the stamped cache dir remains.
+    expect(readdirSync(cache)).toEqual([`${EMBEDDED_VERSION}-${EMBEDDED_DIGEST}`]);
   });
 
   it("materializes portable-manifest.json at the flat root", () => {
@@ -139,8 +159,10 @@ describe("embedded-kit", () => {
     expect(Object.keys(EMBEDDED_ASSETS).sort()).toEqual(Object.keys(expected).sort());
     for (const k of Object.keys(expected)) {
       expect(assetBytes(k), `stale embed for ${k} — run generate-embedded-kit.mjs`).toEqual(expected[k]);
-      // Text stays text and bytes stay bytes — the branch must match the file.
-      expect(EMBEDDED_ASSETS[k].b64 !== undefined, `wrong encoding branch for ${k}`).toBe(!isTextFile(k));
+      // A non-text file must never be stored as a string: round-tripping bytes
+      // through utf8 replaces them with U+FFFD. Compression is free to claim
+      // any file, so that is the invariant left to assert.
+      expect(EMBEDDED_ASSETS[k].text === undefined || isTextFile(k), `wrong encoding branch for ${k}`).toBe(true);
     }
   });
 

@@ -38,6 +38,7 @@ function makeDeps(overrides: Partial<DiagnoseDeps> = {}): DiagnoseDeps {
         hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"' }] }] } },
       ),
     hookExecutable: () => true,
+    readHookRuntimeMarker: () => '{"schemaVersion":1,"runtime":"claude-code"}\n',
     ...overrides,
   };
 }
@@ -75,6 +76,60 @@ describe("diagnose (pure, tri-state)", () => {
   it("flags a hook file that fails to execute as fail", () => {
     const findings = diagnose(makeReceipt(), makeDeps({ hookExecutable: () => false }), opt);
     expect(findings.some((f) => f.level === "fail" && f.message.includes("session-init.cjs"))).toBe(true);
+  });
+
+  it("flags a hook install whose runtime marker is missing", () => {
+    // Every hook loads and exits 0 without the marker; only the session-state
+    // family goes quiet. This is the one check that says so.
+    const findings = diagnose(makeReceipt(), makeDeps({ readHookRuntimeMarker: () => null }), opt);
+    const f = findings.find((x) => x.message.includes(".ariadnev-runtime.json"));
+    expect(f?.level).toBe("fail");
+    expect(f?.remedy).toBe("ariadnev install");
+    expect(f?.message).toContain(".claude/hooks/av/.ariadnev-runtime.json");
+  });
+
+  it("flags a runtime marker that names a different runtime", () => {
+    const findings = diagnose(
+      makeReceipt(),
+      makeDeps({ readHookRuntimeMarker: () => '{"schemaVersion":1,"runtime":"codex"}' }),
+      opt,
+    );
+    expect(findings.some((f) => f.level === "fail" && f.message.includes("runtime marker"))).toBe(true);
+  });
+
+  it("reports a marker recorded in the receipt once, not also as a missing file", () => {
+    const receipt = makeReceipt({
+      installs: {
+        "claude-code": {
+          ...makeReceipt().installs["claude-code"]!,
+          files: [
+            ...makeReceipt().installs["claude-code"]!.files,
+            { path: ".claude/hooks/av/.ariadnev-runtime.json", sha256: "m" },
+          ],
+        },
+      },
+    });
+    const findings = diagnose(
+      receipt,
+      makeDeps({ fileExists: (p) => !p.endsWith(".ariadnev-runtime.json"), readHookRuntimeMarker: () => null }),
+      opt,
+    );
+    expect(findings.filter((f) => f.level === "fail")).toHaveLength(1);
+    expect(findings[0].message).toContain("runtime marker missing");
+  });
+
+  it("does not demand a runtime marker from an install with no hooks", () => {
+    const receipt = makeReceipt({
+      installs: {
+        "claude-code": {
+          ...makeReceipt().installs["claude-code"]!,
+          files: [{ path: ".claude/skills/brainstorm/SKILL.md", sha256: "abc" }],
+          hookBindings: [],
+        },
+      },
+    });
+    const findings = diagnose(receipt, makeDeps({ readHookRuntimeMarker: () => null }), opt);
+    expect(findings.some((f) => f.level === "fail")).toBe(false);
   });
 
   it("flags a non-empty legacy skill directory claimed by the receipt", () => {

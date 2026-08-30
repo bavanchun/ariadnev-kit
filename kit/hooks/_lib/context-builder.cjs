@@ -122,7 +122,7 @@ function buildPlanContext(sessionContext, config) {
 	const namePattern = resolveNamingPattern(plan, gitBranch);
 
 	const planLine =
-		resolved.resolvedBy === "session"
+		resolved.resolvedBy === "session" || resolved.resolvedBy === "pointer"
 			? `- Plan: ${safeDisplayValue(resolved.path)}`
 			: resolved.resolvedBy === "branch"
 				? `- Plan: none | Suggested: ${safeDisplayValue(resolved.path)}`

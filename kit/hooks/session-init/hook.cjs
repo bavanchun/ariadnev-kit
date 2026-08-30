@@ -223,7 +223,7 @@ async function main() {
     if (sessionContext) {
       updateSessionState(sessionContext, prev => ({
         ...prev,
-        activePlan: prev.activePlan || (resolved.resolvedBy === 'session' ? resolved.path : null),
+        activePlan: prev.activePlan || (resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer' ? resolved.path : null),
         suggestedPlan: resolved.resolvedBy === 'branch' ? resolved.path : null,
         timestamp: Date.now(),
         source,
@@ -275,7 +275,7 @@ async function main() {
       writeEnv(envFile, 'AV_NAME_PATTERN', namePattern);
 
       // Plan resolution
-      writeEnv(envFile, 'AV_ACTIVE_PLAN', resolved.resolvedBy === 'session' ? resolved.path : '');
+      writeEnv(envFile, 'AV_ACTIVE_PLAN', resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer' ? resolved.path : '');
       writeEnv(envFile, 'AV_SUGGESTED_PLAN', resolved.resolvedBy === 'branch' ? resolved.path : '');
 
       // Claude Code Tasks integration - enables multi-session/subagent coordination
@@ -438,13 +438,15 @@ async function main() {
       console.log(`why the current approach was chosen. Re-read the active plan and notes first.`);
     }
 
-    // Auto-inject coding level guidelines (if not disabled). Resolve styles from
-    // the hook's own install root (claudeSettingsDir = __dirname/..): the runtime
-    // root for a native install (~/.claude or <project>/.claude) or the plugin
-    // root for plugin delivery. getCodingLevelGuidelines probes the active
-    // output-styles/ layout then the legacy/build .ariadnev/ sidecar.
+    // Auto-inject coding level guidelines (if not disabled). A style the user
+    // authored under the runtime's own output-styles/ wins; otherwise the kit's
+    // styles are read from the hook install dir the installer owns and receipts.
+    // Anchored on `_lib`, not on __dirname: the kit keeps each hook in its own
+    // directory while the installer writes them flat beside `_lib`, so only the
+    // library's parent names the same directory in both layouts.
     const codingLevel = config.codingLevel ?? -1;
-    const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir);
+    const hookRoot = require('node:path').dirname(AV_LIB);
+    const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir, hookRoot);
     if (guidelines) {
       console.log(`\n${guidelines}`);
     }

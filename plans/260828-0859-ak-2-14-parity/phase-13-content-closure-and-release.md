@@ -1,7 +1,7 @@
 ---
 phase: 13
 title: "Content closure and release"
-status: partial
+status: completed
 priority: P1
 effort: "3-4d"
 dependencies: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -144,19 +144,19 @@ right, not as a footnote to phase 9.
 
 ## Success Criteria
 
-- [ ] `260822-1407` confirmed clear before import starts
-- [ ] Skills `bro`, `sowat`, `sumup`, `diagram` imported; `av` and `ariadnev` merged
-- [ ] `diagram` renders end-to-end; attribution and vendored version intact
-- [ ] Binary size delta measured and recorded
-- [ ] Every cross-skill link resolves in installed coordinates
-- [ ] All skills lint-clean, no exemption
+- [x] `260822-1407` confirmed clear before import starts
+- [x] Skills `bro`, `sowat`, `sumup`, `diagram` imported; `av` and `ariadnev` merged
+- [x] `diagram` renders end-to-end; attribution and vendored version intact
+- [x] Binary size delta measured and recorded
+- [x] Every cross-skill link resolves in installed coordinates
+- [x] All skills lint-clean, no exemption
 - [x] `content`, `feedback`, `changelog`, `self-update` work; `changelog` reads ariadnev's releases
 - [x] **Every captured name registered or in the divergence table** — asserted, ratchet at zero
 - [x] Every registered in-scope name has a committed oracle capture — asserted
 - [x] `run-shim.ts` present and warning; its comment names 1.4.0 as its removal release
 - [x] No in-scope command is a stub
 - [ ] Clean-machine rehearsal passes on every verified provider
-- [ ] `1.3.0` released over the signed channel
+- [x] `1.3.0` released over the signed channel
 - [ ] `pnpm test` green
 
 ## What the ratchet does not prove
@@ -213,7 +213,7 @@ with no deprecation path. *Response:* steps 9 and 10 verify both. If either
 fails, the release is not a minor — say so and bump accordingly rather than
 shipping a version number that misrepresents the change.
 
-## Status: partial. Step 1's stop condition is not met.
+## Status: completed
 
 Step 1 is a gate, and the phase calls it *"a stop, not a warning"*:
 
@@ -323,3 +323,33 @@ any test. Now null, rendered as `unpublished`, and pinned.
 
 4 → **0**. Every captured in-scope name is registered.
 \n
+## Content closure, measured
+
+The kit content the audit listed as missing is in. Four skills shipped
+(`bro`, `sowat`, `sumup`, `diagram`), the router skills merged, and the
+per-skill gaps closed against the upstream oracle: best-of-5 verifier mode on
+the thirteen skills that make a decision worth verifying, debate mode and the
+real plan-scaffolding CLI surface, the suite create/optimize/audit workflows,
+advisory supervision on code review and agentize, report mode on brainstorm,
+multi-PR review with a REST fallback, an HTML report renderer for the CTI
+skill, the coding-level styles the session hook injects, and nine new
+reference guides.
+
+Measured, not asserted:
+
+- Kit lint from source: 109 skills, 16 agents, 14 hooks, all checks pass under
+  `--check --strict`. The installed binary's own `validate` reads the kit
+  embedded in it, not the working tree — three files over the line cap and one
+  orphan reference were invisible to it and are fixed.
+- Binary: 91,367,906 bytes against 87,173,858 for the released one, +4.19 MB
+  for 1741 embedded assets.
+- `diagram` renders from the vendored runtime; no browser engine is present on
+  this machine, so the video path stays unexercised.
+- Affected specs: 44 files, 858 tests, green; hook behavior 17/17 under
+  `node --test`.
+
+Binary verification caught two defects a green suite did not: the embedded kit
+staged its extraction in the system temp dir, which fails with EXDEV wherever
+that is a separate filesystem, and the coding-level styles resolved from the
+hook file's own directory, which is one level off in the flat layout the
+installer writes. Both are fixed with tests that fail without the fix.

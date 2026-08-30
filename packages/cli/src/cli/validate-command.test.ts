@@ -519,8 +519,8 @@ describe("av-invocation allowlist ratchet", () => {
 
   /**
    * The shrink-only rule on `kit/av-invocation-allowlist.json`. `plans-kanban`
-   * and one file in `coding-level` are the two entries the list ships with;
-   * adding a third quietly turns the quarantine into the old blanket exemption.
+   * is the one entry the list ships with; adding another quietly turns the
+   * quarantine into the old blanket exemption.
    *
    * Lower `MAX_INVOCATION_ALLOWLIST_ENTRIES` when an entry is removed. Do not
    * raise it: a new phantom worth quarantining is worth a review comment naming

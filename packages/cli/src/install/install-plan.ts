@@ -3,13 +3,14 @@ import { join } from "node:path";
 import type { Kit } from "../kit/kit-types.js";
 import type { ProviderResolver, ResolverCtx } from "../providers/resolver.js";
 import { mapCommand } from "../adapt/command-map.js";
-import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
+import { CLAUDE_HOOKS_DIR, CLAUDE_OUTPUT_STYLES_SIDECAR_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
 import { isVerified } from "../providers/spec-verified.js";
 import { buildRulesBlock } from "./agents-md.js";
 import type { HookBinding } from "./hook-settings-merge.js";
 import { compareBindings, hookBindingSpecs } from "../kit/hook-bindings.js";
 import type { HookBindingSpec } from "../kit/kit-types.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
+import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerContent, hookRuntimeMarkerPath } from "./hook-runtime-marker.js";
 import { IGNORE_DIRS, IGNORE_FILES, isTextFile, type InstallOp } from "./install-types.js";
 
 function skip(kind: InstallOp["kind"], name: string, reason: string): InstallOp {
@@ -48,9 +49,17 @@ function planCommands(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallO
 }
 
 // Output styles are plain Markdown the provider reads verbatim — no adaptation.
+// No provider's native output-style cell is verified today; where hooks are,
+// the styles still reach the session as a session-init hook sidecar (see
+// planHooks), and the skip reason says so instead of reading as a loss.
 function planOutputStyles(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   return kit.outputStyles.map((style): InstallOp => {
-    if (!r.supports.outputStyle) return skip("outputStyle", style.name, `unsupported/unverified (${r.id})`);
+    if (!r.supports.outputStyle) {
+      const reason = isVerified(r.id, "hook")
+        ? `native surface unverified (${r.id}); installed as session-init hook sidecar instead`
+        : `unsupported/unverified (${r.id})`;
+      return skip("outputStyle", style.name, reason);
+    }
     return { action: "write", kind: "outputStyle", name: style.name, dest: r.targetFor(style, ctx)!, content: style.raw };
   });
 }
@@ -129,6 +138,32 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   const libDir = join(kit.root, "hooks", "_lib");
   if (existsSync(libDir)) {
     ops.push(...planDirTree(libDir, join(base, CLAUDE_HOOKS_DIR, "_lib"), r.id, "hook"));
+  }
+  // The runtime marker the hook library reads beside `_lib`. It is a planned
+  // write like every other owned file so the receipt, backups, and uninstall
+  // all cover it. The runtime named is the provider's id: hooks are only
+  // verified for Claude Code, and that is the id the hook library accepts.
+  ops.push({
+    action: "write",
+    kind: "hook",
+    name: HOOK_RUNTIME_MARKER_FILE,
+    dest: hookRuntimeMarkerPath(base),
+    content: hookRuntimeMarkerContent(r.id),
+  });
+  // Coding-level output styles are consumed by the session-init hook, not by
+  // the provider — the (claude-code, outputStyle) cell is unverified, so they
+  // do not go through planOutputStyles. They install as a hook sidecar under
+  // the second path the hook probes, leaving `.claude/output-styles/` to
+  // styles the user authors natively (which then win the probe). Written
+  // verbatim: the hook strips the frontmatter itself.
+  for (const style of kit.outputStyles) {
+    ops.push({
+      action: "write",
+      kind: "hook",
+      name: `${style.name}.md`,
+      dest: join(base, CLAUDE_OUTPUT_STYLES_SIDECAR_DIR, `${style.name}.md`),
+      content: style.raw,
+    });
   }
   // The statusline is not a hook — it is a command the provider runs to draw a
   // bar — but it lives in the same owned directory and loads the same `_lib`,

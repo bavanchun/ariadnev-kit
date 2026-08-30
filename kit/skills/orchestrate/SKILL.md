@@ -38,6 +38,8 @@ sequential task.
 - [internal-routing.md](references/internal-routing.md) owns in-session dispatch.
 - [job-spec.md](references/job-spec.md) owns the durable YAML job schema and
   execution-state transitions.
+- [arbiter-and-failure-modes.md](references/arbiter-and-failure-modes.md) owns
+  the arbiter checklist, the failure playbook, and the completion report.
 
 Do not duplicate those tables here. Read only the references needed by the job.
 
@@ -91,6 +93,10 @@ The integration owner reviews each result, resolves shared boundaries, and runs
 the narrowest relevant checks before broader gates. Route the combined diff to
 an independent arbiter using [model-routing.md](references/model-routing.md).
 The arbiter advises; the controller remains accountable for fixes and delivery.
+The final report is blocked until every question in
+[arbiter-and-failure-modes.md](references/arbiter-and-failure-modes.md) is
+answered; the same file says what to do when a job fails, times out, prompts
+for permission, or was interrupted.
 
 ## Safety defaults
 

@@ -88,18 +88,25 @@ When `--wiki` is present:
 See SKILL.md "Plan files and the CLI" and Workflow Process step 1 for full
 rules. Key points:
 - Check `## Plan Context` injected by hooks for active/suggested/none state
-- After creating a plan: `av plan use <plan-dir-name>` (the branch pointer)
+- After creating a plan: `av plan create --use` sets the branch pointer at
+  scaffold time; otherwise `av plan use <plan-dir-name>`
 - Active plans use plan-specific reports path; suggested plans use default path
 
 ## Plan Creation
 
 After determining phases from research/design:
 
-1. **Write the files yourself.** There is no scaffolding subcommand — `av plan`
-   inspects and tracks; it never creates a plan or a phase. Create the plan
-   directory, `plan.md`, and each `phase-XX-*.md` with file-write capability.
+1. **Scaffold with the CLI when available.** `av plan create <title>` writes
+   the plan directory and a `plan.md` stub from the template (`--description`,
+   `--priority`; `--use` also points this branch at it); each `av plan
+   add-phase <title>` appends the next `phase-NN-<slug>.md` stub plus its
+   table row (`--depends` for phase dependencies). Confirm flags with each
+   subcommand's `--help` first. Without `av`, create the same files with
+   file-write capability — the files, not the scaffold, are the plan.
 
-2. **Fill content sections** in plan.md via edit-file capability:
+2. **Fill content sections** in plan.md via edit-file capability, after the
+   mandatory read pass over every generated stub (SKILL.md → generated-file
+   write guard):
    - `## Overview` — brief description
    - `## Dependencies` — cross-plan dependencies
 
@@ -107,9 +114,10 @@ After determining phases from research/design:
    - Architecture, implementation steps, success criteria
    - Requirements, risk assessment, security considerations
 
-4. **Point the branch at the finished plan:** `av plan use <plan-dir-name>`. Run
-   `av plan --help` and the subcommand's `--help` for live syntax rather than
-   copying a command schema into the plan.
+4. **Point the branch at the finished plan** — `av plan create --use` already
+   did at scaffold time; otherwise `av plan use <plan-dir-name>`. Run `av plan
+   --help` and the subcommand's `--help` for live syntax rather than copying a
+   command schema into the plan.
 
 5. **Never hand-edit a status cell in the Phases table.** Use `av plan update
    <phase> <status>` (or `check`/`uncheck`) so the phase file and the table
@@ -133,8 +141,9 @@ After determining phases from research/design:
      are exposed in the active session.
    - Capture and report the returned URL, or report the exact skip reason.
 
-**MANDATORY:** the Markdown files are the plan and the agent writes them
-directly — never block plan creation on a CLI call. In `--html` mode, write the
+**MANDATORY:** the Markdown files are the plan; scaffolding is a convenience,
+never a gate — if `av` is unavailable, write the same files directly and never
+block plan creation on a CLI call. In `--html` mode, write the
 primary `plan.html` after planning gates finish so the HTML reflects the
 reviewed plan. If `--github` is also present, write a concise Markdown index at
 `plan.md` for the requested repo-relative link.
@@ -201,17 +210,59 @@ Brief description of what this plan accomplishes.
 Reference rules:
 - Bare refs stay in the current scope.
 - Use `global:` or `project:` when the dependency crosses scopes.
-- The live plan CLI's status operation is authoritative for resolved dependency state; confirm its invocation through help.
+- No `av plan` subcommand reads `blockedBy`/`blocks` (`validate` accepts and
+  preserves them). Resolve a dependency's state by reading the referenced
+  plan's `plan.md` frontmatter — `av plan list` shows status per plan.
 
 **Guidelines:**
 - Keep generic and under 80 lines
 - List each phase with status/progress
 - Link to detailed phase files
 - Key dependencies
+- The `av plan create` stub uses `## Outcome` / `## Open questions` sections
+  and a five-column phases table (`# | Phase | Dependencies | Effort |
+  Status`). Keep the stub's columns when scaffolded — `av plan update`
+  rewrites the last cell of the row whose first cell is the phase number, so
+  either table shape tracks.
+
+### Canonical Phase File Template
+
+Use this structure when filling each `phase-NN-*.md`. The frontmatter keys are
+exactly what the `av plan add-phase` stub writes and what the CLI parses
+(`phase`, `title`, `status` are read; `priority`, `effort`, `dependencies` are
+for readers and `show`'s display):
+
+````markdown
+---
+phase: <N>
+title: "<Phase Name>"
+status: pending       # pending | in-progress | completed | cancelled
+priority: P2          # P1 | P2 | P3
+effort: ""            # e.g. "4h", "2d"
+dependencies: []      # phase numbers this blocks on
+---
+# Phase <N>: <Name>
+## Overview
+## Requirements
+## Architecture
+## Related Code Files
+- Create / Modify / Delete: `path/...`
+## Implementation Steps
+1. …
+## Success Criteria
+- [ ] …                 # av:pm derives the phase status from these boxes
+## Risk Assessment
+<Risks + mitigations. For a risk resting on an assumption that may break: the
+observable signal, and the pre-decided response — adjust, or replan.>
+````
+
+The `add-phase` stub carries `Overview`, `Related Code Files`,
+`Implementation Steps`, `Success Criteria`, and `Risk Assessment`; add
+`Requirements` and `Architecture` (and the fuller set below) while filling.
 
 ### Phase Files (phase-XX-name.md)
 Discover and follow the consuming repository's instruction and development-standard documents. Do not assume a fixed docs path.
-Each phase file should contain:
+Beyond the canonical template above, each phase file should contain as needed:
 
 **Context Links**
 - Links to related reports, files, documentation

@@ -1,15 +1,15 @@
 ---
 name: av:docs
-description: "Create, refresh, summarize, or audit this repository's own documentation, including the root CLAUDE.md/AGENTS.md agent context file. Use for docs you maintain here, written from the codebase."
+description: "Create, refresh, summarize, or audit this repository's own docs and root CLAUDE.md/AGENTS.md, or mine git/CI history into DO/DON'T agent rules. Use for docs you maintain here."
 user-invocable: true
-when_to_use: "Invoke to create, refresh, summarize, or audit project documentation, or to author or optimize the root CLAUDE.md/AGENTS.md agent context file."
+when_to_use: "Invoke to create, refresh, summarize, or audit project documentation; to author or optimize the root CLAUDE.md/AGENTS.md agent context file; or to distill DO/DON'T rules for that file from git history, CI runs, and optionally source-tree markers via --source."
 category: utilities
-keywords: [documentation, init, update, summarize, audit, agent-context, claude-md, agents-md, llms-txt]
-argument-hint: "init|update|summarize|agent-context|llms"
+keywords: [documentation, init, update, summarize, audit, agent-context, claude-md, agents-md, agents, rules, git-history, ci-failures, source-mining, scout, llms-txt]
+argument-hint: "init|update|summarize|agent-context|agents|llms"
 metadata:
   origin: ported
   author: upstream
-  version: "1.4.0"
+  version: "1.9.0"
 ---
 
 # Documentation Management
@@ -54,25 +54,41 @@ Parse the first word of `$ARGUMENTS`:
 | `update` | `references/update-workflow.md` | Reconcile impacted docs with current evidence |
 | `summarize` | `references/summarize-workflow.md` | Summarize current evidence without forcing a new file |
 | `agent-context` | `references/agent-context-rules.md` | Author, audit, or optimize the root `CLAUDE.md`/`AGENTS.md` agent context file |
-| `llms` | `references/llms.md` | Generate a links-only `llms.txt` index (llmstxt.org format) from the `docs/` directory |
+| `agents` | `references/agents-workflow.md` | Mine bounded git and CI history for recurring failures and non-derivable gotchas; distill confirmed DO/DON'T rules into the root agent context file |
+| `llms` | `references/llms.md` | Generate or update a links-only `llms.txt` index (llmstxt.org format) from the `docs/` directory |
 | empty or unclear | ask the user | Choose the operation; never assume `init` |
 
 Other workflows deciding whether docs are affected should load
-`references/documentation-management.md`.
+`references/documentation-management.md`. When an operation documents or
+distills testing guidance, load
+`references/practical-principles-for-setting-up-and-running-tests.md` first.
 
 ## Flags
 
-Composable with any operation:
+Composable with any operation unless noted:
 
 - `--advice` — before writing or updating any doc or agent context file, spawn
   `kongming` for counsel on what to keep, cut, or restructure, and factor it into
   the change. `kongming` advises only; this skill stays responsible for every
   edit and still confirms writes with the user. Spawn it again when stuck or
-  before an irreversible docs change.
+  before an irreversible docs change. **Implied by `agents`** (do not re-spawn).
 - `--audit` — for `agent-context`: first get a `kongming` audit pass over the
   current `CLAUDE.md`/`AGENTS.md`, then interview the user one question at a time
   (one keep / cut / fix decision per question) using the keep-or-cut filter in
-  `references/agent-context-rules.md`. Apply only the confirmed changes.
+  `references/agent-context-rules.md`. Apply only the confirmed changes. For
+  `agents`: same interview cadence at the confirmation step, one question per
+  proposed rule.
+- `--dry-run` — scoped to `agents`. Stops after signal ranking (step 3), reports
+  mined signals and the watchlist, spawns no advisor, writes no file.
+- `--source` — scoped to `agents`. Layers `av:scout` source-tree mining onto
+  the git/CI pass (never replaces it). Read-only: no generators, no tests.
+  Adds a corroboration gate for source-only clusters (≥2 anchors plus a
+  code/test guard or git-CI corroboration). Composes with `--dry-run` and
+  `--audit`.
+
+`agents` also accepts an optional positional bound: `agents 30d` (days) or
+`agents 500` (commits). Defaults: 90 days OR 300 commits (whichever is smaller),
+200 CI runs.
 
 ## Discovery Contract
 
@@ -117,7 +133,7 @@ Report the decision before the diff, because "no change was needed" is a valid
 and common result:
 
 1. **Operation** — which route ran (`init`, `update`, `summarize`,
-   `agent-context`, `llms`) and the argument that selected it.
+   `agent-context`, `agents`, `llms`) and the argument that selected it.
 2. **Discovery** — the contract found, in the order of the Discovery Contract:
    which instruction file, README, index, and evidence sources were read. Name
    them; do not describe them as "the usual docs". Write "none" for a route that
@@ -131,6 +147,14 @@ and common result:
      line count, a per-block keep / cut / migrate classification, the deletions
      and migrations as a diff, and any deterministic control recommended as a
      snippet. Nothing is written until the user confirms.
+   - **`agents`** — the **Evidence** first: the window mined, which sources
+     were read (git, CI via `gh`, PR reviews, `--source` scout) and which were
+     skipped and why, the ranked candidates with their incident or anchor
+     counts, and the watchlist. With `--dry-run` the report ends there. Otherwise
+     a **Proposal** follows, one distillation template per surviving rule with
+     its placement, as a single batch diff plus cut-offers; after confirmation,
+     the proposed / accepted / rejected / watchlisted / enforcement-recommended
+     counts and the line-count delta.
    - **`summarize`** — **Findings**, the evidence-backed summary itself. This
      route answers a question; it does not necessarily touch a file.
 4. **Deliberately unchanged** — documents inspected and left alone, each with
@@ -144,8 +168,13 @@ and common result:
       or the `llms.txt` output path — and no product code was implemented
 - [ ] No claim was verified against another document; every one traces to
       source, tests, scripts, or live state
-- [ ] For `agent-context`: the diff was shown and confirmed before any write,
-      and no secret was written into the file
+- [ ] For `agent-context` and `agents`: the diff was shown and confirmed before
+      any write, no secret was written into the file, and nothing was written
+      inside the installer-managed `<!-- ariadnev:start -->` …
+      `<!-- ariadnev:end -->` block
+- [ ] For `agents`: mining was read-only — no git mutation, no CI re-run, no
+      test run — and every proposed rule cites ≥3 independent incidents or
+      passes the `--source` corroboration gate
 - [ ] No `settings.json` or hook file was edited — a deterministic control is
       recommended as a snippet for the user to apply, never applied here
 - [ ] Any runtime loader behavior stated was verified against that runtime
@@ -163,7 +192,10 @@ ship's commit at step 10 rather than assuming they rode along.
 this skill writes this project's own; `av:interview-docs` derives a document
 from the user's answers rather than from the codebase; `av:folder-context`
 owns subfolder `CLAUDE.md` files, where the `agent-context` route here owns the
-root one; `av:llms` is the general `llms.txt` generator — arbitrary source paths
-or URLs, custom output location, and the inline-content `llms-full.txt` —
-whereas this skill's `llms` argument covers only the narrow case: a links-only
-index built from `docs/`.
+root one; `av:retro` narrates git history for people, where the `agents` route
+here mines it for agent rules and writes nothing until confirmed — route
+cross-run watchlist trends through `av:journal`, not a state file; `av:llms` is
+the general `llms.txt` generator — arbitrary source paths or URLs, custom
+output location, and the inline-content `llms-full.txt` — whereas this skill's
+`llms` argument covers only the narrow case: a links-only index built from
+`docs/`.

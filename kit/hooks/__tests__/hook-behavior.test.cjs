@@ -28,8 +28,8 @@ function sandbox() {
   return { root, home, project };
 }
 
-function runHook(name, payload, env = {}) {
-  const result = spawnSync(process.execPath, [path.join(HOOKS_DIR, name, 'hook.cjs')], {
+function runHook(name, payload, env = {}, hooksDir = HOOKS_DIR) {
+  const result = spawnSync(process.execPath, [path.join(hooksDir, name, 'hook.cjs')], {
     input: JSON.stringify(payload),
     encoding: 'utf8',
     env: { ...process.env, ...env },
@@ -37,6 +37,19 @@ function runHook(name, payload, env = {}) {
     timeout: 15000
   });
   return { code: result.status, stdout: result.stdout || '', stderr: result.stderr || '' };
+}
+
+/**
+ * Copy the hooks tree into the sandbox and run from there. In this checkout the
+ * kit sits under a real `.claude/` directory, so a hook resolving its install
+ * root by walking up to `.claude` (the way an installed hook does) would land
+ * on the machine's real state; a copy under the sandbox has no such ancestor
+ * and falls back to the payload cwd — exactly the sandboxed project.
+ */
+function sandboxHooks(box) {
+  const dir = path.join(box.root, 'hooks');
+  fs.cpSync(HOOKS_DIR, dir, { recursive: true });
+  return dir;
 }
 
 function userConfig(box, config) {
@@ -131,6 +144,54 @@ test('a per-hook switch turns a hook off — from the user config only', () => {
   assert.strictEqual(runHook('privacy-block', payload, { HOME: box.home }).code, 0);
 });
 
+test('privacy-block warns on a Bash .env read but does not mistake process.env for one', () => {
+  const box = sandbox();
+  const bash = (command) => runHook(
+    'privacy-block',
+    { hook_event_name: 'PreToolUse', cwd: box.project, tool_name: 'Bash', tool_input: { command } },
+    { HOME: box.home }
+  );
+  // Bash never blocks — the approval flow tells the model to `cat` the file
+  // after a "yes" — but it must still name the sensitive file on stderr.
+  const read = bash('cat .env');
+  assert.strictEqual(read.code, 0);
+  assert.match(read.stderr, /accesses sensitive file: \.env/);
+
+  // Source text is not a filename. Before the shell-aware lexer this produced
+  // a fabricated ".env.API_KEY)" path and a spurious warning on every turn.
+  const source = bash('node -e "console.log(process.env.API_KEY)"');
+  assert.strictEqual(source.code, 0);
+  assert.doesNotMatch(source.stderr, /sensitive file/);
+});
+
+/**
+ * The session-state family reads `.ariadnev-runtime.json` from the hooks
+ * directory to learn which runtime launched it, and exits before writing
+ * anything when the marker is absent. The installer writes it; this pins that
+ * the marker alone is what separates a silent no-op from a bound session.
+ */
+test('the runtime marker is what lets session-init bind a session', () => {
+  const box = sandbox();
+  const installed = path.join(box.root, 'hooks');
+  fs.cpSync(HOOKS_DIR, installed, {
+    recursive: true,
+    filter: (src) => !/__tests__|\.logs/.test(src)
+  });
+  // Session state lives under the OS temp dir; point it into the sandbox.
+  const tmp = path.join(box.root, 'tmp');
+  fs.mkdirSync(tmp);
+  const env = { HOME: box.home, TMPDIR: tmp, TEMP: tmp, TMP: tmp };
+  const payload = { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'marker-test' };
+  const stateRoot = path.join(tmp, 'ariadnev-session-v2');
+
+  assert.strictEqual(runHook('session-init', payload, env, installed).code, 0);
+  assert.ok(!fs.existsSync(stateRoot), 'without the marker nothing may be written');
+
+  fs.writeFileSync(path.join(installed, '.ariadnev-runtime.json'), '{"schemaVersion":1,"runtime":"claude-code"}\n');
+  assert.strictEqual(runHook('session-init', payload, env, installed).code, 0);
+  assert.ok(fs.existsSync(stateRoot), 'with the marker the session is bound');
+});
+
 test('scout-block stops a read inside a generated tree', () => {
   const box = sandbox();
   const buried = path.join(box.project, 'node_modules', 'left-pad', 'index.js');
@@ -153,6 +214,104 @@ test('session-init emits context and never blocks the session', () => {
   );
   assert.strictEqual(code, 0);
   assert.ok(stdout.trim().length > 0, 'session start should contribute something to context');
+});
+
+test('session-init injects the configured coding-level style the installer wrote', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  projectConfig(box, { codingLevel: 3 });
+  // The installer writes the styles into the hook's own install dir; reproduce
+  // that layout with the style the kit actually ships, so the shipped content
+  // is what round-trips.
+  const styles = path.join(hooks, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(styles, 'coding-level-3-senior.md')
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.match(stdout, /Senior Engineer Communication Mode/, 'the style body should be injected');
+  assert.ok(!stdout.includes('keep-coding-instructions'), 'the frontmatter must be stripped');
+});
+
+test('session-init finds the styles in the flat layout the installer writes', () => {
+  // The kit keeps every hook in its own directory; the installer flattens them
+  // to `<hooks>/<name>.cjs` beside a shared `_lib`. A hook that located its
+  // assets from its own directory would look one level too high there, so the
+  // installed shape gets its own round trip.
+  const box = sandbox();
+  const kitHooks = sandboxHooks(box);
+  const flat = path.join(box.root, 'installed-hooks');
+  fs.mkdirSync(flat, { recursive: true });
+  fs.cpSync(path.join(kitHooks, '_lib'), path.join(flat, '_lib'), { recursive: true });
+  fs.mkdirSync(path.join(flat, 'session-init'), { recursive: true });
+  fs.copyFileSync(path.join(kitHooks, 'session-init', 'hook.cjs'), path.join(flat, 'session-init.cjs'));
+  const styles = path.join(flat, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(styles, 'coding-level-3-senior.md')
+  );
+  projectConfig(box, { codingLevel: 3 });
+
+  const result = spawnSync(process.execPath, [path.join(flat, 'session-init.cjs')], {
+    input: JSON.stringify({ hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' }),
+    encoding: 'utf8',
+    env: { ...process.env, HOME: box.home, TMPDIR: box.root },
+    cwd: box.project,
+    timeout: 15000
+  });
+  assert.strictEqual(result.status, 0);
+  assert.match(result.stdout || '', /Senior Engineer Communication Mode/, 'the installed layout must resolve the style');
+});
+
+test('session-init injects nothing when codingLevel is absent', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  const styles = path.join(hooks, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(styles, 'coding-level-3-senior.md')
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.ok(!stdout.includes('Senior Engineer Communication Mode'), 'default is -1: no injection');
+});
+
+test('session-init reports the plan `av plan use` pointed at', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  const plan = path.join(box.project, 'plans', '260830-1200-demo');
+  fs.mkdirSync(plan, { recursive: true });
+  fs.writeFileSync(path.join(plan, 'plan.md'), '---\ntitle: demo\nstatus: pending\n---\n');
+  fs.mkdirSync(path.join(box.project, '.ariadnev'), { recursive: true });
+  fs.writeFileSync(
+    path.join(box.project, '.ariadnev', 'current-plan.json'),
+    JSON.stringify({ schemaVersion: 1, byBranch: { '(no branch)': '260830-1200-demo' } })
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.match(stdout, /Plan: [^|]*260830-1200-demo/, 'the pointer plan is the directive, not a suggestion');
 });
 
 /**

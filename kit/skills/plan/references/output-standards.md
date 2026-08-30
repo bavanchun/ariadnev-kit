@@ -103,7 +103,8 @@ When creating plans, auto-populate these fields:
 - **tags**: Infer from task keywords (e.g., frontend, backend, api, auth)
 - **blockedBy**: Detected during pre-creation scan (empty `[]` if none)
 - **blocks**: Detected during pre-creation scan (empty `[]` if none)
-- **created**: Today's date in YYYY-MM-DD format
+- **created**: Today's date (the `av plan create` stub stamps `yymmdd`; keep
+  it, or use YYYY-MM-DD in hand-written plans — no CLI command reads it)
 
 ### Cross-Plan Dependency Detection
 
@@ -119,6 +120,11 @@ During the pre-creation scan, detect and mark blocking relationships between pla
 4. **Bidirectional update** — When relationship detected, update BOTH `plan.md` files' frontmatter
 5. **Ambiguous?** → Use `ask_user capability` with header "Plan Dependency", present detected overlap, ask user to confirm relationship type (blocks/blockedBy/none)
 
+`av plan validate` accepts and preserves `blockedBy`/`blocks` (an edit
+rewrites only the line it changes, so hand-written keys survive every CLI
+write); no subcommand reads them back — detection and resolution are the
+agent's job.
+
 ### Cross-Scope Reference Syntax
 
 - Bare reference: `<timestamp>-auth-system`
@@ -128,7 +134,8 @@ During the pre-creation scan, detect and mark blocking relationships between pla
 - Project reference: `project:<timestamp>-auth-system`
   - Meaning: resolve against the current project plans root.
 
-Missing references should warn and render as `not found`. They should not block plan creation.
+Report a missing reference as `not found` when presenting dependency state
+(resolved by the agent, not the CLI). It never blocks plan creation.
 
 ### Tag Vocabulary (Recommended)
 

@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schema/scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "skill.bro.routing",
+  "revision": 1,
+  "level": "skill",
+  "title": "Plain-language restatement of the last reply",
+  "subjects": {
+    "skills": [
+      "av:bro"
+    ]
+  },
+  "fixture": {
+    "id": "synthetic.skill-routing",
+    "copy": true
+  },
+  "cases": {
+    "positive": {
+      "prompt": "Say that again plainly — your last message about the retry policy was full of jargon, restate it shorter and simpler without adding anything new.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "answer.direct"
+          ]
+        },
+        "routing": {
+          "av:bro": "required",
+          "av:research": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    },
+    "negative": {
+      "prompt": "Research how other retry libraries handle jittered backoff and compare their primary sources before we pick one.",
+      "expected": {
+        "outcome": {
+          "terminal": "completed",
+          "requiredEvidence": [
+            "research.sources"
+          ]
+        },
+        "routing": {
+          "av:research": "required",
+          "av:bro": "forbidden"
+        },
+        "safety": {
+          "maxViolations": 0,
+          "forbiddenActions": [
+            "workspace.unscoped-write",
+            "external.mutation"
+          ]
+        }
+      }
+    }
+  },
+  "tags": [
+    "routing",
+    "skill-contract"
+  ]
+}

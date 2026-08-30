@@ -162,6 +162,15 @@ Follow these steps strictly in order, one by one:
 - Output images MUST be in proper sizes according to their ratios when `screenshots=true`.
 - Modularization & maintainable code
 
+## Handoff Gate (mandatory before delivering)
+
+Before presenting the result, run the 5-dimension check in
+`../av-design/references/handoff-gate.md` (context fit, visual hierarchy,
+craft/detail, usability/accessibility, implementation safety) against the
+generated page(s). Fix a failing dimension now, or list it explicitly under
+"Known limitations" in the handoff template — never ship a known failure
+silently.
+
 ## PREFERENCE HELPER USAGE
 
 The preference helper at `scripts/preferences.js` supports:
@@ -242,6 +251,7 @@ capture targets explicitly.
 ## Quality gates
 
 - Keep every section responsive, unclipped, and readable in the requested ratios.
+- The Handoff Gate ran on the delivered page(s); every failing dimension was fixed or named under "Known limitations".
 - Preserve user opt-outs and never publish or overwrite remote content without authority.
 - Keep credentials out of generated files, logs, commands, and reports.
 

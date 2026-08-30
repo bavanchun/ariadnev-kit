@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke when there is a concrete bug, error, or CI failure."
 category: utilities
 keywords: [bugfix, error, test-failure, CI, lint]
-argument-hint: "[issue] --auto|--review|--quick|--parallel [--advice] [--skip-journal]"
+argument-hint: "[issue] --auto|--review|--quick|--parallel [--ultra] [--advice] [--skip-journal]"
 metadata:
   origin: ported
   author: upstream
@@ -16,10 +16,9 @@ metadata:
 
 Repair a concrete, reproducible failure of any complexity: frame the intended
 outcome, scout the affected code, prove the root cause with evidence, route by
-complexity to a quick, standard, deep, or parallel workflow, implement the
-cause-aligned fix, then verify it against the captured pre-fix state and add
-the regression guard. Does not handle new feature scope (`av:cook`) or a
-diagnosis-only request with no repair (`av:debug`).
+complexity to a quick, standard, deep, or parallel workflow, implement the cause-aligned
+fix, then verify it against the captured pre-fix state and add the regression guard.
+Does not handle new feature scope (`av:cook`) or a diagnosis-only request with no repair (`av:debug`).
 
 ## Arguments
 
@@ -29,6 +28,7 @@ diagnosis-only request with no repair (`av:debug`).
 | `--review` | Human-in-the-loop: pause for approval at each major step |
 | `--quick` | Fast scout → diagnose → fix → verify cycle for trivial issues (lint, type errors) |
 | `--parallel` | Route 2+ independent issues to parallel `fullstack-developer` agents, one scope each |
+| `--ultra` | Run the post-diagnosis fix-plan selection (Step 3) as a best-of-5 verifier pass — read `references/complexity-assessment.md` → "Ultra Verifier Mode"; hard-conflicts with `--quick` and `--parallel` |
 | `--advice` | Run under `kongming` advisory supervision — read `references/advisory-supervision.md` |
 | `--skip-journal` | Skip the automatic journal entry at finalize |
 
@@ -105,6 +105,7 @@ flowchart TD
     E -->|Moderate| G[Compare cause-aligned fixes]
     E -->|Complex| H[Research → Brainstorm options → Plan]
     E -->|Parallel| I[Apply same decision per independent issue]
+    E -->|"--ultra"| U["5 read-only candidate fix plans, verifier selects the winner"] --> J
     F --> J[Step 4: Fix Implementation]
     G --> J
     H --> J
@@ -280,16 +281,14 @@ review findings or a CI failure to `av:fix --auto`.
 **Invokes directly:** `av:scout` (Step 1); `av:debug`, `av:sequential-thinking`,
 `av:problem-solving` (Step 2); `av:brainstorm` (Step 3); `av:pm` (Step 6).
 
-**Related:** `av:test` and `av:code-review` run standalone after a fix; here
-verification and review are Step 5. `av:vibe` wraps this skill for its bugfix
-route. `av:ui-ux-pro-max` backs the UI workflow's style searches.
+**Related:** `av:test` and `av:code-review` run standalone after a fix; here they are Step 5. `av:vibe` wraps this skill for its bugfix route; `av:ui-ux-pro-max` backs the UI workflow's style searches.
 
 ## References
 
 | Read when | File |
 | --- | --- |
 | Step 0 needs the mode question | `references/mode-selection.md` |
-| Step 3 classifies the issue | `references/complexity-assessment.md` |
+| Step 3 classifies the issue, or `--ultra` was passed | `references/complexity-assessment.md` |
 | Routed Simple / Moderate / Complex | `references/workflow-quick.md` / `references/workflow-standard.md` / `references/workflow-deep.md` |
 | Handling the `code-reviewer` result | `references/review-cycle.md` |
 | Deciding which skill or subagent a step activates | `references/skill-activation-matrix.md` |
