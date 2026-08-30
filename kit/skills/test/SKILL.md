@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke for running or designing validation suites."
 category: utilities
 keywords: [test, unit, integration, e2e, coverage]
-argument-hint: "[context] OR ui [url]"
+argument-hint: "[context] OR ui [url] [--ultra]"
 metadata:
   origin: ported
   author: upstream
@@ -106,6 +106,29 @@ Reports        → report-format.md
 **IMPORTANT:** Invoke "the engineer project-organization skill" skill to organize the outputs.
 
 Use naming pattern from `## Naming` section injected by hooks.
+
+## Ultra Verifier Mode (`--ultra`)
+
+`--ultra` applies to the analysis/design step of a suite-design,
+suite-optimization, or test-audit request — the "designing validation suites"
+half of this skill — never to test execution: a test run is evidence, not a
+candidate, and is never fanned. When present, run that step as a best-of-5
+verifier pass: one immutable evidence packet (scout reports, CI timings, git
+history summary, the suspect or failing tests), exactly five independent
+read-only candidates in one parallel wave, one strongest-model verifier.
+
+- Suite design or optimization: the verifier selects the single winning suite
+  design or optimization plan unchanged (or rejects all); implementation runs
+  once from the winner.
+- Test audit: the verifier returns the evidence-validated, deduplicated union
+  of audit findings across the five candidates — a real deceptive test may be
+  caught by only one candidate; repairs run once on the union.
+
+On a plain execution request (`[context]` or `ui`), stop and say `--ultra` has
+no design step to fan here; do not run the suite as if the flag were absent.
+Full mechanics are in `../av-brainstorm/references/ultra-verifier-mode.md`. It
+is a best-of-5 verifier mode inspired by LLM-as-a-Verifier, not the full
+framework.
 
 ## Output format
 

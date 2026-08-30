@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to expose existing code as a reusable CLI or MCP tool."
 category: dev-tools
 keywords: [agentize, mcp, cli, monorepo, npm, cloudflare, docker, agent-tool]
-argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--yagni]"
+argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -27,7 +27,7 @@ Principles: understand before wrap · agent-centric tool design · one source of
 ## Usage
 
 ```text
-/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--yagni]
+/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--yagni]
 ```
 
 | Flag | Effect |
@@ -37,6 +37,7 @@ Principles: understand before wrap · agent-centric tool design · one source of
 | `--cli` | CLI only |
 | `--auto` *(default)* | analyze, decide, and implement without questions |
 | `--ask` | after analysis, interview the user before implementing |
+| `--ultra` | fan the analysis/decision phase as a best-of-5 verifier pass (see Ultra Verifier Mode) |
 | `--yagni` | challenge and cut scope not needed for the stated outcome; pass the literal flag to every downstream skill and subagent |
 
 Without `--yagni`, deliver every requested capability in full and add nothing
@@ -177,6 +178,28 @@ Run in order; do not skip a step.
 Hand off a repo that is ready to publish: green CI, complete `docs/`, the companion
 skill staged at `claude/skills/<tool-name>/`, the decision record from phase 3, and a
 release checklist in the plan directory. Close by printing the handoff block below.
+
+## Ultra Verifier Mode (`--ultra`)
+
+When `--ultra` is present, run phases 0-1 once; the skill then fans only the
+Agentization Map and decision record generation (phases 2-3) to exactly five
+independent read-only candidates in one parallel wave; a single strongest-model
+verifier scores them.
+
+- **Candidate task:** each candidate produces a complete decision record —
+  Agentization Map, output mode, capability list, tool/command names,
+  transports, deployment targets, package metadata — from the same scout
+  evidence packet.
+- **Rubric:** fidelity to scouted behavior (nothing invented), agent-centric
+  design quality, capability selection sharpness, and deployment realism.
+- **Finalizer:** the verifier selects the single winning decision record
+  unchanged (or rejects all); phases 4-7 execute once from the winner. On
+  reject-all, hard-stop and report why.
+
+In `--ask`, the user interview runs once before the fan; candidates never call
+`ask_user`. Full mechanics are in
+`../av-brainstorm/references/ultra-verifier-mode.md`. It is a best-of-5
+verifier mode inspired by LLM-as-a-Verifier, not the full framework.
 
 ## Output format
 

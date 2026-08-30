@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke when work needs phases, architecture, or a roadmap."
 category: utilities
 keywords: [planning, architecture, phases, roadmap, html, github, wiki, agentwiki, publish]
-argument-hint: "[task] [--fast|--hard|--deep|--parallel|--two] [--tdd|--no-tasks] [--html] [--github] [--wiki] [--advice] [--yagni] [--skip-journal] OR [archive|red-team|validate]"
+argument-hint: "[task] [--fast|--hard|--deep|--parallel|--two|--ultra] [--tdd|--no-tasks] [--html] [--github] [--wiki] [--advice] [--yagni] [--skip-journal] OR [archive|red-team|validate]"
 license: MIT
 metadata:
   origin: ported
@@ -61,7 +61,8 @@ If invoked with a task description, proceed with the planning workflow. If invok
 
 Default: auto-detect planning mode (analyze task complexity and pick mode).
 Load `references/workflow-modes.md` for auto-detection logic, per-mode
-workflows, and context reminders.
+workflows, Mode Exclusivity (mode flags are single-choice), the explicit-opt-in
+Ultra Mode (`--ultra`, never auto-detected), and context reminders.
 
 | Flag | Mode | Research | Red Team | Validation | Cook Flag |
 |------|------|----------|----------|------------|-----------|
@@ -71,6 +72,7 @@ workflows, and context reminders.
 | `--deep` | Deep | 2-3 researchers + per-phase scout | Yes | Yes | (none) |
 | `--parallel` | Parallel | 2 researchers | Yes | Optional | `--parallel` |
 | `--two` | Two approaches | 2+ researchers | After selection | After selection | (none) |
+| `--ultra` | Ultra (5 independent candidate plans + strongest-model verifier selects the winner; explicit opt-in only) | 2 researchers, shared packet (see `references/workflow-modes.md`) | Yes | Optional | (none) |
 
 **Composable flags** (combine with any mode):
 
@@ -105,7 +107,7 @@ flowchart TD
     B --> C[Scope Challenge]
     C --> D[Mode Detection]
     D -->|fast| E[Skip Research]
-    D -->|hard/deep/parallel/two| F[Spawn Researchers]
+    D -->|hard/deep/parallel/two/ultra| F[Spawn Researchers]
     E --> G[Codebase Analysis]
     F --> G
     G --> H[Write Plan via Planner]
@@ -140,9 +142,9 @@ each naming what to run and what to load.
 2. **Cross-Plan Scan** → Per the Rules above: scan unfinished plans, record `blockedBy`/`blocks` in both
 3. **Scope Challenge → Mode Detection** → Step 0 of the table above, then auto-detect the mode or take the explicit flag
 4. **Research & Codebase Analysis** → Steps 1-2 of the table above: spawn researchers (skipped in fast mode), read docs, scout where evidence is missing
-5. **Plan Documentation** → Write comprehensive plan via planner subagent, then `av plan use <plan-dir-name>`
-6. **Red Team Review** → Run `/av:plan red-team {plan-path}` (hard/deep/parallel/two modes)
-7. **Post-Plan Validation** → Run `/av:plan validate {plan-path}` (hard/deep/parallel/two modes)
+5. **Plan Documentation** → Write comprehensive plan via planner subagent (under `--ultra`: five candidate planners, one verifier, winner materialized unchanged), then `av plan use <plan-dir-name>`
+6. **Red Team Review** → Run `/av:plan red-team {plan-path}` (hard/deep/parallel/two/ultra modes)
+7. **Post-Plan Validation** → Run `/av:plan validate {plan-path}` (hard/deep/parallel/two/ultra modes)
 8. **HTML Artifact** → If `--html`, activate `/av:frontend-design` and write final reviewed `plan.html` as the primary output
 9. **Hydrate Progress** → Mirror phases into the live task-management surface when one exists (default on, `--no-tasks` to skip; fewer than 3 phases → skip). Plan files stay the source of truth; see `references/task-management.md` for the hydration and cook handoff protocol
 10. **GitHub Issue** → If `--github`, create/update issue and apply `ready to review`
@@ -183,7 +185,7 @@ After `plan.md` + phase files are written and the user has reviewed/approved the
 
 **Skip this step ONLY when:** the current invocation IS already a subcommand (`validate`, `red-team`, `archive`), or the user explicitly said "just plan, don't suggest next step".
 
-**Skip an individual option ONLY when the active mode already auto-ran that gate (Steps 6-7):** omit `/av:plan red-team` under `--hard`, `--deep`, `--parallel`, or `--two`; omit `/av:plan validate` under `--deep`. If both already ran, still offer `/av:cook <plan-path>` and `End session`.
+**Skip an individual option ONLY when the active mode already auto-ran that gate (Steps 6-7):** omit `/av:plan red-team` under `--hard`, `--deep`, `--parallel`, `--two`, or `--ultra`; omit `/av:plan validate` under `--deep`. If both already ran, still offer `/av:cook <plan-path>` and `End session`.
 
 After selection: invoke the chosen command with the plan path as argument for continuity.
 

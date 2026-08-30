@@ -6,7 +6,7 @@ when_to_use: "Invoke to start a new project or full-stack setup from scratch."
 category: utilities
 keywords: [scaffold, project, setup, boilerplate]
 license: MIT
-argument-hint: "[requirements] [--full|--auto|--fast|--parallel] [--yagni] [--skip-journal]"
+argument-hint: "[requirements] [--full|--auto|--fast|--parallel] [--ultra] [--yagni] [--skip-journal]"
 metadata:
   origin: ported
   author: upstream
@@ -39,6 +39,7 @@ End-to-end project bootstrapping from idea to running code.
 | Flag | Effect |
 |------|--------|
 | `--yagni` | Opt into YAGNI: challenge and cut scope not needed for the stated outcome (default: scaffold the full requested scope). Passed through to `av:plan` and `av:cook` |
+| `--ultra` | Planning uses the best-of-5 verifier mode: the planning phase runs `/av:plan --ultra` instead of the mode-mapped plan flag (see Ultra Verifier Mode). Hard-conflicts with `--parallel` |
 
 **Example:**
 ```
@@ -98,6 +99,10 @@ Activate **av:plan** skill with mode-appropriate flag:
 - `--fast` → `/av:plan --fast <requirements>` (skip research)
 - `--parallel` → `/av:plan --parallel <requirements>` (file ownership + dependency graph)
 
+Under `--ultra`, substitute `/av:plan --ultra <requirements>` for the mode-mapped
+flag above (see Ultra Verifier Mode); this override also applies inside the
+loaded workflow references. With `--parallel`, the combination is a hard-stop.
+
 Pass the brainstorm contract with the requirements so planning preserves the
 accepted outcome, constraints, non-goals, and acceptance criteria.
 
@@ -146,6 +151,23 @@ Explicit `/av:journal` and `av journal create` are unaffected.
 - `references/workflow-parallel.md` - Parallel workflow
 - `references/shared-phases.md` - Common phases (implementation → final report)
 
+## Ultra Verifier Mode (`--ultra`)
+
+Bootstrap does not fan itself. When `--ultra` is present, the planning phase
+runs `/av:plan --ultra` instead of the mode-mapped plan flag (`--hard`,
+`--auto`, `--fast`) — plan's `--ultra` is exclusive with those mode flags, and
+the plan skill owns the best-of-5 candidate dispatch, verification, and
+winner-selection finalizer. Cook still runs with the mode-appropriate flag.
+
+`--ultra` hard-conflicts with `--parallel`: plan `--parallel` produces the
+file-ownership and dependency-graph structure that cook `--parallel` consumes,
+and a single winning ultra plan does not carry it. On that combination,
+hard-stop and ask the user to drop one flag; never resolve it silently.
+
+Full mechanics live in `../av-brainstorm/references/ultra-verifier-mode.md`. It
+is a best-of-5 verifier mode inspired by LLM-as-a-Verifier, not the full
+framework.
+
 ## Output format
 
 The final report from `references/shared-phases.md` takes this shape:
@@ -187,7 +209,8 @@ journal: written | skipped by --skip-journal | skipped by preference
       any scaffold — `--fast`, `--parallel`, and `--auto` change approvals, not
       this gate.
 - [ ] The flags match the Skill Triggers table: plan gets `--hard` (for
-      `--full`), `--auto`, `--fast`, or `--parallel`; cook gets `--auto` or
+      `--full`), `--auto`, `--fast`, or `--parallel` — or `--ultra` in place
+      of the mode flag when the user passed it; cook gets `--auto` or
       `--parallel` only — `--full` and `--fast` run cook interactive. `--yagni`
       was forwarded only if the user passed it.
 - [ ] No code was written by this skill directly: every implementation step

@@ -6,7 +6,7 @@ when_to_use: "Use at the opening of multi-step delivery or when a diagnosed prob
 category: utilities
 keywords: [ideation, tradeoffs, decisions, intent, acceptance]
 license: MIT
-argument-hint: "[topic or problem] [--advice] [--html] [--yagni]"
+argument-hint: "[topic or problem] [--advice] [--html] [--ultra] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -183,6 +183,32 @@ plus concrete next steps as a comment directly on the PR and the source issue
 `--advice` adds supervision; it never bypasses this skill's approval gates,
 tests, review blockers, branch protections, or security policy.
 
+## Ultra Verifier Mode (`--ultra`)
+
+When `--ultra` is present, run the brainstorm as a best-of-5 verifier pass
+instead of a single draft. The controller builds one immutable evidence packet
+plus a rubric, dispatches exactly five independent read-only candidate
+brainstorms in one parallel wave, then a single strongest-model verifier scores
+and ranks them and selects the winning candidate (or rejects all).
+
+- **Candidate task:** each candidate produces a complete bounded contract —
+  outcome, constraints, non-goals, acceptance criteria — plus its recommended
+  direction and trade-offs.
+- **Rubric:** faithfulness to the request, evidence grounding, sharpness of the
+  acceptance criteria, and honesty about unknowns.
+- **Finalizer:** the verifier selects the single winning contract; the
+  controller emits that winner unchanged (it does not blend candidates) and
+  records a short ranking appendix. On reject-all, hard-stop and report why.
+
+Full mechanics — evidence packet, anonymization, the five-usable-candidate gate
+with one bounded re-dispatch, the fail-closed runtime rule, and reject-all — are
+in `references/ultra-verifier-mode.md`, the protocol every other `--ultra`
+skill shares. `--ultra` composes with `--html`, `--advice`, and `--yagni`, and
+adds no new conflicts; a durable summary written under `--ultra` records the
+winning candidate plus the short ranking appendix. It is a best-of-5 verifier
+mode inspired by LLM-as-a-Verifier, not the full framework; never claim its
+logprob/tournament algorithm.
+
 ## Boundaries
 
 - This skill shapes intent and choices; it does not implement the solution.
@@ -212,7 +238,7 @@ there was a real design choice.
 **Evidence gaps:** <what could not be discovered> — or "none".
 
 ## Handoff
-→ `/av:plan` | `/av:cook` | `/av:fix` | stop (exploration only), with `--yagni` / `--advice` forwarded if passed.
+→ `/av:plan` | `/av:cook` | `/av:fix` | stop (exploration only), with `--yagni` / `--advice` forwarded if passed (`--ultra` is not forwarded; it shaped this contract only).
 Report: <path under the configured report location> — only when the decision must outlive the session.
 
 ## Unresolved questions

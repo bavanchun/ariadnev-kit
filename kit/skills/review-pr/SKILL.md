@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to review a GitHub PR by number/URL, optionally fix findings, optionally post the review back to GitHub, optionally merge when ready and watch CI."
 category: utilities
 keywords: [pr, pull request, review, github, gh, fix, reply, merge, ci, anti-slop, ai-slop]
-argument-hint: "<PR number or URL> [--fix] [--reply] [--merge] [--advice]"
+argument-hint: "<PR number or URL> [--fix] [--reply] [--merge] [--advice] [--ultra]"
 allowed-tools:
   - Bash(gh pr view *)
   - Bash(gh pr diff *)
@@ -58,24 +58,25 @@ and merge. Uncommitted local changes or a commit outside a PR are `av:code-revie
 - **Reply** (`--reply`): after the review (or after the fix loop converges), post the review back to the PR via `gh pr review`.
 - **Merge** (`--merge`): after all other modes complete, if the PR is ready to merge, activate `av:git merge-pr` to merge it, watch post-merge CI until green, and verify follow-up before stopping.
 - **Advice** (`--advice`): run under `kongming` advisory supervision — read `references/advisory-supervision.md` for the five checkpoints, the empty-counsel fallback, and forward-carry through the fix loop.
+- **Ultra** (`--ultra`): run the initial review as a best-of-5 verifier pass — read `references/ultra-review-mode.md` for the candidate task, the union finalizer, and why fix-loop re-reviews stay single-pass.
 
-Flags compose: `review-pr 123 --fix --reply` runs the fix loop and posts the final re-review at the end. `review-pr 123 --fix --reply --merge` additionally merges once the loop converges on Approve. `--advice` layers on top of any combination.
+Flags compose: `review-pr 123 --fix --reply` runs the fix loop and posts the final re-review at the end. `review-pr 123 --fix --reply --merge` additionally merges once the loop converges on Approve. `--advice` layers on top of any combination; `--ultra` layers onto the initial review only.
 
 ## Argument parsing
 
-Derive `PR_REF` from `$ARGUMENTS` by stripping all mode flags (`--fix`, `--reply`, `--merge`, `--advice`):
+Derive `PR_REF` from `$ARGUMENTS` by stripping all mode flags (`--fix`, `--reply`, `--merge`, `--advice`, `--ultra`):
 
 ```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && printf 'PR_REF=%s\n' "$PR_REF"`
+!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice|ultra)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')" && printf 'PR_REF=%s\n' "$PR_REF"`
 ```
 
-Detect flags by substring match, in any order: `--fix` → fix loop, `--reply` → reply, `--merge` → merge, `--advice` → advisory supervision.
+Detect flags by substring match, in any order: `--fix` → fix loop, `--reply` → reply, `--merge` → merge, `--advice` → advisory supervision, `--ultra` → ultra verifier mode for the initial review.
 
 ## Context
 
 PR metadata, full diff, CI check status, and the changed-file list (use the last to gauge scope against the description's claims):
 ```
-!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"; echo "== metadata =="; gh pr view "$PR_REF" --json title,body,author,baseRefName,headRefName,files,additions,deletions,changedFiles; echo "== diff =="; gh pr diff "$PR_REF"; echo "== checks =="; gh pr checks "$PR_REF" 2>/dev/null || echo "No checks found"; echo "== changed files =="; gh pr diff "$PR_REF" --name-only 2>/dev/null | head -50`
+!`PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice|ultra)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"; echo "== metadata =="; gh pr view "$PR_REF" --json title,body,author,baseRefName,headRefName,files,additions,deletions,changedFiles; echo "== diff =="; gh pr diff "$PR_REF"; echo "== checks =="; gh pr checks "$PR_REF" 2>/dev/null || echo "No checks found"; echo "== changed files =="; gh pr diff "$PR_REF" --name-only 2>/dev/null | head -50`
 ```
 
 ## Instructions
@@ -97,7 +98,7 @@ contract is `av:ship`'s template: run the validator bare when the body carries
 a `Ship Mode` (or localized `Chế độ ship`) section — ship wrote it — and with
 `--loose` for any other PR:
 ```bash
-PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+PR_REF="$(printf '%s' "$ARGUMENTS" | sed -E 's/[[:space:]]*--(fix|reply|merge|advice|ultra)([[:space:]]+|$)/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
 PR_BIN=.claude/hooks/av/_lib/pr-body-contract.cjs
 test -f "$PR_BIN" || PR_BIN=kit/hooks/_lib/pr-body-contract.cjs
 gh pr view "$PR_REF" --json body -q .body | node "$PR_BIN"           # ship-authored PR
@@ -197,7 +198,7 @@ If `$ARGUMENTS` contains `--fix`, follow this loop after the review steps above:
 1. **Decide whether fixing is needed.** No actionable findings → stop and report **Approve**. Actionable = all **Critical** + **Important** findings, plus **Suggestion** findings that are concrete, low-risk, and tied to PR scope. Do not invent new style-only suggestions to keep the loop running.
 2. **Fix all findings.** Activate `av:fix --auto "Fix all actionable findings from review-pr <PR_REF>: <finding summary>"` with the exact evidence: PR reference, base and head branch, changed files, and for each finding its severity, file path, line/function, expected behavior, actual behavior, and why it matters. Constraints: preserve PR scope, avoid unrelated refactors, keep public contracts backward compatible unless the finding requires a contract change. `av:fix` performs its own scout, diagnose, implementation, verification, and prevention flow — do not bypass its hard gates.
 3. **Commit and push.** After `av:fix` verifies the fixes, activate `av:git cp` to stage, commit, and push to the PR head branch. Do not run it if verification failed, secrets are detected, or the working tree contains unrelated user changes.
-4. **Re-review.** After the push succeeds, activate `review-pr <PR_REF> --fix` again (carrying `--reply`, `--merge`, and `--advice` forward if they were originally set) and repeat.
+4. **Re-review.** After the push succeeds, activate `review-pr <PR_REF> --fix` again (carrying `--reply`, `--merge`, and `--advice` forward if they were originally set — never `--ultra`: re-reviews stay single-pass) and repeat.
 
 Stop only when one of: the re-review finds no actionable findings; `av:fix` is blocked by a missing user/business decision; the same finding survives 3 consecutive fix attempts; CI or local verification fails in a way `av:fix` cannot resolve without user input. With `--advice`, spawn the "loop is stuck" checkpoint before declaring a stop condition.
 
