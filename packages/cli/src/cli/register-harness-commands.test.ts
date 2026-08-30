@@ -23,12 +23,16 @@ describe("harness command registration", () => {
     expect(workflow?.commands.map((command) => command.name()).sort()).toEqual(["cancel", "resume", "run", "status"]);
   });
 
-  it("keeps the deprecated `run` spelling with the same options", () => {
-    // The shim has to accept every invocation the old name accepted. An option
-    // dropped here turns a deprecation into an outage for whoever used it.
+  it("carries only dispatch options on `run`, the workflow ones having gone with the shim", () => {
+    // The harness options were on `run` only to keep the deprecated spelling
+    // whole. With that spelling retired, leaving them would advertise a sense
+    // of the command that no longer exists.
     const help = named("run")?.helpInformation() ?? "";
-    for (const option of ["--runtime <provider>", "--run-id <id>", "--initial-state <json>", "--validate", "--json"]) {
+    for (const option of ["--target <provider>", "--timeout <duration>", "--kits-dir <dir>"]) {
       expect(help).toContain(option);
+    }
+    for (const gone of ["--runtime <provider>", "--run-id <id>", "--initial-state <json>", "--validate"]) {
+      expect(help).not.toContain(gone);
     }
   });
 
@@ -49,22 +53,13 @@ describe("harness command registration", () => {
     expect(warnings).toEqual([]);
   });
 
-  it("keeps the deprecated spelling working beside dispatch, and still warns", async () => {
-    // The coexistence requirement. Both senses of `run` are live until 1.4.0,
-    // and only the old one warns.
-    const warnings: string[] = [];
-    vi.spyOn(console, "error").mockImplementation((line) => warnings.push(String(line)));
-    vi.spyOn(console, "log").mockImplementation(() => undefined);
-    await buildProgram().parseAsync([
-      "node", "ariadnev", "--cwd", process.cwd(), "run", "missing-workflow", "--validate", "--json",
-    ]);
-    expect(warnings.join("\n")).toContain("av workflow run missing-workflow");
-  });
-
-  it("sends `av run status <id>` to its new spelling without touching a run", async () => {
+  it("refuses a bare token instead of running a workflow of that name", async () => {
+    // The retired spelling must not silently become a dispatch attempt at
+    // something else, and must not quietly resolve to a workflow either: the
+    // grammar it expected is the whole answer.
     await expect(
-      buildProgram().parseAsync(["node", "ariadnev", "--cwd", process.cwd(), "run", "status", "some-run"]),
-    ).rejects.toThrow("av workflow status");
+      buildProgram().parseAsync(["node", "ariadnev", "--cwd", process.cwd(), "run", "missing-workflow"]),
+    ).rejects.toThrow(/exactly <kit>\/<skill>/);
   });
 
   it("prepares only the explicitly selected runtime", () => {
@@ -93,31 +88,17 @@ describe("harness command registration", () => {
     });
   });
 
-  it("leaves the deprecated spelling's stdout byte-identical, warning only on stderr", async () => {
-    // The compatibility claim of the whole phase, asserted rather than argued:
-    // a script piping stdout through a JSON parser sees no difference at all,
-    // and the human running the same command in a terminal is told the name is
-    // going away.
-    const capture = async (argv: readonly string[]) => {
-      const stdout: string[] = [];
-      const stderr: string[] = [];
-      const log = vi.spyOn(console, "log").mockImplementation((line) => stdout.push(String(line)));
-      const error = vi.spyOn(console, "error").mockImplementation((line) => stderr.push(String(line)));
-      const before = process.exitCode;
-      await buildProgram().parseAsync(["node", "ariadnev", "--cwd", process.cwd(), ...argv]);
-      const exitCode = process.exitCode;
-      process.exitCode = before;
-      log.mockRestore();
-      error.mockRestore();
-      return { stdout: stdout.join("\n"), stderr: stderr.join("\n"), exitCode };
-    };
-
-    const canonical = await capture(["workflow", "run", "missing-workflow", "--validate", "--json"]);
-    const deprecated = await capture(["run", "missing-workflow", "--validate", "--json"]);
-
-    expect(deprecated.stdout).toBe(canonical.stdout);
-    expect(deprecated.exitCode).toBe(canonical.exitCode);
-    expect(canonical.stderr).toBe("");
-    expect(deprecated.stderr).toContain("av workflow run missing-workflow");
+  it("leaves `workflow run` — the surviving spelling — writing its envelope to stdout alone", async () => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((line) => stdout.push(String(line)));
+    vi.spyOn(console, "error").mockImplementation((line) => stderr.push(String(line)));
+    const before = process.exitCode;
+    await buildProgram().parseAsync([
+      "node", "ariadnev", "--cwd", process.cwd(), "workflow", "run", "missing-workflow", "--validate", "--json",
+    ]);
+    process.exitCode = before;
+    expect(stdout).toHaveLength(1);
+    expect(stderr.join("\n")).toBe("");
   });
 });

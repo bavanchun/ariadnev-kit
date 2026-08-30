@@ -24,7 +24,6 @@ import {
   type RunWorkflowActionV1,
   type RunWorkflowCommandInputV1,
 } from "./run-command.js";
-import { classifyRun, refuseLegacyRunSubcommand } from "./run-shim.js";
 import { DISPATCH_TARGETS } from "../dispatch/adapter-invocation.js";
 import { runDispatch } from "./run-dispatch-command.js";
 import { recordActivity } from "../activity/emit.js";
@@ -225,7 +224,7 @@ type WorkflowRunOpts = RuntimeOpts & {
   validate?: boolean;
 };
 
-/** The options `workflow run` takes, and that the deprecated `run` still takes. */
+/** The options `workflow run` takes. */
 function addWorkflowRunOptions(command: Command): Command {
   return addRuntimeOptions(command
     .argument("[workflow]", "canonical workflow ID")
@@ -235,7 +234,7 @@ function addWorkflowRunOptions(command: Command): Command {
 }
 
 /**
- * The action body, shared by `av workflow run` and the deprecated `av run`.
+ * The action body behind `av workflow run`.
  *
  * Shared rather than duplicated so the shim cannot drift from what it fronts:
  * the two spellings must do the same thing for as long as both exist, and the
@@ -299,7 +298,7 @@ export function registerHarnessCommands(program: Command): void {
       await execute(program, { action: "cancel", runId: id }, opts);
     });
 
-  registerDeprecatedRun(program, runWorkflow);
+  registerRunDispatch(program);
 }
 
 interface DispatchFlags {
@@ -345,42 +344,28 @@ async function dispatch(program: Command, ref: string, args: string[], opts: Dis
 }
 
 /**
- * `av run` — skill dispatch, plus the harness spelling it replaced.
+ * `av run <kit>/<skill>` — dispatch one skill to a coding agent.
  *
- * Both senses live on one command because they have to: Commander binds a name
- * once, and the whole point of the slash discriminator is that a single `run`
- * can serve both without a flag. The legacy half is deleted in 1.4.0 along with
- * `run-shim.ts`; the dispatch half is what the name now means.
+ * The name used to mean the workflow harness. That sense moved to
+ * `av workflow run`, shipped a release with a deprecation shim so scripts kept
+ * working, and the shim has now been removed: `run` means dispatch, with no
+ * second sense to disambiguate. A bare token is refused by the reference
+ * parser, which names the grammar it expected.
  */
-function registerDeprecatedRun(
-  program: Command,
-  runWorkflow: (workflow: string | undefined, opts: WorkflowRunOpts) => Promise<void>,
-): void {
-  const run = addWorkflowRunOptions(program
+function registerRunDispatch(program: Command): void {
+  program
     .command("run")
-    .description("Dispatch a skill as run <kit>/<skill>; a bare workflow ID is the deprecated spelling of workflow run"))
+    .description("Dispatch a skill: run <kit>/<skill>")
+    .argument("<ref>", "skill reference as <kit>/<skill>")
     // Everything after the reference belongs to the skill, including flags the
     // skill defines and this CLI has never heard of.
     .argument("[args...]", "arguments passed through to the dispatched skill")
     .allowUnknownOption()
+    .option("--json", "emit a stable versioned JSON envelope", false)
     .option("--target <provider>", `adapter to dispatch to: ${DISPATCH_TARGETS.join(" | ")}`)
     .option("--timeout <duration>", "per-invocation timeout (30s, 2m); zero disables it")
-    .option("--kits-dir <dir>", "kits directory (default: ./kits or $ARIADNEV_KITS_DIR)");
-
-  run.action(async (workflow: string | undefined, args: string[], opts: WorkflowRunOpts & DispatchFlags) => {
-    if (classifyRun(workflow) === "legacy-workflow") {
-      await runWorkflow(workflow, opts);
-      return;
-    }
-    await dispatch(program, workflow as string, args ?? [], opts);
-  });
-
-  for (const moved of ["resume", "status", "cancel"] as const) {
-    run
-      .command(moved)
-      .description(`Moved to workflow ${moved}`)
-      .argument("<run-id>", "existing run ID")
-      .option("--json", "emit a stable versioned JSON envelope", false)
-      .action(() => refuseLegacyRunSubcommand(moved));
-  }
+    .option("--kits-dir <dir>", "kits directory (default: ./kits or $ARIADNEV_KITS_DIR)")
+    .action(async (ref: string, args: string[], opts: DispatchFlags) => {
+      await dispatch(program, ref, args ?? [], opts);
+    });
 }

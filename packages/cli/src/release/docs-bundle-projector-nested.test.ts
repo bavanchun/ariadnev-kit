@@ -18,16 +18,12 @@ describe("docs bundle nested CLI projection", () => {
     });
   });
 
-  it("projects the deprecated `run` spelling too, so the docs bundle shows what still works", () => {
-    // The shipped surface includes the shim until 1.4.0. A docs bundle that
-    // omitted it would document a binary that refuses invocations the real one
-    // accepts — and the projection is generated, so nothing else would notice.
+  it("projects `run` as dispatch alone, the harness verbs having gone with the shim", () => {
+    // The projection is generated, so a docs bundle that still listed the
+    // retired subcommands would document a binary that accepts invocations the
+    // real one refuses, and nothing else would notice.
     const commands = projectCli(buildProgram()).commands;
-    expect(commands.filter(({ path }) => path.startsWith("ariadnev run ")).map(({ path }) => path)).toEqual([
-      "ariadnev run cancel",
-      "ariadnev run resume",
-      "ariadnev run status",
-    ]);
+    expect(commands.filter(({ path }) => path.startsWith("ariadnev run ")).map(({ path }) => path)).toEqual([]);
     expect(commands.find(({ path }) => path === "ariadnev run")?.description).toContain("<kit>/<skill>");
   });
 

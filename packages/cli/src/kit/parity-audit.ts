@@ -92,9 +92,6 @@ export const DIVERGENCES: readonly Divergence[] = [
 
   // ─── extra: ariadnev has it and upstream does not ───────────────────────
   { command: "audit", subcommand: "kit", kind: "extra", reason: "`av audit kit` is the default target and names what it audits; the upstream command audits files with no target word" },
-  { command: "run", subcommand: "resume", kind: "extra", reason: "the deprecated harness shim's own verb, removed with the shim in 1.4.0" },
-  { command: "run", subcommand: "status", kind: "extra", reason: "a harness verb reached through the deprecated `run` spelling; lives on as `av workflow status`" },
-  { command: "run", subcommand: "cancel", kind: "extra", reason: "a harness verb reached through the deprecated `run` spelling; lives on as `av workflow cancel`" },
 ];
 
 export interface SubcommandGap {

@@ -195,8 +195,7 @@ command's class and one-line purpose.
 - **Graph workflows and dispatch** — `av workflow run [--validate]
   <workflow>`, `av workflow resume|status|cancel <run-id>`. `av run
   <kit>/<skill>` dispatches a skill through an adapter (`--target`,
-  `--timeout`); a bare workflow ID under `run` is the deprecated spelling of
-  `workflow run` and stops working in 1.4.0.
+  `--timeout`); `run` takes a skill reference only, never a workflow ID.
 
 ## `--json` envelopes
 

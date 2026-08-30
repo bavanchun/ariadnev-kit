@@ -56,10 +56,10 @@ function checkSegment(kind: "kit" | "skill", value: string): string {
 /**
  * Split `<kit>/<skill>`.
  *
- * A ref with no slash is refused here rather than being guessed at, because
- * `av run <token>` already means something else: it is the deprecated workflow
- * spelling the shim still accepts. The slash is the whole discriminator between
- * the two senses of `run`, so a missing one is never a dispatch to repair.
+ * A ref with no slash is refused here rather than being guessed at. `run` used
+ * to name the workflow harness, so a bare token is far more likely to be a
+ * workflow ID typed at the old spelling than a dispatch to repair — and
+ * guessing which would resurrect exactly the ambiguity the rename removed.
  */
 export function parseSkillRef(raw: string): SkillRef {
   const parts = raw.split("/");
