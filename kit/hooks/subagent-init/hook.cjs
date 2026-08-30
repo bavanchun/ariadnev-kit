@@ -131,7 +131,7 @@ async function main() {
     });
     const resolved = resolvePlanPath(sessionContext, config);
     const reportsPath = getReportsPath(resolved.path, resolved.resolvedBy, config.plan, config.paths, baseDir);
-    const activePlan = resolved.resolvedBy === 'session' ? resolved.path : '';
+    const activePlan = resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer' ? resolved.path : '';
     const suggestedPlan = resolved.resolvedBy === 'branch' ? resolved.path : '';
 
     // Extract task list ID for Claude Code Tasks coordination (shared helper, DRY)

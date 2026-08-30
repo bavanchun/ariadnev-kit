@@ -43,13 +43,17 @@ table below, and ask which level to set.
 3. Apply that row to every subsequent response in the session: depth of
    explanation, amount of inline commentary in code, and whether a
    "Key takeaways" block closes an implementation.
+4. To persist it, set `"codingLevel": <0-5>` in the project's
+   `.ariadnev/config.json` (`-1`, the default, disables persistence). From the
+   next session start on, the session-init hook injects the matching
+   `coding-level-*` output style automatically — from
+   `<.claude>/output-styles/` when the user authored one there, else from the
+   `<.claude>/.ariadnev/output-styles/` sidecar the kit installs.
+5. Confirm what is in effect with `av config prefs resolve`.
 
-The level lives in the conversation. `codingLevel` is not a field in
-`.ariadnev/config.json` (the hook config reader drops unknown keys), and this
-kit ships no `output-styles/`, so nothing persists across sessions and nothing
-is injected at session start. To keep a level across sessions, record it in
-the project's `CLAUDE.md`/`AGENTS.md` as an instruction — `av:docs` owns the
-root file, `av:folder-context` a subfolder one.
+Within the current session the level lives in the conversation — the config
+edit changes nothing until the next session start, and `-1` means no style is
+ever injected.
 
 ## Output format
 
@@ -57,7 +61,7 @@ One confirmation line, then the behavior change shows in later responses:
 
 ```text
 Coding level set to <n> (<name>): <behavior cell> — for the rest of this session.
-Persist across sessions: add it to CLAUDE.md/AGENTS.md (not stored by this skill).
+Persist across sessions: set "codingLevel": <n> in .ariadnev/config.json (injected from the next session start).
 ```
 
 With no argument:
@@ -74,8 +78,10 @@ Which level?
       was mapped to its row or refused, never silently defaulted to 5.
 - [ ] The confirmation names the level, its name, and the concrete behavior
       change — not just the number.
-- [ ] The response does not claim the level was saved to a config file,
-      injected by a hook, or wired to an output style.
+- [ ] Any persistence claim matches reality: the level persists only through
+      `codingLevel` in `.ariadnev/config.json`, and the session-init hook
+      injects the matching output style from the next session start — never
+      mid-session, and never when the value is `-1`.
 - [ ] The next implementation response in the session actually follows the
       row: a level-0/1 answer carries the WHY and the "Key takeaways" block; a
       level-4/5 answer carries neither.
@@ -91,5 +97,6 @@ were too shallow or too dense.
 **Typically precedes:** any delivery skill — `av:cook`, `av:fix`, `av:debug` —
 whose explanations then follow the set level.
 **Related:** `av:ask` answers a single question at a chosen depth without
-changing the level; `av:docs` (root) and `av:folder-context` (subfolder) own
-the CLAUDE.md edit that makes a level durable.
+changing the level; durability is `codingLevel` in `.ariadnev/config.json`,
+which the session-init hook turns into an injected output style at every
+session start.

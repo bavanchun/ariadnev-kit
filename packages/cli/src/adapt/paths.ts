@@ -38,6 +38,15 @@ export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
 
 /**
+ * Sidecar the session-init hook reads coding-level output styles from. It is
+ * the hook's second probe path (after `.claude/output-styles/`, which stays
+ * reserved for styles the user authors natively): the hook resolves its config
+ * dir by walking up from `.claude/hooks/av` to `.claude`, then joins
+ * `.ariadnev/output-styles/` under it.
+ */
+export const CLAUDE_OUTPUT_STYLES_SIDECAR_DIR = ".claude/.ariadnev/output-styles";
+
+/**
  * Namespace prefix for installed skill directories.
  *
  * Every skills root this tool writes is shared: `~/.agents/skills` is read

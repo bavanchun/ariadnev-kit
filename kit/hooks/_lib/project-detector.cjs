@@ -382,7 +382,7 @@ function buildContextOutput(config, detections, resolved, gitRoot) {
   }
 
   if (resolved.path) {
-    if (resolved.resolvedBy === 'session') {
+    if (resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer') {
       lines.push(`Plan: ${resolved.path}`);
     } else {
       lines.push(`Suggested: ${resolved.path}`);

@@ -180,6 +180,11 @@ module.exports = {
       "type": "string",
       "default": null
     },
+    "codingLevel": {
+      "layer": "project",
+      "type": "integer",
+      "default": -1
+    },
     "project.type": {
       "layer": "project",
       "type": "string",

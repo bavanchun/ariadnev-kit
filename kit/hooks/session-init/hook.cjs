@@ -223,7 +223,7 @@ async function main() {
     if (sessionContext) {
       updateSessionState(sessionContext, prev => ({
         ...prev,
-        activePlan: prev.activePlan || (resolved.resolvedBy === 'session' ? resolved.path : null),
+        activePlan: prev.activePlan || (resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer' ? resolved.path : null),
         suggestedPlan: resolved.resolvedBy === 'branch' ? resolved.path : null,
         timestamp: Date.now(),
         source,
@@ -275,7 +275,7 @@ async function main() {
       writeEnv(envFile, 'AV_NAME_PATTERN', namePattern);
 
       // Plan resolution
-      writeEnv(envFile, 'AV_ACTIVE_PLAN', resolved.resolvedBy === 'session' ? resolved.path : '');
+      writeEnv(envFile, 'AV_ACTIVE_PLAN', resolved.resolvedBy === 'session' || resolved.resolvedBy === 'pointer' ? resolved.path : '');
       writeEnv(envFile, 'AV_SUGGESTED_PLAN', resolved.resolvedBy === 'branch' ? resolved.path : '');
 
       // Claude Code Tasks integration - enables multi-session/subagent coordination

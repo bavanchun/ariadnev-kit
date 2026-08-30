@@ -39,6 +39,19 @@ function runHook(name, payload, env = {}, hooksDir = HOOKS_DIR) {
   return { code: result.status, stdout: result.stdout || '', stderr: result.stderr || '' };
 }
 
+/**
+ * Copy the hooks tree into the sandbox and run from there. In this checkout the
+ * kit sits under a real `.claude/` directory, so a hook resolving its install
+ * root by walking up to `.claude` (the way an installed hook does) would land
+ * on the machine's real state; a copy under the sandbox has no such ancestor
+ * and falls back to the payload cwd — exactly the sandboxed project.
+ */
+function sandboxHooks(box) {
+  const dir = path.join(box.root, 'hooks');
+  fs.cpSync(HOOKS_DIR, dir, { recursive: true });
+  return dir;
+}
+
 function userConfig(box, config) {
   fs.writeFileSync(path.join(box.home, '.ariadnev', 'config.json'), JSON.stringify(config));
 }
@@ -201,6 +214,73 @@ test('session-init emits context and never blocks the session', () => {
   );
   assert.strictEqual(code, 0);
   assert.ok(stdout.trim().length > 0, 'session start should contribute something to context');
+});
+
+test('session-init injects the configured coding-level style from the sidecar', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  projectConfig(box, { codingLevel: 3 });
+  // The installer writes the styles to the second path the hook probes,
+  // `<config dir>/.ariadnev/output-styles/`; reproduce that layout with the
+  // style the kit actually ships so the shipped content is what round-trips.
+  const sidecar = path.join(box.project, '.claude', '.ariadnev', 'output-styles');
+  fs.mkdirSync(sidecar, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(sidecar, 'coding-level-3-senior.md')
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.match(stdout, /Senior Engineer Communication Mode/, 'the style body should be injected');
+  assert.ok(!stdout.includes('keep-coding-instructions'), 'the frontmatter must be stripped');
+});
+
+test('session-init injects nothing when codingLevel is absent', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  const sidecar = path.join(box.project, '.claude', '.ariadnev', 'output-styles');
+  fs.mkdirSync(sidecar, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(sidecar, 'coding-level-3-senior.md')
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.ok(!stdout.includes('Senior Engineer Communication Mode'), 'default is -1: no injection');
+});
+
+test('session-init reports the plan `av plan use` pointed at', () => {
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  const plan = path.join(box.project, 'plans', '260830-1200-demo');
+  fs.mkdirSync(plan, { recursive: true });
+  fs.writeFileSync(path.join(plan, 'plan.md'), '---\ntitle: demo\nstatus: pending\n---\n');
+  fs.mkdirSync(path.join(box.project, '.ariadnev'), { recursive: true });
+  fs.writeFileSync(
+    path.join(box.project, '.ariadnev', 'current-plan.json'),
+    JSON.stringify({ schemaVersion: 1, byBranch: { '(no branch)': '260830-1200-demo' } })
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.match(stdout, /Plan: [^|]*260830-1200-demo/, 'the pointer plan is the directive, not a suggestion');
 });
 
 /**

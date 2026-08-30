@@ -97,6 +97,7 @@ created: {YYYY-MM-DD}
 
 ---
 
+After writing the plan files, run `av plan use <plan-dir-name>` so hooks, subagents, and the statusline resolve it as the active plan.
 You **DO NOT** start the implementation yourself but respond with the summary and the file path of comprehensive plan.
 
 ## Memory Maintenance

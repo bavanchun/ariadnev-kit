@@ -26,7 +26,8 @@ const DEFAULT_CONFIG = {
     resolution: {
       // CHANGED: Removed 'mostRecent' - only explicit session state activates plans
       // Branch matching now returns 'suggested' not 'active'
-      order: ['session', 'branch'],
+      // 'pointer' reads the `.ariadnev/current-plan.json` that `av plan use` writes
+      order: ['pointer', 'session', 'branch'],
       branchPattern: '(?:feat|fix|chore|refactor|docs)/(?:[^/]+/)?(.+)'
     },
     validation: {
@@ -218,6 +219,13 @@ function findMostRecentPlan(plansDir) {
 const DEFAULT_EXEC_TIMEOUT_MS = 5000;
 
 /**
+ * Ceiling on the current-plan pointer file. It holds one small entry per
+ * branch, so a file past this is not the pointer — refuse it rather than
+ * feeding an arbitrary blob to JSON.parse inside a hook.
+ */
+const POINTER_FILE_MAX_BYTES = 64 * 1024;
+
+/**
  * Safely execute shell command (internal helper)
  * SECURITY: Only accepts whitelisted git read commands
  * @param {string} cmd - Command to execute
@@ -258,22 +266,62 @@ function execSafe(cmd, options = {}) {
  * Resolve active plan path using cascading resolution with tracking
  *
  * Resolution semantics:
- * - 'session': Explicitly set via set-active-plan.cjs → ACTIVE (directive)
+ * - 'pointer': `.ariadnev/current-plan.json`, written by `av plan use` → ACTIVE (directive)
+ * - 'session': `state.activePlan` carried in the bound session store → ACTIVE (directive)
  * - 'branch': Matched from git branch name → SUGGESTED (hint only)
  * - 'mostRecent': REMOVED - was causing stale plan pollution
  *
+ * The pointer comes first: it is the one CLI-owned mechanism a user (or the
+ * planner agent) sets deliberately, while the session store only ever carries a
+ * directive forward — nothing in this kit writes `state.activePlan` initially.
+ *
  * @param {Object|null} sessionContext - Explicit session state context
  * @param {Object} config - ariadnev config
- * @returns {{ path: string|null, resolvedBy: 'session'|'branch'|null }} Resolution result with tracking
+ * @returns {{ path: string|null, resolvedBy: 'pointer'|'session'|'branch'|null }} Resolution result with tracking
  */
 function resolvePlanPath(sessionContext, config) {
   const plansDir = config?.paths?.plans || 'plans';
   const resolution = config?.plan?.resolution || {};
-  const order = resolution.order || ['session', 'branch'];
+  const order = resolution.order || ['pointer', 'session', 'branch'];
   const branchPattern = resolution.branchPattern;
 
   for (const method of order) {
     switch (method) {
+      case 'pointer': {
+        // `av plan use <name>` records the plan per branch in the project's
+        // `.ariadnev/current-plan.json` (see the CLI's plan-pointer module for
+        // the file's schema). Anything unreadable, oversized, malformed, from
+        // another schema version, or pointing at a directory that is gone falls
+        // through to the next source.
+        try {
+          // Unlike the session store, the pointer needs no bound session — the
+          // hook's own cwd (the session's project dir) is enough of a root, so
+          // the CLI-owned directive works even where session binding does not.
+          const launchRoot = sessionContext?.sessionLaunchRoot || sessionContext?.canonicalProjectRoot || process.cwd();
+          const pointerFile = path.join(launchRoot, '.ariadnev', 'current-plan.json');
+          const info = fs.statSync(pointerFile);
+          if (!info.isFile() || info.size > POINTER_FILE_MAX_BYTES) break;
+          const pointer = JSON.parse(fs.readFileSync(pointerFile, 'utf8'));
+          if (!pointer || pointer.schemaVersion !== 1) break;
+          const byBranch = pointer.byBranch;
+          if (!byBranch || typeof byBranch !== 'object' || Array.isArray(byBranch)) break;
+          const branch = execSafe('git branch --show-current', {
+            cwd: sessionContext?.canonicalProjectRoot || launchRoot
+          });
+          // The CLI files detached-HEAD and non-git work under one shared key.
+          const name = byBranch[branch || '(no branch)'];
+          // A plan name is a directory name under the plans root; anything
+          // path-shaped would let the pointer file steer reads elsewhere.
+          if (typeof name !== 'string' || !name || name !== path.basename(name)) break;
+          const projectPlansDir = path.isAbsolute(plansDir) ? plansDir : path.join(launchRoot, plansDir);
+          const planPath = path.join(projectPlansDir, name);
+          if (!fs.existsSync(planPath)) break;
+          return { path: toDisplayPath(planPath), resolvedBy: 'pointer' };
+        } catch (e) {
+          // Missing or unreadable pointer — fall through.
+        }
+        break;
+      }
       case 'session': {
         const state = readSessionState(sessionContext);
         if (state?.activePlan) {
@@ -601,7 +649,7 @@ function writeEnv(envFile, key, value) {
  * Branch-matched (suggested) plans use default path to avoid pollution
  *
  * @param {string|null} planPath - The plan path
- * @param {string|null} resolvedBy - How plan was resolved ('session'|'branch'|null)
+ * @param {string|null} resolvedBy - How plan was resolved ('pointer'|'session'|'branch'|null)
  * @param {Object} planConfig - Plan configuration
  * @param {Object} pathsConfig - Paths configuration
  * @param {string|null} baseDir - Optional base directory for absolute path resolution
@@ -612,9 +660,10 @@ function getReportsPath(planPath, resolvedBy, planConfig, pathsConfig, baseDir =
   const plansDir = normalizePath(pathsConfig?.plans) || 'plans';
 
   let reportPath;
-  // Only use plan-specific reports path if explicitly active (session state)
-  // Validate the normalized path so whitespace cannot create invalid directories.
-  const normalizedPlanPath = planPath && resolvedBy === 'session' ? normalizePath(planPath) : null;
+  // Only use plan-specific reports path if explicitly active (pointer or session
+  // state). Validate the normalized path so whitespace cannot create invalid
+  // directories.
+  const normalizedPlanPath = planPath && (resolvedBy === 'session' || resolvedBy === 'pointer') ? normalizePath(planPath) : null;
   if (normalizedPlanPath) {
     reportPath = `${normalizedPlanPath}/${reportsDir}`;
   } else {
@@ -792,11 +841,12 @@ function getGitRoot(cwd = null) {
  *
  * Cross-platform: path.basename() handles both Unix/Windows separators
  *
- * @param {{ path: string|null, resolvedBy: 'session'|'branch'|null }} resolved - Plan resolution result
+ * @param {{ path: string|null, resolvedBy: 'pointer'|'session'|'branch'|null }} resolved - Plan resolution result
  * @returns {string|null} Task list ID (plan directory name) or null
  */
 function extractTaskListId(resolved) {
-  if (!resolved || resolved.resolvedBy !== 'session' || !resolved.path) {
+  const directive = resolved?.resolvedBy === 'session' || resolved?.resolvedBy === 'pointer';
+  if (!resolved || !directive || !resolved.path) {
     return null;
   }
   return path.basename(resolved.path);

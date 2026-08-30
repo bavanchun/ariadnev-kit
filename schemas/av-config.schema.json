@@ -275,6 +275,12 @@
         }
       }
     },
+    "codingLevel": {
+      "type": "integer",
+      "description": "Coding-level output style injected at session start (-1 disables, 0-5 selects a level).",
+      "default": -1,
+      "x-ariadnev-layer": "project"
+    },
     "project": {
       "type": "object",
       "additionalProperties": false,
