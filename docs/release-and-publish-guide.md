@@ -23,6 +23,16 @@ proxies the (private) repo's releases. The edge lives in its own repo,
 2. Merge your PR to `main`. `.github/workflows/release.yml` sees the pending
    changeset and opens a **"Version Packages"** PR that bumps the version and
    updates `CHANGELOG.md`.
+   Expect it to arrive **blocked**. Its CI run starts as `action_required`
+   because the branch was pushed by the Changesets bot, so the required
+   `Lint · Build · Test` check never reports and the PR sits at `BLOCKED` with
+   `no checks reported`. Approve the run and it proceeds:
+   ```bash
+   RUN=$(gh api "repos/$REPO/actions/runs?branch=changeset-release/main&per_page=1" \
+     --jq '.workflow_runs[0].id')
+   gh api --method POST "repos/$REPO/actions/runs/$RUN/approve"
+   ```
+   Nothing is wrong when this happens; it is where every release cut waits.
 3. Merge the "Version Packages" PR. On that push the workflow sees that the
    current version has no `ariadnev@<version>` tag yet, runs
    `packages/cli/scripts/build-binaries.mjs` (regenerate embedded kit →
@@ -134,8 +144,12 @@ RELEASE_ID=$(gh api "repos/$REPO/releases" --jq '.[] | select(.tag_name=="'"$TAG
 VERSION="${TAG#ariadnev@}"
 gh run download "$(jq -r .runId <<<"$ENVELOPE")" --repo "$REPO" \
   -n "$(jq -r .artifactName <<<"$ENVELOPE")" -D candidate
-SIGNATURE=$({ printf '%s\n' "$VERSION"; cat candidate/checksums.txt; } \
-  | openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key | base64 | tr -d '\n')
+# Through a file, not a pipe. OpenSSL 3.x needs the input size up front for a
+# oneshot signature and answers a pipe with "unable to determine file size for
+# oneshot operation".
+{ printf '%s\n' "$VERSION"; cat candidate/checksums.txt; } > candidate/payload.bin
+SIGNATURE=$(openssl pkeyutl -sign -rawin -in candidate/payload.bin \
+  -inkey ~/.config/ariadnev/release-signing.key | base64 | tr -d '\n')
 
 gh workflow run finalize-release.yml --repo "$REPO" --ref "$TAG" \
   -f checksums_signature="$SIGNATURE" \
@@ -246,7 +260,7 @@ replace an already consumed version tag.
 | Cross-compile 5 binaries + checksums | Automated | `build-binaries.mjs` in `release.yml` |
 | Smoke the built binaries | Automated | `smoke-binary.mjs`, before provenance is written |
 | Hold a draft release + bind the envelope | Automated | `release-candidate-publish.yml` |
-| Sign `checksums.txt` | **Manual, offline key** | `openssl pkeyutl -sign -rawin -inkey ~/ariadnev-release.key` |
+| Sign `checksums.txt` | **Manual, offline key** | `openssl pkeyutl -sign -rawin -in payload.bin -inkey ~/.config/ariadnev/release-signing.key` |
 | Publish the draft | **Manual** | `gh workflow run finalize-release.yml --ref <tag>` |
 
 ## Notes
