@@ -409,11 +409,12 @@ describe("full-kit install smoke (v2 roster)", () => {
     for (const h of HOOKS) {
       expect(existsSync(join(ctx.cwd, ".claude/hooks/av", `${h}.cjs`)), h).toBe(true);
     }
-    // The coding-level output styles land as a session-init hook sidecar — the
-    // second path the hook probes — never as a native provider surface.
+    // The coding-level output styles land inside the hook directory, which is
+    // what session-init reads, and never as a native provider surface — the
+    // runtime's own output-styles/ stays the user's.
     for (const level of ["0-eli5", "1-junior", "2-mid", "3-senior", "4-lead", "5-god"]) {
       const style = `coding-level-${level}.md`;
-      expect(existsSync(join(ctx.cwd, ".claude/.ariadnev/output-styles", style)), style).toBe(true);
+      expect(existsSync(join(ctx.cwd, ".claude/hooks/av/output-styles", style)), style).toBe(true);
       expect(existsSync(join(ctx.cwd, ".claude/output-styles", style)), style).toBe(false);
     }
     const settings = JSON.parse(readFileSync(join(ctx.cwd, ".claude/settings.json"), "utf8"));

@@ -440,10 +440,12 @@ async function main() {
 
     // Auto-inject coding level guidelines (if not disabled). A style the user
     // authored under the runtime's own output-styles/ wins; otherwise the kit's
-    // styles are read from this hook's install dir (__dirname/..), which is the
-    // directory the installer owns and receipts.
+    // styles are read from the hook install dir the installer owns and receipts.
+    // Anchored on `_lib`, not on __dirname: the kit keeps each hook in its own
+    // directory while the installer writes them flat beside `_lib`, so only the
+    // library's parent names the same directory in both layouts.
     const codingLevel = config.codingLevel ?? -1;
-    const hookRoot = require('node:path').dirname(__dirname);
+    const hookRoot = require('node:path').dirname(AV_LIB);
     const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir, hookRoot);
     if (guidelines) {
       console.log(`\n${guidelines}`);

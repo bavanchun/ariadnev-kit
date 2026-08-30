@@ -241,6 +241,37 @@ test('session-init injects the configured coding-level style the installer wrote
   assert.ok(!stdout.includes('keep-coding-instructions'), 'the frontmatter must be stripped');
 });
 
+test('session-init finds the styles in the flat layout the installer writes', () => {
+  // The kit keeps every hook in its own directory; the installer flattens them
+  // to `<hooks>/<name>.cjs` beside a shared `_lib`. A hook that located its
+  // assets from its own directory would look one level too high there, so the
+  // installed shape gets its own round trip.
+  const box = sandbox();
+  const kitHooks = sandboxHooks(box);
+  const flat = path.join(box.root, 'installed-hooks');
+  fs.mkdirSync(flat, { recursive: true });
+  fs.cpSync(path.join(kitHooks, '_lib'), path.join(flat, '_lib'), { recursive: true });
+  fs.mkdirSync(path.join(flat, 'session-init'), { recursive: true });
+  fs.copyFileSync(path.join(kitHooks, 'session-init', 'hook.cjs'), path.join(flat, 'session-init.cjs'));
+  const styles = path.join(flat, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(styles, 'coding-level-3-senior.md')
+  );
+  projectConfig(box, { codingLevel: 3 });
+
+  const result = spawnSync(process.execPath, [path.join(flat, 'session-init.cjs')], {
+    input: JSON.stringify({ hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' }),
+    encoding: 'utf8',
+    env: { ...process.env, HOME: box.home, TMPDIR: box.root },
+    cwd: box.project,
+    timeout: 15000
+  });
+  assert.strictEqual(result.status, 0);
+  assert.match(result.stdout || '', /Senior Engineer Communication Mode/, 'the installed layout must resolve the style');
+});
+
 test('session-init injects nothing when codingLevel is absent', () => {
   const box = sandbox();
   const hooks = sandboxHooks(box);
