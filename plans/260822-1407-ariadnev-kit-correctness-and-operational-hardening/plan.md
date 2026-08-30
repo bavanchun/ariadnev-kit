@@ -1,7 +1,7 @@
 ---
 title: "ariadnev kit correctness and operational hardening"
 description: "Fix the broken cross-skill links and the validator blind spot that hides them, move skill dirs to an av- prefix via a receipt-driven heal, sign the update channel, harden the backup restore path, and retire the ported-skill lint exemption across the whole corpus."
-status: in-progress
+status: completed
 priority: P1
 effort: "25-42d + 3h"
 tags: [kit, cli, lint, security, quality]
@@ -174,7 +174,7 @@ path-shape are now two separate rules.
 | 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (signed releases `1.3.0-beta.1`, `-beta.2`, `1.3.0`) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
-| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (lint clean and exemption removed; independent second-reader evidence and final merge-history proof remain) |
+| 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **Completed** (exemption gone, strict validate clean, every unit second-read; merge history measured and recorded 2026-08-30) |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **Completed** |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
 | 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (two betas published and installable by pin; edge stayed on stable throughout) |

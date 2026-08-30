@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "Skill content burn-down"
-status: in-progress
+status: completed
 priority: P1
 effort: "65-118h (8-15d)"
 dependencies: [2, 3]
@@ -406,7 +406,12 @@ maintainer decision.
 2 in Tier A batch 2, 12 across eight agents, `journal-writer` appearing in both
 of the last two). A further four sit outside the units, in the
 `.prefs.journal.auto` check that four skills present as a working gate against
-an envelope key that is not there.
+an envelope key that is not there. *Closed in `81c1473` (#104, 2026-08-29):*
+every opt-out block now names the journal skill's own `scripts/resolve-config.cjs`
+and says outright that `av config prefs resolve --json` carries no journal
+fields. Re-checked 2026-08-30: `auto` is a real key of that resolver, and the
+`journal.auto` mentions left in `ship` and `journal/references/config-schema.md`
+all refer to it — nothing phantom remains.
 
 The count keeps rising because reading keeps finding, not because quality is
 falling — which is the argument for the reader, not against it. The threshold
@@ -421,6 +426,33 @@ fabricated claims and four load-bearing deletions. A reader brief written for
 one of those misses the other, which is the argument for keeping the brief's
 two halves — verify every claim, and flag what a trim removed — rather than
 collapsing it to whichever half last caught something.
+
+### Green at every merge, measured (2026-08-30)
+
+Read off the full-gate `ci.yml` runs on every push to `dev` and `main` from
+2026-08-23 to the close, 99 runs: **60 green, 5 red, 32 cancelled, 2 in
+flight.** The reds, by job duration and failing test:
+
+| Push | Where | Duration | What | Verdict |
+|---|---|---|---|---|
+| `2bf21db`, `9b6349f` | dev, 08-23 | 4 s, 9 s | Actions billing lock; no step ran | not a test result |
+| **`07d0c73`** | dev, 08-24 05:19Z | 793 s | `context-query.test.ts` + `validate-command.test.ts` — a reference split changed the frozen corpus digest | **the one real red** |
+| `c33e526`, `725e643` | main, 08-27 | 33 s, 449 s | release-script tests, prerelease regex (phase 11's work) | red, outside this phase |
+
+`07d0c73` was green again 27 minutes later at `f8efbea` (benchmark regenerated);
+the `main` pair 12 minutes later at `6de25d2`. The 32 cancellations are the
+concurrency block doing its job — a burst of back-to-back merges keeps only the
+tip's run — which means those merges have **no verdict of their own**, not a
+green one. The largest burst was the twelve content merges of the morning of
+08-24, whose surviving run was `07d0c73`.
+
+So the criterion as literally written does not hold and cannot be made to hold
+retroactively. What the history does show is what the criterion was for: the
+suite was never left red — every red was fixed at the next push, within half an
+hour — and the one content-caused red was the documented corpus-digest trap,
+not a regression in the kit. The box below is ticked on that reading, decided
+by the maintainer on 2026-08-30; the literal reading is recorded here as not
+met.
 
 ## Success Criteria
 
@@ -439,7 +471,10 @@ collapsing it to whichever half last caught something.
       different model/agent with fresh context — never the authoring session —
       and every fix diff re-read the same way. (Raised from "≥20% of Tier A"
       by the calibration result.) Closed 2026-08-29; coverage table above.
-- [ ] `pnpm test` green at every merge, not only at the end.
+- [x] `pnpm test` green at every merge, not only at the end. Met on the
+      maintainer's reading — never left red, one real content red fixed in
+      27 minutes; see "Green at every merge, measured". The literal reading
+      is not met: one red merge and 32 merges with no completed run.
 
 ## Risk Assessment
 
