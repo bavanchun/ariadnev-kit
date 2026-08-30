@@ -216,18 +216,18 @@ test('session-init emits context and never blocks the session', () => {
   assert.ok(stdout.trim().length > 0, 'session start should contribute something to context');
 });
 
-test('session-init injects the configured coding-level style from the sidecar', () => {
+test('session-init injects the configured coding-level style the installer wrote', () => {
   const box = sandbox();
   const hooks = sandboxHooks(box);
   projectConfig(box, { codingLevel: 3 });
-  // The installer writes the styles to the second path the hook probes,
-  // `<config dir>/.ariadnev/output-styles/`; reproduce that layout with the
-  // style the kit actually ships so the shipped content is what round-trips.
-  const sidecar = path.join(box.project, '.claude', '.ariadnev', 'output-styles');
-  fs.mkdirSync(sidecar, { recursive: true });
+  // The installer writes the styles into the hook's own install dir; reproduce
+  // that layout with the style the kit actually ships, so the shipped content
+  // is what round-trips.
+  const styles = path.join(hooks, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
   fs.copyFileSync(
     path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
-    path.join(sidecar, 'coding-level-3-senior.md')
+    path.join(styles, 'coding-level-3-senior.md')
   );
 
   const { code, stdout } = runHook(
@@ -244,11 +244,11 @@ test('session-init injects the configured coding-level style from the sidecar', 
 test('session-init injects nothing when codingLevel is absent', () => {
   const box = sandbox();
   const hooks = sandboxHooks(box);
-  const sidecar = path.join(box.project, '.claude', '.ariadnev', 'output-styles');
-  fs.mkdirSync(sidecar, { recursive: true });
+  const styles = path.join(hooks, 'output-styles');
+  fs.mkdirSync(styles, { recursive: true });
   fs.copyFileSync(
     path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
-    path.join(sidecar, 'coding-level-3-senior.md')
+    path.join(styles, 'coding-level-3-senior.md')
   );
 
   const { code, stdout } = runHook(

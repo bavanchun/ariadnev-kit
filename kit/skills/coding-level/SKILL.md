@@ -48,7 +48,7 @@ table below, and ask which level to set.
    next session start on, the session-init hook injects the matching
    `coding-level-*` output style automatically — from
    `<.claude>/output-styles/` when the user authored one there, else from the
-   `<.claude>/.ariadnev/output-styles/` sidecar the kit installs.
+   `output-styles/` directory the installer writes inside the hooks dir.
 5. Confirm what is in effect with `av config prefs resolve`.
 
 Within the current session the level lives in the conversation — the config

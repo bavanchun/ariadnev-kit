@@ -320,27 +320,25 @@ function getCodingLevelStyleName(level) {
 /**
  * Get coding level guidelines by reading from output-styles .md files.
  *
- * Resolves relative to `configDir` (the hook's own install root — the runtime
- * root for a native install, the plugin root for plugin delivery). It probes
- * the active `<configDir>/output-styles/` layout first, then the legacy/build
- * `<configDir>/.ariadnev/output-styles/` sidecar for compatibility. When
- * `configDir` is provided but no style is found for an enabled level, it emits
- * a diagnostic instead of a silent null so an install/emission regression
- * surfaces.
+ * Probes `<configDir>/output-styles/` first — the runtime's own layout, which
+ * stays reserved for styles the user authors natively — then
+ * `<hookRoot>/output-styles/`, where the installer writes the kit's styles as
+ * files it owns. When a base dir was resolved but no style exists for an
+ * enabled level, it emits a diagnostic instead of a silent null so an
+ * install/emission regression surfaces.
  *
  * @param {number} level - Coding level (-1 to 5)
- * @param {string} [configDir] - Install root that contains output-styles/
+ * @param {string} [configDir] - Runtime config root (e.g. `.claude`)
+ * @param {string} [hookRoot] - The hook's own install dir, which owns the kit's styles
  * @returns {string|null} Guidelines text or null if disabled/missing
  */
-function getCodingLevelGuidelines(level, configDir) {
+function getCodingLevelGuidelines(level, configDir, hookRoot) {
   if (level === -1 || level === null || level === undefined) return null;
 
   const styleName = getCodingLevelStyleName(level);
   const basePath = configDir || path.join(process.cwd(), '.claude');
-  const candidates = [
-    path.join(basePath, 'output-styles', `${styleName}.md`),
-    path.join(basePath, '.ariadnev', 'output-styles', `${styleName}.md`)
-  ];
+  const candidates = [path.join(basePath, 'output-styles', `${styleName}.md`)];
+  if (hookRoot) candidates.push(path.join(hookRoot, 'output-styles', `${styleName}.md`));
 
   for (const stylePath of candidates) {
     try {
@@ -355,7 +353,7 @@ function getCodingLevelGuidelines(level, configDir) {
   // configDir was explicitly resolved (hook install root) yet no style exists
   // for an enabled level: surface it rather than silently injecting nothing.
   if (configDir) {
-    console.error(`[coding-level] no output style found for ${styleName} under ${basePath} (checked output-styles/ and .ariadnev/output-styles/)`);
+    console.error(`[coding-level] no output style found for ${styleName} under ${basePath} or the hook install dir`);
   }
   return null;
 }

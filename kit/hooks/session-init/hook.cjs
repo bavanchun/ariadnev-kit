@@ -438,13 +438,13 @@ async function main() {
       console.log(`why the current approach was chosen. Re-read the active plan and notes first.`);
     }
 
-    // Auto-inject coding level guidelines (if not disabled). Resolve styles from
-    // the hook's own install root (claudeSettingsDir = __dirname/..): the runtime
-    // root for a native install (~/.claude or <project>/.claude) or the plugin
-    // root for plugin delivery. getCodingLevelGuidelines probes the active
-    // output-styles/ layout then the legacy/build .ariadnev/ sidecar.
+    // Auto-inject coding level guidelines (if not disabled). A style the user
+    // authored under the runtime's own output-styles/ wins; otherwise the kit's
+    // styles are read from this hook's install dir (__dirname/..), which is the
+    // directory the installer owns and receipts.
     const codingLevel = config.codingLevel ?? -1;
-    const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir);
+    const hookRoot = require('node:path').dirname(__dirname);
+    const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir, hookRoot);
     if (guidelines) {
       console.log(`\n${guidelines}`);
     }
