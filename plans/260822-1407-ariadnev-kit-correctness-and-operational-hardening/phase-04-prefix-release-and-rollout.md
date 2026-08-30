@@ -120,10 +120,8 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
 - [x] Root inventory recorded before heal; every one healed; `av doctor` clean.
       See "Rollout observations" below. Healed to `healthy 100` across
       claude-code (1570), codex (1503), cursor (1503).
-- [ ] One skill invoked successfully per provider post-heal.
-      claude-code proven — this repo's own session loaded the `av-*` catalogue
-      from `~/.claude/skills` immediately after the install. codex and cursor
-      still owe a real invocation; a file listing is not proof.
+- [x] One skill invoked successfully per provider post-heal.
+      All three, 2026-08-30 — see "One skill per provider, actually invoked".
 - [x] The rollback recipe executed end-to-end on a sandbox, returning a working
       install. Ran 2026-08-30 on a sandbox `HOME`, between two signed releases —
       see "Rollback, executed" below. Scope of the claim is stated there.
@@ -166,6 +164,27 @@ took codex from `healthy 100` to `degraded 0`, every co-claimed file gone.
 Recoverable — doctor names each missing file and `av install` restores them —
 but a user with both providers who removes one silently breaks the other.
 Uninstall should preserve paths another install in the same receipt still claims.
+
+### One skill per provider, actually invoked (2026-08-30)
+
+Each provider's own agent was asked to *use* `av:help` and return one line
+verbatim from the installed `SKILL.md` — content it can only produce by loading
+the skill, which a directory listing cannot demonstrate.
+
+| Provider | How | Result |
+|---|---|---|
+| claude-code | this repo's session | the `av-*` catalogue replaced `ak-*` in the loaded skill list the moment the install finished |
+| codex | `codex exec` | returned the line verbatim |
+| cursor | `cursor-agent -p --output-format text` | returned the line verbatim |
+
+Two things worth writing down for whoever repeats this:
+
+- `cursor-agent` refuses an untrusted working directory. The probe ran in a
+  throwaway directory with `--trust`, which trusts that workspace only —
+  deliberately not `-f`/`--yolo`, which would grant blanket command execution
+  for a read-only check.
+- On a Free plan it also refuses a named model: `Named models unavailable`.
+  `--model auto` is required.
 
 ### Rollback, executed (2026-08-30)
 
