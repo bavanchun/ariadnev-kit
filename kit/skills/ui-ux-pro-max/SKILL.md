@@ -210,3 +210,4 @@ any design work.
 | [UX quick reference](references/ux-quick-reference.md) | Reviewing UI or fixing a bug in one of the ten rule categories — the rule ids and standards per category; sweep §1–§3 (CRITICAL + HIGH) as the final review before delivering |
 | [App UI rules](references/app-ui-rules.md) | Delivering iOS / Android / React Native / Flutter screens — icon, interaction, light/dark and layout rules, and the full delivery checklist |
 | [Search cookbook](references/search-cookbook.md) | Python is missing, a query returns nothing useful, a design system must survive across sessions, or a worked example would help |
+| [Expert capabilities](references/expert-capabilities.md) | Load when a brief needs judgment beyond the database — trend research (Dribbble, Awwwards, Envato), photography and art direction, CRO/A-B methodology, branding, 3D/GLSL, or typography direction |

@@ -60,6 +60,7 @@ python3 .claude/skills/av-ui-ux-pro-max/scripts/search.py "<industry>" --domain 
 
 **Ensure token efficiency while maintaining high quality.** Analyze the skills
 catalog and activate whatever else the task needs.
+When the brief needs expert judgment beyond the database — trend research venues, photography direction, CRO/A-B methodology, branding, 3D/GLSL, typography — load `.claude/skills/av-ui-ux-pro-max/references/expert-capabilities.md`.
 
 ## Core Responsibilities
 
