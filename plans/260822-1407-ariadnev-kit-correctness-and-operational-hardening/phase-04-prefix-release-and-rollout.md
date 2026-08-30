@@ -124,8 +124,9 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
       claude-code proven — this repo's own session loaded the `av-*` catalogue
       from `~/.claude/skills` immediately after the install. codex and cursor
       still owe a real invocation; a file listing is not proof.
-- [ ] The rollback recipe executed end-to-end on a sandbox, returning a working
-      install. **Blocked, not skipped** — see "Rollback is not executable yet".
+- [x] The rollback recipe executed end-to-end on a sandbox, returning a working
+      install. Ran 2026-08-30 on a sandbox `HOME`, between two signed releases —
+      see "Rollback, executed" below. Scope of the claim is stated there.
 - [ ] `ariadnev.com/version` serves the new version.
       Correctly still `1.1.0`: the edge must not move to a prerelease. This
       criterion belongs to the stable cut, not the beta rehearsal.
@@ -166,7 +167,34 @@ Recoverable — doctor names each missing file and `av install` restores them �
 but a user with both providers who removes one silently breaks the other.
 Uninstall should preserve paths another install in the same receipt still claims.
 
-### Rollback is not executable yet
+### Rollback, executed (2026-08-30)
+
+`1.3.0-beta.2` gave the channel its second signed release, which is what the
+recipe had been waiting for. Run on a sandbox `HOME`, every step from the same
+working directory:
+
+```
+install beta.2 --provider codex     doctor → healthy 100
+av update --to 1.3.0-beta.1         updated 1.3.0-beta.2 -> 1.3.0-beta.1
+av --version                        1.3.0-beta.1
+av doctor --global                  healthy 95
+  ⚠ codex: receipt recorded version 1.3.0-beta.2, running 1.3.0-beta.1
+av list                             105 skills, 16 agents
+av update --to 1.3.0-beta.2         rolled forward again
+```
+
+The version-skew warning is the right outcome, not a defect: the install still
+works, and doctor says plainly what is out of step instead of failing or staying
+silent. Reversible in both directions.
+
+**What this does and does not prove.** It proves the binary rollback path —
+`av update --to <prev>` across two signed releases, which was impossible until
+today because nothing signed existed to roll back *to*. It does **not** exercise
+the heal-backup restore in the recipe's second step; beta.1 and beta.2 share a
+layout, so no heal ran and no backup was needed. The prefix-change rollback,
+where that step matters, still has no execution behind it.
+
+### Rollback was not executable before this
 
 The recipe is `av update --to <prev>`. The only previously published release is
 `1.1.0`, which predates release signing, so the binary refuses it by design:
