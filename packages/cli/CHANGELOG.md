@@ -1,5 +1,212 @@
 # ariadnev
 
+## 1.3.0
+
+### Minor Changes
+
+- 71984d1: Add `av activity list | tail | stats` over a new append-only event log.
+
+  Events are JSONL under `~/.ariadnev/operational/activity/`, one file per UTC day so
+  retention is a file unlink rather than a rewrite. Every event carries a monotonic,
+  lexicographically sortable ID, which is what `list --since <cursor>` reads — a poller
+  never replays or skips. `tail` follows that cursor rather than a file handle, so it keeps
+  streaming across the midnight segment rollover.
+
+  `stats` aggregates by kind, runtime and kit over a `--window` (`24h`, `7d`, `2w`) and
+  reports coverage: how many records it read and how many were unreadable.
+
+  Install, update, and workflow execution now emit events. Emission is fire-and-forget —
+  a broken log never fails the command it observes — and event fields are an allowlist, so
+  a caller's credentials cannot reach disk.
+
+- 5f1b91c: Add `av analytics` and `av data` over a derived, deletable index.
+
+  `analytics status|rebuild` reports and refreshes an index computed entirely from data
+  ariadnev already has. `data` inspects and clears it. Nothing here is a source of truth:
+  delete the index and the next rebuild reproduces it, so it can be removed at any time
+  without losing anything.
+
+- 5f1b91c: Add `av backups create | recover | diagnostics | versions`.
+
+  `create` takes a named snapshot, `versions` lists what a path has looked like over time,
+  `diagnostics` reports the store's health and what it is holding, and `recover` replays a
+  snapshot (previewing by default — see the recovery entry). Restores verify digests and
+  take a pre-restore safety copy first, so a failed restore is recoverable.
+
+- 5f1b91c: Add `av skills`, `av agents` and `av commands` over one catalog.
+
+  All three read the same catalog implementation, so they cannot disagree about what is
+  installed. Each reports name, description and which providers currently carry it, and
+  searches across name, description, category and keywords.
+
+- 5f1b91c: Add `av content`, `av feedback`, `av changelog` and `av self-update`.
+
+  `content publish|queue|schedule` posts to configured channels over https only. `feedback`
+  exports a report by default and submits only when asked. `changelog` reads ariadnev's own
+  signed releases. `self-update` is an alias over the existing signed update path — the same
+  checksum verification, not a second one.
+
+- 5f1b91c: Add `av content-search` — opt-in, per-project plaintext shards.
+
+  Off unless you enable it per project. When on, it builds a local plaintext index so
+  searches stay on your machine; the shard lives under the project and is deleted with it.
+  No content leaves the host.
+
+- 5f1b91c: Correct claims in the shipped kit that did not match the code.
+
+  Three fresh reads over the skill and agent content found invocations documented against
+  flags that never existed (`av journal create --summary --stdin`, `--date`, `--project`),
+  wrong output paths, a screenshot flag corrected in one reference while its sibling kept
+  it, and an adapter behaviour described that the adapter does not implement.
+
+  Also corrected: four skills queried the wrong resolver for the journal opt-out preference,
+  and four agents were instructed to write reports or delegate without the capability to do
+  either — `code-reviewer` most visibly, since scout-based edge-case detection is named in
+  its own description. Those agents now carry the tools their instructions require.
+
+- 5f1b91c: Add `av api` and `av gui` — a local, read-only view of your own data.
+
+  `api start|status|stop` runs a loopback HTTP daemon on port 8767; `gui` opens it. Every
+  data route is a `--json` CLI call underneath, so the API cannot report something the CLI
+  would not. Read-only: there are no write routes.
+
+  It refuses to bind a non-loopback address without an auth token, and refuses to guess when
+  the port is taken rather than silently moving to another one. Stopping the daemon proves
+  identity against the running process before signalling it.
+
+- 5f1b91c: Raise the development toolchain to Node 24 and the engines floor to 22.13.
+
+  This does not affect installing or running ariadnev: it ships as a single compiled binary
+  with no Node requirement on the user's machine. It matters if you build the repository.
+
+- 5f1b91c: Install, update, and uninstall now respect files you have edited.
+
+  Every installed path is classified against the receipt. A file whose hash still matches
+  what ariadnev wrote is ours to replace or remove; a file you changed is yours. `update`
+  **skips** a modified file rather than overwriting it, and `uninstall` **refuses** to
+  delete one, both unless `--force` is passed. Neither ever touches a path that is not in
+  the receipt at all.
+
+  This is a behaviour change to commands that already shipped. Before, an edited skill
+  could be silently overwritten by an update, or deleted by an uninstall, with no way to
+  tell afterwards what had been lost.
+
+- 5f1b91c: Add nine subcommands the parity audit found missing.
+
+  `av plan create | add-phase | kanban | parse | validate | migrate` — scaffold a plan and
+  its phases, view every phase grouped by status, read a plan as structured data, check one,
+  and import plans from another directory. New phases take the highest existing number plus
+  one, never a gap, so a deleted phase cannot be reissued to something that depends on it.
+
+  `av mcp link` copies a server between the user and project config — a copy, never a move —
+  and refuses to write environment values into a repository config without `--allow-secrets`.
+
+  `av migrate prefs | rollback` — import a config left by the pre-rename install, and undo
+  what a migration moved. Rollback reuses the existing restore path rather than adding a
+  second one, so it inherits its digest checks and its refusal to write outside the install
+  surface.
+
+- 5f1b91c: Add `av projects init | new | setup | list` for project lifecycle.
+
+  `init` adopts the current directory, `new` scaffolds one, `setup` re-applies the
+  configured providers to an existing project, and `list` reports what is registered with
+  where it lives and when it was last touched.
+
+- 5f1b91c: Add omp, grok and dsh to the verified provider set.
+
+  Each cell in the provider matrix is verified before it is used; an unverified
+  (provider, artifact) pair is skipped and logged rather than guessed. These three join
+  that matrix with the paths and formats their runtimes actually read.
+
+- 5f1b91c: Snapshot recovery now previews unless you confirm.
+
+  `av recover` replays a snapshot back to its original paths, and it now prints what it
+  would write and stops. Pass `--yes` to apply.
+
+  This is a behaviour change to a command that already shipped, and it is the one most
+  worth reading twice: a script that called `av recover` and checked the exit code
+  previously restored files and now reports a plan. It exits 0 either way.
+
+- 5f1b91c: Add `av sessions list | show` — a read-only reader over agent session logs.
+
+  Reads Claude Code and Codex session files in place and never writes to them. `list`
+  reports id, runtime, project, start time and turn count; `show` renders one session.
+  Nothing is copied into ariadnev's own storage, so deleting the runtime's log deletes the
+  data.
+
+- 5f1b91c: Add `av run <kit>/<skill>` to dispatch a skill to a coding agent.
+
+  Resolves the skill, adapts it for the target runtime, and hands it over. `av run` with a
+  bare name still routes to the workflow harness for one release and warns; a `<kit>/<skill>`
+  argument is always dispatch and is refused rather than misrouted.
+
+- 5f1b91c: Store operational data in SQLite, with the runtime gated on it.
+
+  A dual-driver adapter runs against either available SQLite binding and is held to the same
+  behaviour by a shared conformance suite. `av doctor` now reports SQLite, FTS5 and WAL
+  availability and fails when the environment cannot support them, so a missing capability
+  surfaces at diagnosis rather than mid-command.
+
+- 5f1b91c: Add `av watch` and `av orchestrate`.
+
+  `watch` polls repositories you have allow-listed for issues addressed to it and answers
+  them. Issue text is treated as hostile input throughout: a claim is taken before dispatch
+  so two watchers cannot both answer, fences in the body are neutralised, and the prompt is
+  framed with a per-invocation nonce. It posts only when a posting capability was supplied.
+
+  `orchestrate run|status|stop` runs a job graph, executing independent waves concurrently.
+  Each job runs in its own process group, so stopping a run reaches the whole tree rather
+  than orphaning children.
+
+- eda7312: Rename the workflow harness to `av workflow` and reserve `av run` for skill dispatch.
+
+  `av workflow run|resume|status|cancel` is now the canonical spelling. `av run <workflow>`
+  keeps working for one release, warning on stderr so `--json` stdout is byte-identical, and
+  stops working in 1.4.0. `av run <kit>/<skill>` is reserved for skill dispatch and refuses
+  rather than being misrouted to a workflow that cannot exist.
+
+  `av run resume|status|cancel` moved outright to `av workflow …` — dispatch grammar has no
+  subcommands to collide with, so there was nothing to disambiguate and no second spelling
+  worth keeping alive.
+
+### Patch Changes
+
+- e44b317: Widen `CURRENT_RELEASE_TAG` to accept prereleases so phase 11's beta channel can cut.
+
+  `detect-release-source.mjs` gates candidate-build on `CURRENT_RELEASE_TAG.test(tag)`.
+  The regex only accepted `X.Y.Z`, so `ariadnev@1.2.1-beta.0` failed as "not a release
+  version" and the candidate-build + candidate-publish jobs skipped — no held draft
+  was ever created for the beta cut. `STABLE_RELEASE_TAG` stays strict so
+  previous-stable lock and "bare install selects stable" invariants are unchanged.
+
+- 2b83937: Open the beta release channel (phase 11 rehearsal).
+
+  This changeset exists so the Version PR under changesets pre mode produces
+  `ariadnev@X.Y.Z-beta.1` — a real, installable prerelease used to rehearse
+  phase 4's directory rename on live installs before the stable cut.
+
+  Contents of the beta:
+
+  - `fix(release): resolve smoke binary path to absolute` — release smoke script
+    now resolves the binary path against the workspace root instead of the caller
+    CWD, so the smoke passes when the workflow invokes it from a sibling target
+    directory.
+
+  Opt-in only. Bare `curl … | bash` and bare `av update` continue to select the
+  stable release. To install this beta:
+
+      av update --to <printed-version>
+
+  The signature-verifying update path covers this beta through the same key and
+  the same finalize step as stable — no unsigned-but-accepted path is introduced.
+
+- 402e12c: Uninstalling one provider no longer deletes files another provider still uses.
+
+  `codex` and `cursor` both install into `~/.agents/skills`, so a receipt records
+  the same paths under both. Removing either took the other from healthy to
+  degraded with every shared file missing. The plan now preserves any path another
+  install in the same receipt still claims, and names the owner in the report.
+
 ## 1.3.0-beta.2
 
 ### Patch Changes
