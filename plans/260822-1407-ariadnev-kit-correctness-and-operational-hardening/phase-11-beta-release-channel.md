@@ -200,7 +200,14 @@ instead of "teach the edge about channels".
       same key and the same step. No unsigned-but-accepted path exists.
 - [x] Cutting a stable release while changesets pre mode is active fails CI —
       and so does the mirror image, a beta-flagged channel with pre mode off.
-- [ ] Phase 4 has been rehearsed on the beta channel before its stable release.
+- [x] Phase 4 has been rehearsed on the beta channel before its stable release.
+      Rehearsed across `1.3.0-beta.1` and `1.3.0-beta.2`, 2026-08-30. Six of
+      phase 4's seven criteria are now met; the seventh, `ariadnev.com/version`
+      serving the new version, is the stable cut's by definition — the edge must
+      not move to a prerelease. The rehearsal found two defects no test had:
+      an orphan set with no receipt is invisible to `doctor`, and two providers
+      resolving to one root claimed the same 1485 paths, so removing either
+      broke the other. The second is fixed and shipped in `beta.2`.
 
 ## Risk Assessment
 
