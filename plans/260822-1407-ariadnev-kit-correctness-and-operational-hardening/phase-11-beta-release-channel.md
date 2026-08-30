@@ -1,7 +1,7 @@
 ---
 phase: 11
 title: "Beta release channel"
-status: in-progress
+status: completed
 priority: P1
 effort: "2-4d"
 dependencies: [5]

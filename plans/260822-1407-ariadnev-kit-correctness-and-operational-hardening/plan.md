@@ -170,14 +170,14 @@ path-shape are now two separate rules.
 | 1 | [Link integrity](./phase-01-link-integrity.md) | — | **Completed** (merged to dev) |
 | 2 | [Lint ratchet mechanism and ADR](./phase-02-lint-ratchet-mechanism-and-adr.md) | — | **Completed** (merged to dev) |
 | 3 | [Installer av- prefix and heal](./phase-03-installer-av-prefix-and-heal.md) | 1 | **Completed** (merged to dev) |
-| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | **In progress** (doctor guard complete; release and rehearsal pending) |
-| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **In progress** (merged to dev; release cut pending) |
+| 4 | [Prefix release and rollout](./phase-04-prefix-release-and-rollout.md) | 3, **5 released** | **Completed** (rehearsed on `1.3.0-beta.1/2`, stable `1.3.0` live 2026-08-30) |
+| 5 | [Security hardening and signed channel](./phase-05-security-hardening-and-signed-channel.md) | — | **Completed** (signed releases `1.3.0-beta.1`, `-beta.2`, `1.3.0`) |
 | 6 | [JSON envelope and backups verbs](./phase-06-json-envelope-and-backups-verbs.md) | 5 | **Completed** (merged to dev) |
 | 7 | [Install lifecycle locking](./phase-07-install-lifecycle-locking.md) | 3, 6 | **Completed** (merged to dev) |
 | 8 | [Skill content burn-down](./phase-08-skill-content-burn-down.md) | 2, 3 | **In progress** (lint clean and exemption removed; independent second-reader evidence and final merge-history proof remain) |
 | 9 | [Agent lint and close-out](./phase-09-agent-lint-and-close-out.md) | 8 (step 8 and the close-out after it) | **Completed** |
 | 10 | [Contributor readiness and repo hygiene](./phase-10-contributor-readiness-and-repo-hygiene.md) | — | **Completed** (merged to dev) |
-| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **In progress** (merged to dev; edge deploy + beta cut pending) |
+| 11 | [Beta release channel](./phase-11-beta-release-channel.md) | 5 | **Completed** (two betas published and installable by pin; edge stayed on stable throughout) |
 
 **Execution order: 0 ✓ → 1, 2, 5 in parallel → release(5) → 11 → 3 → 4 → 6 → 7 → 8 → 9.**
 **Phase 10 has no dependencies and blocks nothing — fit it into any gap.**
@@ -240,8 +240,13 @@ target existence, and a shape rule requiring `(../)+av-<slug>/`.
       including for codex's home-rooted writes (phase 7 lock tests).
 - [x] `ARIADNEV_BASE_URL=http://evil` fails closed against **all three** of
       `install.sh`, `install.ps1`, and `av update` (phases 0 and 5 tests).
-- [ ] Phase 4's sandbox rollback succeeds **on the first attempt** — the proof
-      that the phase-5-before-phase-4 sequencing worked.
+- [x] Phase 4's sandbox rollback succeeds **on the first attempt** — the proof
+      that the phase-5-before-phase-4 sequencing worked. Ran once, 2026-08-30,
+      `beta.2 → beta.1 → beta.2` on a sandbox `HOME`, no retry. It could not
+      have run a day earlier: `1.1.0` predates signing and the binary refuses
+      it, which is the sequencing doing its job. The heal-backup restore step
+      was exercised separately the same day across the real `1.1.0 → 1.3.0`
+      layout change; it surfaced a missing uninstall step, now in the recipe.
 - [x] The heal backup still exists after three post-heal `av install` runs
       (phase 3 e2e).
 - [x] `pnpm test` green after every phase (final full suite, 2026-08-24).
