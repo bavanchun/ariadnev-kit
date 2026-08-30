@@ -4,7 +4,7 @@ When `--advice` is present, run this skill under `kongming` supervision.
 `kongming` is an advisory-only supervisor: it returns counsel, never code, and
 the main agent stays responsible for every decision, edit, and gate.
 
-Spawn `kongming` at these checkpoints:
+Spawn `kongming` at these checkpoints (**per PR**, not once per run):
 
 - **After the initial review completes** — pass the PR reference, the diff
   summary, the findings list with severities, and the tentative verdict; ask
@@ -26,15 +26,16 @@ Spawn `kongming` at these checkpoints:
 - **MANDATORY after the PR is open AND CI is terminal-green** — spawn
   `kongming` to review the whole implementation (diff + PR body + linked
   issue when one exists), then post its assessment plus concrete next steps
-  as a comment directly on the PR via `gh pr comment "$PR_REF" --body-file -`.
-  Append the same-style traceability footer used by `--reply` so the source
-  is obvious. This gate fires once per invocation, after the CI-green
-  transition; it does not run per fix-loop iteration. When `--merge` is
-  present, the transition happens inside the post-merge CI watch
-  (`reply-and-merge.md`, Merge step 1). When `--merge`
-  is absent, fire this gate at the end of the run if `gh pr checks "$PR_REF"`
-  is terminal-green; otherwise skip it and note the reason (CI red, pending,
-  or unavailable) in the run report.
+  as a comment directly on the PR via the adaptive write helper
+  (`_av_pr_comment "$OWNER" "$REPO" "$NUMBER"`, body on stdin; native first,
+  REST fallback — see `github-api-compat.md`). Append the same-style
+  traceability footer used by `--reply` so the source is obvious. This gate
+  fires once per PR, after that PR's CI-green transition; it does not run per
+  fix-loop iteration. When `--merge` is present, the transition happens inside
+  the post-merge CI watch (`reply-and-merge.md`, Merge step 1). When `--merge`
+  is absent, fire this gate at the end of the PR's iteration if
+  `_av_pr_checks "$OWNER" "$REPO" "$NUMBER"` is terminal-green; otherwise skip
+  it and note the reason (CI red, pending, or unavailable) in the run report.
 
 Invoke with
 `delegate_agent capability(subagent_type="kongming", prompt="<task, evidence, approaches tried, the exact question>", description="advice: <checkpoint>")`.

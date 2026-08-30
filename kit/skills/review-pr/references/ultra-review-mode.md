@@ -1,7 +1,8 @@
 # Ultra Verifier Mode (`--ultra`)
 
-When `--ultra` is present, run the **initial review of the PR** as a best-of-5
-verifier pass. The controller assembles one immutable evidence packet — the
+When `--ultra` is present, run the **initial review of each PR** as a best-of-5
+verifier pass (one packet per PR; PRs stay sequential across a multi-PR run).
+The controller assembles one immutable evidence packet — the
 diff, PR body, linked issue, and CI status — plus the review rubric (the
 Correctness / Security / Breaking changes / Code quality / Project-specific
 compliance / Testing checks in `SKILL.md` step 3), dispatches exactly five
