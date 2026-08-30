@@ -219,11 +219,7 @@ subcommand. Omit `name` for `verify` and `upgrade` to cover every skill.
 | `av workflow status <run-id>` | read-only | Read durable status without invoking a provider | |
 | `av workflow resume <run-id>` | mutating | Resume a durable run with the original graph and runtime identity | |
 | `av workflow cancel <run-id>` | mutating | Request cooperative cancellation for an active run | |
-| `av run <kit>/<skill> [args...]` | mutating | Dispatch a skill through an adapter (an agent run can write) | `--target <provider>`, `--timeout <duration>`, `--kits-dir <dir>` |
-| `av run <workflow>` | mutating | Deprecated spelling of `av workflow run`; stops working in 1.4.0 | prefer `av workflow run` |
-| `av run resume <run-id>` | mutating | Moved to `av workflow resume` | |
-| `av run status <run-id>` | read-only | Moved to `av workflow status` | |
-| `av run cancel <run-id>` | mutating | Moved to `av workflow cancel` | |
+| `av run <kit>/<skill> [args...]` | mutating | Dispatch a skill through an adapter (an agent run can write). Takes a slashed reference only — workflows are `av workflow run` | `--target <provider>`, `--timeout <duration>`, `--kits-dir <dir>` |
 
 ## Not in this binary
 
