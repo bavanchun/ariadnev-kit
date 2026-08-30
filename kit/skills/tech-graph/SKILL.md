@@ -59,7 +59,7 @@ scripts executable.
 
 1. **Classify** the diagram type (table below)
 2. **Extract structure** — identify layers, nodes, edges, flows, and semantic groups from user description
-3. **Plan layout** — apply the layout rules for the diagram type from [diagram types](references/diagram-types.md)
+3. **Plan layout** — apply the layout rules for the diagram type from [diagram types](references/diagram-types.md) and the clearance, routing, and render-order rules in [SVG layout best practices](references/svg-layout-best-practices.md)
 4. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching numbered style reference for exact color tokens and SVG patterns
 5. **Map nodes to shapes** — the shape vocabulary in [diagram types](references/diagram-types.md)
 6. **Check icon needs** — load `references/icons.md` for known products
@@ -131,6 +131,11 @@ Always include a **legend** when 2+ arrow types are used.
 - Anchor arrows on component edges, not geometric centers
 - Route around dense node clusters, use different y-offsets for parallel arrows
 - Jump-over arcs (5px radius) for unavoidable crossings — the pattern is in [SVG authoring](references/svg-authoring.md)
+
+These are the floors. Connection-point offsets, curve control-point clearance,
+overlap detection, the z-index render order, the pre-export validation
+checklist, and the anti-pattern table are in
+[SVG layout best practices](references/svg-layout-best-practices.md).
 
 ## SVG Technical Rules
 

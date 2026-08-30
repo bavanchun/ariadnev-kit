@@ -6,11 +6,11 @@ when_to_use: "Invoke when creating or refining Claude skills."
 category: dev-tools
 keywords: [skills, authoring, eval, testing, templates]
 license: Apache-2.0 and MIT; see LICENSE.txt and LICENSE-MIT.txt
-argument-hint: "[skill-name or description]"
+argument-hint: "[skill-name or description] [--advice]"
 metadata:
   origin: ported
   author: upstream
-  version: "4.0.0"
+  version: "4.2.0"
 ---
 
 # Skill Creator
@@ -61,6 +61,22 @@ Follow the process in `references/skill-creation-workflow.md`:
 7. **Optimize Description** — AI-powered trigger accuracy optimization
 8. **Package** — `scripts/package_skill.py <path>`
 9. **Iterate** — Generalize from feedback, keep prompts lean; diagnose stuck skills with `references/troubleshooting-guide.md`
+
+## Advisory supervision (`--advice`)
+
+When `--advice` is present, run this skill under `kongming` supervision as
+defined in `../av-cook/references/advisory-supervision.md` — the advisory-only
+rule, the invocation form, and the never-bypass rule live there. This skill's
+checkpoints:
+
+- **After intent capture and planning** — pass the captured intent, trigger
+  contexts, and planned resources; ask for a go/no-go and the top risk.
+- **After the SKILL.md draft and eval results** — pass the draft, eval grades,
+  and with/without comparison; ask what to keep, cut, or restructure.
+- **Before packaging/distribution** — pass validation output and target
+  marketplaces; get counsel before anything ships.
+- **When stuck** — repeated eval failures or contradictory feedback; pass
+  everything tried and the exact obstacle.
 
 ## Description Optimization
 
@@ -122,10 +138,12 @@ Full guide, including structure template and error-handling patterns: `reference
 - **Metadata**: `references/metadata-quality-criteria.md`
 - **Tokens**: `references/token-efficiency-criteria.md`
 - **Scripts**: `references/script-quality-criteria.md`
+- **Script dependencies**: `references/script-dependency-strategy.md` (central-cache runners over per-skill `node_modules`/`.venv`)
 - **Structure**: `references/structure-organization-criteria.md`
 - **Design patterns**: `references/skill-design-patterns.md`
 - **Portability and third-party review**: `references/skill-ecosystem-portability-and-safety.md`
 - **Plugin Marketplaces**: `references/plugin-marketplace-overview.md`
+- **Cross-marketplace (Codex, Vercel skills.sh)**: `references/cross-marketplace-distribution.md`
 
 ## References
 

@@ -44,21 +44,30 @@ multi-skill sequences (logo → CIP → slides; banner + brand; icon + tokens).
 
 ## Process (before generating)
 
-1. **Intake.** For a new, vague, or externally-shipped task, ask the batched
+1. **Design Read declaration.** One line, first: `Reading this as:
+   <deliverable> for <audience>, leaning <aesthetic direction>.` If the brief
+   is genuinely ambiguous, ask exactly ONE clarifying question — never a
+   question dump. `../av-frontend-design/references/design-quality-preflight.md`
+   carries the shared failure-mode catalog (generic gradients, template card
+   grids, fake screenshots, generic content, decorative furniture, one-note
+   palettes) this declaration guards against.
+2. **Intake.** For a new, vague, or externally-shipped task, ask the batched
    10-question checklist in `references/design-workflow.md` once, in one
    message. Small tweaks and follow-ups on an approved design skip it.
-2. **Real brand → real assets.** When the task names a real brand or product,
+3. **Real brand → real assets.** When the task names a real brand or product,
    run `references/brand-asset-protocol.md` before generating anything. A logo
    the agent cannot locate is a stop-and-ask, never a fabrication. The
    collected assets are frozen into `brand-spec.md` and every later artifact
    references that file.
-3. **Direction record.** Write the design direction (shape under **Output
+4. **Direction record.** Write the design direction (shape under **Output
    format**) and get it accepted before producing individual assets.
-4. **4 passes.** Assumptions + placeholders → real components + variations →
+5. **4 passes.** Assumptions + placeholders → real components + variations →
    polish → verify and deliver, per `references/design-workflow.md`.
-5. **Self-critique.** Before delivery, score the work against
+6. **Self-critique.** Before delivery, score the work against
    `references/design-critique-guide.md`. Concept ≤ 5 caps the total at 6.0 —
-   fix the idea before polishing craft.
+   fix the idea before polishing craft. Once an asset is integrated into a
+   frontend build, demo page, or deck, the consuming skill runs
+   `references/handoff-gate.md` instead — the two gates never stack.
 
 ## Built-in sub-skills
 
@@ -228,7 +237,8 @@ for exact-size screenshot export.
 
 **Related:** `av:ai-artist` owns a single product mockup or concept image from
 its prompt library — that request does not come here. `av:frontend-design`
-owns application screens.
+owns application screens. `av:frontend-design` and `av:show-off` load this
+skill's `references/handoff-gate.md` as their last check before presenting.
 
 ## References
 
@@ -237,6 +247,7 @@ owns application screens.
 | Choosing a route by question type or chaining sub-skills | `references/design-routing.md` |
 | A real brand or product is named | `references/brand-asset-protocol.md` |
 | Before delivery (self-review) | `references/design-critique-guide.md` |
+| Final gate and handoff template for `av:frontend-design`, `av:show-off`, and Slides outputs | `references/handoff-gate.md` |
 | New, vague, or externally-shipped task (intake, 4 passes) | `references/design-workflow.md` |
 | Logo: guide, styles, colors, prompts | `references/logo-design.md`, `references/logo-style-guide.md`, `references/logo-color-psychology.md`, `references/logo-prompt-engineering.md` |
 | CIP: guide, deliverables, styles, prompts | `references/cip-design.md`, `references/cip-deliverable-guide.md`, `references/cip-style-guide.md`, `references/cip-prompt-engineering.md` |
