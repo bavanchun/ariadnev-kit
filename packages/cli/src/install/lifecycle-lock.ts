@@ -195,6 +195,19 @@ export function lifecycleRoots(ctx: { home: string; cwd: string }): string[] {
 }
 
 /**
+ * The extra roots a purge needs: every registered project it will visit.
+ *
+ * `lifecycleRoots` is `[home, cwd]`, which is exactly right for a command that
+ * writes inside its own scope. Purge writes inside other people's projects, and
+ * a lock that does not name them serializes nothing there — two purges, or a
+ * purge and an `av install` in one of those directories, would run straight
+ * through each other. Same reasoning that gave `update` `executableRoot`.
+ */
+export function projectRoots(dirs: readonly string[]): string[] {
+  return [...new Set(dirs.map((dir) => resolve(dir)))];
+}
+
+/**
  * The extra root `update` needs: it replaces `process.execPath`, one file shared
  * by every project and outside every scope root. Two `av update` runs in
  * different directories are otherwise entirely unserialized.
