@@ -74,7 +74,9 @@ Remote (SSE, HTTP): keyed by session ID. On Cloudflare Workers, use **Durable Ob
 
 ## Auth
 
-Applies to SSE + HTTP only. stdio trusts the parent.
+Applies to SSE + HTTP only. stdio trusts the parent. Prefer OAuth 2.1 + PKCE
+for public remote servers — see `oauth-streamable-http.md`. Simple bearer is
+still fine for private tokens:
 
 ```
 Authorization: Bearer <token>

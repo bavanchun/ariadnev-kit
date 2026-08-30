@@ -65,4 +65,6 @@ Abort and propose an alternative if:
 - Core cannot be extracted without significant refactor the user hasn't scoped
 - With `--yagni`, no capabilities survive the cut-scope pass
 - Legal/compliance blocks publishing (licensing of upstream deps, etc.)
-- Credentials model requires interactive OAuth that can't run in the MCP transports
+- Credentials model requires interactive OAuth that can't run in the MCP
+  transports — before aborting, check whether OAuth 2.1 + PKCE over Streamable
+  HTTP covers it (`oauth-streamable-http.md`)

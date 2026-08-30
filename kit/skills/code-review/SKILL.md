@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to review diffs, PRs, commits, or full codebases."
 category: utilities
 keywords: [review, quality, verification, reliability]
-argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]] [--ultra] [--yagni]"
+argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]] [--ultra] [--advice] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -270,6 +270,24 @@ map Important → High and Minor → Low when carrying their output into this fr
 Proof/risk: the review asserts which ladder rung the change cleared
 (`unit` / `integration` / `e2e` / `platform`) from the Verification block; it
 never raises the rung by reading code alone.
+
+## Advisory supervision (`--advice`)
+
+When `--advice` is present, run this skill under `kongming` supervision. The
+shared protocol — the advisory-only role, the invocation shape, and the
+never-bypass rule — lives in `../av-cook/references/advisory-supervision.md`;
+read it first. Spawn `kongming` at these checkpoints:
+
+- **After Stage 1 (spec compliance) and after Stage 2 (quality review)** —
+  pass scope, findings with evidence, and tentative severity; ask for
+  go/no-go, missed risks, and over-reach.
+- **When stuck** — contradictory evidence, unclear ownership, or repeated
+  inconclusive scouting; pass approaches tried and the exact obstacle.
+- **Before publishing a high-stakes verdict** (BLOCKED on a public contract,
+  a security finding, or a large refactor) — get counsel first.
+
+`--advice` composes with every input mode, including `codebase parallel`; it
+never bypasses evidence rules or the verification gates.
 
 ## Workflow position
 

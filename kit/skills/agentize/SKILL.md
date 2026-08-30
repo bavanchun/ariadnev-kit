@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to expose existing code as a reusable CLI or MCP tool."
 category: dev-tools
 keywords: [agentize, mcp, cli, monorepo, npm, cloudflare, docker, agent-tool]
-argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--yagni]"
+argument-hint: "[feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--advice] [--yagni]"
 metadata:
   origin: ported
   author: upstream
@@ -27,7 +27,7 @@ Principles: understand before wrap · agent-centric tool design · one source of
 ## Usage
 
 ```text
-/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--yagni]
+/av:agentize [feature-or-module] [--both|--mcp|--cli] [--auto|--ask] [--ultra] [--advice] [--yagni]
 ```
 
 | Flag | Effect |
@@ -38,6 +38,7 @@ Principles: understand before wrap · agent-centric tool design · one source of
 | `--auto` *(default)* | analyze, decide, and implement without questions |
 | `--ask` | after analysis, interview the user before implementing |
 | `--ultra` | fan the analysis/decision phase as a best-of-5 verifier pass (see Ultra Verifier Mode) |
+| `--advice` | run under `kongming` advisory supervision (see Advisory supervision) |
 | `--yagni` | challenge and cut scope not needed for the stated outcome; pass the literal flag to every downstream skill and subagent |
 
 Without `--yagni`, deliver every requested capability in full and add nothing
@@ -146,7 +147,10 @@ nothing CLI- or MCP-specific.
 `MCP_TRANSPORT`, then `--transport stdio|sse|http`, defaulting to stdio. Read
 `references/mcp-transports.md` before writing the server: it carries the entry
 switch, per-transport wiring, bearer auth for SSE and HTTP, the tool-registration
-schema, and the health endpoints. Read `references/deployment-guide.md` before
+schema, and the health endpoints. For a public remote server, prefer OAuth 2.1 +
+PKCE over plain bearer — follow `references/oauth-streamable-http.md`. For
+tool-heavy or chained workloads, consider Code Mode per `references/code-mode.md`.
+Read `references/deployment-guide.md` before
 committing to a target: it carries the Cloudflare Workers, Docker, and PaaS recipes.
 
 ### 6. Harden
@@ -181,25 +185,11 @@ release checklist in the plan directory. Close by printing the handoff block bel
 
 ## Ultra Verifier Mode (`--ultra`)
 
-When `--ultra` is present, run phases 0-1 once; the skill then fans only the
-Agentization Map and decision record generation (phases 2-3) to exactly five
-independent read-only candidates in one parallel wave; a single strongest-model
-verifier scores them.
-
-- **Candidate task:** each candidate produces a complete decision record —
-  Agentization Map, output mode, capability list, tool/command names,
-  transports, deployment targets, package metadata — from the same scout
-  evidence packet.
-- **Rubric:** fidelity to scouted behavior (nothing invented), agent-centric
-  design quality, capability selection sharpness, and deployment realism.
-- **Finalizer:** the verifier selects the single winning decision record
-  unchanged (or rejects all); phases 4-7 execute once from the winner. On
-  reject-all, hard-stop and report why.
-
-In `--ask`, the user interview runs once before the fan; candidates never call
-`ask_user`. Full mechanics are in
-`../av-brainstorm/references/ultra-verifier-mode.md`. It is a best-of-5
-verifier mode inspired by LLM-as-a-Verifier, not the full framework.
+Phases 0-1 run once, then the Agentization Map and decision record (phases 2-3)
+fan to five independent read-only candidates in one wave; one strongest-model
+verifier picks the winning record unchanged, or rejects all and hard-stops.
+Rubric, candidate task, and the `--ask` interview rule:
+`references/ultra-and-advisory-modes.md`.
 
 ## Output format
 
@@ -257,6 +247,14 @@ Next: /av:cook <plan-path> for any remaining implementation.
 - [ ] The decision record names every capability that was cut and why — an
       unexplained omission is the failure that record exists to prevent
 
+## Advisory supervision (`--advice`)
+
+Runs this skill under `kongming` supervision at four checkpoints — after
+Scout/Analyze, before the phase 3 decision record, before the phase 7 package
+handoff, and when stuck. It never bypasses this skill's hard gates, tests,
+review blockers, or security policy. Checkpoints and the shared protocol:
+`references/ultra-and-advisory-modes.md`.
+
 ## Workflow position
 
 **Typically follows:** `av:brainstorm`, when it is not yet settled that a CLI or MCP
@@ -293,5 +291,8 @@ extract a `core/` from.
 | Running the `--ask` interview (phase 3) | `references/challenge-framework.md` |
 | Creating the repo layout (phase 4) | `references/monorepo-layout.md` |
 | Writing the MCP server (phase 5) | `references/mcp-transports.md` |
+| Securing a public Streamable HTTP server (phase 5) | `references/oauth-streamable-http.md` |
+| Tool-heavy or chained MCP workloads (phases 3, 5) | `references/code-mode.md` |
+| Running `--ultra` or `--advice` | `references/ultra-and-advisory-modes.md` |
 | Wiring credentials into either adapter (phase 5) | `references/auth-resolution-chain.md` |
 | Choosing and configuring a deploy target (phases 5–6) | `references/deployment-guide.md` |
