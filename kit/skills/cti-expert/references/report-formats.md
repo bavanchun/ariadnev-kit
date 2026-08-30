@@ -124,7 +124,7 @@ pandoc "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].md" \
 1. **Phase 1:** pandoc converts the MD file to a base DOCX (preserving ALL narrative content — tables, lists, formatting)
 2. **Phase 2:** python-docx post-processes to add CTI professional styling, prepend cover page + TOC, and inject charts/diagrams from JSON at matching section headings
 
-Matching is by keyword in the heading text, case- and accent-insensitive (`CHART_KEYWORDS` in `scripts/cti_docx_postprocess.py`): risk gauge under a heading containing *executive summary*; finding charts under *findings*; timeline chart under *timeline*; entity diagram under *relationship* or *entity*; visitor charts under *visitor* or *traffic*. A chart whose keyword appears in no heading is appended under a trailing "Visual Analytics" heading instead of its section (`_append_remaining_charts`) — the four chart-bearing INTSUM headings in `handbook/report-template.md` match; visitor charts have no INTSUM section and land in the appendix whenever `visitor_stats` is present.
+Matching is by keyword in the heading text, case- and accent-insensitive (`CHART_KEYWORDS` in `scripts/cti_report_headings.py`, applied by `scripts/cti_docx_postprocess.py`): risk gauge under a heading containing *executive summary*; finding charts under *findings*; timeline chart under *timeline*; entity diagram under *relationship* or *entity*; visitor charts under *visitor* or *traffic*. A chart whose keyword appears in no heading is appended under a trailing "Visual Analytics" heading instead of its section (`_append_remaining_charts`) — the four chart-bearing INTSUM headings in `handbook/report-template.md` match; visitor charts have no INTSUM section and land in the appendix whenever `visitor_stats` is present.
 
 **The MD file is the primary content source.** It carries the full narrative (detailed person profiles, infrastructure tables, wallet addresses, corporate structure, legal history, etc.). The JSON file provides structured data for visual elements (charts, diagrams, risk gauge). Using both together produces a complete report with zero content loss.
 
@@ -151,6 +151,61 @@ Matching is by keyword in the heading text, case- and accent-insensitive (`CHART
 | CSV Export | `/report csv` | Spreadsheets, databases |
 
 All formats above auto-save as .md + .docx unless the format is inherently machine-only (JSON, CSV — those save as their native format only).
+
+### HTML mirror (`--format html`, opt-in)
+
+`--format html` on `/report`, `/brief`, or `/case` adds a browser-native mirror
+of the DOCX beside it — same narrative, same visuals under the same headings —
+for a recipient who needs a link-shareable file or an inline view without an
+Office install. The default delivery (`.md` + `.docx`) is unchanged; the HTML is
+additive, written by `scripts/generate-cti-html.py` from the same two inputs:
+
+```bash
+# Primary: hybrid — narrative from MD, visuals from JSON
+python3 scripts/generate-cti-html.py \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].md" \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].json" \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].html"
+
+# Fallback 1: JSON-only — sections built from the JSON in INTSUM order, every visual inline
+python3 scripts/generate-cti-html.py \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].json" \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].html"
+
+# Fallback 2: MD-only — styled narrative, no visuals
+python3 scripts/generate-cti-html.py \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].md" \
+  "OSINT-REPORT-[CASE-ID]-[YYYY-MM-DD].html"
+```
+
+The narrative goes through pandoc (`--from markdown --to html5`), or the Python
+`markdown` package when pandoc is absent; the HTML path imports neither
+python-docx nor matplotlib. Visuals are placed with the same keyword table the
+DOCX uses (`scripts/cti_report_headings.py`), so a heading that places a chart
+in the `.docx` places it in the `.html`, and the same leftovers go to a trailing
+"Visual Analytics" section.
+
+| DOCX visual | HTML rendering (`scripts/cti_html_visuals.py`) | When scripts cannot load |
+|---|---|---|
+| Risk gauge (exposure score) | Inline SVG semicircle, same four colour bands | Always shown — no script needed |
+| Pie (finding types) | Inline SVG sectors + legend with counts | Always shown |
+| Bar (severity) | Inline SVG horizontal bars, CRITICAL → INFO order | Always shown |
+| Timeline | `<ol class="timeline">`, dated events earliest first | Always shown |
+| Entity relationship map | Mermaid `flowchart TD`; node colour by subject type, arrow weight by relationship | Plain edge list (`A —owns→ B`) replaces the diagram |
+| Network topology | Mermaid `flowchart LR` over domain / ip / organization subjects | Plain edge list |
+| Traffic sources, visitor geography | Inline SVG bar and pie | Always shown |
+
+Mermaid is the page's only external resource, imported as an ES module from
+`https://cdn.jsdelivr.net/npm/mermaid@11/…` — the same form the preview skill
+uses ([html-libraries](../../av-preview/references/html-libraries.md)); when the
+import fails or JavaScript is off, the edge lists show instead. Nothing else is
+fetched: CSS and every chart are inline, so the file can be mailed or opened
+from disk. Mermaid and inline SVG are the only rendering engines.
+
+**File naming:** `OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.html` beside the `.md`,
+`.json` and `.docx`; list it in the saved-files confirmation. Without an
+explicit output path the script writes next to its first input, swapping the
+extension for `.html`.
 
 The per-format specifications live in `output/reports/`: `format-catalog.md`
 (the F1–F7 layouts and the auto-save policy), `citation-guide.md` (how a source

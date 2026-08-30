@@ -5,10 +5,10 @@ user-invocable: true
 when_to_use: "Invoke for OSINT, exposure review, or threat intelligence reports."
 category: security
 keywords: [osint, cti, threat-intelligence, recon, investigation, darknet, breach, forensics]
-argument-hint: "[target] [--yolo] [--case|--sweep|--query|--flow]"
+argument-hint: "[target] [--yolo] [--case|--sweep|--query|--flow] [--format html]"
 metadata:
   origin: ported
-  version: "2.0"
+  version: "2.1"
   author: "Hieu Ngo - chongluadao.vn"
   source: "https://github.com/7onez/cti-expert"
   license: "MIT"
@@ -47,7 +47,7 @@ Every investigation follows four phases:
 | **Acquire** | Collect raw data — `/sweep`, `/query`, `/username`, `/phone`, `/email-deep`, `/subdomain` |
 | **Enrich** | Expand leads — `/branch`, `/crossref`, `/link-subjects`, `/signatures` |
 | **Assess** | Score and verify — `/exposure`, `/threat-model`, `/validate`, `/coverage`, `/verify-finding` |
-| **Deliver** | Package output — `/report`, `/brief`, `/render`, `/workspace save` — **auto-saves .md + .docx** |
+| **Deliver** | Package output — `/report`, `/brief`, `/render`, `/workspace save` — **auto-saves .md + .docx** (+ `.html` with `--format html`) |
 
 Run `/progress` at any point to see which phase you're in and what's pending.
 
@@ -173,16 +173,22 @@ charts from structured data. See
 OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.md      full narrative — the source of truth
 OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.json    structured data for charts and diagrams
 OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.docx    rendered from both, zero content loss
+OSINT-REPORT-<CASE-ID>-<YYYY-MM-DD>.html    opt-in with --format html — browser-native mirror of the .docx
 ```
+
+`--format html` renders the same `.md` + `.json` a second time through
+`scripts/generate-cti-html.py`: one self-contained page with inline SVG charts
+and Mermaid graphs, for a recipient without an Office install. It changes
+nothing about the DOCX; the reference covers its modes and fallbacks.
 
 The markdown report follows the INTSUM template in
 `handbook/report-template.md` — its section order and its table shapes (the
 subject profile is a Field / Value / Confidence table; each finding is its own
-`### Finding N` block). The heading names are load-bearing: the DOCX generator
-places each chart by matching keywords in the heading text
-(`scripts/cti_docx_postprocess.py`). A chart whose keyword appears in no
-heading is not lost, but pushed out of its section into a "Visual Analytics"
-appendix at the end of the document.
+`### Finding N` block). The heading names are load-bearing: the DOCX and HTML
+generators both place each chart by matching keywords in the heading text
+(`CHART_KEYWORDS` in `scripts/cti_report_headings.py`). A chart whose keyword
+appears in no heading is not lost, but pushed out of its section into a
+"Visual Analytics" appendix at the end of the document.
 
 ```markdown
 # <Case label> — <target>
@@ -230,7 +236,7 @@ the `.docx`. Mermaid only on an explicit `--mermaid` flag.
 - [ ] Intelligence gaps are stated explicitly, including tool failures and blocked collection — silence here reads as "nothing there"
 - [ ] The exposure score is derived from recorded findings, not asserted; the band and its action are both stated
 - [ ] `/validate` and `/coverage` have run and their gaps are either closed or listed as gaps
-- [ ] The DOCX JSON meets the contract in [report formats](references/report-formats.md) — flat `findings`, a `label` on every subject, integer confidences — and the report headings carry the keywords the generator places charts by, or those charts land in the appendix instead of their sections
+- [ ] The report JSON meets the contract in [report formats](references/report-formats.md) — flat `findings`, a `label` on every subject, integer confidences — and the report headings carry the keywords the DOCX and HTML generators place charts by, or those charts land in the appendix instead of their sections
 
 ## Workflow position
 

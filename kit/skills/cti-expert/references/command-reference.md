@@ -92,6 +92,7 @@ Commands grouped by AEAD phase.
 | `/report csv` | Spreadsheet-compatible export | `/report csv` |
 | `/report legal` | Evidence-formatted for legal proceedings | `/report legal` |
 | `/report journalist` | Source-citation-heavy format | `/report journalist` |
+| `/report --format html` | Also saves a self-contained HTML mirror of the `.docx` | `/report --format html` |
 | `/brief` | Plain-language summary (non-technical) | `/brief` |
 | `/render entities` | ASCII subject relationship diagram | `/render entities` |
 | `/render timeline` | Chronological event chart | `/render timeline` |

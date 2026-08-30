@@ -94,15 +94,18 @@ cti-expert/
 │       ├── attack-path-diagram.md  Attack path flow visualization (/render threat-path)
 │       └── attack-surface-map.md   Attack surface exposure map (/render attack-surface)
 │
-├── scripts/                    DOCX report generation
+├── scripts/                    DOCX and HTML report generation
 │   ├── generate-cti-docx-hybrid.py  PRIMARY: Hybrid MD+JSON generator (pandoc + post-process)
 │   ├── generate-cti-docx.py         Fallback: JSON-only generator
+│   ├── generate-cti-html.py         Opt-in (--format html): HTML mirror from the same MD + JSON
+│   ├── cti_report_headings.py       Heading keywords that place charts — shared by DOCX and HTML
 │   ├── cti_docx_postprocess.py      Post-processing: styling, chart injection, cover page
 │   ├── cti_docx_charts.py           Chart rendering (pie, bar, gauge, timeline, traffic, geo)
 │   ├── cti_docx_diagrams.py         Entity relationship + network topology diagrams
 │   ├── cti_docx_sections.py         Report section formatting (used by JSON-only generator)
 │   ├── cti_docx_styles.py           Document styling, colors, cover page, header/footer
-│   ├── requirements.txt             Python dependencies
+│   ├── cti_html_visuals.py          Inline SVG charts + Mermaid graphs for the HTML mirror (stdlib only)
+│   ├── requirements.txt             Python dependencies (DOCX path; the HTML path needs none)
 │   └── sample-cti-report-data.json  Example JSON report data
 │
 ├── workflows/                  Professional workflow guides
