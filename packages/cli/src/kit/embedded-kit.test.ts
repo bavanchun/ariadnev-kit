@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync, writeFileSync, lstatSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { gunzipSync } from "node:zlib";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { materializeEmbeddedKit, embeddedFlatRoot, getKitRoot, cacheRoot } from "./embedded-kit.js";
@@ -30,6 +31,7 @@ function walkAssets(dir: string, base: string, acc: Record<string, Buffer>): Rec
 /** The bytes an embedded asset decodes back to. */
 function assetBytes(key: string): Buffer {
   const asset = EMBEDDED_ASSETS[key];
+  if (asset.gz !== undefined) return gunzipSync(Buffer.from(asset.gz, "base64"));
   return asset.b64 !== undefined ? Buffer.from(asset.b64, "base64") : Buffer.from(asset.text ?? "", "utf8");
 }
 
@@ -157,8 +159,10 @@ describe("embedded-kit", () => {
     expect(Object.keys(EMBEDDED_ASSETS).sort()).toEqual(Object.keys(expected).sort());
     for (const k of Object.keys(expected)) {
       expect(assetBytes(k), `stale embed for ${k} — run generate-embedded-kit.mjs`).toEqual(expected[k]);
-      // Text stays text and bytes stay bytes — the branch must match the file.
-      expect(EMBEDDED_ASSETS[k].b64 !== undefined, `wrong encoding branch for ${k}`).toBe(!isTextFile(k));
+      // A non-text file must never be stored as a string: round-tripping bytes
+      // through utf8 replaces them with U+FFFD. Compression is free to claim
+      // any file, so that is the invariant left to assert.
+      expect(EMBEDDED_ASSETS[k].text === undefined || isTextFile(k), `wrong encoding branch for ${k}`).toBe(true);
     }
   });
 

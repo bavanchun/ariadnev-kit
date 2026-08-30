@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
@@ -23,6 +24,7 @@ export function cacheRoot(): string {
 
 /** Decode one embedded asset back to the exact bytes it was generated from. */
 function assetBytes(asset: EmbeddedAsset): Buffer {
+  if (asset.gz !== undefined) return gunzipSync(Buffer.from(asset.gz, "base64"));
   return asset.b64 !== undefined ? Buffer.from(asset.b64, "base64") : Buffer.from(asset.text ?? "", "utf8");
 }
 
