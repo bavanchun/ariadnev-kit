@@ -9,7 +9,7 @@ argument-hint: "[task to route]"
 metadata:
   origin: ported
   author: upstream
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # ariadnev Router
@@ -32,12 +32,17 @@ to risk, and refusing to orchestrate what a single skill does better.
 | Coordinate headless CLI jobs across runtimes, models, worktrees | `av:orchestrate`, when installed |
 | Run multi-session agent teams | `av:team`, when installed |
 | Discover or install skills you do not have yet | `av:find-skills`, when installed |
-| Operate the `av` CLI itself (install, doctor, validate, migrate, update, ...) | `av:av` |
+| Operate the `av` CLI itself (install, doctor, validate, migrate, update, ...), including any `av` invocation a chain link needs | `av:av` — it triages read-only vs mutating, scope, and the `--yes` gate |
+| Explain what `av` can do or which skills are installed, without routing work | `av:help` |
 | Add a bilingual Vietnamese/English switch to a plan's `plan.html` | `av:plan-i18n` |
 | Execute the domain work itself | the routed skill or agent owns execution |
 
 If the task is explicitly about running jobs headlessly, across CLIs, or in
 parallel worktrees, hand off to `av:orchestrate` now (when installed) and stop.
+`av:ariadnev` decides *which skill runs*; `av:av` runs *the binary*. When a
+link's exit criterion is a CLI mutation (a plan phase checked, a post
+published, a kit installed), that link is `av:av`'s, and the router never runs
+the mutation itself.
 
 ## The Protocol
 
@@ -167,6 +172,16 @@ mutation link: the route ends at a diagnosis, and `/av:fix` is a separate
 decision the user makes on it. Agents: parallel `Explore` roles because the
 investigation spans more than two files.
 
+**"Write the launch announcement and post it to our channels"** — class:
+create-content, size: standard, risk: high (mass-audience send), domains: 1.
+No marketing routing reference ships, so the chain is built from the Step 2
+inventory: `/av:copywriting` drafts → reviewer role with a content brief (high
+risk makes it mandatory; no content-reviewer agent ships, so `code-reviewer`
+carries the brief) → `/av:av` runs `av content publish`, which previews by
+default and posts only under `--yes` after the user confirms the preview. The
+router names the send as the irreversible step and hands the `--yes` decision
+to the user; it never adds the flag itself.
+
 ## Anti-Patterns
 
 | Do not | Because |
@@ -177,6 +192,7 @@ investigation spans more than two files.
 | Re-route mid-chain without new evidence | Thrash; reroute once per link on evidence, else surface to the user |
 | Copy routing tables from owning references into prompts or docs | They drift; load them at decision time instead |
 | Use this skill for headless cross-CLI or multi-worktree runs | That is `av:orchestrate`'s layer |
+| Run a mutating `av` command from inside the route, or pass `--yes` to one | That link belongs to `av:av`, which triages class, scope, and the preview gate; `--yes` is the user's call |
 | Skip the reviewer role on high-risk work because the diff "looks clean" | The gate exists precisely for confident mistakes |
 
 ## Failure Handling
@@ -249,4 +265,5 @@ from that point.
 parallel worktrees — hand off there and stop when the task is explicitly that;
 `av:team` coordinates multiple sessions; `av:find-skills` finds and installs a
 capability this kit lacks; `av:av` operates the CLI itself rather than routing
-work through it.
+work through it, and owns any chain link whose exit criterion is an `av`
+mutation; `av:help` explains the CLI and the installed catalog without routing.
