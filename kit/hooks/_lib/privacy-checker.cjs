@@ -10,6 +10,12 @@
 
 const path = require('path');
 const { resolvePrefs } = require('./av-config-client.cjs');
+const {
+  extractEvaluatorTokens,
+  findEvaluatorSource,
+  lexShellWords,
+  splitCommandSegments,
+} = require('./shell-command-segments.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -130,29 +136,34 @@ function extractPaths(toolInput) {
   if (toolInput.path) paths.push({ value: toolInput.path, field: 'path' });
   if (toolInput.pattern) paths.push({ value: toolInput.pattern, field: 'pattern' });
 
-  // Check bash commands for file paths
-  if (toolInput.command) {
-    // Look for APPROVED:.env or .env patterns
-    const approvedMatch = toolInput.command.match(/APPROVED:[^\s]+/g) || [];
-    approvedMatch.forEach(p => paths.push({ value: p, field: 'command' }));
+  // Check command tokens rather than matching from every ".env" substring to
+  // the next whitespace. Keeping each token intact prevents source expressions
+  // such as process.env.API_KEY from becoming fabricated ".env.*" file paths,
+  // while shell punctuation and quotes no longer contaminate real filenames.
+  if (typeof toolInput.command === 'string') {
+    for (const segment of splitCommandSegments(toolInput.command)) {
+      const words = lexShellWords(segment);
+      const evaluatorSource = findEvaluatorSource(words);
 
-    // Only look for .env if no APPROVED: version found
-    if (approvedMatch.length === 0) {
-      const envMatch = toolInput.command.match(/\.env[^\s]*/g) || [];
-      envMatch.forEach(p => paths.push({ value: p, field: 'command' }));
+      for (let index = 0; index < words.length; index++) {
+        const rawValues = evaluatorSource?.index === index
+          ? extractEvaluatorTokens(evaluatorSource.value)
+          : [words[index].value];
 
-      // Also check bash variable assignments (FILE=.env, ENV_FILE=.env.local)
-      const varAssignments = toolInput.command.match(/\w+=[^\s]*\.env[^\s]*/g) || [];
-      varAssignments.forEach(a => {
-        const value = a.split('=')[1];
-        if (value) paths.push({ value, field: 'command' });
-      });
+        for (const rawValue of rawValues) {
+          const assignment = rawValue.match(/^[A-Za-z_][A-Za-z0-9_]*=(.+)$/);
+          const value = assignment && !hasApprovalPrefix(rawValue) ? assignment[1] : rawValue;
+          if (!value) continue;
 
-      // Check command substitution containing sensitive patterns - extract .env from inside
-      const cmdSubst = toolInput.command.match(/\$\([^)]*?(\.env[^\s)]*)[^)]*\)/g) || [];
-      for (const subst of cmdSubst) {
-        const inner = subst.match(/\.env[^\s)]*/);
-        if (inner) paths.push({ value: inner[0], field: 'command' });
+          // Command extraction historically covers dotenv paths plus explicitly
+          // approved paths. Other sensitive filename classes remain direct-path
+          // checks; do not silently broaden the Bash hook's scope here.
+          const isDotenvCandidate = value.includes('.env')
+            && (isPrivacySensitive(value) || isSafeFile(value));
+          if (isDotenvCandidate || hasApprovalPrefix(value)) {
+            paths.push({ value, field: 'command' });
+          }
+        }
       }
     }
   }

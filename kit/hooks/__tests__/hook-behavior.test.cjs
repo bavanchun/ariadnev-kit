@@ -28,8 +28,8 @@ function sandbox() {
   return { root, home, project };
 }
 
-function runHook(name, payload, env = {}) {
-  const result = spawnSync(process.execPath, [path.join(HOOKS_DIR, name, 'hook.cjs')], {
+function runHook(name, payload, env = {}, hooksDir = HOOKS_DIR) {
+  const result = spawnSync(process.execPath, [path.join(hooksDir, name, 'hook.cjs')], {
     input: JSON.stringify(payload),
     encoding: 'utf8',
     env: { ...process.env, ...env },
@@ -129,6 +129,54 @@ test('a per-hook switch turns a hook off — from the user config only', () => {
 
   userConfig(box, { hooks: { 'privacy-block': false } });
   assert.strictEqual(runHook('privacy-block', payload, { HOME: box.home }).code, 0);
+});
+
+test('privacy-block warns on a Bash .env read but does not mistake process.env for one', () => {
+  const box = sandbox();
+  const bash = (command) => runHook(
+    'privacy-block',
+    { hook_event_name: 'PreToolUse', cwd: box.project, tool_name: 'Bash', tool_input: { command } },
+    { HOME: box.home }
+  );
+  // Bash never blocks — the approval flow tells the model to `cat` the file
+  // after a "yes" — but it must still name the sensitive file on stderr.
+  const read = bash('cat .env');
+  assert.strictEqual(read.code, 0);
+  assert.match(read.stderr, /accesses sensitive file: \.env/);
+
+  // Source text is not a filename. Before the shell-aware lexer this produced
+  // a fabricated ".env.API_KEY)" path and a spurious warning on every turn.
+  const source = bash('node -e "console.log(process.env.API_KEY)"');
+  assert.strictEqual(source.code, 0);
+  assert.doesNotMatch(source.stderr, /sensitive file/);
+});
+
+/**
+ * The session-state family reads `.ariadnev-runtime.json` from the hooks
+ * directory to learn which runtime launched it, and exits before writing
+ * anything when the marker is absent. The installer writes it; this pins that
+ * the marker alone is what separates a silent no-op from a bound session.
+ */
+test('the runtime marker is what lets session-init bind a session', () => {
+  const box = sandbox();
+  const installed = path.join(box.root, 'hooks');
+  fs.cpSync(HOOKS_DIR, installed, {
+    recursive: true,
+    filter: (src) => !/__tests__|\.logs/.test(src)
+  });
+  // Session state lives under the OS temp dir; point it into the sandbox.
+  const tmp = path.join(box.root, 'tmp');
+  fs.mkdirSync(tmp);
+  const env = { HOME: box.home, TMPDIR: tmp, TEMP: tmp, TMP: tmp };
+  const payload = { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'marker-test' };
+  const stateRoot = path.join(tmp, 'ariadnev-session-v2');
+
+  assert.strictEqual(runHook('session-init', payload, env, installed).code, 0);
+  assert.ok(!fs.existsSync(stateRoot), 'without the marker nothing may be written');
+
+  fs.writeFileSync(path.join(installed, '.ariadnev-runtime.json'), '{"schemaVersion":1,"runtime":"claude-code"}\n');
+  assert.strictEqual(runHook('session-init', payload, env, installed).code, 0);
+  assert.ok(fs.existsSync(stateRoot), 'with the marker the session is bound');
 });
 
 test('scout-block stops a read inside a generated tree', () => {

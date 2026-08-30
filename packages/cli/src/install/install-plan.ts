@@ -10,6 +10,7 @@ import type { HookBinding } from "./hook-settings-merge.js";
 import { compareBindings, hookBindingSpecs } from "../kit/hook-bindings.js";
 import type { HookBindingSpec } from "../kit/kit-types.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
+import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerContent, hookRuntimeMarkerPath } from "./hook-runtime-marker.js";
 import { IGNORE_DIRS, IGNORE_FILES, isTextFile, type InstallOp } from "./install-types.js";
 
 function skip(kind: InstallOp["kind"], name: string, reason: string): InstallOp {
@@ -130,6 +131,17 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   if (existsSync(libDir)) {
     ops.push(...planDirTree(libDir, join(base, CLAUDE_HOOKS_DIR, "_lib"), r.id, "hook"));
   }
+  // The runtime marker the hook library reads beside `_lib`. It is a planned
+  // write like every other owned file so the receipt, backups, and uninstall
+  // all cover it. The runtime named is the provider's id: hooks are only
+  // verified for Claude Code, and that is the id the hook library accepts.
+  ops.push({
+    action: "write",
+    kind: "hook",
+    name: HOOK_RUNTIME_MARKER_FILE,
+    dest: hookRuntimeMarkerPath(base),
+    content: hookRuntimeMarkerContent(r.id),
+  });
   // The statusline is not a hook — it is a command the provider runs to draw a
   // bar — but it lives in the same owned directory and loads the same `_lib`,
   // so it is written here rather than through a parallel tree of its own.

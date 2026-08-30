@@ -42,6 +42,13 @@ installable hooks, and `loadKit` skips them. A hook finds them by probing for
 `_lib` beside itself and one level up, because the kit checkout nests hooks one
 directory deeper than the installed tree does.
 
+The installer also writes `.ariadnev-runtime.json` next to `_lib` in the
+installed tree (`{"schemaVersion":1,"runtime":"claude-code"}`). The session-state
+family — `session-state`, `precompact-capture`, `cook-after-plan-reminder`,
+`team-context-inject` — reads it to learn which runtime launched it and exits
+without writing when it is absent; `ariadnev doctor` reports a hook install that
+has lost it. The kit checkout deliberately carries no marker.
+
 `_lib/notifications/` is not bound to any event. Sending a session's activity to
 a third-party service is opt-in: set `notifications.enabled` and a destination in
 **your** config (`~/.ariadnev/config.json`), then wire `notify.cjs` into the event

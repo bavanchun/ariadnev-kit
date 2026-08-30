@@ -279,6 +279,28 @@ describe("executeInstall + dry-run", () => {
     expect(settings.hooks.SubagentStop).toBeDefined();
   });
 
+  it("hooks: the runtime marker is written beside the hooks and recorded in the receipt", () => {
+    // The hook library reads this marker from the hooks directory to learn
+    // which runtime launched it; without it the session-state family exits
+    // silently. It is an owned file like any other: receipted, so uninstall
+    // takes it back.
+    const kitRoot = join(sandbox, "kit-with-marker");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "session-state");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(join(hookDir, "hook.json"), JSON.stringify({ event: "Stop", description: "persist state" }));
+    const hookKit = loadKit(kitRoot);
+    installKit(hookKit, ["claude-code"], ctx, { timestamp: "20260603-000090" });
+
+    const marker = join(ctx.cwd, ".claude/hooks/av/.ariadnev-runtime.json");
+    expect(existsSync(marker)).toBe(true);
+    expect(JSON.parse(readFileSync(marker, "utf8"))).toEqual({ schemaVersion: 1, runtime: "claude-code" });
+    const receipt = JSON.parse(readFileSync(join(ctx.cwd, ".ariadnev/receipt.json"), "utf8"));
+    const recorded = receipt.installs["claude-code"].files.map((f: { path: string }) => f.path);
+    expect(recorded).toContain(".claude/hooks/av/.ariadnev-runtime.json");
+  });
+
   it("hooks: non-claude providers skip-and-log", () => {
     const kitRoot = join(sandbox, "kit-with-hooks2");
     mkdirSync(join(kitRoot, "skills"), { recursive: true });
