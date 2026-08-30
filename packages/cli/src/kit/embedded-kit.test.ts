@@ -62,6 +62,24 @@ describe("embedded-kit", () => {
     expect(existsSync(join(root, "workflows", "read-only-delivery.json"))).toBe(true);
   });
 
+  it("extracts without the system temp dir, so publishing never crosses a filesystem", () => {
+    // On Linux /tmp is routinely a tmpfs while ~/.cache is on the root disk;
+    // staging there made the publishing rename fail with EXDEV. Pointing the
+    // temp dir at a path that does not exist proves extraction no longer
+    // touches it: staging is a sibling of the cache dir.
+    const prevTmp = process.env.TMPDIR;
+    process.env.TMPDIR = join(cache, "definitely-absent-tmp");
+    try {
+      const root = materializeEmbeddedKit();
+      expect(existsSync(join(root, "skills", "cook", "SKILL.md"))).toBe(true);
+    } finally {
+      if (prevTmp === undefined) delete process.env.TMPDIR;
+      else process.env.TMPDIR = prevTmp;
+    }
+    // Staging is removed by the rename; only the stamped cache dir remains.
+    expect(readdirSync(cache)).toEqual([`${EMBEDDED_VERSION}-${EMBEDDED_DIGEST}`]);
+  });
+
   it("materializes portable-manifest.json at the flat root", () => {
     const flat = embeddedFlatRoot();
     expect(existsSync(join(flat, "portable-manifest.json"))).toBe(true);

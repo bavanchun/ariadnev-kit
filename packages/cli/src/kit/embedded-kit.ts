@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { resolveKitRoot, KitValidationError } from "./load-kit.js";
 import { EMBEDDED_ASSETS, EMBEDDED_DIGEST, EMBEDDED_VERSION, type EmbeddedAsset } from "./kit-embedded.generated.js";
@@ -74,10 +74,24 @@ function cacheUsable(root: string, sentinel: string): boolean {
 }
 
 /**
+ * Where extraction is staged before it is published with a single rename.
+ *
+ * Staging lives beside the cache dir, never in the system temp dir: `rename(2)`
+ * cannot cross filesystems, and on Linux `/tmp` is routinely a tmpfs while
+ * `~/.cache` is on the root disk — staging there fails the publish with EXDEV.
+ * A sibling of the destination is on the destination's filesystem by
+ * construction. The leading dot keeps it out of the way of cache listings; it
+ * exists only between extraction and the rename.
+ */
+function stagingParent(root: string): string {
+  return dirname(root);
+}
+
+/**
  * Materialize the embedded kit to the cache dir if not already present, and
  * return the kit root (the dir containing `skills/`).
  *
- * Extraction goes to a private temp dir and is moved into place with a single
+ * Extraction goes to a private staging dir and is moved into place with a single
  * rename, so a concurrent process either sees no cache or sees a complete one —
  * never a half-written tree. Two processes racing both extract; the loser
  * discards its copy.
@@ -90,10 +104,11 @@ export function materializeEmbeddedKit(): string {
   // A cache that exists but fails verification is replaced rather than trusted.
   if (existsSync(root)) rmSync(root, { recursive: true, force: true });
 
-  const staging = mkdtempSync(join(tmpdir(), "ariadnev-kit-"));
+  const parent = stagingParent(root);
+  mkdirSync(parent, { recursive: true });
+  const staging = mkdtempSync(join(parent, ".ariadnev-kit-"));
   try {
     extractInto(staging);
-    mkdirSync(dirname(root), { recursive: true });
     renameSync(staging, root);
   } catch (err) {
     rmSync(staging, { recursive: true, force: true });
