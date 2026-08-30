@@ -1,5 +1,28 @@
 # ariadnev
 
+## 1.4.0
+
+### Minor Changes
+
+- dae36bb: Kit content: `--ultra` best-of-5 verifier mode across the skills that make a
+  decision worth verifying, `--debate` and the real plan-scaffolding CLI surface
+  in the plan skill, suite create/optimize/audit workflows in the test skill,
+  `--advice` on code review and agentize, `--report` on brainstorm, multi-PR
+  review with a REST fallback, an HTML report renderer for the CTI skill, the
+  coding-level output styles the session-init hook injects, seven new reference
+  guides, and four new skills (`bro`, `sowat`, `sumup`, `diagram`).
+
+  Install fixes: the embedded kit now stages its extraction beside its cache dir,
+  so publishing no longer fails with EXDEV where the system temp dir is a
+  separate filesystem (the common Linux layout); the installer writes the hook
+  runtime marker it was missing, and `doctor` reports an install that lost it.
+
+- 0174c54: `av run` now takes a skill reference only. The workflow-harness sense of the
+  name moved to `av workflow run` in 1.3.0 and shipped a release with a warning
+  shim so existing scripts kept working; this release removes it, as that warning
+  said it would. `av run <workflow-id>` is refused with the grammar it expected;
+  `av run resume|status|cancel` are `av workflow resume|status|cancel`.
+
 ## 1.3.0
 
 ### Minor Changes
