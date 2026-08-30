@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Security hardening and signed channel"
-status: in-progress
+status: completed
 priority: P1
 effort: "2-3d"
 dependencies: []

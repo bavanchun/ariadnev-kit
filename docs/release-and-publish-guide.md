@@ -214,6 +214,23 @@ That is a one-way door worth stating plainly: from the first signed release,
 because the `.sig` it requires can never exist. Rolling back past the signing
 boundary means re-running the installer.
 
+**Rolling back across a layout change** — `1.3.0`'s `av-*` prefix back to an
+unprefixed release, say — takes one step more than `update --to`, and the
+order matters:
+
+```bash
+ariadnev uninstall --provider <p> --global   # with the NEW binary: only it owns the healed tree
+ariadnev update --to <prev>                  # or the installer, past the signing boundary
+ariadnev backups list --global               # the heal-<ts> entry; prune never removes it
+ariadnev backups restore heal-<ts> --global  # the old tree comes back
+ariadnev install --provider <p> --global     # with the OLD binary, so its receipt is rewritten
+```
+
+Skip the uninstall and the restore lands the old tree *beside* the new one:
+twice the directories, half of them owned by nobody, and the old binary's
+receipt cannot see them. Both orders were run on a sandbox on 2026-08-30; the
+record is in the hardening plan's phase 4 file.
+
 Two prerequisites, both one-time per repository:
 
 - **Immutable releases must be enabled.** The finalizer cannot check this itself

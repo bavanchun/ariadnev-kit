@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Prefix release and rollout"
-status: in-progress
+status: completed
 priority: P1
 effort: "1-2d"
 dependencies: [3]
@@ -69,9 +69,16 @@ replaces each provider record wholesale, and the old binary has no heal — so t
 `av-*` tree becomes unowned. That is phase 3's failure mode run backwards, and
 the original content is gone because heal already replaced it.
 
-The real recipe: `av update --to <prev>`, then **restore from the heal backup**
-that phase 3 requirement 1 creates, then reinstall. That backup is what makes
-rollback possible at all, which is why it is a phase 3 merge blocker.
+The real recipe, as executed on 2026-08-30 (see "Rollback, executed"):
+`av uninstall --provider <p> --global` **with the new binary first**, then
+`av update --to <prev>` (or the installer, when `<prev>` predates signing), then
+`av backups restore <heal-ts> --global`, then reinstall with the old binary.
+The uninstall goes first because only the new binary owns the healed `av-*`
+tree — the old one cannot remove what its receipt never claimed — and heal
+backups survive an uninstall. Skip that step and the restore returns the old
+tree *beside* the new one: 210 directories, 105 of them unowned. The heal
+backup is what makes rollback possible at all, which is why it is a phase 3
+merge blocker.
 
 ## Related Code Files
 
@@ -125,9 +132,13 @@ rollback possible at all, which is why it is a phase 3 merge blocker.
 - [x] The rollback recipe executed end-to-end on a sandbox, returning a working
       install. Ran 2026-08-30 on a sandbox `HOME`, between two signed releases —
       see "Rollback, executed" below. Scope of the claim is stated there.
-- [ ] `ariadnev.com/version` serves the new version.
-      Correctly still `1.1.0`: the edge must not move to a prerelease. This
-      criterion belongs to the stable cut, not the beta rehearsal.
+- [x] `ariadnev.com/version` serves the new version.
+      `1.3.0`, 2026-08-30 12:19 (+07). Stayed `1.1.0` through both betas, as
+      it must — the edge never moves to a prerelease — and moved the moment
+      `ariadnev@1.3.0` was finalized: release `Latest`, immutable, 10 assets
+      including `checksums.txt.sig`; `/version` → `1.3.0` (200);
+      `/download/ariadnev-darwin-arm64` → 200, 87,173,858 bytes. First
+      release since `1.1.0` (2026-08-16) to actually reach the bare installer.
 
 ## Rollout observations (beta rehearsal, 2026-08-30)
 
@@ -150,10 +161,26 @@ absorbed them; none survived.
 ### ak/av coexistence — decided
 
 av owns the shared global roots and improves there. ak moves to project scope,
-kept deliberately so a current upstream is always pullable for comparison. Not
-executed in the same session that was running ak's own skills; retiring `ak-*`
-from `~/.claude/skills` breaks the running agent until it reinstalls, so it is a
-separate deliberate step. Until then the doubled catalogue stands.
+kept deliberately so a current upstream is always pullable for comparison.
+
+**Executed 2026-08-30 13:10–13:20.** `ak kit install engineer` at project scope
+in `~/Codes/My-projects/vcskill-kit` (106 `ak-*` skills, ak's own registry
+already listed that directory). The global retirement could not go through
+`ak kit uninstall engineer --global`: it refuses to run because its pre-delete
+snapshot finds SQLite files in a root it wants to copy (`refusing raw copy of
+live SQLite database or sidecar`) — Codex's own `~/.codex/*.sqlite` live in an
+ak adapter root, so on a machine with Codex the command can never succeed.
+Checkpointing the stale WALs did not change that. Done by hand instead, from
+ak's own dry-run classification: its 10,136 `removedPaths` (0 overlap with
+av's receipt) deleted, 2,030 emptied directories pruned, 14 hook registrations
+in `~/.claude/settings.json` and 18 in `~/.codex/hooks.json` that pointed at
+deleted ak hook scripts dropped, then the 305 straggler `ak-*` directories
+(caches, a vendored tree, one stale `ak:plan-i18n` skill ak 2.14 no longer
+ships) removed. Everything is in `~/.agentkit/global-roots-backup-20260830.tar.gz`
+and `global-uninstall-backup-20260830.tar.gz`; the two edited configs in
+`~/.agentkit/config-backup-20260830/`. `av doctor --global` stayed
+`healthy 100` throughout. The doubled catalogue is gone: `~/.claude/skills`
+holds 105 `av-*` and 30 third-party, `~/.agents/skills` 121 `av-*` and 30.
 
 ### Two providers claim one root, and uninstall does not notice
 
@@ -206,12 +233,34 @@ The version-skew warning is the right outcome, not a defect: the install still
 works, and doctor says plainly what is out of step instead of failing or staying
 silent. Reversible in both directions.
 
-**What this does and does not prove.** It proves the binary rollback path —
-`av update --to <prev>` across two signed releases, which was impossible until
-today because nothing signed existed to roll back *to*. It does **not** exercise
-the heal-backup restore in the recipe's second step; beta.1 and beta.2 share a
-layout, so no heal ran and no backup was needed. The prefix-change rollback,
-where that step matters, still has no execution behind it.
+**What this proved.** The binary rollback path — `av update --to <prev>` across
+two signed releases, which was impossible until today because nothing signed
+existed to roll back *to*. beta.1 and beta.2 share a layout, so no heal ran
+here and the restore step was not exercised by this run.
+
+**The restore step, executed the same day (13:06).** A second sandbox crossed
+the actual layout change, `1.1.0` (unprefixed) → `1.3.0` (`av-*`), where the
+heal backup is the only copy of the old tree. Directory counts in
+`~/.agents/skills`, codex provider, global scope:
+
+```
+1.1.0 install                       105 unprefixed
+1.3.0 install  (heal)               105 av-*, backup heal-20260830-130631 (1447 files)
+1.3.0 uninstall --provider codex    0            heal backup still listed
+1.3.0 backups restore <heal-ts>     105 unprefixed
+1.1.0 install  (reinstall)          105 unprefixed, receipt 1.1.0, doctor healthy 100
+1.3.0 install  (forward again)      105 av-*, doctor healthy 100
+```
+
+The recipe as first written had no uninstall step, and the first attempt
+followed it: restore succeeded (`restored 1447 file(s)`), the old binary
+reinstalled and reported healthy — and the root held **210** directories, the
+105 `av-*` ones now claimed by nobody. Doctor could not see them: the receipt
+was `1.1.0`'s and knew nothing of a prefixed layout. That is phase 3's
+failure mode produced by the rollback itself, and it is why the recipe above
+now starts with the new binary's uninstall. `1.1.0` predates signing, so
+`av update --to 1.1.0` was stood in for by running its binary directly — the
+guide's "re-run the installer" case.
 
 ### Rollback was not executable before this
 
