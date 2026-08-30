@@ -59,7 +59,9 @@ Parse the first word of `$ARGUMENTS`:
 | empty or unclear | ask the user | Choose the operation; never assume `init` |
 
 Other workflows deciding whether docs are affected should load
-`references/documentation-management.md`.
+`references/documentation-management.md`. When an operation documents or
+distills testing guidance, load
+`references/practical-principles-for-setting-up-and-running-tests.md` first.
 
 ## Flags
 

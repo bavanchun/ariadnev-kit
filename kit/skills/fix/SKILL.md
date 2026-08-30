@@ -281,9 +281,7 @@ review findings or a CI failure to `av:fix --auto`.
 **Invokes directly:** `av:scout` (Step 1); `av:debug`, `av:sequential-thinking`,
 `av:problem-solving` (Step 2); `av:brainstorm` (Step 3); `av:pm` (Step 6).
 
-**Related:** `av:test` and `av:code-review` run standalone after a fix; here
-verification and review are Step 5. `av:vibe` wraps this skill for its bugfix
-route. `av:ui-ux-pro-max` backs the UI workflow's style searches.
+**Related:** `av:test` and `av:code-review` run standalone after a fix; here they are Step 5. `av:vibe` wraps this skill for its bugfix route; `av:ui-ux-pro-max` backs the UI workflow's style searches.
 
 ## References
 

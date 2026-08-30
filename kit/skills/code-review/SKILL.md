@@ -295,6 +295,4 @@ never bypasses evidence rules or the verification gates.
 (review after bug fix), and `/av:scout` (edge cases scouted before dispatch).
 **Typically precedes:** `/av:ship` (ship after review passes) and `/av:test`
 when the Verification block found no runnable suite and one must be written.
-**Related:** `/av:review-pr` reviews a GitHub PR with `--reply`/`--merge`
-capabilities; this skill reviews the diff without posting. `/av:security`
-takes over when findings are trust-boundary defects that need a STRIDE audit.
+**Related:** `/av:review-pr` reviews a GitHub PR with `--reply`/`--merge`; this skill reviews the diff without posting. `/av:security` takes over when findings are trust-boundary defects that need a STRIDE audit.

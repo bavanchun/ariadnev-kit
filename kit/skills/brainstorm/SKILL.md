@@ -296,5 +296,4 @@ bug, and `av:bootstrap` when the outcome is a new project.
 `av:predict` runs persona debate on a chosen change; `av:issue-to-plan` wraps
 this gate for GitHub issues.
 
-**Bug path:** opening intent frame -> `av:scout` and `av:debug` -> solution
-brainstorm when needed -> `/av:fix`.
+**Bug path:** intent frame -> `av:scout`, `av:debug` -> brainstorm if needed -> `/av:fix`.
