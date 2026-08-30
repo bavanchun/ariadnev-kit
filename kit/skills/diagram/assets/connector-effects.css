@@ -1,0 +1,122 @@
+/*
+ * av:diagram animated connector effects
+ * 8 zero-dependency effects. Apply via data-fx="<name>" on SVG <path>, <line>, <polyline>.
+ * Every effect exposes CSS custom properties for tuning — see references/animation-effects.md.
+ * All effects respect prefers-reduced-motion via the media query at the bottom.
+ */
+
+svg [data-fx] {
+  --av-fx-speed: 2s;
+  --av-fx-color: var(--av-diag-accent, #2563eb);
+  --av-fx-glow: var(--av-diag-accent, #2563eb);
+  --av-fx-glow-blur: 0px;
+  fill: none;
+  stroke: var(--av-fx-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 var(--av-fx-glow-blur) var(--av-fx-glow));
+}
+
+/* 1. marching-ants — walking dash */
+svg [data-fx="marching-ants"] {
+  --av-fx-dash: 10 8;
+  stroke-dasharray: var(--av-fx-dash);
+  animation: av-fx-march var(--av-fx-speed, 2.4s) linear infinite;
+}
+@keyframes av-fx-march {
+  to { stroke-dashoffset: -36; }
+}
+
+/* 2. comet — bright head, fading tail. --av-fx-length is dash length. */
+svg [data-fx="comet"] {
+  --av-fx-length: 28;
+  --av-fx-gap: 220;
+  stroke-dasharray: var(--av-fx-length) var(--av-fx-gap);
+  animation: av-fx-comet-move var(--av-fx-speed, 3.2s) ease-in-out infinite;
+}
+@keyframes av-fx-comet-move {
+  from { stroke-dashoffset: calc(var(--av-fx-length) + var(--av-fx-gap)); }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* 3. wave — stroke width breathes between --av-fx-min and --av-fx-max */
+svg [data-fx="wave"] {
+  --av-fx-min: 1.2px;
+  --av-fx-max: 3.4px;
+  animation: av-fx-wave var(--av-fx-speed, 2s) ease-in-out infinite;
+}
+@keyframes av-fx-wave {
+  0%, 100% { stroke-width: var(--av-fx-min); }
+  50%      { stroke-width: var(--av-fx-max); }
+}
+
+/* 4. morse — dot-dash rhythm along the path */
+svg [data-fx="morse"] {
+  --av-fx-dash: 12 6 3 6;
+  stroke-dasharray: var(--av-fx-dash);
+  animation: av-fx-march var(--av-fx-speed, 3s) linear infinite;
+}
+
+/* 5. glow — pulsing halo, no motion of the line itself */
+svg [data-fx="glow"] {
+  --av-fx-blur-max: 10px;
+  animation: av-fx-glow-pulse var(--av-fx-speed, 2.4s) ease-in-out infinite;
+}
+@keyframes av-fx-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 1px var(--av-fx-glow, var(--av-fx-color))); }
+  50%      { filter: drop-shadow(0 0 var(--av-fx-blur-max) var(--av-fx-glow, var(--av-fx-color))); }
+}
+
+/* 6. silhouette-on-path — rider element uses offset-path */
+[data-fx="silhouette"] {
+  --av-fx-shape-size: 10px;
+  width: var(--av-fx-shape-size);
+  height: var(--av-fx-shape-size);
+  offset-path: var(--av-fx-path);
+  offset-rotate: auto;
+  animation: av-fx-silhouette var(--av-fx-speed, 3.6s) linear infinite;
+}
+@keyframes av-fx-silhouette {
+  from { offset-distance: 0%; }
+  to   { offset-distance: 100%; }
+}
+
+/* 7. pulse — thickness + opacity breathe together */
+svg [data-fx="pulse"] {
+  --av-fx-min-op: 0.55;
+  animation: av-fx-pulse var(--av-fx-speed, 1.8s) ease-in-out infinite;
+}
+@keyframes av-fx-pulse {
+  0%, 100% { stroke-width: 2; opacity: var(--av-fx-min-op); }
+  50%      { stroke-width: 4; opacity: 1; }
+}
+
+/* 8. dashed-flow — steady dashes drifting forward, low contrast for background flows */
+svg [data-fx="dashed-flow"] {
+  --av-fx-dash: 4 8;
+  stroke-dasharray: var(--av-fx-dash);
+  stroke-opacity: 0.55;
+  animation: av-fx-flow var(--av-fx-speed, 6s) linear infinite;
+}
+@keyframes av-fx-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+/* Freeze helper — render.py adds .av-fx-frozen to <svg> and <body> before screenshot */
+.av-fx-frozen [data-fx],
+.av-fx-frozen [data-fx="silhouette"] {
+  animation-play-state: paused !important;
+  animation-delay: 0s !important;
+}
+
+/*
+ * Global reduced-motion respect. Scoped by the effect selector itself (not by
+ * a wrapper class) so Tier 3 raw HTML input honors it too.
+ */
+@media (prefers-reduced-motion: reduce) {
+  svg [data-fx],
+  [data-fx="silhouette"] {
+    animation: none !important;
+    filter: none !important;
+  }
+}

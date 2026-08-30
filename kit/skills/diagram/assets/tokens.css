@@ -1,0 +1,116 @@
+/*
+ * av:diagram design tokens
+ * Editorial contract: 1 accent color, restrained palette, density 4/10.
+ * Every template imports this file; do not fork per-type.
+ */
+
+:root {
+  /* Neutrals — 4-step scale */
+  --av-diag-ink: #0f172a;
+  --av-diag-ink-muted: #475569;
+  --av-diag-ink-subtle: #94a3b8;
+  --av-diag-paper: #ffffff;
+  --av-diag-paper-soft: #f8fafc;
+  --av-diag-rule: #e2e8f0;
+
+  /* Accent — reserved for 1–2 focal points per diagram */
+  --av-diag-accent: #2563eb;
+  --av-diag-accent-soft: #dbeafe;
+  --av-diag-accent-ink: #1e40af;
+
+  /* Semantic — sparse use only */
+  --av-diag-ok: #059669;
+  --av-diag-warn: #d97706;
+  --av-diag-risk: #dc2626;
+
+  /* Type scale */
+  --av-diag-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --av-diag-font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono",
+    Menlo, Consolas, monospace;
+  --av-diag-size-xs: 11px;
+  --av-diag-size-sm: 13px;
+  --av-diag-size-base: 15px;
+  --av-diag-size-lg: 18px;
+  --av-diag-size-xl: 24px;
+  --av-diag-size-2xl: 32px;
+
+  /* Spacing */
+  --av-diag-space-1: 4px;
+  --av-diag-space-2: 8px;
+  --av-diag-space-3: 12px;
+  --av-diag-space-4: 16px;
+  --av-diag-space-6: 24px;
+  --av-diag-space-8: 32px;
+  --av-diag-space-12: 48px;
+  --av-diag-space-16: 64px;
+
+  /* Stroke */
+  --av-diag-stroke-hair: 1px;
+  --av-diag-stroke-line: 1.5px;
+  --av-diag-stroke-bold: 2.5px;
+
+  /* Radius */
+  --av-diag-radius-none: 0;
+  --av-diag-radius-sm: 2px;
+  --av-diag-radius-md: 6px;
+}
+
+[data-theme="dark"] {
+  --av-diag-ink: #f1f5f9;
+  --av-diag-ink-muted: #94a3b8;
+  --av-diag-ink-subtle: #64748b;
+  --av-diag-paper: #0b1120;
+  --av-diag-paper-soft: #111827;
+  --av-diag-rule: #1e293b;
+  --av-diag-accent: #60a5fa;
+  --av-diag-accent-soft: #172554;
+  --av-diag-accent-ink: #bfdbfe;
+}
+
+/* Base surface */
+.av-diag {
+  font-family: var(--av-diag-font);
+  font-size: var(--av-diag-size-base);
+  color: var(--av-diag-ink);
+  background: var(--av-diag-paper);
+  line-height: 1.5;
+  padding: var(--av-diag-space-8);
+}
+
+/* Editorial frame chrome */
+.av-diag__title {
+  font-size: var(--av-diag-size-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--av-diag-space-2);
+}
+
+.av-diag__caption {
+  font-size: var(--av-diag-size-sm);
+  color: var(--av-diag-ink-muted);
+  margin: 0 0 var(--av-diag-space-6);
+  max-width: 60ch;
+}
+
+.av-diag__footnote {
+  font-size: var(--av-diag-size-xs);
+  color: var(--av-diag-ink-subtle);
+  border-top: var(--av-diag-stroke-hair) solid var(--av-diag-rule);
+  padding-top: var(--av-diag-space-3);
+  margin-top: var(--av-diag-space-8);
+}
+
+/* Focal-point utility — apply to the 1–2 elements the reader should notice first */
+.av-diag__focal {
+  color: var(--av-diag-accent-ink);
+  border-color: var(--av-diag-accent);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .av-diag * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

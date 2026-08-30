@@ -21,9 +21,11 @@ const REPO = join(HERE, "..", "..", "..");
 
 // Each entry states why the file is exempt. These record what was true at a past
 // version; rewriting the brand inside them would make them lie. Adding an entry
-// is a reviewable change — it must be a historical record, never a file that
-// simply has not been renamed yet.
+// is a reviewable change — it must be a historical record or a hash-pinned
+// third-party bundle that cannot be edited, never a file that simply has not
+// been renamed yet.
 const ALLOWLIST = [
+  { prefix: "kit/skills/diagram/assets/mermaid.min.js", why: "vendored Mermaid bundle pinned by sha256 in the skill's vendoring-metadata.yaml; a bare `ak` in it is a minifier-generated identifier, and editing vendored code would break the pin" },
   { prefix: "evals/baselines/", why: "frozen baselines pin a specific tag, commit, and tree hash" },
   { prefix: "docs/journal/", why: "dated journal entries record what happened under the old name" },
   { prefix: "docs/decisions/0001-", why: "ADR describing a decision made under the old name" },

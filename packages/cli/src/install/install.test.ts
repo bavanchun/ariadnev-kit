@@ -319,7 +319,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "chrome-profile", "code-review", "codex-goal", "coding-level",
     "common", "context-engineering", "cook", "copywriting",
     "cti-expert", "databases", "debug", "deep-swe",
-    "deploy", "design", "devops", "docs",
+    "deploy", "design", "devops", "diagram", "docs",
     "docs-seeker", "document-skills", "excalidraw", "fable-thinking",
     "find-skills", "fix", "folder-context", "frontend-design",
     "frontend-development", "git", "github", "gkg",
@@ -367,7 +367,7 @@ describe("full-kit install smoke (v2 roster)", () => {
     "usage-quota-cache-refresh",
   ];
 
-  it("kit ships exactly the 105-skill + 16-agent roster + 14 hooks", () => {
+  it("kit ships exactly the 106-skill + 16-agent roster + 14 hooks", () => {
     expect(kit.skills.map((s) => s.name).sort()).toEqual(ROSTER);
     expect(kit.agents.map((a) => a.name).sort()).toEqual(AGENTS);
     expect(kit.hooks.map((h) => h.name).sort()).toEqual(HOOKS);

@@ -1,0 +1,17 @@
+# What this skill's scripts import beyond the standard library.
+#
+# `render.py` and `record.py` drive a headless Chromium through playwright;
+# `snapshot_test.py` reads and writes its golden-hash file with pyyaml.
+# `doctor.py` and `vendor_from_upstream.py` are stdlib only.
+#
+# Installing the package is not enough to render: playwright downloads its
+# browsers separately (`playwright install chromium`, a few hundred MB), and
+# `record.py` additionally needs an `ffmpeg` binary on PATH. Neither is
+# installed for you.
+#
+# Unpinned here on purpose: the golden-snapshot profile pins exact versions in
+# `../references/snapshot-requirements.txt`, and the hash-verified lock for
+# `ariadnev skill install` is `ariadnev-lock.json` beside this file once a
+# maintainer has generated it.
+playwright
+pyyaml
