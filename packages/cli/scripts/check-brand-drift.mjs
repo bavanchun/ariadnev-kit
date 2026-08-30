@@ -42,6 +42,7 @@ const ALLOWLIST = [
   { prefix: "packages/cli/scripts/port-skill.mjs", why: "the port's substitution table names the identifiers it rewrites" },
   { prefix: "packages/cli/scripts/port-skill.test.mjs", why: "proves the substitution table, so it must state both sides of it" },
   { prefix: ".gitignore", why: "deliberately keeps the old state dir ignored for checkouts installed before the rename" },
+  { prefix: "packages/cli/src/kit/kit-embedded.generated.ts", why: "generated: every byte in it comes from a kit/ file this gate already scans in source form, and the compressed assets are opaque base64 whose alphabet produces meaningless hits" },
 ];
 
 // A single line may opt out with a trailing `brand-drift-allow: <reason>`
