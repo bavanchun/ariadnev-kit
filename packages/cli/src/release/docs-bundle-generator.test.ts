@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../index.js";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
 import { buildProviderMatrix } from "../providers/provider-matrix.js";
-import { cleanupTemps, tempDir } from "./docs-bundle-generator-test-helpers.js";
+import { cleanupTemps, highestReplayableReleaseTag, tempDir } from "./docs-bundle-generator-test-helpers.js";
 import { generateDocsBundle, readArchiveMember, validateDocsBundleManifest } from "./docs-bundle-generator.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +24,8 @@ describe("docs bundle generator", () => {
     const second = tempDir("ariadnev-docs-bundle-b-");
     const previousSourceTree = tempDir("ariadnev-docs-previous-");
     execFileSync("git", ["clone", "--quiet", "--no-checkout", repoRoot, "."], { cwd: previousSourceTree });
-    execFileSync("git", ["checkout", "--quiet", "--detach", "vcskill@0.7.0"], { cwd: previousSourceTree }); // brand-drift-allow: real pre-rename tag in this repository
+    const previousReleaseTag = highestReplayableReleaseTag(repoRoot);
+    execFileSync("git", ["checkout", "--quiet", "--detach", previousReleaseTag], { cwd: previousSourceTree });
     const previousProductSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: previousSourceTree, encoding: "utf8" }).trim();
     const common = {
       mode: "final" as const,
@@ -48,7 +49,7 @@ describe("docs bundle generator", () => {
       changelog: "# Changelog\n\n## 0.12.0\nDeterministic docs bundle.\n",
       previousSource: {
         sourceTree: previousSourceTree,
-        releaseTag: "vcskill@0.7.0", // brand-drift-allow: real pre-rename tag in this repository
+        releaseTag: previousReleaseTag,
         productSha: previousProductSha,
         generatorSha: "a".repeat(40),
       },
@@ -71,7 +72,7 @@ describe("docs bundle generator", () => {
     expect(JSON.stringify(one.manifest)).not.toContain("/Users/");
     expect(JSON.stringify(one.manifest)).not.toContain("ghp_");
     const bootstrap = JSON.parse(readArchiveMember(archive, "reference/previous-stable/bootstrap.json").toString("utf8"));
-    expect(bootstrap).toMatchObject({ releaseTag: "vcskill@0.7.0", productSha: previousProductSha, generatorSha: "a".repeat(40) }); // brand-drift-allow: real pre-rename tag in this repository
+    expect(bootstrap).toMatchObject({ releaseTag: previousReleaseTag, productSha: previousProductSha, generatorSha: "a".repeat(40) });
     await expect(generateDocsBundle({
       ...common,
       outputDir: tempDir("ariadnev-docs-generator-drift-"),
