@@ -5,6 +5,8 @@ import { cleanEmptyDirsUpward } from "../install/dir-cleanup.js";
 import { atomicWrite } from "../install/fs-atomic.js";
 import { realClassifyDeps } from "../install/file-classification.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
+import { removeStorageTree } from "../storage/operational-paths.js";
+import { withoutServer } from "../mcp/mcp-config.js";
 import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
 import { planUninstall, planUninstallFromJournal, type PlanUninstallDeps, type UninstallOp } from "./uninstall-plan.js";
@@ -70,6 +72,56 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
       // bar the user configured themselves must survive an uninstall.
       atomicWrite(op.path, unmergeStatusLine(unmergeHookSettings(existing, op.bindings), op.ownedDir ?? ""));
       result.settingsUnmerged = true;
+      continue;
+    }
+
+    // Purge-only ops below. Each is separate from `remove-file` for a reason
+    // the type already states: a tree is not backed up because the backup
+    // directory is inside it, a binary lives outside every scope root, and an
+    // MCP key is removed while its file stays.
+    if (op.action === "remove-tree") {
+      result.removed.push(op.path);
+      if (opts.dryRun) continue;
+      // No backup. The state directory *contains* `backups/`, so copying it
+      // into itself before deleting it would be a slower way of deleting it.
+      removeStorageTree(op.path);
+      continue;
+    }
+
+    if (op.action === "remove-binary") {
+      result.removed.push(op.path);
+      if (opts.dryRun) continue;
+      // Unlinking a running executable is fine on POSIX — the inode survives
+      // until this process exits. The planner never emits this op on Windows,
+      // where it would not be.
+      if (existsSync(op.path)) unlinkSync(op.path);
+      continue;
+    }
+
+    if (op.action === "remove-mcp-server") {
+      result.removed.push(`${op.path}#${op.name}`);
+      if (opts.dryRun) continue;
+      if (!existsSync(op.path)) continue;
+      // This file belongs to the user and holds a great deal besides servers,
+      // so it is backed up and rewritten rather than deleted — the same
+      // treatment settings.json gets, for the same reason.
+      backupPath(op.path, opts.backupRoot, "mcp", opts.scopeRoot);
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(readFileSync(op.path, "utf8"));
+      } catch {
+        // Unparseable now, though it parsed when the plan was built. Rewriting
+        // it from a failed parse would replace the user's file with `{}`.
+        result.preserved.push({ path: op.path, reason: "config became unreadable between plan and apply" });
+        continue;
+      }
+      const { config } = withoutServer(parsed, op.name);
+      atomicWrite(op.path, `${JSON.stringify(config, null, 2)}\n`);
+      continue;
+    }
+
+    if (op.action === "report-kept") {
+      result.preserved.push({ path: op.path, reason: op.reason });
       continue;
     }
 

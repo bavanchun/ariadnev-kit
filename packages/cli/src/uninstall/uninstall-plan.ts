@@ -44,7 +44,69 @@ export interface RemoveAgentsBlockOp {
   path: string;
 }
 
-export type UninstallOp = RemoveFileOp | PreserveFileOp | UnmergeSettingsOp | RemoveAgentsBlockOp;
+/**
+ * A directory removed whole, without a per-file ownership check.
+ *
+ * The only thing that ever produces one is a `.ariadnev` state directory, and
+ * that is the single wholesale removal in this tool. It is allowed there and
+ * nowhere else because ariadnev owns that directory by construction — every
+ * writer under it is in this repository, and nothing else puts anything there.
+ * `executeUninstall` does not take that on faith: it lists the top level and
+ * keeps anything outside the known layout.
+ */
+export interface RemoveTreeOp {
+  action: "remove-tree";
+  path: string;
+  reason: string;
+}
+
+/**
+ * The installed executable, and optionally the short alias beside it.
+ *
+ * Separate from `remove-file` because it is unlike every other deletion here:
+ * it lives outside any scope root, it has no receipt entry, and it is not
+ * backed up — the backup directory is deleted by the same run.
+ */
+export interface RemoveBinaryOp {
+  action: "remove-binary";
+  path: string;
+}
+
+/**
+ * Something purge found, could not prove was ours, and therefore left alone.
+ *
+ * Distinct from `preserve-file`, which means "ours, but you edited it". This
+ * one means "we have no evidence this is ours at all" — a foreign `av` on the
+ * PATH, an MCP server someone configured by hand.
+ */
+export interface ReportKeptOp {
+  action: "report-kept";
+  path: string;
+  reason: string;
+}
+
+/**
+ * One server key removed from an MCP config file the tool does not own.
+ *
+ * Not a `remove-file`: the file stays and keeps everything else in it. The
+ * distinction matters enough to be in the type, because these two ops printed
+ * the same way would tell a user their whole `~/.claude.json` was about to go.
+ */
+export interface RemoveMcpServerOp {
+  action: "remove-mcp-server";
+  path: string;
+  name: string;
+}
+
+export type UninstallOp =
+  | RemoveFileOp
+  | PreserveFileOp
+  | UnmergeSettingsOp
+  | RemoveAgentsBlockOp
+  | RemoveTreeOp
+  | RemoveBinaryOp
+  | RemoveMcpServerOp
+  | ReportKeptOp;
 
 export interface PlanUninstallDeps {
   fileExists(absPath: string): boolean;
