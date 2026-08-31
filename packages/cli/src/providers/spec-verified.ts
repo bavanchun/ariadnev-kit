@@ -133,17 +133,21 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
     observedVersion: null,
     observedOn: null,
     paths: {
-      skill: convention(".agents/skills is the neutral root observed working in codex; the app ships no CLI, so nothing could be observed for antigravity"),
-      agent: none("no observation, and no neutral convention for agents"),
+      skill: convention("~/.gemini/config/skills is the root the upstream kit's dedicated emitter targets — its own text says it writes there and that workspace .agents/skills is NOT emitted — and ~/.gemini/config/ exists on disk as a real config tree (agents/, skills/, hooks.json, mcp_config.json, plugins/, sidecars/). Still `convention`: no antigravity surface was observed *reading* it"),
+      agent: convention("~/.gemini/config/agents/ holds 16 .md agent files written before ariadnev existed, so a full agent roster was installed to exactly this path by something else. Not `observed`: files being written there is not the provider reporting it loaded them"),
       command: none("no observation, and no neutral convention for commands"),
       rules: convention("AGENTS.md is the cross-tool convention observed working in codex"),
       scripts: convention("same .agents tree as the skill root above"),
       env: convention("template file only — nothing reports reading it"),
       hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
-      statusline: none("no CLI to observe with, and no neutral convention for a statusline"),
+      statusline: none("no statusline surface observed, and no neutral convention for one"),
     },
-    toolNames: none("no observation — the app ships no CLI to observe with"),
+    // The "no CLI" premise these cells rested on was wrong: the upstream binary
+    // documents an `agy` command with `--sandbox --model <id> --agent <name>`.
+    // That makes the surface probeable in principle — but every probe runs a
+    // model, so the cells stay unverified rather than guessed.
+    toolNames: none("no observation of which tool names antigravity accepts; probing means spending model credits"),
   },
   opencode: {
     observedVersion: "1.15.3",

@@ -7,8 +7,8 @@
       "provider": "antigravity",
       "type": "skill",
       "from": ".agent/skills",
-      "to": ".agents/skills",
-      "since": "0.2.0"
+      "to": ".gemini/config/skills",
+      "since": "1.5.0"
     }
   ],
   "sectionRenames": []
