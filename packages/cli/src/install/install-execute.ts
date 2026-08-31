@@ -108,6 +108,7 @@ export function executeInstall(
         kind: op.kind,
         name: op.name,
         reason: "modified since install — left as-is (use --force to overwrite)",
+        path: op.dest,
       });
       continue;
     }
