@@ -30,6 +30,19 @@ export interface SkipOp {
   kind: ArtifactKind;
   name: string;
   reason: string;
+  /**
+   * The file this skip is about, when there is one.
+   *
+   * An artifact is not a file. A skill is a directory — SKILL.md, references/,
+   * scripts/ — so one edited file inside it produces one skip, and reporting
+   * only `kind/name` printed the same line five times for five different files
+   * with no way to tell which. The identity a reader needs is the path.
+   *
+   * Absent when the skip is about the artifact as a whole rather than one of
+   * its files: an unverified provider cell was never planned to a destination,
+   * and a declined settings.json merge concerns a file the install does not own.
+   */
+  path?: string;
 }
 
 import type { HookBinding } from "./hook-settings-merge.js";
