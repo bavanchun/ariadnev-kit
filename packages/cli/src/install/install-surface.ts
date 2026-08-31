@@ -39,6 +39,11 @@ export const INSTALL_SURFACE: readonly string[] = [
   // the 9-provider union that needs a prefix of its own — `omp` and `dsh` both
   // resolve under `.agents`, which is already here.
   ".grok",
+  // antigravity's own tree. Narrower than `.gemini` deliberately: that
+  // directory is the Gemini CLI's whole home and holds credentials
+  // (`antigravity-oauth-token`) beside the config; naming the parent would put
+  // them inside a surface a restore is allowed to write.
+  ".gemini/config",
   ".opencode",
   ".test-provider",
   ".ariadnev",

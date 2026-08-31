@@ -49,6 +49,14 @@ function pickBase(ctx: ResolverCtx): string {
   return ctx.scope === "global" ? ctx.home : ctx.cwd;
 }
 
+// Antigravity's tree is a user-level CLI config root, not a workspace layout,
+// so it is home-anchored like codex. AGENTS.md is the exception for the same
+// reason it is there: rules belong at the root of whatever is being described.
+function antigravityBase(kind: ArtifactKind, ctx: ResolverCtx): string {
+  if (kind === "rules") return pickBase(ctx);
+  return ctx.home;
+}
+
 // Codex installs to the user home regardless of scope (reference parity).
 function codexBase(kind: ArtifactKind, ctx: ResolverCtx): string {
   if (kind === "rules") return pickBase(ctx); // AGENTS.md lives at project/home root
@@ -98,14 +106,26 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
   },
   antigravity: {
     rulesMode: "agents-md",
-    base: (_k, ctx) => pickBase(ctx),
-    skillDir: ".agents/skills",
-    agentPath: null, // unverified → skip
+    base: antigravityBase,
+    // `.gemini/config/`, not the neutral `.agents/skills` this used to inherit
+    // from codex. The upstream kit ships a dedicated emitter for this target
+    // whose own text states it writes skills under `~/.gemini/config/skills`
+    // and that "workspace .agents/skills [is] not emitted" — the one layout
+    // this provider was being given. Corroborated on disk: `~/.gemini/config/`
+    // holds `agents/`, `skills/`, `hooks.json`, `mcp_config.json`, `plugins/`
+    // and `sidecars/`, and the 16 agent files there predate ariadnev, so
+    // something else wrote a full agent roster into exactly this path.
+    skillDir: ".gemini/config/skills",
+    // Was `null` with the justification "no observation, and no neutral
+    // convention for agents". Both halves have since been falsified: the 16
+    // `.md` files in `~/.gemini/config/agents/` are that observation, and they
+    // establish the convention.
+    agentPath: (n) => `.gemini/config/agents/${n}.md`,
     commandPath: null,
     outputStylePath: null,
     rulePath: null,
-    scriptsDir: ".agents/scripts",
-    envFile: ".agents/.env.example",
+    scriptsDir: ".gemini/config/scripts",
+    envFile: ".gemini/config/.env.example",
   },
   opencode: {
     rulesMode: "agents-md",

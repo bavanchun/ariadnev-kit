@@ -266,12 +266,12 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 <!-- BEGIN provider-matrix (generated) -->
 | artifact | claude-code | codex | cursor | antigravity | opencode | omp | grok | dsh | generic |
 |---|---|---|---|---|---|---|---|---|---|
-| skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `.agents/skills/` | `.opencode/skills/` | `.agents/skills/` | `.grok/skills/` | skip | `.agents/skills/` |
-| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*` | skip | `.opencode/agents/*.md` | `.agents/skills/av-*` | `.grok/agents/*.md` | skip | skip |
+| skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `~/.gemini/config/skills/` | `.opencode/skills/` | `.agents/skills/` | `.grok/skills/` | skip | `.agents/skills/` |
+| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*` | `~/.gemini/config/agents/*.md` | `.opencode/agents/*.md` | `.agents/skills/av-*` | `.grok/agents/*.md` | skip | skip |
 | command | `.claude/commands/*.md` | skip | skip | skip | `.opencode/commands/*.md` | skip | skip | skip | skip |
 | rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` | `.grok/rules/*.md` | skip | `AGENTS.md` |
-| scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `.agents/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
-| env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `.agents/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
+| scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `~/.gemini/config/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
+| env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `~/.gemini/config/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
 | hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
 | outputStyle | skip | skip | skip | skip | skip | skip | skip | skip | skip |
 | statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
