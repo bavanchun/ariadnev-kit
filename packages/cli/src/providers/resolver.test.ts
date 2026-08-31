@@ -76,13 +76,24 @@ describe("resolver target matrix", () => {
     expect(r.targetFor(art("command", "c"), ctx)).toBe("/proj/.opencode/commands/c.md");
   });
 
-  it("antigravity + generic skip agents/commands (unverified)", () => {
-    for (const id of ["antigravity", "generic"] as const) {
-      const r = getResolver(id);
-      expect(r.supports.agent).toBe(false);
-      expect(r.supports.command).toBe(false);
-      expect(r.targetFor(art("agent", "a"), ctx)).toBeNull();
-    }
+  it("generic skips agents/commands (unverified)", () => {
+    const r = getResolver("generic");
+    expect(r.supports.agent).toBe(false);
+    expect(r.supports.command).toBe(false);
+    expect(r.targetFor(art("agent", "a"), ctx)).toBeNull();
+  });
+
+  it("antigravity targets the gemini config root, home-anchored, and installs agents", () => {
+    const r = getResolver("antigravity");
+    // Home even at project scope: `~/.gemini/config` is a user-level CLI tree,
+    // not a workspace layout, so a per-project copy would be written where
+    // nothing reads it.
+    expect(r.targetFor(art("skill", "x"), ctx)).toBe("/home/u/.gemini/config/skills/av-x");
+    expect(r.targetFor(art("agent", "a"), ctx)).toBe("/home/u/.gemini/config/agents/a.md");
+    expect(r.supports.agent).toBe(true);
+    // Commands stay unverified — nothing established a path for them.
+    expect(r.supports.command).toBe(false);
+    expect(r.targetFor(art("command", "c"), ctx)).toBeNull();
   });
 
   it("global scope roots at home", () => {

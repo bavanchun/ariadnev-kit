@@ -8,7 +8,7 @@ describe("runContract", () => {
     const parsed = JSON.parse(output);
     expect(parsed.version).toBe("9.9.9"); // legacy field preserved (back-compat)
     expect(parsed.providers["claude-code"].skill).toEqual({ verified: true, path: ".claude/skills/" });
-    expect(parsed.providers.antigravity.agent).toEqual({ verified: false, path: null });
+    expect(parsed.providers.antigravity.agent).toEqual({ verified: true, path: "~/.gemini/config/agents/*.md" });
   });
 
   it("carries the machine-discovery envelope (protocol_version, capabilities, schema)", () => {

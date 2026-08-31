@@ -107,11 +107,14 @@ describe("planInstall (pure)", () => {
     }
   });
 
-  it("emits adapted skill + skips unverified codex... none; antigravity skips agents", () => {
+  it("emits adapted skill + skips unverified codex... none; antigravity skips commands", () => {
     const fixtureKit = makeAdaptFixtureKit(join(sandbox, "adapt-kit0"));
     const ops = planInstall(fixtureKit, getResolver("antigravity"), ctx);
     const skips = ops.filter((o) => o.action === "skip");
-    expect(skips.some((o) => o.kind === "agent")).toBe(true);
+    // Agents are planned now, on the `~/.gemini/config/agents/` evidence;
+    // commands still have no established path.
+    expect(skips.some((o) => o.kind === "agent")).toBe(false);
+    expect(ops.some((o) => o.action === "write" && o.kind === "agent")).toBe(true);
     expect(skips.some((o) => o.kind === "command")).toBe(true);
     // skills still planned
     expect(ops.some((o) => o.action === "write" && o.kind === "skill")).toBe(true);
