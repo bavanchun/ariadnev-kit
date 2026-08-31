@@ -22,7 +22,10 @@ settle it spends model credits.
 Antigravity also leaves the shared `.agents/skills` root, so it no longer
 collides with omp, cursor or codex there.
 
-**Migration.** If you installed antigravity before this release, its files are
-still under `.agents/skills`. Uninstall antigravity with the old version first,
-or remove them by hand — the new install records the new locations and does not
-know about the old ones.
+**Migration.** The pre-0.2.0 `.agent/skills` layout now migrates straight to the
+new root, since that directory was antigravity's alone. Installs already sitting
+in `.agents/skills` cannot be moved automatically: that root is shared with
+cursor, omp, dsh, generic and global-scope codex, and a directory-level move
+would take their files too. Uninstall antigravity with the old version first, or
+remove its directories by hand — the new install records the new locations and
+does not know about the old ones.
