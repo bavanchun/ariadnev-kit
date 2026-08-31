@@ -15,7 +15,10 @@ export function renderSummary(
       `  ${coral(r.provider.padEnd(12), opts)} written=${teal(String(r.written), opts)} backed-up=${r.backedUp} skipped=${r.skipped.length}`,
     );
     for (const s of r.skipped) {
-      lines.push(faint(`      - skip ${s.kind}/${s.name}: ${s.reason}`, opts));
+      // The path last and bracketed: the reason is what a reader scans for, and
+      // the path is what they need only once a line has caught their eye.
+      const where = s.path ? ` [${s.path}]` : "";
+      lines.push(faint(`      - skip ${s.kind}/${s.name}: ${s.reason}${where}`, opts));
     }
   }
   return lines.join("\n");
