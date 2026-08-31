@@ -8,6 +8,7 @@ import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
 import { renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
 import { renderSummary } from "./render-summary.js";
+import { renderConflictSummary, resolveSharedDestinations } from "../install/shared-destinations.js";
 import type { HealReport } from "../install/install-heal.js";
 
 export interface InstallHandlerOpts {
@@ -102,6 +103,20 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
     };
   }
   let summary = renderSummary(results, opts.dryRun);
+  // Reported, not silently resolved. Two providers sharing a destination is a
+  // legitimate configuration — the roots are shared by design — but one of them
+  // is reading the other's adaptation, and that is worth knowing before it is
+  // discovered as a behavioural oddity months later.
+  const { conflicts } = resolveSharedDestinations(
+    results.map((r) => {
+      const skipped = new Set(r.skipped.flatMap((s) => (s.path ? [s.path] : [])));
+      return {
+        providerId: r.provider,
+        writes: r.ops.flatMap((op) => (op.action === "write" && !skipped.has(op.dest) ? [{ path: op.dest, content: op.content }] : [])),
+      };
+    }),
+  );
+  summary += renderConflictSummary(conflicts).join("\n");
   summary += renderHealSummary(heal);
   if (!opts.applyHookSettings) {
     // Merge declined or non-interactive: hand the user the exact block instead.
