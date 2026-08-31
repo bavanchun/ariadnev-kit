@@ -30,8 +30,10 @@ describe("buildProviderMatrix", () => {
     // codex installs to home; hooks are unverified there.
     expect(m.codex.skill.path).toBe("~/.agents/skills/");
     expect(m.codex.hook).toEqual({ verified: false, path: null });
-    // antigravity/generic: agent + command unverified → skip.
-    expect(m.antigravity.agent.verified).toBe(false);
+    // antigravity agents are now carried by the `~/.gemini/config/agents/`
+    // evidence; its commands stay unverified, as do generic's.
+    expect(m.antigravity.agent.verified).toBe(true);
+    expect(m.antigravity.command.verified).toBe(false);
     expect(m.generic.command.verified).toBe(false);
     // rules under AGENTS.md mode render as AGENTS.md.
     expect(m.codex.rules.path).toBe("AGENTS.md");

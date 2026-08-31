@@ -35,6 +35,58 @@ const DERIVED_DIRECTORY = "derived";
 const ACTIVITY_DIRECTORY = "activity";
 const CONTENT_DIRECTORY = "content";
 
+/**
+ * Every top-level name ariadnev writes inside a `.ariadnev` directory.
+ *
+ * THIS LIST IS A SAFETY BOUNDARY, NOT DOCUMENTATION. `av uninstall --purge`
+ * removes the state directory whole, and the claim that justifies doing so is
+ * "ariadnev owns all of it". This is that claim, written down where it can be
+ * checked: purge lists the directory, and anything not named here survives and
+ * is reported. Adding a new state file without adding it here does not corrupt
+ * anything — it just means purge leaves that file behind and says so.
+ *
+ * Kept next to the paths that define it rather than in the uninstall module, so
+ * that adding a state directory puts you one screen away from this list.
+ */
+export const STATE_DIRECTORY_ENTRIES: readonly string[] = [
+  // Directories.
+  "adapters", // adapters/write-adapter-artifacts.ts
+  "backups", // install/backup.ts
+  "locks", // install/lifecycle-lock.ts
+  OPERATIONAL_DIRECTORY, // this module
+  "runs", // harness/events/event-store.ts
+  "runtime", // cli/register-harness-commands.ts
+  "shadow", // harness/shadow/shadow-run.ts
+  // Files.
+  "applied-migrations.json", // migrate/applied-state.ts
+  "config.json", // config/load-config.ts
+  "history.degraded", // history/store.ts
+  "history.jsonl", // history/store.ts
+  "install-journal.json", // install/intent-journal.ts
+  "projects.json", // projects/registry.ts
+  "receipt.json", // install/install-receipt.ts
+];
+
+/** `~/.ariadnev` — the state directory itself, of which the above is the layout. */
+export function stateRoot(root: string): string {
+  return join(root, ROOT_DIRECTORY);
+}
+
+/**
+ * Split a state directory's top-level listing into what purge may remove and
+ * what it must keep. An unknown entry is kept: a stray file is a reason to
+ * leave that file, never a reason to abandon the whole purge.
+ */
+export function classifyStateEntries(entries: readonly string[]): { owned: string[]; unknown: string[] } {
+  const owned: string[] = [];
+  const unknown: string[] = [];
+  for (const entry of entries) {
+    if (STATE_DIRECTORY_ENTRIES.includes(entry)) owned.push(entry);
+    else unknown.push(entry);
+  }
+  return { owned: owned.sort(), unknown: unknown.sort() };
+}
+
 /** `~/.ariadnev/operational`. `home` comes from the caller — `--home` overrides it. */
 export function operationalRoot(home: string): string {
   return join(home, ROOT_DIRECTORY, OPERATIONAL_DIRECTORY);
