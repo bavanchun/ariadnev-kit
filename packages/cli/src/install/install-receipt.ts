@@ -2,6 +2,7 @@
 // update all read instead of guessing. No fs here — the caller reads the
 // prior receipt JSON and writes the returned string.
 import { createHash } from "node:crypto";
+import { resolveSharedDestinations } from "./shared-destinations.js";
 import { relative, isAbsolute, join } from "node:path";
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { ProviderInstallResult } from "./install-types.js";
@@ -121,7 +122,17 @@ function sha256(content: string | Buffer): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
-function buildInstall(entry: ProviderResultForReceipt, meta: BuildReceiptMeta): ReceiptInstall {
+function buildInstall(
+  entry: ProviderResultForReceipt,
+  meta: BuildReceiptMeta,
+  /**
+   * sha256 of the bytes actually left on disk, per absolute path. Several
+   * providers can write one file; the last one wins, and the record has to
+   * describe the winner or the next install reports the loser's files as edited
+   * by the user. See `shared-destinations.ts`.
+   */
+  canonical: Map<string, string>,
+): ReceiptInstall {
   const files = new Map<string, ReceiptFile>();
   let agentsMdManaged = false;
   const hookBindings: ReceiptHookBinding[] = [];
@@ -129,7 +140,11 @@ function buildInstall(entry: ProviderResultForReceipt, meta: BuildReceiptMeta): 
   for (const op of entry.result.ops) {
     if (op.action === "write") {
       const path = toPortablePath(op.dest, meta.home, meta.cwd);
-      files.set(path, { path, sha256: sha256(op.content) });
+      // `canonical` over `op.content`: the receipt answers "is this file still
+      // the one we wrote", which is a question about the file. Hashing what this
+      // provider intended describes bytes that a later provider may have
+      // replaced.
+      files.set(path, { path, sha256: canonical.get(op.dest) ?? sha256(op.content) });
     } else if (op.action === "agents-md") {
       agentsMdManaged = true;
     } else if (op.action === "hook-settings") {
@@ -171,8 +186,26 @@ export function buildReceipt(
     installs: { ...prev.installs },
   };
 
+  // Computed across every entry before any record is built: a provider's record
+  // depends on what the providers after it wrote, so no record can be finished
+  // until the whole run is known.
+  const { canonical } = resolveSharedDestinations(
+    entries.map((entry) => {
+      // A skipped write never reached the disk, so it never overwrote anything
+      // and must not claim to be what is there. `SkipOp.path` is what makes this
+      // knowable — before it, a skip named only its artifact.
+      const skipped = new Set(entry.result.skipped.flatMap((s) => (s.path ? [s.path] : [])));
+      return {
+        providerId: entry.providerId,
+        writes: entry.result.ops.flatMap((op) =>
+          op.action === "write" && !skipped.has(op.dest) ? [{ path: op.dest, content: op.content }] : [],
+        ),
+      };
+    }),
+  );
+
   for (const entry of entries) {
-    receipt.installs[entry.providerId] = buildInstall(entry, meta);
+    receipt.installs[entry.providerId] = buildInstall(entry, meta, canonical);
   }
 
   return `${JSON.stringify(receipt, null, 2)}\n`;
