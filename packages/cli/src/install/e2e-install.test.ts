@@ -233,3 +233,55 @@ describe("uninstall takes back everything it put down", () => {
     expect(readFileSync(edited, "utf8")).toBe("# mine now\n");
   });
 });
+
+/**
+ * Installing several providers at once is one filesystem, not several.
+ *
+ * Reported from a real global install of eight providers: the three that share
+ * `.agents/skills` wrote three different adaptations of 46 files and the last
+ * one won, and the agent shim put one provider's file exactly where another's
+ * directory was, so the atomic write took that directory with it. Both are
+ * properties of the *combination*, so single-provider tests could not see them.
+ */
+describe("providers that share a root do not overwrite each other", () => {
+  const SHARED: ProviderId[] = ["codex", "cursor", "omp"];
+
+  it("leaves every provider's recorded file on disk with its recorded bytes", () => {
+    installKit(kit, SHARED, ctx, { timestamp: "20260901-120000", applyHookSettings: true });
+    const receipt = readReceipt();
+
+    const wrong: string[] = [];
+    for (const provider of SHARED) {
+      for (const file of receipt.installs[provider]!.files) {
+        const path = fromPortablePath(file.path, ctx.home, ctx.cwd);
+        if (!existsSync(path)) wrong.push(`${provider}: ${file.path} is gone`);
+        else if (sha256(path) !== file.sha256) wrong.push(`${provider}: ${file.path} holds other bytes`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it("resolves a shared file to one neutral body instead of the last writer's", () => {
+    const { shared } = installKit(kit, SHARED, ctx, { timestamp: "20260901-120000", applyHookSettings: true });
+
+    expect(shared.length).toBeGreaterThan(0);
+    expect(shared.every((r) => r.mode === "neutral")).toBe(true);
+    const sample = shared.find((r) => r.path.endsWith("SKILL.md"));
+    expect(sample?.providers.length).toBeGreaterThan(1);
+    const body = readFileSync(sample!.path, "utf8");
+    // Neutral: canonical tool names, plus the note telling each runtime to map.
+    expect(body).toContain("## Multi-provider Compatibility");
+    expect(body).not.toContain("## Codex Compatibility");
+  });
+
+  it("gives no provider a file where another has a directory", () => {
+    installKit(kit, SHARED, ctx, { timestamp: "20260901-120000", applyHookSettings: true });
+    const receipt = readReceipt();
+    const notFiles = SHARED.flatMap((provider) =>
+      receipt.installs[provider]!.files
+        .map((file) => fromPortablePath(file.path, ctx.home, ctx.cwd))
+        .filter((path) => !statSync(path).isFile()),
+    );
+    expect(notFiles).toEqual([]);
+  });
+});

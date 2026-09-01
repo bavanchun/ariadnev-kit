@@ -15,6 +15,7 @@ import { buildReceipt, type ProviderResultForReceipt, type Receipt, type Receipt
 import { writeAdapterArtifactsSafe } from "../adapters/write-adapter-artifacts.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
 import { JOURNAL_SCHEMA_VERSION, clearJournal, plannedEntries, readJournal, writeJournal } from "./intent-journal.js";
+import { reconcileSharedWrites, type SharedResolution } from "./shared-writes.js";
 import {
   EMPTY_HEAL,
   assertPriorReceiptSafe,
@@ -149,6 +150,8 @@ export interface InstallKitResult {
   results: ProviderInstallResult[];
   /** What the install removed because this build no longer writes it there. */
   heal: HealReport;
+  /** Paths more than one provider claimed, and how each was resolved. */
+  shared: SharedResolution[];
 }
 
 /** Install the kit to every requested provider; returns per-provider results. */
@@ -190,6 +193,10 @@ export function installKit(
   // planned destinations up front. Planning is pure, so a planning error here
   // leaves the disk untouched.
   const planned = providers.map((id) => ({ id, ops: planInstall(kit, getResolver(id), ctx) }));
+  // Before the journal names a destination and before a byte is written: what
+  // the providers disagree about on a shared path is settled here, so the
+  // sequence they happen to execute in never decides the bytes.
+  const shared = reconcileSharedWrites(planned);
   // Every skill in the kit, until selective install narrows it (phase 6).
   const skillSelection: ReceiptSkillSelection = {
     mode: "all",
@@ -241,7 +248,7 @@ export function installKit(
     cwd: ctx.cwd,
   });
   const removals = planHeal(prevReceipt, JSON.parse(receiptJson) as Receipt, ctx.home, ctx.cwd);
-  if (opts.dryRun) return { results, heal: previewHeal(removals, ctx.home, ctx.cwd) };
+  if (opts.dryRun) return { results, heal: previewHeal(removals, ctx.home, ctx.cwd), shared };
 
   {
     // Before rotation, or the copy would be pruned by the very run that made it
@@ -288,7 +295,7 @@ export function installKit(
       });
     }
   }
-  return { results, heal };
+  return { results, heal, shared };
 }
 
 export { planInstall } from "./install-plan.js";

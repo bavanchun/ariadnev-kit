@@ -97,7 +97,12 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     // — an unprefixed `advisor/` here is indistinguishable from a third-party
     // skill of that name. Safe because no kit agent shares a name with a kit
     // skill, which `resolver.test.ts` holds.
-    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}`,
+    // The file inside that dir, not the dir itself. Resolving to the directory
+    // made every writer of it a file-vs-directory collision: omp resolves the
+    // same shim to the same path, and `atomicWrite` clears a directory standing
+    // where a file belongs — so installing cursor and omp together deleted
+    // cursor's whole agent tree and left omp's single file in its place.
+    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}/AGENT.md`,
     commandPath: (n) => `.cursor/commands/${n}.md`,
     outputStylePath: null,
     rulePath: (n) => `.cursor/rules/${n}.mdc`,
@@ -150,7 +155,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".agents/skills",
     // Same skill-shaped shim as cursor, in the same shared root, for the same
     // reason: omp discovers one level under `skills/` and nothing else.
-    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}`,
+    agentPath: (n) => `.agents/skills/${installedSkillDirName(n)}/AGENT.md`,
     commandPath: null,
     outputStylePath: null,
     rulePath: null,

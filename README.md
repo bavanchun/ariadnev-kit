@@ -268,7 +268,7 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 | artifact | claude-code | codex | cursor | antigravity | opencode | omp | grok | dsh | generic |
 |---|---|---|---|---|---|---|---|---|---|
 | skill | `.claude/skills/` | `~/.agents/skills/` | `.agents/skills/` | `~/.gemini/config/skills/` | `.opencode/skills/` | `.agents/skills/` | `.grok/skills/` | skip | `.agents/skills/` |
-| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*` | `~/.gemini/config/agents/*.md` | `.opencode/agents/*.md` | `.agents/skills/av-*` | `.grok/agents/*.md` | skip | skip |
+| agent | `.claude/agents/*.md` | `~/.codex/agents/*.toml` | `.agents/skills/av-*/AGENT.md` | `~/.gemini/config/agents/*.md` | `.opencode/agents/*.md` | `.agents/skills/av-*/AGENT.md` | `.grok/agents/*.md` | skip | skip |
 | command | `.claude/commands/*.md` | skip | skip | skip | `.opencode/commands/*.md` | skip | skip | skip | skip |
 | rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` | `.grok/rules/*.md` | skip | `AGENTS.md` |
 | scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `~/.gemini/config/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |

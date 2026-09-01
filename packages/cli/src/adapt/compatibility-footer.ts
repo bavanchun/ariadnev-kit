@@ -62,3 +62,43 @@ export function appendFooter(
   if (!hasMarker || content.includes(spec.heading)) return content;
   return `${content}\n\n${spec.heading}\n\n${spec.body}`;
 }
+
+export const SHARED_FOOTER_HEADING = "## Multi-provider Compatibility";
+
+/**
+ * The footer for a file several providers read from one shared path.
+ *
+ * Built from the same per-provider table as the single-provider footers rather
+ * than a second copy of the same prose, so a provider whose notes change gets
+ * one edit and both surfaces follow. A provider with no footer of its own gets
+ * the honest line instead of nothing: its tool mapping is unverified, which is
+ * the whole reason the shared file keeps canonical names.
+ *
+ * Gated on the same source markers as `appendFooter` — a file that never
+ * mentions a tool has nothing to translate, and a compatibility note on it is
+ * noise. Returns null when there is nothing to say.
+ */
+export function sharedFooter(providers: readonly ProviderId[], source: string): string | null {
+  if (!SKILL_MARKERS.some((m) => source.includes(m))) return null;
+  const named = [...providers].sort();
+  if (named.length === 0) return null;
+  const lines = [
+    SHARED_FOOTER_HEADING,
+    "",
+    `This file is installed once and read by: ${named.join(", ")}. Tool names are`,
+    "left canonical because no single rewrite is correct for all of them —",
+    "translate them to the runtime you are actually in:",
+    "",
+  ];
+  for (const provider of named) {
+    const spec = FOOTERS[provider];
+    lines.push(`- **${provider}**`);
+    if (!spec) {
+      lines.push("    - No verified tool mapping — use this runtime's own tool names.");
+      continue;
+    }
+    // The per-provider body is already a bullet list; indent it under its owner.
+    for (const line of spec.body.trimEnd().split("\n")) lines.push(`    ${line}`);
+  }
+  return `${lines.join("\n")}\n`;
+}
