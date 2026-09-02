@@ -30,6 +30,17 @@ export function getResolver(id: ProviderId): ProviderResolver {
   return REGISTRY[id];
 }
 
+/**
+ * Whether this provider has any verified target at all.
+ *
+ * `false` means an install for it writes nothing and skips every artifact —
+ * `dsh` today. The picker and the summary both need to say so, and neither
+ * should re-derive it from the evidence table by hand.
+ */
+export function hasVerifiedTargets(id: ProviderId): boolean {
+  return Object.values(SPEC_VERIFIED[id].paths).some((cell) => cell.verified);
+}
+
 export function isProviderId(value: string): value is ProviderId {
   return (PROVIDER_IDS as string[]).includes(value);
 }

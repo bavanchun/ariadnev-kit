@@ -127,11 +127,27 @@ describe("resolver target matrix", () => {
    */
   it("prefixes cursor's agent shim, which shares the skills root", () => {
     const r = getResolver("cursor");
-    expect(r.targetFor(art("agent", "advisor"), ctx)).toBe("/proj/.agents/skills/av-advisor");
+    expect(r.targetFor(art("agent", "advisor"), ctx)).toBe("/proj/.agents/skills/av-advisor/AGENT.md");
     const kit = loadKit(resolveKitRoot(process.cwd()));
     const skills = new Set(kit.skills.map((s) => s.name));
     const collide = kit.agents.map((a) => a.name).filter((n) => skills.has(n));
     expect(collide, "an agent and a skill share a name — they now share a directory").toEqual([]);
+  });
+
+  /**
+   * The shim resolves to the FILE, for both providers that install one.
+   *
+   * While it resolved to the directory, the plan appended the filename for
+   * cursor by id and left omp writing a file at the path cursor had just filled
+   * with a directory — and the atomic write clears a directory in a file's
+   * place, so installing both deleted cursor's entire agent tree.
+   */
+  it("resolves the agent shim to a file inside the dir for every provider that shares the root", () => {
+    for (const id of ["cursor", "omp"] as const) {
+      expect(getResolver(id).targetFor(art("agent", "advisor"), ctx)).toBe(
+        "/proj/.agents/skills/av-advisor/AGENT.md",
+      );
+    }
   });
 
   it("test-provider project paths (skills, commands, rules)", () => {

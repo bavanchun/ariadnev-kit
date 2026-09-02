@@ -7,7 +7,7 @@ import { agentToToml } from "../adapt/agent-to-toml.js";
 import { rewritePaths } from "../adapt/path-rewrites.js";
 import { rewriteTools } from "../adapt/tool-rewrites.js";
 import { serializeFrontmatter } from "../adapt/frontmatter.js";
-import { IGNORE_DIRS, IGNORE_FILES, isTextFile } from "./install-types.js";
+import { IGNORE_DIRS, IGNORE_FILES, isTextFile, type WriteSource } from "./install-types.js";
 
 /** Adapt arbitrary text (non-frontmatter): paths + tool names only. */
 export function adaptText(content: string, provider: ProviderId): string {
@@ -44,6 +44,8 @@ export interface FileContent {
   content: string | Buffer;
   /** Executable bit carried through from the source file, when set. */
   mode?: number;
+  /** Canonical source this file was adapted from; absent for binary assets. */
+  source?: WriteSource;
 }
 
 /**
@@ -70,9 +72,10 @@ export function skillFiles(skill: Artifact, provider: ProviderId): FileContent[]
       if (IGNORE_FILES.has(entry)) continue;
       const rel = relative(srcDir, abs);
       if (basename(abs) === "SKILL.md" && dir === srcDir) {
-        out.push({ rel, content: adaptArtifact(skill, provider) });
+        out.push({ rel, content: adaptArtifact(skill, provider), source: { artifact: skill } });
       } else if (isTextFile(entry)) {
-        out.push({ rel, content: adaptText(readFileSync(abs, "utf8"), provider) });
+        const raw = readFileSync(abs, "utf8");
+        out.push({ rel, content: adaptText(raw, provider), source: { text: raw } });
       } else {
         // Read as bytes and never decode: a font or image that round-trips
         // through a utf8 string comes out as replacement characters.

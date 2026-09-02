@@ -9,6 +9,7 @@ import { runDoctor } from "./doctor-command.js";
 import { runList } from "./list-command.js";
 import { renderSummary } from "./render-summary.js";
 import { nowStamp } from "./timestamp.js";
+import { hasVerifiedTargets } from "../providers/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const kitRoot = join(here, "..", "..", "..", "..", "kit");
@@ -37,6 +38,33 @@ describe("renderSummary", () => {
 
   it("marks dry-run", () => {
     expect(renderSummary([], true)).toContain("DRY RUN");
+  });
+});
+
+/**
+ * A provider with no verified cell installs nothing. That is the evidence
+ * ladder working, not a failure — but the only way a user learned it was by
+ * reading "written=0 skipped=156" after the run, which reads as a breakage.
+ */
+describe("providers with no verified target", () => {
+  it("dsh has none, and claude-code does", () => {
+    expect(hasVerifiedTargets("dsh")).toBe(false);
+    expect(hasVerifiedTargets("claude-code")).toBe(true);
+  });
+
+  it("names the outcome in the summary instead of leaving it to the skip count", () => {
+    const { summary, results } = runInstall({
+      providers: ["dsh"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, kitRoot, timestamp: "t",
+    });
+    expect(results[0].written).toBe(0);
+    expect(summary).toContain("dsh: no verified install target");
+  });
+
+  it("says nothing about a provider that does install something", () => {
+    const { summary } = runInstall({
+      providers: ["claude-code"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, kitRoot, timestamp: "t",
+    });
+    expect(summary).not.toContain("no verified install target");
   });
 });
 

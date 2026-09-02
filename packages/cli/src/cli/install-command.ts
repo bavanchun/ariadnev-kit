@@ -8,7 +8,8 @@ import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
 import { renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
 import { renderSummary } from "./render-summary.js";
-import { renderConflictSummary, resolveSharedDestinations } from "../install/shared-destinations.js";
+import { renderSharedSummary } from "../install/shared-writes.js";
+import { hasVerifiedTargets } from "../providers/index.js";
 import type { HealReport } from "../install/install-heal.js";
 
 export interface InstallHandlerOpts {
@@ -69,12 +70,28 @@ function renderHealSummary(heal: HealReport): string {
   return lines.length > 0 ? `\n${lines.join("\n")}` : "";
 }
 
+/**
+ * The providers in this run that can install nothing at all.
+ *
+ * A provider with no verified cell is not a failure — the evidence ladder says
+ * skip rather than guess a path — but "written=0 skipped=156" at the end of a
+ * long run reads as a breakage, and it arrives after the user has already
+ * waited for it. Naming it up front makes it a stated outcome.
+ */
+function renderNoTargetWarning(providers: ProviderId[]): string {
+  const empty = providers.filter((id) => !hasVerifiedTargets(id));
+  if (empty.length === 0) return "";
+  return `\n\n  ${empty.join(", ")}: no verified install target — nothing was written for ${
+    empty.length === 1 ? "it" : "them"
+  }.\n  Every artifact is skipped until that provider's layout can be observed rather than guessed.`;
+}
+
 /** Pure-ish handler: resolves providers, loads kit, installs, returns summary. */
 export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
   const providers = validateProviders(opts.providers);
   const kitRoot = opts.kitRoot ?? getKitRoot(dirname(fileURLToPath(import.meta.url)));
   const kit = loadKit(kitRoot);
-  const { results, heal } = installKit(
+  const { results, heal, shared } = installKit(
     kit,
     providers,
     { home: opts.home, cwd: opts.cwd, scope: opts.scope },
@@ -99,24 +116,17 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
           skipped: r.skipped.map((s) => ({ kind: s.kind, name: s.name, reason: s.reason })),
         })),
         heal,
+        shared,
       }),
     };
   }
   let summary = renderSummary(results, opts.dryRun);
-  // Reported, not silently resolved. Two providers sharing a destination is a
-  // legitimate configuration — the roots are shared by design — but one of them
-  // is reading the other's adaptation, and that is worth knowing before it is
-  // discovered as a behavioural oddity months later.
-  const { conflicts } = resolveSharedDestinations(
-    results.map((r) => {
-      const skipped = new Set(r.skipped.flatMap((s) => (s.path ? [s.path] : [])));
-      return {
-        providerId: r.provider,
-        writes: r.ops.flatMap((op) => (op.action === "write" && !skipped.has(op.dest) ? [{ path: op.dest, content: op.content }] : [])),
-      };
-    }),
-  );
-  summary += renderConflictSummary(conflicts).join("\n");
+  summary += renderNoTargetWarning(providers);
+  // Resolved before the write, then reported. Two providers sharing a
+  // destination is a legitimate configuration — the roots are shared by design
+  // — but which one's adaptation ends up in the file is not something to leave
+  // to the order they happen to run in.
+  summary += renderSharedSummary(shared).join("\n");
   summary += renderHealSummary(heal);
   if (!opts.applyHookSettings) {
     // Merge declined or non-interactive: hand the user the exact block instead.
