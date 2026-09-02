@@ -1,4 +1,16 @@
 import type { ArtifactKind } from "../providers/spec-verified.js";
+import type { Artifact } from "../kit/kit-types.js";
+
+/**
+ * What a written file was adapted *from*, kept beside the adapted bytes.
+ *
+ * Several providers legitimately resolve to one path (`.agents/skills`), and
+ * when their adaptations differ the file cannot hold all of them. Re-deriving a
+ * neutral body for such a path needs the canonical source, not the already
+ * provider-flavoured output — a rewritten tool name cannot be un-rewritten.
+ * Absent on binary assets and on merge ops, which are reconciled by other means.
+ */
+export type WriteSource = { artifact: Artifact } | { text: string };
 
 export interface WriteOp {
   action: "write";
@@ -13,6 +25,8 @@ export interface WriteOp {
    *  accepted — an executable bit is a deliberate declaration, never inherited
    *  from whatever the authoring machine happened to have. */
   mode?: number;
+  /** Canonical source, when this file was adapted from one. */
+  source?: WriteSource;
 }
 
 export const ALLOWED_FILE_MODES = new Set([0o644, 0o755]);

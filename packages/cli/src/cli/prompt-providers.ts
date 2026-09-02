@@ -1,5 +1,5 @@
 import { multiselect, select, confirm, isCancel, cancel } from "@clack/prompts";
-import { USER_FACING_PROVIDER_IDS, type ProviderId } from "../providers/index.js";
+import { USER_FACING_PROVIDER_IDS, hasVerifiedTargets, type ProviderId } from "../providers/index.js";
 import type { Scope } from "../providers/resolver.js";
 
 export interface PromptResult {
@@ -15,12 +15,30 @@ export interface PromptResult {
 export async function promptProviders(): Promise<PromptResult> {
   const providers = await multiselect({
     message: "Select target providers",
-    options: USER_FACING_PROVIDER_IDS.map((id) => ({ value: id, label: id })),
+    // A provider with nothing verified is still listed — it is a real target
+    // waiting on evidence, not a mistake — but it is labelled, because picking
+    // it from a bare list and finding 156 skips at the end reads as a bug.
+    options: USER_FACING_PROVIDER_IDS.map((id) => ({
+      value: id,
+      label: id,
+      ...(hasVerifiedTargets(id) ? {} : { hint: "no verified target — installs nothing" }),
+    })),
     required: true,
   });
   if (isCancel(providers)) {
     cancel("Cancelled.");
     process.exit(0);
+  }
+  const empty = (providers as ProviderId[]).filter((id) => !hasVerifiedTargets(id));
+  if (empty.length > 0) {
+    const go = await confirm({
+      message: `${empty.join(", ")} has no verified install target, so nothing will be written for it. Continue?`,
+      initialValue: true,
+    });
+    if (isCancel(go) || !go) {
+      cancel("Cancelled.");
+      process.exit(0);
+    }
   }
   const scope = await select({
     message: "Install scope",

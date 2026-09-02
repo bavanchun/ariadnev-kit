@@ -26,7 +26,7 @@ function planSkills(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[
       continue;
     }
     for (const f of skillFiles(skill, r.id)) {
-      ops.push({ action: "write", kind: "skill", name: skill.name, dest: join(dir, f.rel), content: f.content, mode: f.mode });
+      ops.push({ action: "write", kind: "skill", name: skill.name, dest: join(dir, f.rel), content: f.content, mode: f.mode, source: f.source });
     }
   }
   return ops;
@@ -35,16 +35,18 @@ function planSkills(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[
 function planAgents(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   return kit.agents.map((agent): InstallOp => {
     if (!r.supports.agent) return skip("agent", agent.name, `unsupported/unverified (${r.id})`);
-    let dest = r.targetFor(agent, ctx)!;
-    if (r.id === "cursor") dest = join(dest, "AGENT.md"); // shim dir → file
-    return { action: "write", kind: "agent", name: agent.name, dest, content: agentContent(agent, r.id) };
+    // The resolver returns the file, shim or not — a plan that appended the
+    // filename for one provider by id left every other provider writing a file
+    // where that one had made a directory.
+    const dest = r.targetFor(agent, ctx)!;
+    return { action: "write", kind: "agent", name: agent.name, dest, content: agentContent(agent, r.id), source: { artifact: agent } };
   });
 }
 
 function planCommands(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   return kit.commands.map((cmd): InstallOp => {
     if (!r.supports.command) return skip("command", cmd.name, `unsupported/unverified (${r.id})`);
-    return { action: "write", kind: "command", name: cmd.name, dest: r.targetFor(cmd, ctx)!, content: mapCommand(cmd, r.id).content };
+    return { action: "write", kind: "command", name: cmd.name, dest: r.targetFor(cmd, ctx)!, content: mapCommand(cmd, r.id).content, source: { artifact: cmd } };
   });
 }
 
@@ -79,7 +81,7 @@ function planRules(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   }
   return kit.rules.map((rule): InstallOp => {
     const dest = r.targetFor(rule, ctx)!;
-    return { action: "write", kind: "rules", name: rule.name, dest, content: adaptText(rule.body, r.id) };
+    return { action: "write", kind: "rules", name: rule.name, dest, content: adaptText(rule.body, r.id), source: { text: rule.body } };
   });
 }
 
@@ -94,8 +96,9 @@ function planDirTree(srcDir: string, destDir: string, providerId: ProviderResolv
         continue;
       }
       const raw = readFileSync(abs, "utf8");
-      const content = isTextFile(entry) ? adaptText(raw, providerId) : raw;
-      ops.push({ action: "write", kind, name: entry, dest: join(destDir, rel, entry), content });
+      const text = isTextFile(entry);
+      const content = text ? adaptText(raw, providerId) : raw;
+      ops.push({ action: "write", kind, name: entry, dest: join(destDir, rel, entry), content, ...(text ? { source: { text: raw } } : {}) });
     }
   };
   walk(srcDir, "");
