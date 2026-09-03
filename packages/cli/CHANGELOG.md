@@ -1,5 +1,118 @@
 # ariadnev
 
+## 1.5.1
+
+### Patch Changes
+
+- 13d7a2f: Providers that share `.agents/skills` no longer overwrite each other, and a
+  provider that can install nothing says so before the run instead of after it.
+
+  The previous fix made the _receipt_ honest about a shared path; the write itself
+  was still decided by execution order. codex, cursor and omp adapt the same
+  SKILL.md three ways, so 46 files in a real four-provider install held whichever
+  adaptation ran last — in practice omp's, the only one of the three with no tool
+  rewrites and no compatibility footer, replacing codex's verified ones. A shared
+  path is now written once, as a neutral adaptation with canonical tool names, a
+  neutral `.agents` layout, and one footer naming every provider that reads the
+  file and what each has to translate. The bytes are a function of the artifact
+  and the sharing providers, not of the order the user happened to tick the boxes
+  in. Files a provider does not share (`.codex/agents/*.toml`,
+  `.codex/commands/*.md`) keep their full provider adaptation.
+
+  The same overlap was also destroying files. cursor and omp both install an agent
+  as a skill-shaped directory in that root, but only cursor's plan appended the
+  filename inside it, so omp wrote a _file_ exactly where cursor had just created
+  a _directory_ — and an atomic write clears a directory standing in a file's
+  place. Installing both deleted every one of cursor's 16 agent files. The
+  resolver now returns the file for both, and the installer refuses any write
+  whose path another provider fills with a directory rather than deleting it.
+
+  `dsh` has no verified target, so it installs nothing. That is the evidence
+  ladder working, but the only way to learn it was to read `written=0 skipped=156`
+  at the end of a long run. The picker now labels such a provider and asks for
+  confirmation, and the summary states the outcome in words.
+
+## 1.5.0
+
+### Minor Changes
+
+- b13c5eb: Antigravity now installs to `~/.gemini/config/` — skills to
+  `~/.gemini/config/skills/`, agents to `~/.gemini/config/agents/` — instead of
+  the neutral `.agents/skills` root it inherited from codex, and its agents are
+  installed rather than skipped.
+
+  The old placement rested on two claims evidence has since falsified. The
+  upstream kit ships a dedicated emitter for this runtime whose own text says it
+  writes skills under `~/.gemini/config/skills` and that workspace
+  `.agents/skills` is _not_ emitted — the one layout ariadnev was using. And the
+  `agent` cell's "no observation, and no neutral convention" is contradicted by 16
+  agent files sitting in `~/.gemini/config/agents/`, written before ariadnev
+  existed.
+
+  Both cells are `convention`, not `observed`: files being written to a path is
+  not the same as the provider reporting it read them, and every probe that would
+  settle it spends model credits.
+
+  Antigravity also leaves the shared `.agents/skills` root, so it no longer
+  collides with omp, cursor or codex there.
+
+  **Migration.** The pre-0.2.0 `.agent/skills` layout now migrates straight to the
+  new root, since that directory was antigravity's alone. Installs already sitting
+  in `.agents/skills` cannot be moved automatically: that root is shared with
+  cursor, omp, dsh, generic and global-scope codex, and a directory-level move
+  would take their files too. Uninstall antigravity with the old version first, or
+  remove its directories by hand — the new install records the new locations and
+  does not know about the old ones.
+
+- d3d3e8d: `av uninstall --purge` removes everything ariadnev put on the machine, not just
+  what a provider install wrote. Plain `uninstall` left the `.ariadnev` state
+  directory (backups included, deliberately), the project installs registered in
+  `projects.json`, the MCP residue, and the binary itself — with no command that
+  reached any of them. Purge adds four passes after the provider one, in the only
+  safe order: registered projects, MCP residue, state directory, binary.
+
+  It previews by default and applies with `--yes`, like the command it extends,
+  and it is **irreversible**: it deletes `.ariadnev/backups`, including the copies
+  its own earlier passes just took.
+
+  The ownership rule does not relax. The state directory is checked against its
+  known layout, so anything else found inside is kept and reported rather than
+  swept up; an MCP server whose `command` is not the ariadnev binary is left
+  alone, as is an `av` that is not our own symlink or copy. On Windows the
+  executable is reported instead of deleted, since a running one cannot be
+  unlinked. `--purge` cannot be combined with `--provider`. Without `--global` it
+  means this project only — its provider files and its `.ariadnev`, no registry
+  fan-out and no binary.
+
+  The `uninstall --json` envelope is now schema 2, carrying a `purge` object.
+
+### Patch Changes
+
+- b13c5eb: Fixed a data-integrity bug that froze files when two providers share a
+  destination root. `.agents/skills` is written by cursor, antigravity, omp, dsh
+  and generic — and by codex under global scope — but the adapt engine produces
+  provider-dependent content, so those providers write different bytes to the same
+  path and the last one wins on disk. The receipt recorded each provider's
+  _intended_ bytes, so every earlier writer's record described content that was no
+  longer there; the next install read that as "modified since install" and refused
+  to touch the file for every provider, permanently, until someone passed
+  `--force`.
+
+  Measured on a real machine: codex and cursor shared 1485 paths, 42 of which had
+  divergent records, and a second install reported 84 files as user-edited that
+  the user had never touched.
+
+  The receipt now records the bytes actually left on disk, and the install report
+  names the overlap — which providers share which files, and whose adaptation won
+  — instead of leaving it to be discovered as a behavioural oddity.
+
+- c50d31c: `av install` now names the file each skip is about. An artifact is not a file —
+  a skill is a directory of SKILL.md, references/ and scripts/ — so five edited
+  files inside one skill printed five identical `skip skill/journal` lines with no
+  way to tell which file was meant. The path is appended in brackets; a skip that
+  concerns no particular file (an unverified provider cell) still prints without
+  one.
+
 ## 1.4.0
 
 ### Minor Changes
