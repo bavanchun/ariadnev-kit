@@ -80,9 +80,9 @@ Target Cleanup Zones:
    ```
 
 ## Success Criteria
-- [ ] All specified legacy files and directories removed.
-- [ ] `AGENTS.md` and `docs/vc-skill-authoring-spec.md` rewritten with clean kit vocabulary.
-- [ ] Grep query returns 0 hits across all active documents.
+- [x] All specified legacy files and directories removed.
+- [x] `AGENTS.md` and `docs/vc-skill-authoring-spec.md` rewritten with clean kit vocabulary.
+- [x] Grep query returns 0 hits across all active documents.
 
 ## Risk Assessment
 - **Risk:** Important historical decisions or architectural context accidentally lost during deletions.

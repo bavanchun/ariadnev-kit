@@ -85,11 +85,11 @@ Verification Pipeline:
 5. If any hit or test failure occurs: abort transition to Phase 7, debug and fix in-place.
 
 ## Success Criteria
-- [ ] Vitest test suite passes completely (757 tests).
-- [ ] Node test runner passes completely (99 tests).
-- [ ] Wave rollup executes and outputs valid tabular report.
-- [ ] Grep checks return exactly 0 results.
-- [ ] Working tree status is staged and clean.
+- [x] Vitest test suite passes completely (757 tests).
+- [x] Node test runner passes completely (99 tests).
+- [x] Wave rollup executes and outputs valid tabular report.
+- [x] Grep checks return exactly 0 results.
+- [x] Working tree status is staged and clean.
 
 ## Risk Assessment
 - **Risk:** Premature history rewrite while latent test or import failures exist.

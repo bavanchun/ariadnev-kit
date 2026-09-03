@@ -194,19 +194,19 @@ minus every auth-related step.
 
 ## Success Criteria
 
-- [ ] `av init` idempotent — a second run changes nothing
-- [ ] All four classification states behave per the table, asserted
-- [ ] **Orphan files never deleted, under any flag combination**
-- [ ] A snapshot exists before every deletion, `--force` included
-- [ ] `av projects` full lifecycle against a locked registry
-- [ ] Concurrent `av init` runs do not corrupt the manifest
-- [ ] `av setup --no-interactive --config` writes config without a TTY
-- [ ] `setup` writes no auth material, and offers none of the three auth steps
-- [ ] `uninstall` has no `--no-backup`, under any spelling
-- [ ] `projects prune --all` refuses without both `--force` and `--yes`
-- [ ] Existing `av install` **behavioral** tests untouched and green. Receipt-schema
+- [x] `av init` idempotent — a second run changes nothing
+- [x] All four classification states behave per the table, asserted
+- [x] **Orphan files never deleted, under any flag combination**
+- [x] A snapshot exists before every deletion, `--force` included
+- [x] `av projects` full lifecycle against a locked registry
+- [x] Concurrent `av init` runs do not corrupt the manifest
+- [x] `av setup --no-interactive --config` writes config without a TTY
+- [x] `setup` writes no auth material, and offers none of the three auth steps
+- [x] `uninstall` has no `--no-backup`, under any spelling
+- [x] `projects prune --all` refuses without both `--force` and `--yes`
+- [x] Existing `av install` **behavioral** tests untouched and green. Receipt-schema
       tests may gain cases; they must not lose assertions
-- [ ] `pnpm test` green
+- [x] `pnpm test` green
 
 ## Risk Assessment
 

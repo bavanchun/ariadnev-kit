@@ -122,16 +122,16 @@ query implementation would need its own gate and would drift.
 
 ## Success Criteria
 
-- [ ] `av api start|status|stop` work; `start` twice does not spawn a second daemon
-- [ ] A stale pidfile is cleaned; a foreign port holder is **reported, not worked around**
-- [ ] `stop` terminates the daemon and removes the pidfile
-- [ ] Default bind is loopback; non-loopback without a token is refused
-- [ ] Endpoints go through the CLI's query paths — no parallel query layer
-- [ ] `av gui` opens a real page, and degrades honestly when the binding is unavailable
-- [ ] No LLM proxy; the exclusion is documented with its ADR reference
-- [ ] `av config prefs` unchanged
-- [ ] No daemon survives the test suite
-- [ ] `pnpm test` green
+- [x] `av api start|status|stop` work; `start` twice does not spawn a second daemon
+- [x] A stale pidfile is cleaned; a foreign port holder is **reported, not worked around**
+- [x] `stop` terminates the daemon and removes the pidfile
+- [x] Default bind is loopback; non-loopback without a token is refused
+- [x] Endpoints go through the CLI's query paths — no parallel query layer
+- [x] `av gui` opens a real page, and degrades honestly when the binding is unavailable
+- [x] No LLM proxy; the exclusion is documented with its ADR reference
+- [x] `av config prefs` unchanged
+- [x] No daemon survives the test suite
+- [x] `pnpm test` green
 
 ## Risk Assessment
 

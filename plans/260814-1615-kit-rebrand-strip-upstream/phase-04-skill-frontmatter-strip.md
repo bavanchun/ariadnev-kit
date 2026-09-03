@@ -65,10 +65,10 @@ description: "..."
    ```
 
 ## Success Criteria
-- [ ] All 25 `SKILL.md` files updated with valid YAML frontmatter.
-- [ ] Zero instances of `upstream_` fields in `kit/skills/`.
-- [ ] Zero instances of `ak:` or `AgentKit` in `kit/skills/`.
-- [ ] Skill prompt behavior preserved without regression.
+- [x] All 25 `SKILL.md` files updated with valid YAML frontmatter.
+- [x] Zero instances of `upstream_` fields in `kit/skills/`.
+- [x] Zero instances of `ak:` or `AgentKit` in `kit/skills/`.
+- [x] Skill prompt behavior preserved without regression.
 
 ## Risk Assessment
 - **Risk:** Malformed YAML frontmatter breaks skill parser loading in CLI.

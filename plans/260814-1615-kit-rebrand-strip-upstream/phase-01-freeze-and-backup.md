@@ -49,10 +49,10 @@ Establish an immutable safety anchor and record baseline verification metrics be
 7. Confirm `worktrees/vcskill-baseline/` status is excluded from git tracking.
 
 ## Success Criteria
-- [ ] Tag `pre-rebrand-backup` is created and points to pre-rebrand commit (`fd775f4`).
-- [ ] Baseline test counts documented and passing (757 vitest, 99 node-test).
-- [ ] Working tree confirmed clean.
-- [ ] `worktrees/vcskill-baseline/` verified isolated.
+- [x] Tag `pre-rebrand-backup` is created and points to pre-rebrand commit (`fd775f4`).
+- [x] Baseline test counts documented and passing (757 vitest, 99 node-test).
+- [x] Working tree confirmed clean.
+- [x] `worktrees/vcskill-baseline/` verified isolated.
 
 ## Risk Assessment
 - **Risk:** Uncommitted changes get lost during subsequent git checkout/reset.
