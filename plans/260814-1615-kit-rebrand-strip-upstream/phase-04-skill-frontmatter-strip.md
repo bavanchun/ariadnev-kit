@@ -1,7 +1,8 @@
 ---
 phase: 4
 title: "SKILL.md frontmatter strip (25 files)"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "1.5h"
 dependencies: [3]

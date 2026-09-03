@@ -1,7 +1,8 @@
 ---
 phase: 8
 title: "Branch rename + verification"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "30m"
 dependencies: [7]

@@ -1,7 +1,8 @@
 ---
 phase: 7
 title: "History rewrite (squash + rename 16 commits)"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "1h"
 dependencies: [6]

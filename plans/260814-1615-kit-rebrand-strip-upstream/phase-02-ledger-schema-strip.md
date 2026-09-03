@@ -1,7 +1,8 @@
 ---
 phase: 2
 title: "Ledger schema strip"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "2h"
 dependencies: [1]

@@ -1,7 +1,8 @@
 ---
 phase: 6
 title: "Final verification (before history rewrite)"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "1h"
 dependencies: [5]

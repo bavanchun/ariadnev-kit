@@ -1,7 +1,8 @@
 ---
 phase: 1
 title: "Freeze & backup"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "30m"
 dependencies: []

@@ -1,7 +1,8 @@
 ---
 phase: 5
 title: "Docs + reports + plans cleanup"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "2h"
 dependencies: [4]
