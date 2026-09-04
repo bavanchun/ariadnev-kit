@@ -254,3 +254,57 @@ function withCodexBindings(): Receipt {
     },
   };
 }
+
+describe("a registry that does not dispatch every event", () => {
+  // antigravity has five events; the kit binds nine Claude Code event names.
+  // The ones with no equivalent cannot be filed under an event that does exist
+  // — `PreInvocation` is the tempting target and fires per model turn, so a
+  // session-scoped hook put there would run on every turn of every session.
+  // They are dropped instead, and each drop names the event it was for.
+  function antigravity(overrides: Partial<ProviderResolver> = {}): ProviderResolver {
+    return syntheticResolver({
+      hooksConfigTarget: () => "/home/u/.gemini/config/hooks.json",
+      hooksConfigFormat: "antigravity-hooks-json",
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    hook("session", { bindings: [{ event: "SessionStart", order: 10 }], description: "session" });
+    hook("prompt", { bindings: [{ event: "UserPromptSubmit", order: 10 }], description: "prompt" });
+  });
+
+  it("binds only the events the provider dispatches", () => {
+    const merge = plan(antigravity()).find((op) => op.action === "hook-settings");
+    expect(merge?.action).toBe("hook-settings");
+    const events =
+      merge?.action === "hook-settings" ? [...new Set(merge.bindings.map((b) => b.event))] : [];
+    expect(events).toEqual(["PreToolUse"]);
+  });
+
+  it("names the event of every binding it drops", () => {
+    const skips = plan(antigravity()).filter((op) => op.action === "skip" && op.kind === "hook");
+    expect(skips.length).toBe(2);
+    const reasons = skips.map((op) => (op.action === "skip" ? op.reason : ""));
+    expect(reasons.some((r) => r.includes("SessionStart"))).toBe(true);
+    expect(reasons.some((r) => r.includes("UserPromptSubmit"))).toBe(true);
+    // A skip that only says "unsupported" leaves the reader to guess whether
+    // the hook, the provider or the event was the problem.
+    for (const reason of reasons) expect(reason).toContain("test-provider");
+  });
+
+  it("still writes the bodies of the hooks it could not bind", () => {
+    // Nothing is deleted over an event: the file stays owned, receipted and
+    // reversible, and a later agy release that adds the event needs no cleanup.
+    expect(destinations(plan(antigravity()))).toContain(join(CODEX_HOOKS, "session.cjs"));
+  });
+
+  it("drops nothing for a registry that takes every event name", () => {
+    const merge = plan(
+      antigravity({ hooksConfigFormat: "claude-settings-json" }),
+    ).find((op) => op.action === "hook-settings");
+    const events =
+      merge?.action === "hook-settings" ? [...new Set(merge.bindings.map((b) => b.event))].sort() : [];
+    expect(events).toEqual(["PreToolUse", "SessionStart", "UserPromptSubmit"]);
+  });
+});

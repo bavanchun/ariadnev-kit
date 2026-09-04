@@ -55,6 +55,16 @@ export const CODEX_HOOKS_DIR = ".codex/hooks/av";
 export const CODEX_HOOKS_CONFIG_FILE = ".codex/hooks.json";
 
 /**
+ * Antigravity's hooks tree and the file it discovers bindings in.
+ *
+ * `hooks.json` sits at the root of the config tree, one level above the tree of
+ * bodies, and it is shared: the live file was written by another tool
+ * registering under a top-level key of its own. Ours goes in beside it.
+ */
+export const ANTIGRAVITY_HOOKS_DIR = ".gemini/config/hooks/av";
+export const ANTIGRAVITY_HOOKS_CONFIG_FILE = ".gemini/config/hooks.json";
+
+/**
  * Where the session-init hook reads the kit's coding-level output styles from,
  * relative to whichever hooks tree the hook was installed into. They live inside
  * the hook's own install dir because the hook, not the provider, consumes them —

@@ -273,7 +273,7 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 | rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` | `.grok/rules/*.md` | skip | `AGENTS.md` |
 | scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `~/.gemini/config/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `~/.gemini/config/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
-| hook | `.claude/hooks/av/*.cjs` | `~/.codex/hooks/av/*.cjs` | skip | skip | skip | skip | skip | skip | skip |
+| hook | `.claude/hooks/av/*.cjs` | `~/.codex/hooks/av/*.cjs` | skip | `~/.gemini/config/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
 | outputStyle | skip | skip | skip | skip | skip | skip | skip | skip | skip |
 | statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
 <!-- END provider-matrix (generated) -->
@@ -294,6 +294,14 @@ and names `.agent[s]/skills` canonical. And `grok`'s hooks `skip` even though
 `~/.grok/hooks` exists, because every hook currently resolves to
 `.claude/hooks/av/` — verifying that cell would install grok's hooks into
 claude-code's tree.
+
+One cross-provider effect the table cannot show: `antigravity` reads a
+workspace `.agents/` tree before its own `~/.gemini/config/` root. So in a repo
+where you also installed for `cursor`, `omp` or `generic` at project scope, an
+`agy` session loads *their* copy of a skill — same content, adapted for a
+different tool — and the antigravity install underneath it never gets read.
+Install antigravity globally and the other providers globally too, or expect
+the workspace copy to win.
 
 ## Maintainer authoring
 

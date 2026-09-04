@@ -157,15 +157,15 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       rules: convention("AGENTS.md is the cross-tool convention observed working in codex"),
       scripts: convention("same .agents tree as the skill root above"),
       env: convention("template file only — nothing reports reading it"),
-      hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
+      hook: convention("the provider's own shipped doc, ~/.gemini/antigravity-cli/builtin/skills/agy-customizations/docs/hooks.md, specifies hooks.json: five events, PreToolUse/PostToolUse wrapped in matcher groups and PreInvocation/PostInvocation/Stop flat. The binary carries the same contract (`pre-tool hook %s not registered`, and `prompt hooks are not currently supported` for the event it does not have). ~/.gemini/config/hooks.json exists on this machine holding all five events for a third party's hook, so the global root is a place something other than this project already registers into. Not `observed`: a hook proves itself by firing, and agy only dispatches one inside a session, which is a paid turn"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
-      statusline: none("no statusline surface observed, and no neutral convention for one"),
+      statusline: none("a surface exists and its shape is still unknown: agy has a `/statusline <command>` slash command, a `statusLine` JSON key and a store method that writes it, but nothing says which file that key lands in — ~/.gemini/config/config.json here carries only userSettings.remoteControlHostname, because nothing has ever set one. Finding out means running the TUI and setting a statusline on the user's machine, so this stays a lead"),
     },
     // The "no CLI" premise these cells rested on was wrong: the upstream binary
     // documents an `agy` command with `--sandbox --model <id> --agent <name>`.
     // That makes the surface probeable in principle — but every probe runs a
     // model, so the cells stay unverified rather than guessed.
-    toolNames: none("no observation of which tool names antigravity accepts; probing means spending model credits"),
+      toolNames: none("the binary yields tool names by static string extraction, which is a hypothesis about a vocabulary and not an observation of one — see the table in adapt/tool-rewrites.ts. Confirming it means running `agy -p`, which spends the user's model credits and needs their consent, so the rewrite table stays identity"),
   },
   opencode: {
     observedVersion: "1.15.3",

@@ -3,6 +3,11 @@
 // writes the returned string; this module never touches the filesystem.
 
 import type { HooksConfigFormat } from "../providers/resolver.js";
+import {
+  ANTIGRAVITY_HOOK_EVENTS,
+  mergeAntigravityHooks,
+  unmergeAntigravityHooks,
+} from "./antigravity-hooks-merge.js";
 import { mergeCodexHooks, unmergeCodexHooks } from "./codex-hooks-merge.js";
 import { commandOwnedBy } from "./owned-command.js";
 
@@ -58,6 +63,28 @@ export function mergeHooksConfig(
       return mergeHookSettings(existing, bindings);
     case "codex-hooks-json":
       return mergeCodexHooks(existing, bindings, ownedDir);
+    case "antigravity-hooks-json":
+      // No owned directory: this format keys ownership on a top-level name
+      // nobody else writes, so there is no command string to inspect.
+      return mergeAntigravityHooks(existing, bindings);
+  }
+}
+
+/**
+ * The events a registry dispatches, or `null` when it takes any event name.
+ *
+ * The planner asks before it binds, because a binding for an event the runtime
+ * has never heard of is not an error anyone sees: it is written, it looks
+ * installed, and it never fires. Answering `null` is not "unknown" — it says
+ * the registry passes the kit's event names through as they are.
+ */
+export function supportedHookEvents(format: HooksConfigFormat): readonly string[] | null {
+  switch (format) {
+    case "claude-settings-json":
+    case "codex-hooks-json":
+      return null;
+    case "antigravity-hooks-json":
+      return ANTIGRAVITY_HOOK_EVENTS;
   }
 }
 
@@ -79,6 +106,8 @@ export function unmergeHooksConfig(
       return unmergeStatusLine(unmergeHookSettings(existing, bindings), ownedDir);
     case "codex-hooks-json":
       return unmergeCodexHooks(existing, ownedDir);
+    case "antigravity-hooks-json":
+      return unmergeAntigravityHooks(existing);
   }
 }
 
@@ -134,10 +163,13 @@ export function unmergeHookSettings(existing: string, bindings: HookBinding[]): 
  * `.claude/settings.json` for it would send the user to a file it never reads.
  */
 export function renderHookSettingsSnippet(mergedFile: string, dest: string): string {
-  const merged = JSON.parse(mergedFile) as SettingsJson;
+  // The whole object, not its `hooks` key. What arrives here is always this
+  // installer's own bindings merged against an empty file, so there is nothing
+  // else in it to strip — and reaching for `.hooks` would print `null` for the
+  // one format whose bindings live under a top-level key of their own.
   return [
     `Add this to ${dest} to activate the av hooks:`,
-    JSON.stringify({ hooks: merged.hooks }, null, 2),
+    JSON.stringify(JSON.parse(mergedFile), null, 2),
   ].join("\n");
 }
 

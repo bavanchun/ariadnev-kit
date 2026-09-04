@@ -6,6 +6,8 @@ import {
   isVerified,
 } from "./spec-verified.js";
 import {
+  ANTIGRAVITY_HOOKS_CONFIG_FILE,
+  ANTIGRAVITY_HOOKS_DIR,
   CLAUDE_HOOKS_DIR,
   CLAUDE_SETTINGS_FILE,
   CODEX_HOOKS_CONFIG_FILE,
@@ -24,7 +26,10 @@ export interface ResolverCtx {
 export type RulesMode = "dir" | "mdc" | "agents-md";
 
 /** Which merger writes a provider's hook-binding registry. */
-export type HooksConfigFormat = "claude-settings-json" | "codex-hooks-json";
+export type HooksConfigFormat =
+  | "claude-settings-json"
+  | "codex-hooks-json"
+  | "antigravity-hooks-json";
 
 export interface ProviderResolver {
   id: ProviderId;
@@ -207,7 +212,14 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".gemini/config/scripts",
     envFile: ".gemini/config/.env.example",
-    ...noHooks(".gemini/config/hooks/av"),
+    // A third discovery mechanism, not a variant of the other two: agy reads
+    // one shared `hooks.json` in which each writer owns a top-level key of its
+    // own. Only five of the kit's events exist there, so the bindings that have
+    // no home are skipped per binding rather than remapped.
+    hooksDir: ANTIGRAVITY_HOOKS_DIR,
+    hooksConfigFile: ANTIGRAVITY_HOOKS_CONFIG_FILE,
+    hooksConfigFormat: "antigravity-hooks-json",
+    hooksInstall: true,
   },
   opencode: {
     rulesMode: "agents-md",

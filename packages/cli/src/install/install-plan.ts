@@ -5,7 +5,7 @@ import type { ProviderResolver, ResolverCtx } from "../providers/resolver.js";
 import { mapCommand } from "../adapt/command-map.js";
 import { OUTPUT_STYLES_SIDECAR_SUBDIR } from "../adapt/paths.js";
 import { buildRulesBlock } from "./agents-md.js";
-import type { HookBinding } from "./hook-settings-merge.js";
+import { supportedHookEvents, type HookBinding } from "./hook-settings-merge.js";
 import { compareBindings, hookBindingSpecs } from "../kit/hook-bindings.js";
 import type { HookBindingSpec } from "../kit/kit-types.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
@@ -138,7 +138,17 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
     }
   }
   collected.sort(compareBindings);
-  const bindings: HookBinding[] = collected.map(({ spec, dest }) => ({
+  // A registry with a fixed event set gets only the bindings it can dispatch.
+  // The rest are dropped rather than filed under an event that does exist:
+  // antigravity's `PreInvocation` would take any of them and fire it on every
+  // model turn, which is not what a session- or prompt-scoped hook means.
+  const dispatched = hooksConfig === null ? null : supportedHookEvents(r.hooksConfigFormat!);
+  const bindable = collected.filter(({ spec, name }) => {
+    if (dispatched === null || dispatched.includes(spec.event)) return true;
+    ops.push(skip("hook", name, `${r.id} dispatches no ${spec.event} — that binding is not installed`));
+    return false;
+  });
+  const bindings: HookBinding[] = bindable.map(({ spec, dest }) => ({
     event: spec.event,
     ...(spec.matcher ? { matcher: spec.matcher } : {}),
     command: [`node ${JSON.stringify(dest)}`, ...(spec.args ?? [])].join(" "),
