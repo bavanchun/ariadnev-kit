@@ -1,5 +1,176 @@
 # ariadnev
 
+## 1.6.0
+
+### Minor Changes
+
+- 39edbe1: Agents installed for antigravity are now loadable by it. They were not before:
+  `agy` reads agent frontmatter by type, and a _known_ key of the wrong YAML shape
+  makes it drop the whole file with no warning. Every kit agent carried Claude
+  Code's comma-separated `tools:` string where a sequence is required, and a
+  `model:` in an alias no shape of which agy was found to accept — so 16 agent
+  files sat in agy's own discovery root without one of them ever being listed.
+
+  The adapted copy now emits `tools:` as a sequence and drops `model:` entirely,
+  so the agent runs on agy's default model instead of not running at all. Entries
+  inside the sequence stay verbatim: this provider's tool-name cell is unverified,
+  and renaming on a guess would put invented identifiers into a file the user
+  reads as authoritative. The canonical kit is unchanged and every other provider
+  still receives both keys as before.
+
+  Hooks register in `~/.gemini/config/hooks.json`, which agy shares between
+  writers by giving each one a top-level key of its own; ariadnev owns `"av"` and
+  leaves the rest of the file alone. Only three of agy's five events have a kit
+  binding, so nine of the nineteen bindings are skipped per binding rather than
+  remapped onto an event that fires at a different time. A blocked tool call is
+  written as agy's own `{"decision":"deny"}` on stdout, because agy reads no exit
+  code — the exit status that is the deny on Claude Code and Codex would have been
+  a silent allow here.
+
+  The hook-merge prompt is no longer asked only when claude-code is among the
+  selected providers. Codex and antigravity each register bindings in a file of
+  their own, and installing either alone never offered the merge: the hook tree
+  was copied, the registry was never written, and the receipt recorded every
+  binding as unapplied. The prompt now names the exact files it is about to edit.
+
+- 1c5a768: Output styles now install to Claude Code's own `~/.claude/output-styles/`
+  instead of riding in as a session-init hook sidecar. The cell that blocked this
+  recorded that the directory was observed on disk but nothing was seen to load
+  from it; the 2.1.259 binary carries the loader strings, a plugin schema key
+  documents the directory and the opt-out that suppresses auto-loading, and
+  `output-styles` sits in the artifact-kind set beside commands, agents and
+  skills. A style planted in the otherwise-empty native directory was picked up.
+
+  The claude-code row's observation date and version were re-taken at the same
+  time. Nothing else in that row moved: a re-observation re-dates the cells it
+  actually re-checked, and each row now carries its own date so one cell's edit
+  cannot silently re-date the rest.
+
+- ee2d58e: Codex installs hooks now, into Codex's own registry rather than Claude Code's.
+
+  The hooks tree and the file that registers it are resolved per provider, so
+  `av install --provider codex` writes `~/.codex/hooks/av/*.cjs` and merges the
+  bindings into `~/.codex/hooks.json`. That file is shared — three other tools
+  were already writing to the one observed on disk — and Codex keys each hook's
+  trust on `<source>:<event>:<group>:<hook>`, so a foreign group is never moved:
+  ours are appended after whatever is there, and removing ours leaves the rest at
+  the indices their trust hashes were taken at.
+
+  Every hook's stdout goes through one emitter that knows which runtime is reading
+  it. Codex validates hook output against schemas that reject an unknown key
+  outright, so the same decision that Claude Code accepts fails the whole hook
+  under Codex when a field sits in the wrong place; the emitter renders per
+  runtime instead of hoping one shape passes both.
+
+  Two things a file list cannot show are now said out loud. A written Codex hook
+  does nothing until the user trusts it in Codex's TUI — there is no CLI
+  subcommand for that, and `--dangerously-bypass-hook-trust` is theirs to pass per
+  session, not something an install can set for them. And a stale third-party
+  wrapper left in the same shared `hooks.json` turns a clean deny into `Hook
+failed`, so the install reports what it found there. Both are read from the
+  file, never run: a project-local `.codex/hooks.json` arrives with any clone.
+
+  Declining the merge now prints the block for the file the user's own provider
+  reads, in that provider's grouping, instead of a Claude Code `settings.json`
+  block they have nowhere to paste.
+
+- 1c5a768: `av:diagram` gains the geometry and motion validators it was missing, vendored
+  byte-verbatim from the pinned upstream commit along with the template system's
+  own runner. `av skill verify diagram` now reports the environment those
+  validators need instead of answering `unknown` for want of a lock.
+
+  The vendoring script that produced them was fixed first: it did not pin the
+  source checkout, it overwrote the provenance it was supposed to record, and its
+  stamps came from the wall clock, so two runs at the same upstream commit
+  disagreed. Stamps now derive from that commit's own committer date, which makes
+  the output a pure function of the commit and the target set — a second run at
+  the same pin reports no change.
+
+  `av:preview` gains an AntV G2 reference for poster-shaped infographic pages: a
+  few oversized stat callouts and one or two statement charts, rather than a
+  dashboard grid. It is a choice of reference, not a new flag — `--html --explain`
+  is unchanged, and the routing table now points at it. No executable code was
+  added to the preview skill.
+
+- 1c5a768: `worktree.root` can now be set in a config file rather than only through
+  `--worktree-root` or the `WORKTREE_ROOT` environment variable. The env var and
+  the flag still win, in that order, so nothing that already works changes.
+
+  The two layers are not trusted alike. A project file is committed, so it arrives
+  with whoever cloned the repository, and this key decides where directories get
+  created on their disk — so a project-layer value is confined to the repository
+  that supplied it: relative only, no `~`, no control characters, nothing
+  resolving to the repository itself, a sibling of it, or anywhere inside its
+  `.git`. Symlinks are resolved on both sides before the comparison, and a value
+  whose target does not exist yet is resolved through its nearest existing
+  ancestor rather than accepted lexically. The same key in the user's own config
+  is unbounded and may be absolute — trust follows who wrote the file.
+
+  A refused value warns through the JSON envelope and falls through to the next
+  source. It never fails the command, because failing would hand a hostile clone a
+  denial of service on a repository the user has every right to work in.
+
+### Patch Changes
+
+- 68b903e: The writers that share a hooks file with other tools are harder to fool.
+
+  Ownership is decided by the file a command runs, not by whether its text
+  mentions our install directory. A guard that excludes our hooks from its own
+  scan carries that directory as an argument, and the old substring test read it
+  as ours — so an uninstall would have taken that tool's entry out of a file four
+  writers share, with no receipt naming it, and a reinstall would have rebuilt
+  over it. The same test governs the statusline slot, where being wrong meant
+  replacing one the user had chosen. A sibling directory sharing our prefix,
+  `…/hooks/av-legacy` beside `…/hooks/av`, is no longer read as a file inside
+  ours.
+
+  A hooks file whose bytes parse but whose shape is not the provider's is now
+  refused before the caller writes, the same answer these mergers already gave to
+  bytes they could not parse at all. A JSON array accepts the registration as a
+  named property and then loses it at stringify time, which would have reported
+  hooks installed into a file that carries none of them; a string root threw a
+  raw TypeError instead of saying anything about the user's file. An event whose
+  value is not a list of groups is named in the error rather than aborting the
+  install with a stack trace.
+
+  Declining the hook merge prints one block per registry, not one block. Three
+  providers keep hooks in three different files now and a single run can select
+  all of them, so naming only the first left the rest on disk, unregistered, with
+  nothing in the output saying which. Two providers pointed at one file still get
+  one block, because that is one file to edit.
+
+- 0889a60: The usage-quota refresh hook now runs only on the runtime that renders the
+  statusline it feeds. Giving Codex and antigravity hook surfaces of their own
+  registered it there too, where every `PostToolUse`, `Stop` and
+  `UserPromptSubmit` would read the Claude Code credential and call the usage
+  endpoint for a display those runtimes have no way to show. An installed tree
+  whose runtime marker is missing still refreshes, matching the fall-back the rest
+  of the hook library already uses.
+
+  The `worktree.root` bound resolves real paths through the native resolver rather
+  than the JavaScript one. The latter returns whatever casing the caller passed,
+  so on macOS and Windows — where `.GIT` and `.git` are one directory — a value
+  spelled `.GIT/worktrees` resolved to itself, missed the check, and landed on
+  git's metadata on exactly the filesystems that fold case.
+
+- 44651d3: The writing-language resolver runs again instead of throwing on require.
+
+  It asked for a config client module that has never existed in this repository,
+  so every invocation died with `MODULE_NOT_FOUND` before it could read anything.
+  The ship, review-pr and github skills all instruct the agent to run this
+  resolver to decide which language a PR body is written in; with it broken, that
+  step failed and the language fell back to whatever the agent guessed. It now
+  requires the client that actually exports `resolvePrefs`, and the precedence it
+  documents — `ARIADNEV_LANGUAGE`, then `CK_RESPONSE_LANGUAGE`, then
+  `locale.responseLanguage` from config, then English — is covered by tests, so a
+  rename on either side of that boundary fails the suite rather than the user's
+  next ship.
+
+  Its reference page describes where the setting actually lives again. It still
+  listed a seven-step chain through `config.yaml` and `.claude/.ck.json`, sources
+  the resolver stopped reading when the YAML scraper was removed, so anyone
+  following it configured a file nothing looks at.
+
 ## 1.5.1
 
 ### Patch Changes
