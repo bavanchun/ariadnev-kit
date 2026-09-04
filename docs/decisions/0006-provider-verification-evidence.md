@@ -26,7 +26,7 @@ Three levels, because collapsing them is what allows self-certification:
 | Level | Meaning |
 |---|---|
 | `observed` | The provider was run and seen to load the artifact — it listed it by name, or the content appeared in the prompt the provider builds. Records provider version and date. |
-| `convention` | No provider-specific observation. The path is the neutral cross-tool layout (`.agents/`, `AGENTS.md`) that *was* observed working in another provider. Weaker, and labelled. |
+| `convention` | No load was witnessed, but the path is right on one of two grounds: it is the neutral cross-tool layout (`.agents/`, `AGENTS.md`) that *was* observed working in another provider, or the provider's **own shipped artefact** — its binary, its schema, a config file it wrote itself — names the path. Weaker, and labelled. |
 | `none` | No evidence. Cell is false; the installer skips. |
 
 "Installed it and it looked fine" is not an observation. Each `observed` note
@@ -39,6 +39,7 @@ Run on 2026-08-15, each install into an isolated `HOME` and project directory.
 **claude-code 2.1.232** — skills, agents, and commands appear by name in the
 running session's own surfaces; hooks fire and their output is visible in
 transcripts; the `AGENTS.md` managed block is present in session context.
+Re-observed against 2.1.260 on 2026-09-04; see below.
 
 **codex-cli 0.147.0** — `codex debug prompt-input` renders the model-visible
 prompt as JSON, which is stronger evidence than a directory listing: it is what
@@ -50,6 +51,19 @@ so no other provider's files could account for the names.
 Commands were **not** observed: `.codex/commands/term-config.md` is written and
 never appears in the prompt. Commands may only surface on invocation, which was
 not observable here — so the cell is `none` rather than assumed.
+
+The `hook` cell was re-graded separately, against **codex-cli 0.153.1**. Codex
+keeps a `[hooks.state]` table in `~/.codex/config.toml` recording a trust
+decision and a `trusted_hash` per `<source>:<event>:<group>:<hook>`, so codex
+was seen parsing a `hooks.json` and writing down what it found there. The loads
+behind those entries are other tools' hooks — two installed tools plus three
+plugin-bundled `hooks/hooks.json` — never ariadnev's, because trusting a hook
+is an interactive TUI step nobody can perform on the user's behalf. That makes
+the layout better attested than the usual `convention` case, which rests on a
+neutral cross-tool directory, and still short of `observed`, which requires
+watching our own artifact load. `observedVersion` and `observedOn` on the codex
+row stay at 0.147.0: they date the skill and agent probes, and re-dating them
+here would silently re-stamp evidence nobody re-collected.
 
 **opencode 1.15.3** — `opencode debug skill` reports each skill's resolved
 location; 26 skills resolved to the installer's `.opencode/skills` directory.
@@ -141,3 +155,95 @@ invented location looks like success.
 
 The provider count is therefore **9 listed, 8 installable, 1 skipped** — and that
 is stated in those terms rather than as "9 providers supported".
+
+## Amendment, 2026-09-04: antigravity, and what a listing does and does not prove
+
+**A citation is withdrawn.** `antigravity`'s `agent` and `skill` cells rested on
+"`~/.gemini/config/agents/` holds 16 `.md` files". Every one of those files came
+from this tool's own lineage, so the note was the installer certifying its own
+output — the exact circularity the ladder exists to prevent, stated as evidence
+in the table. It is deleted rather than softened.
+
+**What replaced it is `observed`, and the reason is the enumerator, not the
+directory.** `agy agent` on 1.1.25 listed by name two kit agents produced by the
+real antigravity adapt pipeline, planted at the path the installer writes to and
+removed afterwards; an empty control directory listed nothing. The listing is
+agy's own frontmatter parser: the same two files disappear from it when `tools:`
+is a scalar string or when any `model:` key is present. A file that exists and a
+file the provider accepted are therefore distinguishable — which is precisely
+what `ls` cannot do, and what separates this from the withdrawn citation.
+`opencode` and `codex` reached the same rung on the same kind of answer.
+
+**Listing is not execution, and the note says so.** What was observed is
+discovery and load, not a session using the agent, which needs a paid turn. That
+limit belongs in the cell rather than in a promotion to a rung the ladder does
+not define: there is no "loaded but not run" level, and inventing one to express
+a caveat would make every other row's grade mean less.
+
+**This is also a product finding, not only a grading one.** Until the adapter
+emitted `tools:` as a sequence and dropped `model:` entirely, agy silently
+ignored every agent this tool installed — 16 files on disk, none of them
+loadable, and no warning anywhere. Two adapt tests pin those two facts as the
+evidence they are, so that "simplifying" them back would void the observation
+rather than merely change a format.
+
+**The `hook` cell rose only to `convention` the same day, and the gap is the
+point.** The provider's shipped `hooks.json` documentation, the matching strings
+in its binary, and a third party's live registration in the very file the
+installer merges into all say the layout is right. None of them is a hook
+firing, and a hook only fires inside a session. Same day, same binary, two
+different rungs, for the ordinary reason.
+
+**One date per row still dates the observation, not the row.** `observedOn` here
+marks the agent listing. Every other cell in that row is `convention` and was not
+re-checked that day; the field says when the observation happened, and the notes
+say which cell it belongs to.
+
+## claude-code re-observed on 2.1.260 (2026-09-04)
+
+The row had been pinned to 2.1.232 since the table was written. A table that
+ages in place certifies itself, so every cell was re-checked against the build
+actually installed, and the two that a shell session cannot reach say so in
+their own notes: `command` (the kit ships one, it was not invoked, and no
+non-interactive surface lists commands) and `statusline` (the bar draws in the
+user's terminal). Both keep their original observation in the note and are
+labelled **carried forward**. `skill`, `agent`, `rules` and `hook` were seen
+again on 2.1.260.
+
+**The `outputStyle` cell moved from `none` to `convention`.** Its old note —
+"`.claude/output-styles/` is observed on disk but nothing was seen to load from
+it" — cited a directory listing, and a directory this tool's own lineage may
+have created proves nothing about what reads it. So the question was put to the
+provider.
+
+A style was planted in an otherwise-empty `~/.claude/output-styles/` and every
+free surface in 2.1.260 was read: `claude doctor` never mentions output styles
+and does not validate an unknown `outputStyle` setting; `claude plugin validate
+--json` answers `"contents": []` for a plugin that carries an `output-styles/`
+directory; there is no `--output-style` flag, no `output-style` subcommand, and
+no `claude config` command at all. There is no `/output-style` command in the
+binary either; selection is the `/config` panel, which is interactive-only and
+reaching it costs a model turn, which a table refresh does not justify. The
+planted file was removed and the directory is empty again.
+
+What the shipped binary does say is specific. `output-styles` is a member of
+Claude Code's own **userConfigDir directory-name enum**, beside `commands`,
+`agents`, `skills` and `rules` — the four cells this row already grades
+`observed` — and the binary joins `.claude/output-styles` literally in the same
+closure that handles `.claude/skills`, `.claude/commands` and `.claude/hooks`.
+That is the provider's own artefact naming the path, which is the second ground
+in the `convention` row above and not the neutral-layout inference.
+
+It is not `observed`, because nothing was seen to load. It is not `none`,
+because that would mean no evidence and the enum is evidence. The full probe
+transcript is in
+`plans/reports/observation-260904-1552-claude-code-2.1.260.md`.
+
+**The hook sidecar stays.** Grading this cell means the six coding-level styles
+are now written to `.claude/output-styles/` as well as to
+`.claude/hooks/av/output-styles/`. The sidecar is not a claude-code workaround
+to retire on the lift — it is how the styles reach every provider with a
+verified hook cell and an unverified native surface, and dropping it would
+silently remove coding levels from the rest. Both copies are written from the
+same source bytes, and `session-init` still probes the provider's own directory
+first, so a style the user authors under the same name keeps winning.

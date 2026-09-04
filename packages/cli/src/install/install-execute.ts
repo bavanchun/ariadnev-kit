@@ -10,7 +10,7 @@ import { planInstall } from "./install-plan.js";
 import { backupPath, rotateBackups } from "./backup.js";
 import { mergeAgentsBlock, readAgentsMd } from "./agents-md.js";
 import { modifiedPaths, realClassifyDeps } from "./file-classification.js";
-import { mergeHookSettings, mergeStatusLine } from "./hook-settings-merge.js";
+import { mergeHooksConfig, mergeStatusLine } from "./hook-settings-merge.js";
 import { buildReceipt, type ProviderResultForReceipt, type Receipt, type ReceiptSkillSelection } from "./install-receipt.js";
 import { writeAdapterArtifactsSafe } from "../adapters/write-adapter-artifacts.js";
 import type { InstallOp, ProviderInstallResult } from "./install-types.js";
@@ -51,7 +51,7 @@ export interface ExecuteOpts {
 
 function opContent(op: Exclude<InstallOp, { action: "skip" }>): string | Buffer {
   if (op.action === "agents-md") return mergeAgentsBlock(readAgentsMd(op.dest), op.block);
-  if (op.action === "hook-settings") return mergeHookSettings(readAgentsMd(op.dest), op.bindings);
+  if (op.action === "hook-settings") return mergeHooksConfig(op.format, readAgentsMd(op.dest), op.bindings, op.ownedDir);
   if (op.action === "statusline-settings") {
     // `applied: false` means the user already has a statusline of their own.
     // Returning the file unchanged writes it back byte-identical, which the
@@ -93,7 +93,7 @@ export function executeInstall(
         action: "skip",
         kind: op.kind,
         name: op.name,
-        reason: "settings.json merge not confirmed — snippet printed",
+        reason: `merge into ${op.dest} not confirmed — snippet printed`,
       });
       continue;
     }

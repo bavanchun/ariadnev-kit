@@ -79,9 +79,26 @@ function realPlanDeps(cwd: string): PlanDeps {
 }
 
 
-function positiveInt(value: string, label: string): number {
+/** For counts and limits, where zero asks for nothing and is a mistake. */
+export function positiveInt(value: string, label: string): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) throw new UsageError(`${label} must be a positive integer (got ${value})`);
+  return parsed;
+}
+
+/**
+ * For a phase number, which is an index and may legitimately be zero.
+ *
+ * Plans are free to start their phases at 0 — a groundwork phase that comes
+ * before the numbered work reads naturally as phase 0, and the board prints it.
+ * Sharing the count parser here made that first phase unaddressable by every
+ * command that mutates or prints one.
+ */
+export function phaseNumber(value: string, label: string): number {
+  const parsed = Number(value);
+  if (value.trim() === "" || !Number.isInteger(parsed) || parsed < 0) {
+    throw new UsageError(`${label} must be a whole phase number (got ${value})`);
+  }
   return parsed;
 }
 
@@ -185,7 +202,7 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .action((title: string, o: { plan?: string; depends?: string; json?: boolean }) => {
       const { opts, deps } = planOpts(o.json);
       const dependencies = o.depends
-        ? o.depends.split(",").map((part) => positiveInt(part.trim(), "--depends"))
+        ? o.depends.split(",").map((part) => phaseNumber(part.trim(), "--depends"))
         : undefined;
       finish(runPlanAddPhase(o.plan, title, opts, deps, dependencies ? { dependencies } : {}));
     });
@@ -257,7 +274,7 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .option("--json", "emit the machine envelope", false)
     .action((phase: string, status: string, o: { plan?: string; json?: boolean }) => {
       const { opts, deps } = planOpts(o.json);
-      finish(runPlanUpdate(o.plan, { phase: positiveInt(phase, "phase"), status: assertStatus(status) }, opts, deps));
+      finish(runPlanUpdate(o.plan, { phase: phaseNumber(phase, "phase"), status: assertStatus(status) }, opts, deps));
     });
 
   plan
@@ -268,7 +285,7 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .option("--json", "emit the machine envelope", false)
     .action((phase: string, o: { plan?: string; json?: boolean }) => {
       const { opts, deps } = planOpts(o.json);
-      finish(runPlanCheck(o.plan, positiveInt(phase, "phase"), true, opts, deps));
+      finish(runPlanCheck(o.plan, phaseNumber(phase, "phase"), true, opts, deps));
     });
 
   plan
@@ -279,7 +296,7 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .option("--json", "emit the machine envelope", false)
     .action((phase: string, o: { plan?: string; json?: boolean }) => {
       const { opts, deps } = planOpts(o.json);
-      finish(runPlanCheck(o.plan, positiveInt(phase, "phase"), false, opts, deps));
+      finish(runPlanCheck(o.plan, phaseNumber(phase, "phase"), false, opts, deps));
     });
 
   plan
@@ -311,7 +328,7 @@ export function registerTier1Commands(program: Command, context: CommandRegistra
     .option("--json", "emit the machine envelope", false)
     .action((phase: string, o: { plan?: string; json?: boolean }) => {
       const { opts, deps } = planOpts(o.json);
-      finish(runPlanPhase(o.plan, positiveInt(phase, "phase"), opts, deps));
+      finish(runPlanPhase(o.plan, phaseNumber(phase, "phase"), opts, deps));
     });
 
   plan

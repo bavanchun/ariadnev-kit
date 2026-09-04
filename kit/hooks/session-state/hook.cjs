@@ -18,6 +18,7 @@ try {
     persistProjectCheckpoint,
     refreshStatuslineSnapshot
   } = require(require('node:path').join(AV_LIB, 'session-state-manager.cjs'));
+  const { emitDecision } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   if (!isHookEnabled('session-state')) process.exit(0);
 
@@ -43,7 +44,10 @@ try {
     }
 
     if (eventType === 'PostToolUse') {
-      process.stdout.write(JSON.stringify({ continue: true }));
+      // Through the emitter rather than straight to stdout: `continue` is a
+      // Claude Code flow-control key, and one of the runtimes this installs on
+      // specifies the empty object for this event instead.
+      emitDecision('PostToolUse', { continue: true });
     }
     process.exit(0);
   }

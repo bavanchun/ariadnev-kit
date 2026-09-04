@@ -328,6 +328,21 @@
           "x-ariadnev-layer": "project"
         }
       }
+    },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Directory holding this repository's worktrees. From a project file the value must be relative and stay inside the repository; only a user config may set an absolute path.",
+          "default": null,
+          "x-ariadnev-layer": "project"
+        }
+      }
     }
   }
 }

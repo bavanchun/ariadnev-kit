@@ -423,3 +423,60 @@ describe("a dry run over a pre-prefix layout", () => {
     expect(existsSync(join(baseRoot(), ".ariadnev", "backups"))).toBe(false);
   });
 });
+
+/**
+ * `~/.gemini/config/agents/` is a shared directory, and the one the installer
+ * used to point at for the wrong reason: the agent files already sitting there
+ * were read as proof the path was right. They were this tool's own lineage, and
+ * treating a stranger's file in the same directory as ours to clean up is the
+ * same mistake pointed the other way — deleting from the user's home on the
+ * strength of a directory listing.
+ */
+describe("the shared antigravity agents directory", () => {
+  const agentsDir = (): string => join(ctx.home, ".gemini", "config", "agents");
+
+  function installedAgentPaths(): string[] {
+    return (readReceipt().installs.antigravity?.files ?? [])
+      .map((f) => f.path)
+      .filter((p) => p.includes("/.gemini/config/agents/"));
+  }
+
+  it("removes nothing there that no receipt claims", () => {
+    installKit(kit, ["antigravity"], ctx, { timestamp: "20260101-000000" });
+    const stranger = join(agentsDir(), "somebody-elses-agent.md");
+    writeFileSync(stranger, "---\nname: somebody-elses-agent\n---\nnot ours\n");
+
+    const { heal } = installKit(kit, ["antigravity"], ctx, { timestamp: "20260102-000000" });
+
+    expect(heal.removed).not.toContain(stranger);
+    expect(heal.wouldRemove).not.toContain(stranger);
+    expect(existsSync(stranger), "a file no receipt claims was deleted").toBe(true);
+    expect(readFileSync(stranger, "utf8")).toContain("not ours");
+  });
+
+  it("removes one there that a prior receipt does claim", () => {
+    installKit(kit, ["antigravity"], ctx, { timestamp: "20260101-000000" });
+    const receipt = readReceipt();
+    const record = receipt.installs.antigravity!;
+    const claimed = record.files.find((f) => f.path.includes("/.gemini/config/agents/"))!;
+
+    // Rewind one claim to a name this build no longer produces, on disk and in
+    // the record together, so the next install is a genuine upgrade rather than
+    // a receipt that lies about the tree.
+    const legacyPortable = claimed.path.replace(/[^/]+\.md$/, "legacy-agent.md");
+    renameSync(
+      fromPortablePath(claimed.path, ctx.home, ctx.cwd),
+      fromPortablePath(legacyPortable, ctx.home, ctx.cwd),
+    );
+    claimed.path = legacyPortable;
+    writeFileSync(receiptFile(), `${JSON.stringify(receipt, null, 2)}\n`);
+    const legacy = join(agentsDir(), "legacy-agent.md");
+    expect(existsSync(legacy)).toBe(true);
+
+    const { heal } = installKit(kit, ["antigravity"], ctx, { timestamp: "20260102-000000" });
+
+    expect(heal.removed).toContain(legacy);
+    expect(existsSync(legacy)).toBe(false);
+    expect(installedAgentPaths().length).toBeGreaterThan(0);
+  });
+});

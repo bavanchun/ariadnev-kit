@@ -7,7 +7,8 @@
   },
   "scripts": {
     "build": "pnpm --filter ariadnev build",
-    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" \"kit/statusline/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\"",
+    "test": "vitest run && node --test \"kit/hooks/**/*.test.cjs\" \"kit/statusline/**/*.test.cjs\" && node --test \"packages/cli/scripts/**/*.test.mjs\" && pnpm test:worktree",
+    "test:worktree": "node kit/skills/worktree/scripts/worktree.test.cjs",
     "test:hooks": "node --test \"kit/hooks/**/*.test.cjs\" \"kit/statusline/**/*.test.cjs\"",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",

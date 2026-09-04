@@ -125,12 +125,44 @@ When using `--json`, the command surfaces these high-signal fields:
 | `entries` | Prune output lines from `prune --json` |
 | `worktreePath` | Absolute path to the created worktree |
 | `worktreeRootSource` | How location was determined |
+| `warnings` | Config values that were refused, and why — present on `info` and `create` |
+
+## Persisted worktree location
+
+`worktree.root` sets where this repository's worktrees are created, without
+passing `--worktree-root` every time. There is no `config set` command; edit the
+JSON directly.
+
+```json
+{ "worktree": { "root": "worktrees" } }
+```
+
+| File | Value | Bound |
+|------|-------|-------|
+| `<repo>/.ariadnev/config.json` | must be **relative** | resolved against the repository and must stay inside it |
+| `~/.ariadnev/config.json` | may be **absolute** | none |
+
+The project file is committed, so it arrives with whatever repository was
+cloned. A value there that is absolute, starts with `~`, or resolves outside the
+repository — including through a symlink committed in it — is refused, the next
+priority applies, and the reason appears in `warnings`. The command still
+succeeds. An absolute path is a legitimate setting; it belongs in the user file,
+where the person at the keyboard wrote it.
+
+Full precedence:
+
+```
+--worktree-root  >  WORKTREE_ROOT  >  project config  >  user config  >  auto-detection
+```
+
+`worktreeRootSource` reports `project config` or `user config` when one of them
+won.
 
 ## Notes
 
 - Script auto-detects superproject, monorepo, and standalone repos
 - Default worktree location is smart: superproject > monorepo > sibling
-- Use `--worktree-root` only to override defaults
+- Use `--worktree-root` only to override defaults; set `worktree.root` to persist one
 - Use `--base` for long-lived variant branches (e.g., `main-dsl`) that diverge from auto-detected base
 - `status` normalizes the main checkout path in submodule repos before reporting worktree health
 - `prune --dry-run` is the safe first pass when auditing stale metadata

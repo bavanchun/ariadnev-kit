@@ -1,5 +1,5 @@
 import { SPEC_VERIFIED, type ProviderId } from "./spec-verified.js";
-import { makeResolver, type ProviderResolver } from "./resolver.js";
+import { makeResolver, type ProviderResolver, type ResolverCtx } from "./resolver.js";
 
 /**
  * Every provider, read off the verification table rather than listed again.
@@ -39,6 +39,33 @@ export function getResolver(id: ProviderId): ProviderResolver {
  */
 export function hasVerifiedTargets(id: ProviderId): boolean {
   return Object.values(SPEC_VERIFIED[id].paths).some((cell) => cell.verified);
+}
+
+/**
+ * The hook-config files an install for these providers would merge into.
+ *
+ * The merge prompt used to ask only when claude-code was among the selected
+ * providers, from a time when it was the only one whose hooks installed. Codex
+ * and antigravity each register their bindings in a file of their own now, and
+ * gating the question on one provider's name meant installing either of them
+ * alone never asked it: the hook tree was copied, the registry was never
+ * written, and the receipt recorded every binding as unapplied — an install
+ * that looks complete and fires nothing.
+ *
+ * Asking whoever actually has a target keeps the question tied to the write.
+ * Unknown ids are ignored rather than rejected; the install path validates them
+ * and this only decides what to ask about first.
+ */
+export function hookConfigTargets(ids: string[], ctx: ResolverCtx): string[] {
+  const targets: string[] = [];
+  for (const id of ids) {
+    if (!isProviderId(id)) continue;
+    const resolver = getResolver(id);
+    if (!resolver.hooksInstall) continue;
+    const target = resolver.hooksConfigTarget(ctx);
+    if (target !== null && !targets.includes(target)) targets.push(target);
+  }
+  return targets;
 }
 
 export function isProviderId(value: string): value is ProviderId {

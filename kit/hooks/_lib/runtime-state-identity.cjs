@@ -10,7 +10,12 @@ const MAX_SESSION_ID_LENGTH = 200;
 const SAFE_SESSION_ID_PATTERN = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 const RUNTIME_MARKER_MAX_BYTES = 4096;
 const RUNTIME_MARKER_FILE = '.ariadnev-runtime.json';
-const SUPPORTED_RUNTIMES = new Set(['claude-code', 'codex']);
+// The runtimes a hook may report itself as, which is the set of provider ids the
+// installer writes hooks for: the marker it plants carries the provider's own
+// id, and every guard below rejects a record naming anything else. Adding a
+// provider's hooks without adding it here installs a tree that runs and records
+// nothing, silently, because these hooks fail open.
+const SUPPORTED_RUNTIMES = new Set(['claude-code', 'codex', 'antigravity']);
 
 function normalizeSessionId(sessionId) {
   if (typeof sessionId !== 'string') return null;

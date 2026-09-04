@@ -21,6 +21,7 @@ try {
   const os = require('os');
   const { createSessionStateContext, isHookEnabled, readSessionState } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
   const { safeDisplayValue } = require(require('node:path').join(AV_LIB, 'session-state-renderer.cjs'));
+  const { emitContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   if (!isHookEnabled('team-context-inject')) {
     process.exit(0);
@@ -157,14 +158,7 @@ function main() {
     lines.push('');
     lines.push('Remember: Check TaskList, claim tasks, respect file ownership, use SendMessage to communicate.');
 
-    const output = {
-      hookSpecificOutput: {
-        hookEventName: "SubagentStart",
-        additionalContext: lines.join('\n')
-      }
-    };
-
-    console.log(JSON.stringify(output));
+    emitContext('SubagentStart', lines.join('\n'));
     process.exit(0);
   } catch (error) {
     // Fail-open: log to stderr, exit cleanly

@@ -66,7 +66,7 @@ function realDeps(): DiagnoseDeps {
         return null;
       }
     },
-    readSettingsJson: (p) => (existsSync(p) ? readFileSync(p, "utf8") : null),
+    readHooksConfig: (p: string) => (existsSync(p) ? readFileSync(p, "utf8") : null),
     readHookRuntimeMarker: (p) => {
       try {
         return readFileSync(p, "utf8");
@@ -223,25 +223,25 @@ export function renderDoctorSummary(
   return lines.join("\n");
 }
 
-/** Re-merge drifted hook bindings back into settings.json, backing up first. */
+/** Re-merge drifted hook bindings back into each provider's own hook config, backing up first. */
 function applyHookFix(receipt: Receipt | null, deps: DiagnoseDeps, root: string, opts: DoctorHandlerOpts): string[] {
   let repairs;
   try {
     repairs = planHookRepair(receipt, deps, { home: opts.home, cwd: opts.cwd });
   } catch (err) {
-    // Corrupt settings.json → report instead of crashing the health-check.
-    return [`  cannot auto-fix: settings.json is unparseable (${String(err instanceof Error ? err.message : err)})`];
+    // Corrupt hook config → report instead of crashing the health-check.
+    return [`  cannot auto-fix: a hook config file is unparseable (${String(err instanceof Error ? err.message : err)})`];
   }
   if (repairs.length === 0) return [];
   const verb = opts.dryRun ? "would fix" : "fixed";
-  const lines = repairs.map((r) => `  ${verb} ${r.added.length} hook binding(s) for ${r.providerId} → ${r.settingsPath}`);
+  const lines = repairs.map((r) => `  ${verb} ${r.added.length} hook binding(s) for ${r.providerId} → ${r.configPath}`);
   if (opts.dryRun) return lines;
 
   const backupsParent = join(root, ".ariadnev", "backups");
   const backupRoot = join(backupsParent, opts.timestamp ?? "doctor-fix");
   for (const r of repairs) {
-    backupPath(r.settingsPath, backupRoot, "settings", root);
-    atomicWrite(r.settingsPath, r.nextContent);
+    backupPath(r.configPath, backupRoot, "settings", root);
+    atomicWrite(r.configPath, r.nextContent);
   }
   rotateBackups(backupsParent, 3);
   return lines;

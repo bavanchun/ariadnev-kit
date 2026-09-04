@@ -1,5 +1,4 @@
 import { join } from "node:path";
-import { CLAUDE_HOOKS_DIR } from "../adapt/paths.js";
 
 // Mirrors RUNTIME_MARKER_FILE in kit/hooks/_lib/runtime-state-identity.cjs.
 // The hook library reads this file from the directory above `_lib` to learn
@@ -10,8 +9,9 @@ import { CLAUDE_HOOKS_DIR } from "../adapt/paths.js";
 // doctor must notice when it is gone.
 export const HOOK_RUNTIME_MARKER_FILE = ".ariadnev-runtime.json";
 
-export function hookRuntimeMarkerPath(root: string): string {
-  return join(root, CLAUDE_HOOKS_DIR, HOOK_RUNTIME_MARKER_FILE);
+/** @param hooksDir Absolute hooks tree root, already resolved for a provider. */
+export function hookRuntimeMarkerPath(hooksDir: string): string {
+  return join(hooksDir, HOOK_RUNTIME_MARKER_FILE);
 }
 
 export function hookRuntimeMarkerContent(runtime: string): string {

@@ -22,6 +22,8 @@ const {
   refreshUsageCache,
   readUsageCache
 } = require(require('node:path').join(AV_LIB, 'usage-limits-cache.cjs'));
+const { emitDecision, DEFAULT_RUNTIME } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
+const { readRuntimeMarker } = require(require('node:path').join(AV_LIB, 'runtime-state-identity.cjs'));
 
 const FETCH_INTERVAL_MS = 300000; // 5 minutes for PostToolUse
 const FETCH_INTERVAL_PROMPT_MS = 60000; // 1 minute for UserPromptSubmit / SessionStart
@@ -45,9 +47,20 @@ function getUsageQuotaRefreshContext(input = {}) {
   return { event, isPromptLike, source, tool };
 }
 
+// The figures this warms are read by one statusline, and only Claude Code
+// renders it. Everywhere else the refresh is pure cost with a credential in it:
+// it reads the Claude Code keychain entry and calls api.anthropic.com on every
+// PostToolUse, Stop and UserPromptSubmit, for a display that runtime has no way
+// to show. An absent marker resolves to Claude Code, the same fall-back the
+// output envelope uses, so an install predating the marker keeps working.
+function rendersUsageStatusline(runtime) {
+  return (runtime || readRuntimeMarker() || DEFAULT_RUNTIME) === DEFAULT_RUNTIME;
+}
+
 async function runUsageQuotaCacheRefreshHook({
   hookName = 'usage-quota-cache-refresh',
-  userAgent = 'ariadnev/usage-quota-cache-refresh'
+  userAgent = 'ariadnev/usage-quota-cache-refresh',
+  runtime
 } = {}) {
   let lastHookEvent = 'PostToolUse';
   let lastToolName = '';
@@ -65,7 +78,15 @@ async function runUsageQuotaCacheRefreshHook({
     lastHookEvent = context.event;
     lastToolName = context.tool;
 
-    if (shouldFetch(context.isPromptLike)) {
+    if (!rendersUsageStatusline(runtime)) {
+      timer.end({
+        event: context.event,
+        tool: context.tool,
+        status: 'skip',
+        exit: 0,
+        note: 'no-usage-statusline'
+      });
+    } else if (shouldFetch(context.isPromptLike)) {
       const fetchResult = await refreshUsageCache({
         fetchTimeoutMs: 5000,
         userAgent
@@ -90,18 +111,24 @@ async function runUsageQuotaCacheRefreshHook({
     logHookCrash(hookName, error, { event: lastHookEvent, tool: lastToolName });
   }
 
-  console.log(JSON.stringify({ continue: true }));
+  // Through the emitter: this binds PostToolUse, Stop and UserPromptSubmit, and
+  // `{continue: true}` is only the right answer to the first of those on the
+  // runtime the corpus was written for.
+  emitDecision(lastHookEvent || 'PostToolUse', { continue: true });
 }
 
 if (require.main === module) {
   runUsageQuotaCacheRefreshHook().catch((error) => {
     logHookCrash('usage-quota-cache-refresh', error || 'main-catch');
-    console.log(JSON.stringify({ continue: true }));
+    // The event is unknown out here — the crash may have happened before the
+    // payload was read — so this answers as the binding that carries a body.
+    emitDecision('PostToolUse', { continue: true });
     process.exit(0);
   });
 }
 
 module.exports = {
   runUsageQuotaCacheRefreshHook,
-  getUsageQuotaRefreshContext
+  getUsageQuotaRefreshContext,
+  rendersUsageStatusline
 };

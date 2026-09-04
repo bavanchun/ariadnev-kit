@@ -25,8 +25,15 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+
+// Which config keys exist and which layer may set each one. Generated from the
+// TypeScript schema and shipped beside this script, so the layer rule has one
+// definition rather than a second list kept in step by review.
+const CONFIG_TABLE = require('./config-fields.generated.cjs');
+const WORKTREE_ROOT_KEY = 'worktree.root';
 
 function sanitizeBranchPrefix(value) {
   const raw = String(value || '').trim().toLowerCase();
@@ -189,6 +196,10 @@ function output(data) {
       if (data.dirtyState) {
         console.log(`\n⚠️  Working directory has uncommitted changes`);
       }
+      if (data.warnings && data.warnings.length > 0) {
+        console.log(`\n⚠️  Warnings:`);
+        data.warnings.forEach(w => console.log(`   ${w}`));
+      }
     }
   }
 }
@@ -289,8 +300,14 @@ function findTopmostSuperproject(gitRoot) {
   return topmost;
 }
 
-// Validate that a path can be used as worktree root (exists or can be created)
-function validateWorktreeRoot(rootPath) {
+// Validate that a path can be used as worktree root (exists or can be created).
+//
+// `allowMissingParents` lifts the one-level rule below. That rule catches a
+// mistyped --worktree-root, where the person is at the keyboard and can retype
+// it; a value out of a config file is bounded to the repository already and the
+// create step mkdirs recursively, so refusing depth there only makes this script
+// and `av config prefs resolve` disagree about the same setting.
+function validateWorktreeRoot(rootPath, allowMissingParents = false) {
   if (typeof rootPath !== 'string' || rootPath.trim().length === 0) {
     return { valid: false, error: 'Worktree root path is empty' };
   }
@@ -320,19 +337,166 @@ function validateWorktreeRoot(rootPath) {
 
   // Parent doesn't exist - check if grandparent exists (allows mkdir -p one level)
   const grandparent = path.dirname(parent);
-  if (fs.existsSync(grandparent)) {
+  if (allowMissingParents || fs.existsSync(grandparent)) {
     return { valid: true, path: resolved };
   }
 
   return { valid: false, error: `Cannot create worktree directory: parent path does not exist: ${parent}` };
 }
 
+// Read one ariadnev config file. Mirrors the CLI's contract exactly: an absent
+// file is silence, while a file that exists and cannot be used says so. Silently
+// falling through on a typo would leave the person wondering why their setting
+// does nothing.
+function readAriadnevConfig(dir) {
+  const file = path.join(dir, '.ariadnev', 'config.json');
+  let raw;
+  try {
+    raw = fs.readFileSync(file, 'utf-8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return { file, data: null, warnings: [] };
+    return { file, data: null, warnings: [`${file} could not be read — the whole file was ignored`] };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { file, data: null, warnings: [`${file} is not valid JSON — the whole file was ignored`] };
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { file, data: null, warnings: [`${file} does not contain a JSON object — the whole file was ignored`] };
+  }
+  return { file, data: parsed, warnings: [] };
+}
+
+// The real location a path will occupy, for a path nothing has created yet.
+// fs.realpathSync throws ENOENT on an absent target, and this setting normally
+// names a directory that does not exist, so walk up to the nearest existing
+// ancestor and re-join the rest. That still catches a symlink partway along,
+// which a purely lexical resolve misses.
+//
+// lstatSync, not existsSync: a dangling symlink does not exist by the latter, so
+// the walk would step over it and accept a path whose real location is
+// unknowable. Treating the link as present makes realpathSync throw, and a throw
+// is refused.
+//
+// .native, not the JS implementation: the latter hands back whatever casing the
+// caller passed, so on a case-insensitive filesystem .GIT/worktrees resolves to
+// itself and walks past the .git check below. The native resolver returns the
+// name the filesystem actually holds.
+function pathIsPresent(candidate) {
+  try {
+    fs.lstatSync(candidate);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function realpathOfPossiblyAbsent(candidate) {
+  const tail = [];
+  let probe = candidate;
+  while (!pathIsPresent(probe)) {
+    const parent = path.dirname(probe);
+    if (parent === probe) break;
+    tail.unshift(path.basename(probe));
+    probe = parent;
+  }
+  return path.join(fs.realpathSync.native(probe), ...tail);
+}
+
+// Why a project file may not set this value, or null when it may.
+//
+// A project config file is committed, so it arrives with whatever repository was
+// cloned, and this value decides where directories appear on the reader's disk.
+// It is therefore confined to the repository that supplied it — not to that
+// repository's parent, which is a projects directory or a home directory and
+// would let a clone name its neighbours. The same key in the user's own config
+// is not bounded: trust follows who wrote the file.
+function refuseProjectWorktreeRoot(value, anchor) {
+  if (typeof value !== 'string') return 'it must be a string';
+  if (value.trim() === '') return 'it is empty';
+  if (/[\0\r\n]/.test(value)) return 'it contains control characters';
+  if (path.isAbsolute(value)) return 'a project file may only set a relative path — set an absolute one in your user config';
+  if (value.startsWith('~')) return '`~` is not expanded here — set a home-relative path in your user config instead';
+  let realAnchor;
+  let realCandidate;
+  try {
+    realAnchor = fs.realpathSync.native(anchor);
+    realCandidate = realpathOfPossiblyAbsent(path.resolve(anchor, value));
+  } catch {
+    return 'it could not be resolved to a real path';
+  }
+  const rel = path.relative(realAnchor, realCandidate);
+  // Never a string-prefix comparison: that reads /a/bc as inside /a/b. The
+  // isAbsolute arm carries Windows, where a drive-relative `C:foo` is not
+  // absolute as written but resolves onto another drive, and relative across
+  // drives answers with an absolute path.
+  if (rel === '' || rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    return `it resolves outside ${realAnchor}`;
+  }
+  // Inside the repository, but inside the part git owns. A checkout can be
+  // created at .git/worktrees/<name>, where it collides with the admin directory
+  // git makes for that same worktree, and what prune and gc then do is
+  // undefined. A clone does not get to aim anything at this machine's git
+  // metadata.
+  if (rel.split(path.sep)[0] === '.git') return "it resolves inside the repository's .git directory";
+  return null;
+}
+
+// The configured worktree root, project file first, then the user's own.
+// Which files are consulted comes from the generated table's layer for this key,
+// so flipping the key's layer in the schema changes this script too.
+function worktreeRootFromConfig(gitRoot) {
+  const warnings = [];
+  const field = (CONFIG_TABLE.fields || {})[WORKTREE_ROOT_KEY];
+  if (!field) return { warnings };
+
+  const sources = [];
+  if (field.layer === 'project') sources.push({ dir: gitRoot, source: 'project config', bounded: true });
+  sources.push({ dir: os.homedir(), source: 'user config', bounded: false });
+
+  for (const candidate of sources) {
+    if (!candidate.dir) continue;
+    const { file, data, warnings: fileWarnings } = readAriadnevConfig(candidate.dir);
+    warnings.push(...fileWarnings);
+    if (!data) continue;
+    const branch = data.worktree;
+    if (typeof branch !== 'object' || branch === null || Array.isArray(branch)) continue;
+    const value = branch.root;
+    if (value === undefined || value === null) continue;
+
+    if (candidate.bounded) {
+      const refusal = refuseProjectWorktreeRoot(value, candidate.dir);
+      if (refusal) {
+        warnings.push(`${WORKTREE_ROOT_KEY} was ignored in ${file} — ${refusal}`);
+        continue;
+      }
+      return { dir: path.resolve(candidate.dir, value), source: candidate.source, warnings };
+    }
+
+    if (typeof value !== 'string' || value.trim() === '') {
+      warnings.push(`${WORKTREE_ROOT_KEY} was ignored in ${file} — it must be a non-empty string`);
+      continue;
+    }
+    return { dir: path.resolve(value), source: candidate.source, warnings };
+  }
+  return { warnings };
+}
+
 // Determine the worktree root directory with priority:
 // 1. Explicit --worktree-root flag (Claude's decision)
 // 2. WORKTREE_ROOT env var (explicit override)
-// 3. Topmost superproject's worktrees/ (for submodules)
-// 4. Monorepo: worktrees/ inside repo (keeps related worktrees together)
-// 5. Standalone: sibling worktrees/ (avoids polluting repo)
+// 3. worktree.root in the project config, bounded to the repository
+// 4. worktree.root in the user config, which may be absolute
+// 5. Topmost superproject's worktrees/ (for submodules)
+// 6. Monorepo: worktrees/ inside repo (keeps related worktrees together)
+// 7. Standalone: sibling worktrees/ (avoids polluting repo)
+//
+// Returns `warnings` alongside the answer. A config value comes from a file
+// somebody else may have written, so refusing it has to be visible without
+// terminating the command — terminating would hand a hostile clone a denial of
+// service, which the flag and env paths can afford to ignore and this one cannot.
 function getWorktreeRoot(gitRoot, isMonorepo, explicitRoot = null) {
   // Priority 0: Explicit --worktree-root flag (Claude's decision)
   if (explicitRoot) {
@@ -342,7 +506,7 @@ function getWorktreeRoot(gitRoot, isMonorepo, explicitRoot = null) {
         suggestion: 'Provide a valid directory path that exists or can be created'
       });
     }
-    return { dir: validation.path, source: '--worktree-root flag' };
+    return { dir: validation.path, source: '--worktree-root flag', warnings: [] };
   }
 
   // Priority 1: Environment variable override
@@ -354,27 +518,41 @@ function getWorktreeRoot(gitRoot, isMonorepo, explicitRoot = null) {
         suggestion: 'Fix WORKTREE_ROOT env var or unset it'
       });
     }
-    return { dir: validation.path, source: 'WORKTREE_ROOT env' };
+    return { dir: validation.path, source: 'WORKTREE_ROOT env', warnings: [] };
   }
 
-  // Priority 2: Check for superproject (we might be in a submodule)
+  // Priority 2: the configured root, project file before user file.
+  const configured = worktreeRootFromConfig(gitRoot);
+  const warnings = configured.warnings;
+  if (configured.dir) {
+    // The auto-detected branches below are returned unvalidated, so a config
+    // branch modelled on them would be validated by nothing. Validate here.
+    const validation = validateWorktreeRoot(configured.dir, true);
+    if (validation.valid) {
+      return { dir: validation.path, source: configured.source, warnings };
+    }
+    warnings.push(`${WORKTREE_ROOT_KEY} was ignored — ${validation.error}`);
+  }
+
+  // Priority 3: Check for superproject (we might be in a submodule)
   const topmostRoot = findTopmostSuperproject(gitRoot);
   if (topmostRoot !== gitRoot) {
     return {
       dir: path.join(topmostRoot, 'worktrees'),
-      source: `superproject (${path.basename(topmostRoot)})`
+      source: `superproject (${path.basename(topmostRoot)})`,
+      warnings
     };
   }
 
-  // Priority 3: Monorepo - use worktrees/ inside the repo
+  // Priority 4: Monorepo - use worktrees/ inside the repo
   // Keeps all project worktrees organized together within the monorepo
   if (isMonorepo) {
-    return { dir: path.join(gitRoot, 'worktrees'), source: 'monorepo internal' };
+    return { dir: path.join(gitRoot, 'worktrees'), source: 'monorepo internal', warnings };
   }
 
-  // Priority 4: Standalone repos - use sibling worktrees/
+  // Priority 5: Standalone repos - use sibling worktrees/
   // Avoids polluting the repo with worktree directories
-  return { dir: path.join(path.dirname(gitRoot), 'worktrees'), source: 'sibling directory' };
+  return { dir: path.join(path.dirname(gitRoot), 'worktrees'), source: 'sibling directory', warnings };
 }
 
 // Check for uncommitted changes
@@ -715,7 +893,10 @@ function cmdInfo() {
     envFiles,
     projectEnvFiles: isMonorepo ? projectEnvFiles : {},
     dirtyState,
-    dirtyDetails
+    dirtyDetails,
+    // The only channel a refused config value has: SKILL.md parses stdout, so a
+    // warning on stderr may never reach the agent that has to act on it.
+    warnings: worktreeRoot.warnings || []
   });
 }
 
@@ -933,6 +1114,7 @@ function cmdCreate() {
   // Determine worktree path using smart root detection
   // explicitWorktreeRoot comes from --worktree-root flag (Claude's decision)
   const worktreeRoot = getWorktreeRoot(gitRoot, isMonorepo, explicitWorktreeRoot);
+  if (worktreeRoot.warnings) warnings.push(...worktreeRoot.warnings);
   const worktreesDir = worktreeRoot.dir;
 
   // Build worktree name: always include repo name for clarity

@@ -33,7 +33,7 @@ function makeDeps(overrides: Partial<DiagnoseDeps> = {}): DiagnoseDeps {
     fileExists: () => true,
     dirExists: () => false,
     listDir: () => null,
-    readSettingsJson: () =>
+    readHooksConfig: () =>
       JSON.stringify({
         hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/proj/.claude/hooks/av/session-init.cjs"' }] }] } },
       ),
@@ -62,14 +62,14 @@ describe("diagnose (pure, tri-state)", () => {
   });
 
   it("flags a drifted hook binding as fail + a `ariadnev doctor --fix` remedy", () => {
-    const findings = diagnose(makeReceipt(), makeDeps({ readSettingsJson: () => JSON.stringify({ hooks: {} }) }), opt);
+    const findings = diagnose(makeReceipt(), makeDeps({ readHooksConfig: () => JSON.stringify({ hooks: {} }) }), opt);
     const f = findings.find((x) => x.message.includes("SessionStart"));
     expect(f?.level).toBe("fail");
     expect(f?.remedy).toBe("ariadnev doctor --fix");
   });
 
   it("flags settings.json missing entirely as fail", () => {
-    const findings = diagnose(makeReceipt(), makeDeps({ readSettingsJson: () => null }), opt);
+    const findings = diagnose(makeReceipt(), makeDeps({ readHooksConfig: () => null }), opt);
     expect(findings.some((f) => f.level === "fail" && f.message.includes("settings.json"))).toBe(true);
   });
 
@@ -168,7 +168,7 @@ describe("diagnose (pure, tri-state)", () => {
         },
       },
     });
-    const findings = diagnose(receipt, makeDeps({ readSettingsJson: () => JSON.stringify({ hooks: {} }) }), opt);
+    const findings = diagnose(receipt, makeDeps({ readHooksConfig: () => JSON.stringify({ hooks: {} }) }), opt);
     expect(findings.every((f) => f.level !== "fail")).toBe(true);
     expect(findings.some((f) => f.level === "pass")).toBe(true);
   });
@@ -194,6 +194,156 @@ describe("diagnose (pure, tri-state)", () => {
 
   it("returns no findings for a null receipt", () => {
     expect(diagnose(null, makeDeps(), opt)).toEqual([]);
+  });
+});
+
+// Two providers install hooks, into two different trees, registered in two
+// different files. Doctor used to read claude-code's settings.json whichever
+// provider it was diagnosing, so codex came back permanently degraded — and
+// `--fix` then "repaired" it by writing codex's commands into Claude Code's
+// config.
+describe("a provider whose hook registry is not claude-code's", () => {
+  const codexHooksJson = JSON.stringify({
+    hooks: { SessionStart: [{ hooks: [{ type: "command", command: 'node "/home/u/.codex/hooks/av/session-init.cjs"' }] }] },
+  });
+
+  function codexReceipt(): Receipt {
+    return {
+      schemaVersion: 1,
+      ariadnevVersion: "0.4.0",
+      installs: {
+        codex: {
+          timestamp: "t1",
+          scope: "global",
+          files: [{ path: "~/.codex/hooks/av/session-init.cjs", sha256: "abc" }],
+          agentsMdManaged: false,
+          hookBindings: [
+            { event: "SessionStart", command: 'node "/home/u/.codex/hooks/av/session-init.cjs"', applied: true },
+          ],
+          skipped: [],
+        },
+      },
+    };
+  }
+
+  it("reads that provider's own config file, not another provider's", () => {
+    const read: string[] = [];
+    const findings = diagnose(
+      codexReceipt(),
+      makeDeps({
+        readHooksConfig: (p) => {
+          read.push(p);
+          return codexHooksJson;
+        },
+        readHookRuntimeMarker: () => '{"schemaVersion":1,"runtime":"codex"}\n',
+      }),
+      opt,
+    );
+    expect(read).toEqual(["/home/u/.codex/hooks.json"]);
+    expect(findings.every((f) => f.level !== "fail")).toBe(true);
+  });
+
+  it("names that file in the drift message rather than settings.json", () => {
+    const findings = diagnose(
+      codexReceipt(),
+      makeDeps({ readHooksConfig: () => JSON.stringify({ hooks: {} }), readHookRuntimeMarker: () => '{"schemaVersion":1,"runtime":"codex"}\n' }),
+      opt,
+    );
+    const f = findings.find((x) => x.message.includes("SessionStart"));
+    expect(f?.level).toBe("fail");
+    expect(f?.message).toContain("~/.codex/hooks.json");
+    expect(f?.message).not.toContain("settings.json");
+  });
+
+  it("checks the runtime marker in that provider's own hooks tree", () => {
+    const read: string[] = [];
+    diagnose(
+      codexReceipt(),
+      makeDeps({
+        readHooksConfig: () => codexHooksJson,
+        readHookRuntimeMarker: (p) => {
+          read.push(p);
+          return '{"schemaVersion":1,"runtime":"codex"}\n';
+        },
+      }),
+      opt,
+    );
+    expect(read).toEqual(["/home/u/.codex/hooks/av/.ariadnev-runtime.json"]);
+  });
+
+  it("skips a receipt entry naming a provider this build no longer has", () => {
+    const receipt = makeReceipt({
+      installs: { "gone-provider": { timestamp: "t", scope: "project", files: [{ path: "x", sha256: "y" }], agentsMdManaged: false, hookBindings: [], skipped: [] } },
+    } as unknown as Partial<Receipt>);
+    const findings = diagnose(receipt, makeDeps(), opt);
+    expect(findings).toEqual([{ providerId: "gone-provider", level: "skip", message: "unknown provider in receipt — nothing to verify" }]);
+  });
+});
+
+describe("a provider whose hook registry is keyed by writer, not by event", () => {
+  // antigravity's hooks.json has no `hooks` object at all: each writer owns a
+  // top-level key, and ariadnev's is `av`. Reading it the way claude-code's
+  // settings.json is read finds nothing under every event, so a correct install
+  // reports every one of its bindings as removed — a clean install that says it
+  // is broken, and a `--fix` that rewrites a file that was already right.
+  const command = 'node "/home/u/.gemini/config/hooks/av/plan-format-kanban.cjs"';
+  const antigravityHooksJson = JSON.stringify({
+    "orca-status": { Stop: [{ type: "command", command: "orca status" }] },
+    av: { PostToolUse: [{ matcher: "Write", hooks: [{ type: "command", command }] }] },
+  });
+
+  function antigravityReceipt(): Receipt {
+    return {
+      schemaVersion: 1,
+      ariadnevVersion: "0.4.0",
+      installs: {
+        antigravity: {
+          timestamp: "t1",
+          scope: "global",
+          files: [{ path: "~/.gemini/config/hooks/av/plan-format-kanban.cjs", sha256: "abc" }],
+          agentsMdManaged: false,
+          hookBindings: [{ event: "PostToolUse", matcher: "Write", command, applied: true }],
+          skipped: [],
+        },
+      },
+    };
+  }
+
+  const marker = () => '{"schemaVersion":1,"runtime":"antigravity"}\n';
+
+  it("finds a binding registered under this provider's own key", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({ readHooksConfig: () => antigravityHooksJson, readHookRuntimeMarker: marker }),
+      opt,
+    );
+    expect(findings.filter((f) => f.level === "fail")).toEqual([]);
+  });
+
+  it("still reports drift when only the foreign writer's key is left", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({
+        readHooksConfig: () => JSON.stringify({ "orca-status": { Stop: [{ type: "command", command: "orca status" }] } }),
+        readHookRuntimeMarker: marker,
+      }),
+      opt,
+    );
+    const f = findings.find((x) => x.message.includes("PostToolUse"));
+    expect(f?.level).toBe("fail");
+    expect(f?.message).toContain("~/.gemini/config/hooks.json");
+  });
+
+  it("does not accept a command that happens to sit under another writer's key", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({
+        readHooksConfig: () => JSON.stringify({ "orca-status": { PostToolUse: [{ hooks: [{ type: "command", command }] }] } }),
+        readHookRuntimeMarker: marker,
+      }),
+      opt,
+    );
+    expect(findings.some((f) => f.level === "fail" && f.message.includes("PostToolUse"))).toBe(true);
   });
 });
 

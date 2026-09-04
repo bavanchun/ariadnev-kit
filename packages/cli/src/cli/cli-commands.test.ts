@@ -107,6 +107,34 @@ describe("runInstall handler", () => {
     expect(existsSync(join(base.cwd, ".claude/settings.json"))).toBe(false);
   });
 
+  it("points a codex user at codex's own registry, not at settings.json", () => {
+    // The snippet is what the user pastes by hand, so it has to name the file
+    // their provider actually reads and carry that provider's grouping — a
+    // block copied out of the claude-code merger lands in the wrong file in
+    // the wrong shape.
+    const hookKitRoot = join(sandbox, "codex-hook-kit");
+    mkdirSync(join(hookKitRoot, "skills"), { recursive: true });
+    const hookDir = join(hookKitRoot, "hooks", "session-init");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ event: "SessionStart", description: "init env" }),
+    );
+    const { summary } = runInstall({
+      providers: ["codex"],
+      scope: "global",
+      dryRun: true,
+      home: base.home,
+      cwd: base.cwd,
+      kitRoot: hookKitRoot,
+      timestamp: nowStamp(),
+    });
+    expect(summary).toContain(`Add this to ${join(base.home, ".codex", "hooks.json")}`);
+    expect(summary).toContain("session-init.cjs");
+    expect(summary).not.toContain(".claude/settings.json");
+  });
+
   it("rejects unknown provider", () => {
     expect(() =>
       runInstall({ providers: ["bogus"], scope: "project", dryRun: true, home: base.home, cwd: base.cwd, kitRoot, timestamp: "t" }),

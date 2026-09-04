@@ -17,11 +17,14 @@ file to choose the mode.
 | Visual diff review for a branch, PR, or commit | `/av:preview --html --diff [ref]` |
 | Compare an implementation plan to code | `/av:preview --html --plan-review <plan>` |
 | Recap recent project context | `/av:preview --html --recap [timeframe]` |
+| Data-dense infographic or poster-style summary | `/av:preview --html --explain <topic>` + `html-antv-infographic.md` |
 
 ## Specialist Handoffs
 
 - Mermaid syntax: load `/av:mermaidjs-v11`.
 - Publish-grade SVG/PNG architecture diagrams: use `/av:tech-graph`.
+- Editorial, publish-grade diagrams from the vendored template system, plus
+  the geometry/motion validators: use `/av:diagram`.
 - Generated images or multimodal analysis: use `/av:ai-multimodal`.
 - UI/UX style selection for slides or high-polish HTML: use
   `/av:ui-ux-pro-max`.
