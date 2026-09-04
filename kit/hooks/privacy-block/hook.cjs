@@ -38,6 +38,7 @@ const AV_LIB = [require('node:path').join(__dirname, '_lib'), require('node:path
       isSuspiciousPath
     } = require(require('node:path').join(AV_LIB, 'privacy-checker.cjs'));
     const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
+    const { emitBlock } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
     // Early exit if hook disabled in config
     if (!isHookEnabled('privacy-block')) {
@@ -160,7 +161,9 @@ async function main() {
       target: path.basename(result.filePath || ''),
       note: 'approval-required'
     });
-    process.exit(2);
+    // The deny itself, in whichever form the runtime reads: an exit code on the
+    // two that read one, a decision on stdout on the one that reads nothing else.
+    process.exit(emitBlock('PreToolUse', `${result.reason}: ${path.basename(result.filePath || '')}`));
   }
 
   timer.end({ tool: toolName, status: 'ok', exit: 0 });

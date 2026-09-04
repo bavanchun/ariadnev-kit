@@ -70,7 +70,13 @@ describe("executeUninstall", () => {
       }),
     );
     const ops: UninstallOp[] = [
-      { action: "unmerge-settings", path: settingsPath, bindings: [{ event: "SessionStart", command: "node x.cjs" }] },
+      {
+        action: "unmerge-settings",
+        path: settingsPath,
+        bindings: [{ event: "SessionStart", command: "node x.cjs" }],
+        format: "claude-settings-json",
+        ownedDir: join(root, ".claude/hooks/av"),
+      },
     ];
     const res = executeUninstall(ops, { dryRun: false, allowedRoots: [root], backupRoot: join(sandbox, "backups"), scopeRoot: root });
     const after = JSON.parse(readFileSync(settingsPath, "utf8"));
@@ -96,7 +102,13 @@ describe("executeUninstall", () => {
     const settingsPath = writeFile(".claude/settings.json", JSON.stringify({ hooks: {} }));
     const ops: UninstallOp[] = [
       { action: "remove-file", path: skillFile },
-      { action: "unmerge-settings", path: settingsPath, bindings: [] },
+      {
+        action: "unmerge-settings",
+        path: settingsPath,
+        bindings: [],
+        format: "claude-settings-json",
+        ownedDir: join(root, ".claude/hooks/av"),
+      },
     ];
     const res = executeUninstall(ops, { dryRun: true, allowedRoots: [root], backupRoot: join(sandbox, "backups"), scopeRoot: root });
     expect(existsSync(skillFile)).toBe(true);

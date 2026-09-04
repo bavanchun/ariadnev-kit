@@ -47,6 +47,20 @@ describe("config schema", () => {
     }
   });
 
+  it("lets a project say where its worktrees go, without granting it more", () => {
+    // The value names a directory on the person's own machine, and a project
+    // config file arrives with a clone. Project-settable is the point — the
+    // capability is about this repository — so the safety has to come from
+    // bounding the value, not from taking the key away from projects.
+    const spec = specFor("worktree.root");
+    expect(spec, "worktree.root is not in the schema").toBeDefined();
+    expect(spec?.layer).toBe("project");
+    expect(spec?.type).toBe("string");
+    expect(spec?.nullable).toBe(true);
+    expect(spec?.default).toBeNull();
+    expect(defaults().worktree.root).toBeNull();
+  });
+
   it("has no trust.passphrase — a plaintext secret in a printable file", () => {
     expect(specFor("trust.passphrase")).toBeUndefined();
     expect(CONFIG_FIELDS.some((f) => /passphrase|password|secret$/i.test(f.path))).toBe(false);

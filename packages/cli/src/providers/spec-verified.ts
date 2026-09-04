@@ -63,11 +63,24 @@ export interface ProviderVerification {
   observedOn: string | null;
 }
 
-const OBSERVED_ON = "2026-08-15";
-
 function observed(note: string): CellEvidence {
   return { verified: true, level: "observed", note };
 }
+/**
+ * The path is right, and nobody watched it load.
+ *
+ * Two grounds reach this rung. Either the path is the neutral cross-tool layout
+ * that was observed working elsewhere, or the provider's own shipped artefact —
+ * its config file, its binary — names the path itself. Both say the same thing
+ * operationally, which is why they share a rung: the destination is the
+ * provider's, and no load of it was witnessed.
+ *
+ * What stays excluded is a directory populated by this tool's own lineage. A
+ * path this project wrote to certifies nothing about what reads it, and a
+ * directory listing cannot tell the two apart — see the `omp` row's comment
+ * below, where both the written-to path and the canonical one exist on disk and
+ * only the provider's own docs distinguish them.
+ */
 function convention(note: string): CellEvidence {
   return { verified: true, level: "convention", note };
 }
@@ -77,24 +90,29 @@ function none(note: string): CellEvidence {
 
 export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   "claude-code": {
-    observedVersion: "2.1.232",
-    observedOn: OBSERVED_ON,
+    observedVersion: "2.1.260",
+    // One date per row, never a shared constant: a re-observation of one
+    // provider must not re-date a row nobody looked at that day. Re-dating this
+    // row is a claim about every cell in it, so the two that could not be
+    // reached from a shell session say "carried forward" in their own notes
+    // rather than inheriting a date nobody earned for them.
+    observedOn: "2026-09-04",
     paths: {
-      skill: observed("installed skills are listed by name in the running session's available-skills surface"),
-      agent: observed("installed agents are listed by name as available subagent types"),
-      command: observed("installed commands appear as invocable slash commands"),
-      rules: observed("the AGENTS.md managed block is present in the session context"),
+      skill: observed("2.1.260: the running session's available-skills surface enumerates the installed av-* skills by name, and one of them loaded from ~/.claude/skills/<name>/SKILL.md"),
+      agent: observed("2.1.260: the Agent tool's available subagent types enumerate all 16 files in ~/.claude/agents/"),
+      command: observed("carried forward from 2.1.232 (2026-08-15): installed commands appear as invocable slash commands. Not re-checked on 2.1.260 — the kit installs one command and it was not invoked, and no non-interactive surface lists commands"),
+      rules: observed("2.1.260: every file installed under ~/.claude/rules/ appears verbatim in the session's context block"),
       scripts: convention("same .claude tree as the observed kinds; no separate surface reports script discovery"),
       env: convention("template file only — nothing reports reading it"),
-      hook: observed("hooks fire and their output appears in session transcripts"),
-      outputStyle: none("`.claude/output-styles/` is observed on disk but nothing was seen to load from it"),
-      statusline: observed("the settings.json `statusLine` key runs a command and its output is the bar shown in the session; observed working on this machine with a user-configured one"),
+      hook: observed("2.1.260: the SessionStart hook's own output, including the kit's session-state block, appears in the session transcript"),
+      outputStyle: convention("2.1.260 exposes no free surface that enumerates a user-directory output style: a style planted in an otherwise-empty ~/.claude/output-styles/ changed nothing in `claude doctor`, `claude plugin validate --json` answered `\"contents\": []` for a plugin carrying one, and there is no --output-style flag, no output-style subcommand, and no /output-style command in the binary at all (selection is the /config panel, which is interactive-only and reaching it spends a model turn). The binary itself names the path: `output-styles` is a member of its userConfigDir directory-name enum beside `commands`, `agents`, `skills` and `rules`, and it joins `.claude/output-styles` literally in the same closure as `.claude/skills`. The destination is the provider's own; no load of it was witnessed — see plans/reports/observation-260904-1552-claude-code-2.1.260.md"),
+      statusline: observed("carried forward from 2.1.232 (2026-08-15): the settings.json `statusLine` key runs a command and its output is the bar shown in the session, observed working on this machine with a user-configured one. Not re-checked on 2.1.260 — the bar draws in the user's terminal, which no shell session can read"),
     },
     toolNames: observed("canonical format — identity rewrite, nothing to translate"),
   },
   codex: {
     observedVersion: "codex-cli 0.147.0",
-    observedOn: OBSERVED_ON,
+    observedOn: "2026-08-15",
     paths: {
       // `codex debug prompt-input` renders the model-visible prompt, so these
       // are not inferences about what codex might read — they are what it sent.
@@ -104,7 +122,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       rules: observed("the AGENTS.md managed block text appears in prompt-input"),
       scripts: convention("shares the .agents tree whose skill root was observed; script execution itself was not observed"),
       env: convention("template file only — nothing reports reading it"),
-      hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
+      hook: convention("codex-cli 0.153.1: `~/.codex/hooks.json` is codex's own hook registry, and its `config.toml` carries a `[hooks.state]` table keying a trust decision and a `trusted_hash` per `<source>:<event>:<group>:<hook>` — so codex was seen parsing that file and recording what it found. The loads behind those entries are *other tools'* hooks (two installed tools plus three plugin-bundled `hooks/hooks.json`), never ariadnev's: trusting a hook is an interactive TUI step, so no hook of ours was watched firing. That is why this is `convention` and not `observed`"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
       statusline: none("no statusline surface observed; nothing in prompt-input or the config reports one"),
     },
@@ -130,28 +148,31 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
     toolNames: none("no verified equivalents — identity rewrite plus a capability footer"),
   },
   antigravity: {
-    observedVersion: null,
-    observedOn: null,
+    observedVersion: "1.1.25",
+    // Dates the agent listing and nothing else. Every other cell in this row is
+    // `convention` and was not observed that day — the row-level date says when
+    // the one observation happened, not that the row was re-checked.
+    observedOn: "2026-09-04",
     paths: {
-      skill: convention("~/.gemini/config/skills is the root the upstream kit's dedicated emitter targets — its own text says it writes there and that workspace .agents/skills is NOT emitted — and ~/.gemini/config/ exists on disk as a real config tree (agents/, skills/, hooks.json, mcp_config.json, plugins/, sidecars/). Still `convention`: no antigravity surface was observed *reading* it"),
-      agent: convention("~/.gemini/config/agents/ holds 16 .md agent files written before ariadnev existed, so a full agent roster was installed to exactly this path by something else. Not `observed`: files being written there is not the provider reporting it loaded them"),
+      skill: convention("~/.gemini/config/skills is the root the upstream kit's dedicated emitter targets — its own text says it writes there and that workspace .agents/skills is NOT emitted — and ~/.gemini/config/ exists on disk as a real config tree (agents/, skills/, hooks.json, mcp_config.json, plugins/, sidecars/). Still `convention`: no antigravity surface was observed *reading* it, and on 1.1.25 there is no way to. The binary ships no `skill` subcommand — its verbs are agent, agents, changelog, help, install, mcp, mic-serve, models, plugin, plugins, update — so the listing standard that lifted the agent cell to `observed` has no counterpart here. This cell rests on its own separate evidence and cannot be graded the same way until such a surface exists"),
+      agent: observed("`agy agent` on 1.1.25 enumerated by name two kit agents produced by the real antigravity adapt pipeline, planted at ~/.gemini/config/agents/<name>.md and removed after. The listing is agy's own frontmatter parser and not a directory echo: an empty control directory lists nothing, and those same two files are dropped silently when `tools:` is a scalar or any `model:` key is present — which is why the adapter emits a tools sequence and no model key. What is still unobserved is a session using the agent, which needs a paid turn. Agent files left at this path by an older build carry the old frontmatter and will not list until they are reinstalled"),
       command: none("no observation, and no neutral convention for commands"),
       rules: convention("AGENTS.md is the cross-tool convention observed working in codex"),
       scripts: convention("same .agents tree as the skill root above"),
       env: convention("template file only — nothing reports reading it"),
-      hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
+      hook: convention("the provider's own shipped doc, ~/.gemini/antigravity-cli/builtin/skills/agy-customizations/docs/hooks.md, specifies hooks.json: five events, PreToolUse/PostToolUse wrapped in matcher groups and PreInvocation/PostInvocation/Stop flat. The binary carries the same contract (`pre-tool hook %s not registered`, and `prompt hooks are not currently supported` for the event it does not have). ~/.gemini/config/hooks.json exists on this machine holding all five events for a third party's hook, so the global root is a place something other than this project already registers into. Not `observed`: a hook proves itself by firing, and agy only dispatches one inside a session, which is a paid turn. What is registered is also not yet what would fire: the same doc gives agy's own stdin — camelCase protojson with `toolCall.{name,args}`, `workspacePaths` and `conversationId`, and none of `tool_name`, `tool_input`, `cwd` or `session_id` — and matchers written in agy's tool vocabulary (`run_command`, `view_file`, `browser_.*`) where the kit's manifests carry Claude Code's. The stdout side speaks agy's vocabulary; adapting the input side is separate work, and until it lands a matcher-bound binding selects nothing and an unbound one reads fields that are not there"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
-      statusline: none("no statusline surface observed, and no neutral convention for one"),
+      statusline: none("a surface exists and its shape is still unknown: agy has a `/statusline <command>` slash command, a `statusLine` JSON key and a store method that writes it, but nothing says which file that key lands in — ~/.gemini/config/config.json here carries only userSettings.remoteControlHostname, because nothing has ever set one. Finding out means running the TUI and setting a statusline on the user's machine, so this stays a lead"),
     },
     // The "no CLI" premise these cells rested on was wrong: the upstream binary
     // documents an `agy` command with `--sandbox --model <id> --agent <name>`.
     // That makes the surface probeable in principle — but every probe runs a
     // model, so the cells stay unverified rather than guessed.
-    toolNames: none("no observation of which tool names antigravity accepts; probing means spending model credits"),
+      toolNames: none("the binary yields tool names by static string extraction, which is a hypothesis about a vocabulary and not an observation of one — see the table in adapt/tool-rewrites.ts. Confirming it means running `agy -p`, which spends the user's model credits and needs their consent, so the rewrite table stays identity"),
   },
   opencode: {
     observedVersion: "1.15.3",
-    observedOn: OBSERVED_ON,
+    observedOn: "2026-08-15",
     paths: {
       skill: observed("`opencode debug skill` lists 26 skills whose reported location is the .opencode/skills dir written by the installer"),
       agent: observed("`opencode agent list` names all 13 installed agents as subagents; `opencode debug config` shows the same 13"),
@@ -215,13 +236,12 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       scripts: convention("same ~/.grok tree as the skill root above"),
       env: convention("template file only — nothing reports reading it"),
       // `~/.grok/hooks` is populated in the Claude-shaped tree, so the instinct
-      // is to verify this cell. It stays `none` for a mechanical reason found
-      // by regenerating the matrix: the resolver hard-wires every hook to
-      // `.claude/hooks/av/`, so a verified cell here would install grok's hooks
-      // into claude-code's directory. Writing into another provider's tree is
-      // worse than skipping, and giving grok its own hook root needs evidence
-      // that grok reads it — which needs a binary that is not on this machine.
-      hook: none("~/.grok/hooks exists, but the hook target resolves to `.claude/hooks/av/` for every provider; verifying this cell would install into claude-code's tree rather than grok's"),
+      // is to verify this cell. The reason it stays `none` is the same one every
+      // other grok cell gives: a populated directory proves something wrote
+      // there, not that grok reads it, and hooks are an event contract — a
+      // layout that looks right but fires nothing is a guard that silently
+      // stops guarding. Seeing a load needs a binary that is not on this machine.
+      hook: none("~/.grok/hooks exists in the Claude-shaped tree, but no grok binary on PATH to observe a hook load; a populated directory is not an event contract"),
       outputStyle: none("no output-style directory present in the observed tree"),
       statusline: none("no statusline surface observed for grok"),
     },

@@ -32,6 +32,7 @@ try {
     clearPendingInjection
   } = require(require('node:path').join(AV_LIB, 'context-builder.cjs'));
   const { createSessionStateContext, isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
+  const { emitPlainContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('dev-rules-reminder')) {
@@ -79,7 +80,7 @@ async function main() {
     // Use shared context builder with baseDir for absolute paths
     const { content } = buildReminderContext({ sessionContext, baseDir });
 
-    console.log(content);
+    emitPlainContext('UserPromptSubmit', content);
     markRecentlyInjected(sessionContext, scopeKey);
     timer.end({ status: 'ok', exit: 0, note: 'context-injected' });
     process.exit(0);

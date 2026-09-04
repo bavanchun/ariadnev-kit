@@ -33,18 +33,46 @@ export const CURSOR_RULES_DIR = ".cursor/rules";
 /** OpenCode user-global config root (for ~/.claude rewrites). */
 export const OPENCODE_USER_CONFIG = "~/.config/opencode";
 
-/** Claude Code hooks install dir + settings file (hooks are claude-only). */
+/**
+ * Claude Code's hooks tree and settings file.
+ *
+ * These are one provider's values, not the installer's. Every hooks destination
+ * is resolved through `ProviderConfig.hooksDir` / `hooksConfigFile`, and these
+ * constants are what claude-code's entry there is set to — so a second provider
+ * with hooks lands in its own tree instead of this one.
+ */
 export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
 
 /**
- * Where the session-init hook reads the kit's coding-level output styles from.
- * They live inside the hook's own install dir because the hook, not the
- * provider, consumes them — and because everything this tool writes must sit
- * under a root the provider matrix declares. `.claude/output-styles/` is probed
- * first and stays reserved for styles the user authors natively.
+ * Codex's hooks tree and the file it discovers bindings in.
+ *
+ * `hooks.json` sits beside `config.toml` rather than inside the hooks tree
+ * because that is where Codex looks: it reads `~/.codex/hooks.json`, the
+ * project-local `<repo>/.codex/hooks.json`, and each plugin's bundled copy.
  */
-export const CLAUDE_OUTPUT_STYLES_SIDECAR_DIR = `${CLAUDE_HOOKS_DIR}/output-styles`;
+export const CODEX_HOOKS_DIR = ".codex/hooks/av";
+export const CODEX_HOOKS_CONFIG_FILE = ".codex/hooks.json";
+
+/**
+ * Antigravity's hooks tree and the file it discovers bindings in.
+ *
+ * `hooks.json` sits at the root of the config tree, one level above the tree of
+ * bodies, and it is shared: the live file was written by another tool
+ * registering under a top-level key of its own. Ours goes in beside it.
+ */
+export const ANTIGRAVITY_HOOKS_DIR = ".gemini/config/hooks/av";
+export const ANTIGRAVITY_HOOKS_CONFIG_FILE = ".gemini/config/hooks.json";
+
+/**
+ * Where the session-init hook reads the kit's coding-level output styles from,
+ * relative to whichever hooks tree the hook was installed into. They live inside
+ * the hook's own install dir because the hook, not the provider, consumes them —
+ * and because everything this tool writes must sit under a root the provider
+ * matrix declares. The provider's own `output-styles/` is probed first and stays
+ * reserved for styles the user authors natively.
+ */
+export const OUTPUT_STYLES_SIDECAR_SUBDIR = "output-styles";
 
 /**
  * Namespace prefix for installed skill directories.

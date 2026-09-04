@@ -41,6 +41,7 @@ try {
   const { loadProjectCheckpoint, refreshStatuslineSnapshot } = require(require('node:path').join(AV_LIB, 'session-state-manager.cjs'));
   const { createEmptyActivitySnapshot } = require(require('node:path').join(AV_LIB, 'statusline-session-cache.cjs'));
   const { renderSessionState, safeDisplayValue } = require(require('node:path').join(AV_LIB, 'session-state-renderer.cjs'));
+  const { emitPlainContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('session-init')) {
@@ -193,6 +194,12 @@ function pathsReferToSameLocation(left, right) {
  * Main hook execution
  */
 async function main() {
+  // Session context is written once, at the end, rather than line by line: the
+  // two runtimes disagree about whether loose stdout is context at all, and one
+  // buffer is the only thing that can be handed to either shape.
+  const contextLines = [];
+  const say = (text = '') => contextLines.push(String(text));
+  const flush = () => emitPlainContext('SessionStart', contextLines.join('\n'));
   const timer = createHookTimer('session-init', { event: 'SessionStart' });
   try {
     const shadowedCleanup = cleanupOrphanedShadowedSkills();
@@ -344,7 +351,7 @@ async function main() {
     }
 
     const displaySource = ['startup', 'resume', 'clear', 'compact'].includes(source) ? source : 'unknown';
-    console.log(`Session ${displaySource}. ${safeDisplayValue(buildContextOutput(config, detections, resolved, staticEnv.gitRoot), 4096)}`);
+    say(`Session ${displaySource}. ${safeDisplayValue(buildContextOutput(config, detections, resolved, staticEnv.gitRoot), 4096)}`);
 
     const hasCleanup =
       shadowedCleanup.restored.length > 0 ||
@@ -352,21 +359,21 @@ async function main() {
       shadowedCleanup.kept.length > 0 ||
       shadowedCleanup.held.length > 0;
     if (hasCleanup) {
-      console.log(`\n[!] SKILL-DEDUP CLEANUP:`);
-      console.log(`Recovered orphaned .shadowed/ directory from disabled skill-dedup hook.`);
+      say(`\n[!] SKILL-DEDUP CLEANUP:`);
+      say(`Recovered orphaned .shadowed/ directory from disabled skill-dedup hook.`);
       if (shadowedCleanup.restored.length > 0) {
-        console.log(`Restored ${shadowedCleanup.restored.length} skill(s): ${shadowedCleanup.restored.join(', ')}`);
+        say(`Restored ${shadowedCleanup.restored.length} skill(s): ${shadowedCleanup.restored.join(', ')}`);
       }
       if (shadowedCleanup.skipped.length > 0) {
-        console.log(`Removed ${shadowedCleanup.skipped.length} duplicate(s): ${shadowedCleanup.skipped.join(', ')}`);
+        say(`Removed ${shadowedCleanup.skipped.length} duplicate(s): ${shadowedCleanup.skipped.join(', ')}`);
       }
       if (shadowedCleanup.kept.length > 0) {
-        console.log(`[!] Kept ${shadowedCleanup.kept.length} skill(s) for manual review (content differs): ${shadowedCleanup.kept.join(', ')}`);
-        console.log(`    Review .claude/skills/.shadowed/ and merge changes manually.`);
+        say(`[!] Kept ${shadowedCleanup.kept.length} skill(s) for manual review (content differs): ${shadowedCleanup.kept.join(', ')}`);
+        say(`    Review .claude/skills/.shadowed/ and merge changes manually.`);
       }
       if (shadowedCleanup.held.length > 0) {
-        console.log(`[!] Held ${shadowedCleanup.held.length} skill(s) whose av- twin is installed: ${shadowedCleanup.held.join(', ')}`);
-        console.log(`    Restoring the unprefixed name would shadow the installed skill. The copy is still in .claude/skills/.shadowed/.`);
+        say(`[!] Held ${shadowedCleanup.held.length} skill(s) whose av- twin is installed: ${shadowedCleanup.held.join(', ')}`);
+        say(`    Restoring the unprefixed name would shadow the installed skill. The copy is still in .claude/skills/.shadowed/.`);
       }
     }
 
@@ -380,8 +387,8 @@ async function main() {
         todos: source === 'compact' ? recoveryState?.statusline?.todos : recoveryState?.todos
       }, source);
       if (renderedState) {
-        console.log(`\n${renderedState}\n`);
-        console.log(source === 'compact'
+        say(`\n${renderedState}\n`);
+        say(source === 'compact'
           ? 'Context was compacted. Re-read the active plan and todo list before continuing.'
           : 'Review the previous-session status data, then continue or start fresh.');
       }
@@ -389,15 +396,15 @@ async function main() {
 
     // Agent Teams: Show team context if running inside a team (uses cached result)
     if (teamInfo) {
-      console.log(`[i] Agent Team detected: "${teamInfo.teamName}" (${teamInfo.memberCount} members)`);
-      console.log(`    Team config: ~/.claude/teams/${teamInfo.teamName}/config.json`);
-      console.log(`    Use /av:team skill for orchestration templates.`);
+      say(`[i] Agent Team detected: "${teamInfo.teamName}" (${teamInfo.memberCount} members)`);
+      say(`    Team config: ~/.claude/teams/${teamInfo.teamName}/config.json`);
+      say(`    Use /av:team skill for orchestration templates.`);
     }
 
     // Show the git root when running from a supported subdirectory.
     if (staticEnv.gitRoot && !pathsReferToSameLocation(staticEnv.gitRoot, process.cwd())) {
-      console.log(`📁 Subdirectory mode: Plans/docs will be created in current directory`);
-      console.log(`   Git root: ${safeDisplayValue(staticEnv.gitRoot)}`);
+      say(`📁 Subdirectory mode: Plans/docs will be created in current directory`);
+      say(`   Git root: ${safeDisplayValue(staticEnv.gitRoot)}`);
     }
 
     // Auto-compact can bypass AskUserQuestion approval gates.
@@ -405,20 +412,20 @@ async function main() {
     // This warning reminds Claude to verify if user approval was pending before proceeding.
     // Upstream bug: Claude Code CLI should preserve pending interactive state during compaction.
     if (source === 'compact') {
-      console.log(`\n⚠️ CONTEXT COMPACTED - APPROVAL STATE CHECK:`);
-      console.log(`If you were waiting for user approval via AskUserQuestion (e.g., Step 4 review gate),`);
-      console.log(`you MUST re-confirm with the user before proceeding. Do NOT assume approval was given.`);
-      console.log(`Use AskUserQuestion to verify: "Context was compacted. Please confirm approval to continue."`);
+      say(`\n⚠️ CONTEXT COMPACTED - APPROVAL STATE CHECK:`);
+      say(`If you were waiting for user approval via AskUserQuestion (e.g., Step 4 review gate),`);
+      say(`you MUST re-confirm with the user before proceeding. Do NOT assume approval was given.`);
+      say(`Use AskUserQuestion to verify: "Context was compacted. Please confirm approval to continue."`);
 
       // Compaction can drop the record of background processes started earlier
       // this session (PIDs, ports, worktrees). Surface a reconcile-and-clean
       // reminder here -- SessionStart:compact output reaches the model, whereas
       // PreCompact stdout does not -- so orphaned dev servers do not accumulate.
-      console.log(`\n🧹 ORPHAN PROCESS CHECK:`);
-      console.log(`Before continuing, reconcile the background processes you started earlier this`);
-      console.log(`session (dev servers, watchers, tunnels). Note the still-needed ones (command,`);
-      console.log(`PID, port, worktree) and stop the rest so orphaned processes do not pile up and`);
-      console.log(`exhaust device memory. See .claude/rules/process-management.md.`);
+      say(`\n🧹 ORPHAN PROCESS CHECK:`);
+      say(`Before continuing, reconcile the background processes you started earlier this`);
+      say(`session (dev servers, watchers, tunnels). Note the still-needed ones (command,`);
+      say(`PID, port, worktree) and stop the rest so orphaned processes do not pile up and`);
+      say(`exhaust device memory. See .claude/rules/process-management.md.`);
 
       // Context recovery. The PreCompact hook (precompact-capture.cjs) records
       // the derivable orientation anchors before compaction; surface them here,
@@ -426,16 +433,16 @@ async function main() {
       // the parts a hook cannot derive (issues/PRs, plan phase, done vs pending
       // work, and the reasoning behind in-flight decisions).
       const recovery = readSessionState(sessionContext)?.compactRecovery;
-      console.log(`\n🧭 CONTEXT RECOVERY:`);
+      say(`\n🧭 CONTEXT RECOVERY:`);
       if (recovery) {
-        if (recovery.worktree) console.log(`  Worktree: ${safeDisplayValue(recovery.worktree)}`);
-        if (recovery.mainRoot) console.log(`  Root project: ${safeDisplayValue(recovery.mainRoot)}`);
-        if (recovery.branch) console.log(`  Branch: ${safeDisplayValue(recovery.branch)}${recovery.head ? ` @ ${safeDisplayValue(recovery.head)}` : ''}${recovery.dirtyCount ? ` (${recovery.dirtyCount} uncommitted)` : ''}`);
-        if (recovery.activePlan) console.log(`  Active plan: ${safeDisplayValue(recovery.activePlan)}`);
+        if (recovery.worktree) say(`  Worktree: ${safeDisplayValue(recovery.worktree)}`);
+        if (recovery.mainRoot) say(`  Root project: ${safeDisplayValue(recovery.mainRoot)}`);
+        if (recovery.branch) say(`  Branch: ${safeDisplayValue(recovery.branch)}${recovery.head ? ` @ ${safeDisplayValue(recovery.head)}` : ''}${recovery.dirtyCount ? ` (${recovery.dirtyCount} uncommitted)` : ''}`);
+        if (recovery.activePlan) say(`  Active plan: ${safeDisplayValue(recovery.activePlan)}`);
       }
-      console.log(`Re-establish before continuing: the issues/PRs in flight, the active plan and`);
-      console.log(`current phase, what is done vs. still pending, any failures and their cause, and`);
-      console.log(`why the current approach was chosen. Re-read the active plan and notes first.`);
+      say(`Re-establish before continuing: the issues/PRs in flight, the active plan and`);
+      say(`current phase, what is done vs. still pending, any failures and their cause, and`);
+      say(`why the current approach was chosen. Re-read the active plan and notes first.`);
     }
 
     // Auto-inject coding level guidelines (if not disabled). A style the user
@@ -448,19 +455,21 @@ async function main() {
     const hookRoot = require('node:path').dirname(AV_LIB);
     const guidelines = getCodingLevelGuidelines(codingLevel, staticEnv.claudeSettingsDir, hookRoot);
     if (guidelines) {
-      console.log(`\n${guidelines}`);
+      say(`\n${guidelines}`);
     }
 
     if (config.assertions?.length > 0) {
-      console.log(`\nUser Assertions:`);
+      say(`\nUser Assertions:`);
       config.assertions.forEach((assertion, i) => {
-        console.log(`  ${i + 1}. ${assertion}`);
+        say(`  ${i + 1}. ${assertion}`);
       });
     }
 
+    flush();
     timer.end({ status: 'ok', exit: 0, note: source || 'session-start' });
     process.exit(0);
   } catch (error) {
+    flush();
     console.error(`SessionStart hook error: ${error.message}`);
     logHookCrash('session-init', error, { event: 'SessionStart' });
     process.exit(0);

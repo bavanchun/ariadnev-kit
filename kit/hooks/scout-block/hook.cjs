@@ -44,6 +44,7 @@ try {
     isAllowedCommand
   } = require(require('node:path').join(AV_LIB, 'scout-checker.cjs'));
   const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
+  const { emitBlock } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('scout-block')) {
@@ -132,7 +133,9 @@ try {
         target: result.pattern || toolInput.path || toolInput.file_path || '',
         note: result.reason || 'broad-pattern'
       });
-      process.exit(2);
+      // See privacy-block: the exit code is the deny on two runtimes and is not
+      // read at all on the third, which takes a decision object instead.
+      process.exit(emitBlock('PreToolUse', result.reason || 'the pattern is too broad to run'));
     }
 
     // Handle pattern blocks
@@ -152,7 +155,7 @@ try {
         target: result.path || '',
         note: result.pattern || 'blocked-path'
       });
-      process.exit(2);
+      process.exit(emitBlock('PreToolUse', `${result.path || 'that path'} is inside a generated tree`));
     }
 
     // All paths allowed

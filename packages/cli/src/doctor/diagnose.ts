@@ -3,6 +3,9 @@
 // here directly, so this is fully unit-testable without a real install.
 import { fromPortablePath, receiptVersion, toPortablePath, type Receipt, type ReceiptInstall } from "../install/install-receipt.js";
 import type { HealRemoval } from "../install/install-heal.js";
+import { makeResolver, type HooksConfigFormat, type ProviderResolver, type Scope } from "../providers/resolver.js";
+import { AV_HOOK_KEY } from "../install/antigravity-hooks-merge.js";
+import { isProviderId } from "../providers/index.js";
 import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerPath, isHookRuntimeMarkerValid } from "../install/hook-runtime-marker.js";
 
 // Tri-state (plus warning). `pass`/`skip` are informational rows; only `fail`
@@ -27,8 +30,13 @@ export interface DiagnoseDeps {
   dirExists(absPath: string): boolean;
   /** List direct entries in a directory; null when it is missing or unreadable. */
   listDir(absPath: string): string[] | null;
-  /** Read `.claude/settings.json` at the given absolute path; null if missing/unreadable. */
-  readSettingsJson(absPath: string): string | null;
+  /**
+   * Read a provider's hook-binding registry at the given absolute path; null if
+   * missing/unreadable. Which file that is comes from the provider, not from
+   * here — claude-code's settings.json and codex's hooks.json are both read
+   * through this one adapter.
+   */
+  readHooksConfig(absPath: string): string | null;
   /** Spawn-check a hook file; true if it exits 0 against an empty stdin payload. */
   hookExecutable(absPath: string): boolean;
   /** Read the hook runtime marker at the given absolute path; null if missing/unreadable. */
@@ -43,12 +51,25 @@ export interface DiagnoseOpts {
   pendingHealRemovals?: HealRemoval[];
 }
 
-function isHookFile(path: string): boolean {
-  return path.includes(".claude/hooks/av/") && path.endsWith(".cjs") && !path.includes("_lib/");
+/**
+ * The portable prefix every file in one provider's hooks tree starts with.
+ *
+ * Receipt paths are portable, so the absolute tree the resolver returns is
+ * converted back rather than the other way round. A literal here would answer
+ * for claude-code no matter which provider is being diagnosed, which is how a
+ * second provider's hooks end up judged against the first one's tree.
+ */
+function hooksPrefix(resolver: ProviderResolver, scope: Scope, opts: DiagnoseOpts): string {
+  const abs = resolver.hooksTarget({ home: opts.home, cwd: opts.cwd, scope });
+  return `${toPortablePath(abs, opts.home, opts.cwd)}/`;
 }
 
-function isHookRuntimeMarker(path: string): boolean {
-  return path.includes(".claude/hooks/av/") && path.endsWith(HOOK_RUNTIME_MARKER_FILE);
+function isHookFile(path: string, prefix: string): boolean {
+  return path.startsWith(prefix) && path.endsWith(".cjs") && !path.includes("_lib/");
+}
+
+function isHookRuntimeMarker(path: string, prefix: string): boolean {
+  return path.startsWith(prefix) && path.endsWith(HOOK_RUNTIME_MARKER_FILE);
 }
 
 // A hook install without its runtime marker is the failure nothing else
@@ -57,12 +78,14 @@ function isHookRuntimeMarker(path: string): boolean {
 // receipt loop so an install whose receipt predates the marker is caught too.
 function hookRuntimeMarkerFinding(
   providerId: string,
+  resolver: ProviderResolver,
   install: ReceiptInstall,
   deps: DiagnoseDeps,
   opts: DiagnoseOpts,
 ): ProviderFinding | null {
-  if (!install.files.some((f) => isHookFile(f.path))) return null;
-  const abs = hookRuntimeMarkerPath(install.scope === "global" ? opts.home : opts.cwd);
+  const prefix = hooksPrefix(resolver, install.scope, opts);
+  if (!install.files.some((f) => isHookFile(f.path, prefix))) return null;
+  const abs = hookRuntimeMarkerPath(resolver.hooksTarget({ home: opts.home, cwd: opts.cwd, scope: install.scope }));
   const shown = toPortablePath(abs, opts.home, opts.cwd);
   const text = deps.readHookRuntimeMarker(abs);
   if (text === null) {
@@ -86,11 +109,6 @@ function hookRuntimeMarkerFinding(
   return null;
 }
 
-function settingsPathFor(scope: "project" | "global", home: string, cwd: string): string {
-  const root = scope === "global" ? home : cwd;
-  return `${root}/.claude/settings.json`;
-}
-
 function legacySkillDirs(removals: HealRemoval[], opts: DiagnoseOpts): string[] {
   const dirs = new Set<string>();
   for (const file of removals) {
@@ -103,10 +121,31 @@ function legacySkillDirs(removals: HealRemoval[], opts: DiagnoseOpts): string[] 
   return [...dirs];
 }
 
-export function hasBindingCommand(settingsJson: string, event: string, command: string): boolean {
+/**
+ * Whether a binding is still registered in a provider's hook config.
+ *
+ * claude-code's settings.json and codex's hooks.json spell an event the same
+ * way — `hooks.<Event>` holding groups of `{type, command}` handlers — so those
+ * two share an answer. antigravity does not: its file has no `hooks` object at
+ * all, each writer owns a top-level key, and reading it the other way finds
+ * nothing under every event. That is not a harmless miss — a correct install
+ * would be reported as entirely broken, and `--fix` would rewrite a file that
+ * was already right.
+ *
+ * Looking under our own key is also what makes the check mean anything there:
+ * the same command sitting under another writer's key is that writer's entry,
+ * not a binding of ours that survived.
+ */
+export function hasBindingCommand(
+  format: HooksConfigFormat,
+  hooksConfigJson: string,
+  event: string,
+  command: string,
+): boolean {
   try {
-    const parsed = JSON.parse(settingsJson) as { hooks?: Record<string, unknown> };
-    const groups = parsed.hooks?.[event];
+    const parsed = JSON.parse(hooksConfigJson) as Record<string, unknown>;
+    const owned = format === "antigravity-hooks-json" ? parsed[AV_HOOK_KEY] : parsed.hooks;
+    const groups = (owned as Record<string, unknown> | undefined)?.[event];
     return JSON.stringify(groups ?? "").includes(JSON.stringify(command));
   } catch {
     return false;
@@ -136,6 +175,14 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
 
   for (const [providerId, install] of Object.entries(receipt.installs)) {
     if (!install) continue;
+    // A receipt written by an older build can name a provider this one dropped.
+    // Reporting it as unknown beats crashing the whole health check on it.
+    if (!isProviderId(providerId)) {
+      findings.push({ providerId, level: "skip", message: "unknown provider in receipt — nothing to verify" });
+      continue;
+    }
+    const resolver = makeResolver(providerId);
+    const prefix = hooksPrefix(resolver, install.scope, opts);
 
     const applied = install.hookBindings.filter((b) => b.applied);
     // Nothing recorded to verify → an informational skip, not a green pass.
@@ -148,40 +195,45 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
 
     for (const file of install.files) {
       // The marker check below owns this file, so it is one row, not two.
-      if (isHookRuntimeMarker(file.path)) continue;
+      if (isHookRuntimeMarker(file.path, prefix)) continue;
       const abs = fromPortablePath(file.path, opts.home, opts.cwd);
       if (!deps.fileExists(abs)) {
         findings.push({ providerId, level: "fail", weight: 10, remedy: "ariadnev install", message: `missing file: ${file.path}` });
         continue;
       }
-      if (isHookFile(file.path) && !deps.hookExecutable(abs)) {
+      if (isHookFile(file.path, prefix) && !deps.hookExecutable(abs)) {
         findings.push({ providerId, level: "fail", weight: 8, remedy: "ariadnev install", message: `hook failed to execute: ${file.path}` });
       }
     }
 
-    const marker = hookRuntimeMarkerFinding(providerId, install, deps, opts);
+    const marker = hookRuntimeMarkerFinding(providerId, resolver, install, deps, opts);
     if (marker) findings.push(marker);
 
-    if (applied.length > 0) {
-      const settingsAbs = settingsPathFor(install.scope, opts.home, opts.cwd);
-      const settingsJson = deps.readSettingsJson(settingsAbs);
-      if (settingsJson === null) {
+    // Each provider is asked about its own registry. A provider that discovers
+    // hooks by directory has none, and there is no file whose absence could mean
+    // anything — checking one anyway would read whichever provider's config was
+    // hardcoded and report this provider on somebody else's file.
+    const configAbs = applied.length > 0 ? resolver.hooksConfigTarget({ home: opts.home, cwd: opts.cwd, scope: install.scope }) : null;
+    if (configAbs !== null) {
+      const shownConfig = toPortablePath(configAbs, opts.home, opts.cwd);
+      const hooksConfigJson = deps.readHooksConfig(configAbs);
+      if (hooksConfigJson === null) {
         findings.push({
           providerId,
           level: "fail",
           weight: 10,
           remedy: "ariadnev doctor --fix",
-          message: "settings.json missing but hook bindings were applied at install time",
+          message: `${shownConfig} missing but hook bindings were applied at install time`,
         });
       } else {
         for (const b of applied) {
-          if (!hasBindingCommand(settingsJson, b.event, b.command)) {
+          if (!hasBindingCommand(resolver.hooksConfigFormat!, hooksConfigJson, b.event, b.command)) {
             findings.push({
               providerId,
               level: "fail",
               weight: 10,
               remedy: "ariadnev doctor --fix",
-              message: `hook binding removed from settings.json: ${b.event} -> ${b.command}`,
+              message: `hook binding removed from ${shownConfig}: ${b.event} -> ${b.command}`,
             });
           }
         }

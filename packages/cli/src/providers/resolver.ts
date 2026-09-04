@@ -5,7 +5,15 @@ import {
   type ArtifactKind,
   isVerified,
 } from "./spec-verified.js";
-import { CLAUDE_HOOKS_DIR, installedSkillDirName } from "../adapt/paths.js";
+import {
+  ANTIGRAVITY_HOOKS_CONFIG_FILE,
+  ANTIGRAVITY_HOOKS_DIR,
+  CLAUDE_HOOKS_DIR,
+  CLAUDE_SETTINGS_FILE,
+  CODEX_HOOKS_CONFIG_FILE,
+  CODEX_HOOKS_DIR,
+  installedSkillDirName,
+} from "../adapt/paths.js";
 
 export type Scope = "project" | "global";
 
@@ -16,6 +24,12 @@ export interface ResolverCtx {
 }
 
 export type RulesMode = "dir" | "mdc" | "agents-md";
+
+/** Which merger writes a provider's hook-binding registry. */
+export type HooksConfigFormat =
+  | "claude-settings-json"
+  | "codex-hooks-json"
+  | "antigravity-hooks-json";
 
 export interface ProviderResolver {
   id: ProviderId;
@@ -29,6 +43,28 @@ export interface ProviderResolver {
   envTarget(ctx: ResolverCtx): string;
   /** Root dir under which AGENTS.md lives (when rulesMode === 'agents-md'). */
   agentsMdRoot(ctx: ResolverCtx): string;
+  /**
+   * Absolute root of the hooks tree this provider owns. Every file the hook
+   * installer writes — bodies, `_lib`, the runtime marker, the output-style
+   * sidecar, the statusline — hangs off this one path.
+   */
+  hooksTarget(ctx: ResolverCtx): string;
+  /**
+   * Absolute settings file hook bindings are merged into, or null when the
+   * provider discovers hooks by directory and has no binding registry. Null
+   * means the merge op is not emitted at all, rather than emitted against
+   * whatever file another provider happens to use.
+   */
+  hooksConfigTarget(ctx: ResolverCtx): string | null;
+  /** Which merger writes that file; null exactly when the target is null. */
+  hooksConfigFormat: HooksConfigFormat | null;
+  /**
+   * Whether an install writes into the hooks tree. Deliberately separate from
+   * the `hook` evidence cell: grading a cell `convention` documents that a
+   * layout is right, which is not the same as having watched the provider read
+   * it, and a documentation act must not start writing files as a side effect.
+   */
+  hooksInstall: boolean;
 }
 
 interface ProviderConfig {
@@ -43,6 +79,29 @@ interface ProviderConfig {
   rulePath: ((name: string) => string) | null; // for dir/mdc modes
   scriptsDir: string;
   envFile: string;
+  /** Root of the owned hooks tree, relative to the scope base. */
+  hooksDir: string;
+  /** Relative settings file for hook bindings; null => no binding registry. */
+  hooksConfigFile: string | null;
+  hooksConfigFormat: HooksConfigFormat | null;
+  /** Whether an install writes hooks here. Never wider than the `hook` cell. */
+  hooksInstall: boolean;
+}
+
+/**
+ * The hooks surface of a provider that has none.
+ *
+ * `hooksDir` is still a real path rather than a sentinel: the resolver is total
+ * over `ArtifactKind`, so `targetPathFor` asks every provider where its hooks
+ * would go in order to render the matrix. With `hooksInstall: false` nothing is
+ * ever written there, and the `hook` cell being unverified is what makes the
+ * matrix print a skip.
+ */
+function noHooks(hooksDir: string): Pick<
+  ProviderConfig,
+  "hooksDir" | "hooksConfigFile" | "hooksConfigFormat" | "hooksInstall"
+> {
+  return { hooksDir, hooksConfigFile: null, hooksConfigFormat: null, hooksInstall: false };
 }
 
 function pickBase(ctx: ResolverCtx): string {
@@ -70,12 +129,17 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".claude/skills",
     agentPath: (n) => `.claude/agents/${n}.md`,
     commandPath: (n) => `.claude/commands/${n}.md`,
-    // Observed on disk under ~/.claude/output-styles/. The matrix cell stays
-    // false until it is verified for real, so this path is not used yet.
     outputStylePath: (n) => `.claude/output-styles/${n}.md`,
     rulePath: (n) => `.claude/rules/${n}.md`,
     scriptsDir: ".claude/scripts",
     envFile: ".claude/.env.example",
+    // The one provider whose hooks were observed firing, so the one that
+    // writes them. These are the values every hooks destination used to be
+    // built from directly.
+    hooksDir: CLAUDE_HOOKS_DIR,
+    hooksConfigFile: CLAUDE_SETTINGS_FILE,
+    hooksConfigFormat: "claude-settings-json",
+    hooksInstall: true,
   },
   codex: {
     rulesMode: "agents-md",
@@ -87,6 +151,13 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".agents/ariadnev/scripts",
     envFile: ".agents/ariadnev/.env.example",
+    // Codex discovers hooks from a JSON file of its own, not from the tree, so
+    // the tree alone activates nothing — the merge into `hooks.json` is what
+    // registers them, and Codex then asks the user to trust each one.
+    hooksDir: CODEX_HOOKS_DIR,
+    hooksConfigFile: CODEX_HOOKS_CONFIG_FILE,
+    hooksConfigFormat: "codex-hooks-json",
+    hooksInstall: true,
   },
   cursor: {
     rulesMode: "mdc",
@@ -108,6 +179,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: (n) => `.cursor/rules/${n}.mdc`,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
+    ...noHooks(".cursor/hooks/av"),
   },
   antigravity: {
     rulesMode: "agents-md",
@@ -116,21 +188,36 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     // from codex. The upstream kit ships a dedicated emitter for this target
     // whose own text states it writes skills under `~/.gemini/config/skills`
     // and that "workspace .agents/skills [is] not emitted" — the one layout
-    // this provider was being given. Corroborated on disk: `~/.gemini/config/`
-    // holds `agents/`, `skills/`, `hooks.json`, `mcp_config.json`, `plugins/`
-    // and `sidecars/`, and the 16 agent files there predate ariadnev, so
-    // something else wrote a full agent roster into exactly this path.
+    // this provider was being given. `~/.gemini/config/` is a real config tree
+    // on disk (`agents/`, `skills/`, `hooks.json`, `mcp_config.json`,
+    // `plugins/`, `sidecars/`), and a third party's skill sits in `skills/`.
     skillDir: ".gemini/config/skills",
-    // Was `null` with the justification "no observation, and no neutral
-    // convention for agents". Both halves have since been falsified: the 16
-    // `.md` files in `~/.gemini/config/agents/` are that observation, and they
-    // establish the convention.
+    // The path both of these used to rest on the agent files already sitting in
+    // `~/.gemini/config/agents/`. That was never evidence: those files came
+    // from this tool's own lineage, and a directory cannot report what reads
+    // it — the installer certifying its own output is the exact failure the
+    // evidence ladder exists to prevent.
+    //
+    // What replaces it is the provider answering for itself. `agy agent` on
+    // 1.1.25 enumerates by name a file planted at this path, with no project
+    // setup, and the enumeration is a parse: agy type-checks agent
+    // frontmatter, and an agent it rejects is dropped from the listing
+    // silently. So the listing distinguishes a file agy accepted from a file
+    // that merely exists — which a directory listing never could.
     agentPath: (n) => `.gemini/config/agents/${n}.md`,
     commandPath: null,
     outputStylePath: null,
     rulePath: null,
     scriptsDir: ".gemini/config/scripts",
     envFile: ".gemini/config/.env.example",
+    // A third discovery mechanism, not a variant of the other two: agy reads
+    // one shared `hooks.json` in which each writer owns a top-level key of its
+    // own. Only five of the kit's events exist there, so the bindings that have
+    // no home are skipped per binding rather than remapped.
+    hooksDir: ANTIGRAVITY_HOOKS_DIR,
+    hooksConfigFile: ANTIGRAVITY_HOOKS_CONFIG_FILE,
+    hooksConfigFormat: "antigravity-hooks-json",
+    hooksInstall: true,
   },
   opencode: {
     rulesMode: "agents-md",
@@ -142,6 +229,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".opencode/scripts",
     envFile: ".opencode/.env.example",
+    ...noHooks(".opencode/hooks/av"),
   },
   omp: {
     // `.agents/skills`, NOT `~/.omp/agent/skills`. The upstream CLI writes the
@@ -161,6 +249,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
+    ...noHooks(".agents/hooks/av"),
   },
   grok: {
     // Claude-shaped, because that is what `~/.grok/` actually holds:
@@ -175,6 +264,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: (n) => `.grok/rules/${n}.md`,
     scriptsDir: ".grok/scripts",
     envFile: ".grok/.env.example",
+    ...noHooks(".grok/hooks/av"),
   },
   dsh: {
     // EVERY CELL IS UNVERIFIED, SO NONE OF THESE PATHS IS EVER USED. The config
@@ -192,6 +282,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
+    ...noHooks(".agents/hooks/av"),
   },
   generic: {
     rulesMode: "agents-md",
@@ -203,6 +294,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".agents/scripts",
     envFile: ".agents/.env.example",
+    ...noHooks(".agents/hooks/av"),
   },
   "test-provider": {
     rulesMode: "dir",
@@ -214,6 +306,7 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: (n) => `.test-provider/rules/${n}.md`,
     scriptsDir: ".test-provider/scripts",
     envFile: ".test-provider/.env.example",
+    ...noHooks(".test-provider/hooks/av"),
   },
 };
 
@@ -254,7 +347,6 @@ export function targetPathFor(id: ProviderId, kind: ArtifactKind, ctx: ResolverC
   const mk = (type: Artifact["type"], name: string) =>
     r.targetFor({ type, name } as Artifact, ctx);
   const dir = (p: string) => (p.endsWith("/") ? p : p + "/");
-  const base = ctx.scope === "global" ? ctx.home : ctx.cwd;
   switch (kind) {
     case "skill":
       return r.supports.skill ? dir(mk("skill", "") ?? "") : null;
@@ -271,7 +363,7 @@ export function targetPathFor(id: ProviderId, kind: ArtifactKind, ctx: ResolverC
     case "env":
       return r.supports.env ? r.envTarget(ctx) : null;
     case "hook":
-      return r.supports.hook ? `${base}/${CLAUDE_HOOKS_DIR}/*.cjs` : null;
+      return r.supports.hook ? `${r.hooksTarget(ctx)}/*.cjs` : null;
     case "outputStyle":
       return mk("outputStyle", "*");
     case "statusline":
@@ -279,7 +371,7 @@ export function targetPathFor(id: ProviderId, kind: ArtifactKind, ctx: ResolverC
       // A separate `.claude/statusline/` would need a third `_lib` lookup path
       // for one file; the settings key carries an absolute path either way, so
       // the location is invisible to the user.
-      return r.supports.statusline ? `${base}/${CLAUDE_HOOKS_DIR}/av-statusline.cjs` : null;
+      return r.supports.statusline ? `${r.hooksTarget(ctx)}/av-statusline.cjs` : null;
   }
 }
 
@@ -333,5 +425,13 @@ export function makeResolver(id: ProviderId): ProviderResolver {
     agentsMdRoot(ctx) {
       return pickBase(ctx);
     },
+    hooksTarget(ctx) {
+      return join(cfg.base("hook", ctx), cfg.hooksDir);
+    },
+    hooksConfigTarget(ctx) {
+      return cfg.hooksConfigFile === null ? null : join(cfg.base("hook", ctx), cfg.hooksConfigFile);
+    },
+    hooksConfigFormat: cfg.hooksConfigFormat,
+    hooksInstall: cfg.hooksInstall,
   };
 }

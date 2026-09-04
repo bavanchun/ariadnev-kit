@@ -28,6 +28,7 @@ try {
   }
 
   const { safeDisplayValue } = require(require('node:path').join(AV_LIB, 'session-state-renderer.cjs'));
+  const { emitDecision } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   async function main() {
   try {
@@ -96,10 +97,7 @@ try {
     // empty) produced contract-invalid output. Only `continue` and
     // `systemMessage` are emitted — the Codex Stop wire is deny_unknown_fields,
     // and `continue: true` is a no-op (only decision:"block" forces continuation).
-    process.stdout.write(JSON.stringify({
-      continue: true,
-      systemMessage: lines.join('\n')
-    }));
+    emitDecision('Stop', { continue: true, systemMessage: lines.join('\n') });
 
     process.exit(0);
   } catch (error) {

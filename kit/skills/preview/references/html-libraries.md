@@ -2,6 +2,8 @@
 
 Optional CDN libraries for cases where pure CSS/HTML isn't enough. Only include what the diagram actually needs — most diagrams need zero external JS.
 
+For poster-shaped infographic pages — a few oversized stat callouts plus one or two statement charts — load `html-antv-infographic.md` alongside this file; it covers AntV G2 and is the only library entry not repeated here.
+
 ## Mermaid.js — Diagramming Engine
 
 Use for flowcharts, sequence diagrams, ER diagrams, state machines, mind maps, class diagrams, and any diagram where automatic node positioning and edge routing saves effort. Mermaid handles layout — you handle theming.
@@ -423,6 +425,8 @@ The CSS overrides on the container (`.mermaid-wrap`) and page will still respond
 ## Chart.js — Data Visualizations
 
 Use for bar charts, line charts, pie/doughnut charts, radar charts, and other data-driven visualizations in dashboard-type diagrams. Overkill for static numbers — use pure SVG/CSS for simple progress bars and sparklines.
+
+For an infographic built around one or two statement charts rather than a dashboard grid, use AntV G2 instead — see `html-antv-infographic.md`.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>

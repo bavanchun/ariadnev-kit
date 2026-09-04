@@ -1,12 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Kit } from "../kit/kit-types.js";
 import type { ProviderResolver, ResolverCtx } from "../providers/resolver.js";
 import { mapCommand } from "../adapt/command-map.js";
-import { CLAUDE_HOOKS_DIR, CLAUDE_OUTPUT_STYLES_SIDECAR_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
-import { isVerified } from "../providers/spec-verified.js";
+import { OUTPUT_STYLES_SIDECAR_SUBDIR } from "../adapt/paths.js";
 import { buildRulesBlock } from "./agents-md.js";
-import type { HookBinding } from "./hook-settings-merge.js";
+import { supportedHookEvents, type HookBinding } from "./hook-settings-merge.js";
 import { compareBindings, hookBindingSpecs } from "../kit/hook-bindings.js";
 import type { HookBindingSpec } from "../kit/kit-types.js";
 import { agentContent, adaptText, skillFiles } from "./artifact-content.js";
@@ -51,13 +50,18 @@ function planCommands(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallO
 }
 
 // Output styles are plain Markdown the provider reads verbatim — no adaptation.
-// No provider's native output-style cell is verified today; where hooks are,
-// the styles still reach the session as a session-init hook sidecar (see
-// planHooks), and the skip reason says so instead of reading as a loss.
+// A provider whose native output-style cell is unverified is not cut off from
+// coding levels: wherever hooks are installed, the styles reach the session as
+// a session-init hook sidecar instead (see planHooks), which is why the skip
+// reason names that path rather than reading as a loss.
 function planOutputStyles(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   return kit.outputStyles.map((style): InstallOp => {
     if (!r.supports.outputStyle) {
-      const reason = isVerified(r.id, "hook")
+      // The sidecar only exists where hooks are actually written, so the
+      // consolation half of this message follows `hooksInstall` — a provider
+      // whose hook cell is graded but whose tree is not installed gets no
+      // sidecar, and must not be told it did.
+      const reason = r.hooksInstall
         ? `native surface unverified (${r.id}); installed as session-init hook sidecar instead`
         : `unsupported/unverified (${r.id})`;
       return skip("outputStyle", style.name, reason);
@@ -105,21 +109,24 @@ function planDirTree(srcDir: string, destDir: string, providerId: ProviderResolv
   return ops;
 }
 
-// Hooks are a Claude Code event contract — providers with an unverified
-// (provider, hook) cell get skip ops, never guessed paths.
+// Hooks are an event contract, and a provider gets them only when it has been
+// given a hooks surface of its own to receive them into. The switch is the
+// resolver's `hooksInstall`, not the `hook` evidence cell: grading a cell
+// documents that a layout is right, and must not start writing files.
 function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   if (kit.hooks.length === 0) return [];
-  if (!isVerified(r.id, "hook")) {
+  if (!r.hooksInstall) {
     return kit.hooks.map((h) => skip("hook", h.name, `unsupported/unverified (${r.id})`));
   }
-  const base = ctx.scope === "global" ? ctx.home : ctx.cwd;
+  const hooksDir = r.hooksTarget(ctx);
+  const hooksConfig = r.hooksConfigTarget(ctx);
   const ops: InstallOp[] = [];
   // Bindings are collected across every hook first, then ordered: within one
   // event the sequence is a contract (a guardrail before the gate that reads its
   // result), and hook discovery order is alphabetical, which is not it.
   const collected: { spec: HookBindingSpec; name: string; dest: string }[] = [];
   for (const hook of kit.hooks) {
-    const dest = join(base, CLAUDE_HOOKS_DIR, `${hook.name}.cjs`);
+    const dest = join(hooksDir, `${hook.name}.cjs`);
     ops.push({
       action: "write",
       kind: "hook",
@@ -132,7 +139,17 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
     }
   }
   collected.sort(compareBindings);
-  const bindings: HookBinding[] = collected.map(({ spec, dest }) => ({
+  // A registry with a fixed event set gets only the bindings it can dispatch.
+  // The rest are dropped rather than filed under an event that does exist:
+  // antigravity's `PreInvocation` would take any of them and fire it on every
+  // model turn, which is not what a session- or prompt-scoped hook means.
+  const dispatched = hooksConfig === null ? null : supportedHookEvents(r.hooksConfigFormat!);
+  const bindable = collected.filter(({ spec, name }) => {
+    if (dispatched === null || dispatched.includes(spec.event)) return true;
+    ops.push(skip("hook", name, `${r.id} dispatches no ${spec.event} — that binding is not installed`));
+    return false;
+  });
+  const bindings: HookBinding[] = bindable.map(({ spec, dest }) => ({
     event: spec.event,
     ...(spec.matcher ? { matcher: spec.matcher } : {}),
     command: [`node ${JSON.stringify(dest)}`, ...(spec.args ?? [])].join(" "),
@@ -140,31 +157,41 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   // Shared helpers required by hook bodies at runtime.
   const libDir = join(kit.root, "hooks", "_lib");
   if (existsSync(libDir)) {
-    ops.push(...planDirTree(libDir, join(base, CLAUDE_HOOKS_DIR, "_lib"), r.id, "hook"));
+    ops.push(...planDirTree(libDir, join(hooksDir, "_lib"), r.id, "hook"));
   }
   // The runtime marker the hook library reads beside `_lib`. It is a planned
   // write like every other owned file so the receipt, backups, and uninstall
-  // all cover it. The runtime named is the provider's id: hooks are only
-  // verified for Claude Code, and that is the id the hook library accepts.
+  // all cover it. The runtime named is the provider's id, which is also what
+  // the hook library validates the marker against — so a provider whose hooks
+  // become installable has to be added to that library's accepted set in the
+  // same change. Miss it and the tree installs, runs, and records nothing,
+  // silently, because those hooks fail open.
   ops.push({
     action: "write",
     kind: "hook",
     name: HOOK_RUNTIME_MARKER_FILE,
-    dest: hookRuntimeMarkerPath(base),
+    dest: hookRuntimeMarkerPath(hooksDir),
     content: hookRuntimeMarkerContent(r.id),
   });
   // Coding-level output styles are consumed by the session-init hook, not by
-  // the provider — the (claude-code, outputStyle) cell is unverified, so they
-  // do not go through planOutputStyles. They install as a hook sidecar under
-  // the second path the hook probes, leaving `.claude/output-styles/` to
-  // styles the user authors natively (which then win the probe). Written
-  // verbatim: the hook strips the frontmatter itself.
+  // the provider, so they are written here as well as wherever planOutputStyles
+  // sends them. This copy is the delivery path for the whole set of providers
+  // with a verified hook cell and an unverified native output-style surface —
+  // several today, and the set changes as cells are graded — so it is not
+  // redundant for the one provider whose native cell is now verified, and
+  // retiring it on that lift would silently drop coding levels for the rest.
+  //
+  // The hook probes the provider's own output-styles/ first and this directory
+  // second, so a style the user authors natively still wins. Both copies are
+  // written from the same `style.raw`, which is what makes the probe order
+  // unable to change the text a session gets. Written verbatim: the hook strips
+  // the frontmatter itself.
   for (const style of kit.outputStyles) {
     ops.push({
       action: "write",
       kind: "hook",
       name: `${style.name}.md`,
-      dest: join(base, CLAUDE_OUTPUT_STYLES_SIDECAR_DIR, `${style.name}.md`),
+      dest: join(hooksDir, OUTPUT_STYLES_SIDECAR_SUBDIR, `${style.name}.md`),
       content: style.raw,
     });
   }
@@ -172,10 +199,10 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   // bar — but it lives in the same owned directory and loads the same `_lib`,
   // so it is written here rather than through a parallel tree of its own.
   if (kit.statusline) {
-    if (!isVerified(r.id, "statusline")) {
+    if (!r.supports.statusline) {
       ops.push(skip("statusline", "av-statusline.cjs", `unsupported/unverified (${r.id})`));
     } else {
-      const dest = join(base, CLAUDE_HOOKS_DIR, "av-statusline.cjs");
+      const dest = join(hooksDir, "av-statusline.cjs");
       ops.push({
         action: "write",
         kind: "statusline",
@@ -183,24 +210,32 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
         dest,
         content: readFileSync(kit.statusline, "utf8"),
       });
-      ops.push({
-        action: "statusline-settings",
-        kind: "statusline",
-        name: "settings.json",
-        dest: join(base, CLAUDE_SETTINGS_FILE),
-        command: `node ${JSON.stringify(dest)}`,
-        ownedDir: join(base, CLAUDE_HOOKS_DIR),
-      });
+      if (hooksConfig !== null) {
+        ops.push({
+          action: "statusline-settings",
+          kind: "statusline",
+          name: basename(hooksConfig),
+          dest: hooksConfig,
+          command: `node ${JSON.stringify(dest)}`,
+          ownedDir: hooksDir,
+        });
+      }
     }
   }
 
-  ops.push({
-    action: "hook-settings",
-    kind: "hook",
-    name: "settings.json",
-    dest: join(base, CLAUDE_SETTINGS_FILE),
-    bindings,
-  });
+  // A provider that discovers hooks by directory alone gets its bodies, its
+  // `_lib` and its marker, and no settings file it never had.
+  if (hooksConfig !== null) {
+    ops.push({
+      action: "hook-settings",
+      kind: "hook",
+      name: basename(hooksConfig),
+      dest: hooksConfig,
+      bindings,
+      format: r.hooksConfigFormat!,
+      ownedDir: hooksDir,
+    });
+  }
   return ops;
 }
 

@@ -7,7 +7,7 @@ import { realClassifyDeps } from "../install/file-classification.js";
 import { backupPath, rotateBackups } from "../install/backup.js";
 import { removeStorageTree } from "../storage/operational-paths.js";
 import { withoutServer } from "../mcp/mcp-config.js";
-import { unmergeHookSettings, unmergeStatusLine } from "../install/hook-settings-merge.js";
+import { unmergeHooksConfig } from "../install/hook-settings-merge.js";
 import { removeAgentsBlock, readAgentsMd } from "../install/agents-md.js";
 import { planUninstall, planUninstallFromJournal, type PlanUninstallDeps, type UninstallOp } from "./uninstall-plan.js";
 import type { InstallJournal } from "../install/intent-journal.js";
@@ -68,9 +68,12 @@ export function executeUninstall(ops: UninstallOp[], opts: ExecuteUninstallOpts)
       }
       if (existsSync(op.path)) backupPath(op.path, opts.backupRoot, "settings", opts.scopeRoot);
       const existing = existsSync(op.path) ? readFileSync(op.path, "utf8") : "";
-      // The statusline is removed by the same pass, and only if it is ours: a
-      // bar the user configured themselves must survive an uninstall.
-      atomicWrite(op.path, unmergeStatusLine(unmergeHookSettings(existing, op.bindings), op.ownedDir ?? ""));
+      // Dispatched on the format the install wrote with, because a config that
+      // is not settings.json-shaped is not made safe by being edited as if it
+      // were. The statusline comes out in the same pass where the provider has
+      // one, and only if it is ours: a bar the user configured themselves must
+      // survive an uninstall.
+      atomicWrite(op.path, unmergeHooksConfig(op.format, existing, op.bindings, op.ownedDir));
       result.settingsUnmerged = true;
       continue;
     }

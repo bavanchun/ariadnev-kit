@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getResolver, PROVIDER_IDS } from "./index.js";
+import { getResolver, hookConfigTargets, PROVIDER_IDS } from "./index.js";
 import { CODEX_COMMANDS_DIR } from "../adapt/paths.js";
 import type { Artifact } from "../kit/kit-types.js";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
@@ -169,5 +169,46 @@ describe("resolver target matrix", () => {
     const r = getResolver("test-provider");
     expect(r.targetFor(art("skill", "x"), { ...ctx, scope: "global" }))
       .toBe("/home/u/.test-provider/skills/av-x");
+  });
+});
+
+// The hooks themselves find their provider's config dir by walking two levels up
+// from the tree they were installed into (`_lib/provider-paths.cjs`,
+// HOOKS_DEPTH_BELOW_CONFIG). A provider whose tree is shaped differently would
+// hand every hook the wrong config dir, silently, at runtime.
+describe("hooks tree shape", () => {
+  it("puts every provider's hooks exactly two levels below its config dir", () => {
+    for (const id of PROVIDER_IDS) {
+      expect(`${id}: ${getResolver(id).hooksTarget(ctx)}`).toMatch(/\/hooks\/av$/);
+    }
+  });
+
+  it("gives a provider a hook config format exactly when it has a config file", () => {
+    for (const id of PROVIDER_IDS) {
+      const r = getResolver(id);
+      expect(`${id}: ${r.hooksConfigTarget(ctx) === null}`).toBe(`${id}: ${r.hooksConfigFormat === null}`);
+    }
+  });
+});
+
+describe("hook config targets", () => {
+  const globalCtx = { home: "/home/u", cwd: "/proj", scope: "global" as const };
+
+  it("names the file each selected provider would merge into", () => {
+    expect(hookConfigTargets(["antigravity"], globalCtx)).toEqual([
+      "/home/u/.gemini/config/hooks.json",
+    ]);
+    expect(hookConfigTargets(["codex"], globalCtx)).toEqual(["/home/u/.codex/hooks.json"]);
+    expect(hookConfigTargets(["claude-code"], globalCtx)).toEqual([
+      "/home/u/.claude/settings.json",
+    ]);
+  });
+
+  it("is empty for providers whose install writes no binding registry", () => {
+    expect(hookConfigTargets(["cursor", "opencode"], globalCtx)).toEqual([]);
+  });
+
+  it("lists every distinct file when several providers are installed at once", () => {
+    expect(hookConfigTargets(["claude-code", "codex", "antigravity"], globalCtx)).toHaveLength(3);
   });
 });
