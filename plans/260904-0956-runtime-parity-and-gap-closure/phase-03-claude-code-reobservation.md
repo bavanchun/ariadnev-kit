@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Claude Code re-observation and native output styles"
-status: pending
+status: completed
 priority: P2
 effort: 5h
 dependencies: [0]
@@ -206,15 +206,15 @@ branch.
 
 ## Success Criteria
 
-- [ ] `spec-verified.ts`'s claude-code row records `observedVersion: "2.1.259"` and its own `observedOn` literal, not a constant shared with another provider.
-- [ ] The observation record names, per cell, whether it was re-checked against 2.1.259 or carried forward — no cell is silently re-dated.
-- [ ] The `outputStyle` cell sits at the rung the pre-decision table assigns, and its note quotes the probe surface and its literal result.
-- [ ] `~/.claude/output-styles/` is empty again after the probe, and the record says so.
-- [ ] If lifted: the six coding-level styles are written to `.claude/output-styles/` through `planOutputStyles`, and the native and sidecar copies are byte-identical.
-- [ ] A user-authored native style still wins `session-init`'s probe.
-- [ ] The sidecar survives in every branch, and neither comment at `install-plan.ts:53-56` / `162-170` still explains it by claude-code's cell being unverified.
-- [ ] README matrix regenerated; `matrix-drift.test.ts` green.
-- [ ] No other provider's row changed — verified by diffing `spec-verified.ts`.
+- [x] `spec-verified.ts`'s claude-code row records `observedVersion: "2.1.260"` and its own `observedOn` literal, not a constant shared with another provider.
+- [x] The observation record names, per cell, whether it was re-checked against 2.1.260 or carried forward — no cell is silently re-dated.
+- [x] The `outputStyle` cell sits at the rung the pre-decision table assigns, and its note quotes the probe surface and its literal result.
+- [x] `~/.claude/output-styles/` is empty again after the probe, and the record says so.
+- [x] If lifted: the six coding-level styles are written to `.claude/output-styles/` through `planOutputStyles`, and the native and sidecar copies are byte-identical.
+- [x] A user-authored native style still wins `session-init`'s probe.
+- [x] The sidecar survives in every branch, and neither comment at `install-plan.ts:53-56` / `162-170` still explains it by claude-code's cell being unverified.
+- [x] README matrix regenerated; `matrix-drift.test.ts` green.
+- [x] No other provider's row changed — verified by diffing `spec-verified.ts`.
 
 ## Risk Assessment
 
