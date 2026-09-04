@@ -145,11 +145,14 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
     toolNames: none("no verified equivalents — identity rewrite plus a capability footer"),
   },
   antigravity: {
-    observedVersion: null,
-    observedOn: null,
+    observedVersion: "1.1.25",
+    // Dates the agent listing and nothing else. Every other cell in this row is
+    // `convention` and was not observed that day — the row-level date says when
+    // the one observation happened, not that the row was re-checked.
+    observedOn: "2026-09-04",
     paths: {
       skill: convention("~/.gemini/config/skills is the root the upstream kit's dedicated emitter targets — its own text says it writes there and that workspace .agents/skills is NOT emitted — and ~/.gemini/config/ exists on disk as a real config tree (agents/, skills/, hooks.json, mcp_config.json, plugins/, sidecars/). Still `convention`: no antigravity surface was observed *reading* it"),
-      agent: convention("~/.gemini/config/agents/ holds 16 .md agent files written before ariadnev existed, so a full agent roster was installed to exactly this path by something else. Not `observed`: files being written there is not the provider reporting it loaded them"),
+      agent: observed("`agy agent` on 1.1.25 enumerated by name two kit agents produced by the real antigravity adapt pipeline, planted at ~/.gemini/config/agents/<name>.md and removed after. The listing is agy's own frontmatter parser and not a directory echo: an empty control directory lists nothing, and those same two files are dropped silently when `tools:` is a scalar or any `model:` key is present — which is why the adapter emits a tools sequence and no model key. What is still unobserved is a session using the agent, which needs a paid turn. Agent files left at this path by an older build carry the old frontmatter and will not list until they are reinstalled"),
       command: none("no observation, and no neutral convention for commands"),
       rules: convention("AGENTS.md is the cross-tool convention observed working in codex"),
       scripts: convention("same .agents tree as the skill root above"),

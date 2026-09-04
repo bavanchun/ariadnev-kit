@@ -185,15 +185,22 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     // from codex. The upstream kit ships a dedicated emitter for this target
     // whose own text states it writes skills under `~/.gemini/config/skills`
     // and that "workspace .agents/skills [is] not emitted" — the one layout
-    // this provider was being given. Corroborated on disk: `~/.gemini/config/`
-    // holds `agents/`, `skills/`, `hooks.json`, `mcp_config.json`, `plugins/`
-    // and `sidecars/`, and the 16 agent files there predate ariadnev, so
-    // something else wrote a full agent roster into exactly this path.
+    // this provider was being given. `~/.gemini/config/` is a real config tree
+    // on disk (`agents/`, `skills/`, `hooks.json`, `mcp_config.json`,
+    // `plugins/`, `sidecars/`), and a third party's skill sits in `skills/`.
     skillDir: ".gemini/config/skills",
-    // Was `null` with the justification "no observation, and no neutral
-    // convention for agents". Both halves have since been falsified: the 16
-    // `.md` files in `~/.gemini/config/agents/` are that observation, and they
-    // establish the convention.
+    // The path both of these used to rest on the agent files already sitting in
+    // `~/.gemini/config/agents/`. That was never evidence: those files came
+    // from this tool's own lineage, and a directory cannot report what reads
+    // it — the installer certifying its own output is the exact failure the
+    // evidence ladder exists to prevent.
+    //
+    // What replaces it is the provider answering for itself. `agy agent` on
+    // 1.1.25 enumerates by name a file planted at this path, with no project
+    // setup, and the enumeration is a parse: agy type-checks agent
+    // frontmatter, and an agent it rejects is dropped from the listing
+    // silently. So the listing distinguishes a file agy accepted from a file
+    // that merely exists — which a directory listing never could.
     agentPath: (n) => `.gemini/config/agents/${n}.md`,
     commandPath: null,
     outputStylePath: null,

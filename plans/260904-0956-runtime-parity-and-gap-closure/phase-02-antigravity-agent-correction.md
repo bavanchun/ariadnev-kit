@@ -105,11 +105,28 @@ which puts the fix in the adapt engine's frontmatter serializer
 function that today rewrites `allowed-tools` / `disallowed-tools` /
 `argument-hint` and never touches the agent `tools:` key at all.
 
-The evidence rung is stronger than the phase assumed: the provider's own listing
-command enumerated an artefact planted at the exact path the installer writes
-to, on 1.1.25. That is a load check, not a layout inference. It is still not
-`observed` — nothing was watched *using* the agent — but the note can say
-precisely what was enumerated.
+The evidence rung is stronger than the phase assumed, and stronger than this
+phase first recorded: the provider's own listing command enumerated an artefact
+planted at the exact path the installer writes to, on 1.1.25. This phase
+originally held the cell at `convention` on the grounds that nothing was watched
+*using* the agent. That is a rung the ladder does not define. The table's header
+grades `observed` as "listed it by name, **or** the content appeared in the
+prompt", and ADR 0006 repeats it; `opencode.agent` and `codex.agent` are both
+`observed` on exactly this kind of listing. The evidence here is stronger than
+either, because `agy agent` is a parse — an empty control directory lists
+nothing, and a file agy rejects is dropped from the listing — and because the
+two agents enumerated came out of the real adapt pipeline rather than being
+written by hand.
+
+So the cell is `observed`, with `observedOn: "2026-09-04"`. The alternative was
+not neutral: `spec-evidence.test.ts` requires a date whenever any cell in a row
+is `observed`, so "observed with no date" is not a state the table can hold, and
+grading strictly stronger evidence lower than opencode's would teach the next
+reader a rule the file does not state.
+
+One consequence to carry forward: the cell now rests on adapt output rather than
+on a path alone. A regression that re-emits `model:` or a scalar `tools:` would
+void the observation silently, which is what the frontmatter tests are for.
 
 The circular rationale is deleted regardless. It was defending a conclusion that
 happens to be right, on grounds that were never evidence, and leaving it in
@@ -163,11 +180,10 @@ so rather than leaving the asymmetry unexamined.
    corroboration.
 6. Leave `statusline` at `none`, with the settings.json key recorded in the note
    as a lead.
-7. Record `observedVersion: "1.1.25"` and leave `observedOn` `null` — this
-   session confirmed config layout, binary strings and hook schema, not a live
-   load. Note that `agy agent`'s output *is* a provider listing, so if step 1
-   lists the probe agent, the note may say so precisely without claiming a
-   session.
+7. Record `observedVersion: "1.1.25"` and `observedOn: "2026-09-04"`, the date
+   `agy agent` enumerated the adapted agents. The row comment must scope the
+   date to that one cell — every other cell in the row is `convention` and was
+   not observed that day.
 8. Keep `toolNames` at `none`; carry the binary-extracted mapping as a
    documented design hypothesis only.
 9. Merge-safely install into the multi-tenant `~/.gemini/config/hooks.json`.
@@ -370,7 +386,7 @@ install is how agents reach agy at all.
    cross-checked against the live `~/.gemini/config/hooks.json` and the binary
    strings (`"pre-tool hook %s not registered"`, `"prompt hooks are not
    currently supported"`). State in the note why it is not `observed`.
-10. Set `observedVersion: "1.1.25"`, keep `observedOn: null`, leave `statusline`
+10. Set `observedVersion: "1.1.25"` and `observedOn: "2026-09-04"`, leave `statusline`
     at `none` with the settings.json key as a recorded lead, and update
     `toolNames`'s note to say the mapping is static binary-string extraction and
     that flipping the cell needs a real `agy -p` run with the user's consent.
@@ -397,16 +413,17 @@ install is how agents reach agy at all.
 ## Success Criteria
 
 - [x] `plans/reports/` holds the probe transcript: both discovery roots, both file shapes, the per-key frontmatter bisection, and the confirmation on two unmodified kit agents.
-- [ ] No comment in `resolver.ts` or `spec-verified.ts` still justifies an antigravity cell by the presence of files this tool's lineage wrote.
-- [ ] `antigravity.paths.agent` and `agentPath` keep `~/.gemini/config/agents/<name>.md`, and the note says what `agy agent` enumerated there, on which version.
+- [x] No comment in `resolver.ts` or `spec-verified.ts` still justifies an antigravity cell by the presence of files this tool's lineage wrote.
+- [x] `antigravity.paths.agent` and `agentPath` keep `~/.gemini/config/agents/<name>.md`, and the note says what `agy agent` enumerated there, on which version.
 - [x] An antigravity-adapted agent carries `tools:` as a YAML sequence and no `model:` key, and every other provider's frontmatter is byte-identical to before.
 - [x] Two kit agents adapted for antigravity are enumerated by `agy agent` after a real install — the same check the probe ran by hand. Confirmed on 1.1.25: `Explore` and `kongming` through the real adapt pipeline, planted, both listed, then removed.
-- [ ] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them.
-- [ ] A heal test proves those paths *are* removed when a prior ariadnev receipt claims them.
+- [x] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them.
+- [x] A heal test proves those paths *are* removed when a prior ariadnev receipt claims them.
 - [ ] The `skill` cell's bounded gap is stated: 1.1.25 ships no `skill` subcommand, so no listing standard exists for it, and the cell rests on its own separate evidence.
 - [ ] `antigravity.hook` is `convention` with a note that states why it is not `observed`.
 - [ ] `antigravity.statusline` is `none`, and its note records the empty `statusLine` key as a lead rather than as evidence.
-- [ ] `observedVersion` is `"1.1.25"` and `observedOn` is `null`.
+- [x] `observedVersion` is `"1.1.25"` and `observedOn` is `"2026-09-04"`, scoped by a comment to the one cell that was observed.
+- [x] `antigravity.agent` is `observed`, and its note says what `agy agent` enumerated, that the listing is a parse rather than a directory echo, and what is still unobserved.
 - [ ] `toolNames` stays `none`; the mapping appears only as a marked hypothesis.
 - [ ] Merging into a `hooks.json` fixture holding Orca's entries preserves them across both the grouped and flat event shapes; a second merge is a no-op; removal deletes only `"av"`.
 - [ ] The 9 unmappable bindings are skipped with per-binding reasons, and none is remapped onto `PreInvocation`.

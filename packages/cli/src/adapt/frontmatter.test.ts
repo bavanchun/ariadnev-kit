@@ -45,6 +45,10 @@ describe("adaptFrontmatterTools", () => {
   });
 });
 
+// These pin the antigravity `agent` cell's evidence grade, not just a format.
+// That cell is `observed` because agy enumerated two agents this pipeline
+// produced; re-emitting a scalar `tools:` or a `model:` key would make agy drop
+// them again and quietly void the observation with no change to the table.
 describe("the agent `tools:` key, which only antigravity is strict about", () => {
   // agy parses agent frontmatter by type: unknown keys pass through, but a
   // known key of the wrong YAML shape makes it drop the whole agent silently.

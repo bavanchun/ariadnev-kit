@@ -65,9 +65,13 @@ describe("provider verification evidence", () => {
     expect(evidenceFor("codex", "skill").level).toBe("observed");
     expect(evidenceFor("opencode", "agent").level).toBe("observed");
     expect(evidenceFor("claude-code", "hook").level).toBe("observed");
-    // A provider with no inspection surface must not claim observation.
+    // agy's own `agent` subcommand is that listing surface, so the agent cell
+    // reaches the same rung the opencode and codex agent cells did. Its skill
+    // cell does not: 1.1.25 ships no `skill` subcommand, so there is nothing to
+    // hold it to the same standard.
+    expect(evidenceFor("antigravity", "agent").level).toBe("observed");
     expect(evidenceFor("antigravity", "skill").level).toBe("convention");
-    expect(SPEC_VERIFIED.antigravity.observedVersion).toBeNull();
+    expect(SPEC_VERIFIED.antigravity.observedOn).toBe("2026-09-04");
   });
 
   it("grades the codex hook registry on what codex records, not on a run we watched", () => {
@@ -116,6 +120,24 @@ describe("provider verification evidence", () => {
       expect(isVerified("dsh", kind), `dsh.${kind} is verified without evidence`).toBe(false);
     }
     expect(SPEC_VERIFIED.dsh.toolNames.verified).toBe(false);
+  });
+
+  it("grades antigravity on what agy answered, not on files this tool wrote", () => {
+    // The agent cell used to cite the .md files already sitting in
+    // ~/.gemini/config/agents/ as its evidence. That directory was filled by
+    // this tool's own lineage, so the citation was the installer certifying its
+    // own output — and a populated directory cannot report what reads it.
+    const agent = evidenceFor("antigravity", "agent");
+    expect(agent.note).not.toMatch(/16/);
+    expect(agent.note).toMatch(/agy agent/);
+    expect(SPEC_VERIFIED.antigravity.observedVersion).toBe("1.1.25");
+
+    // The same citation appeared in the resolver, next to the path it was
+    // defending, and a rule deleted in one file and left standing in the other
+    // is a rule the next reader still learns.
+    const resolver = readFileSync(join(repoRoot, "packages", "cli", "src", "providers", "resolver.ts"), "utf8");
+    const block = resolver.slice(resolver.indexOf("  antigravity: {"));
+    expect(block.slice(0, block.indexOf("commandPath"))).not.toMatch(/16 (agent|`\.md`|\.md)/);
   });
 
   it("excludes the internal mock from the evidence requirement", () => {
