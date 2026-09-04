@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Antigravity: correct the agent cell, lift the hook cell"
-status: pending
+status: in-progress
 priority: P1
 effort: 8h
 dependencies: [0]
@@ -80,11 +80,23 @@ workspace root `.agents/agents/` works too, in both shapes, via
 strictly: unknown keys pass through, but a *known* key whose value has the wrong
 YAML shape makes it drop the whole agent silently — no warning, no partial load.
 `tools:` must be a sequence. Every one of the 16 carries Claude Code's
-comma-separated string, and that single line is the whole cause: copying
-`Explore.md` and `kongming.md` verbatim and rewriting only `tools: Glob, Grep,
-Read, Bash` into `tools: ["Glob", "Grep", "Read", "Bash"]` makes both list.
-`model` and `commandExecutionPolicy` reject on their values too; no kit artefact
-emits either.
+comma-separated string, and rewriting only that line in verbatim copies of
+`Explore.md` and `kongming.md` — `tools: Glob, Grep, Read, Bash` into
+`tools: ["Glob", "Grep", "Read", "Bash"]` — makes both list.
+
+**`model:` is a second, independent rejection, and the kit does emit it.** The
+per-key bisection recorded `model` rejecting on one of agy's own ids; a later
+end-to-end run took that further and found no accepted shape at all. Planted on
+an agent agy had already listed, the kit's alias (`haiku`), a real id from
+`agy models` (`gemini-3.8-flash-low`), and an object wrapping that id each made
+the agent disappear from the listing again. Kit agents carry `model: haiku`,
+`model: opus`, and `model: fable`, so fixing `tools:` alone still leaves every
+one of them unloadable — running the real adapt pipeline over `Explore.md` and
+`kongming.md` with the `tools:` fix in place produced two files agy listed
+neither of, and stripping the `model:` line from those same two outputs made
+both list. The key cannot be translated, only dropped; the agent then runs on
+agy's default model. `commandExecutionPolicy` rejects too, and no kit artefact
+emits it.
 
 So the path is not the defect and `agentPath` stays
 `~/.gemini/config/agents/<name>.md`. The defect is in the **adapted content**,
@@ -138,8 +150,10 @@ so rather than leaving the asymmetry unexamined.
    with what was actually verified, in every case.
 2. Set `antigravity.paths.agent` and `agentPath` from the probe: the path
    stands, the note says what `agy agent` enumerated and on which version.
-3. Emit `tools:` as a YAML sequence for antigravity so the agents this installer
-   writes are the ones `agy` will load. State the `skill` cell's bounded gap:
+3. Emit `tools:` as a YAML sequence **and drop `model:`** for antigravity, so
+   the agents this installer writes are the ones `agy` will load. Both are
+   required: each key rejects the whole agent on its own. State the `skill`
+   cell's bounded gap:
    1.1.25 has no `skill` subcommand, so no listing standard exists for it.
 4. Handle the 16 files already on disk correctly — which is not the same as
    deleting them (see Architecture).
@@ -326,15 +340,15 @@ install is how agents reach agy at all.
    and the probe transcript from step 1.
 3. Write the failing assertions before the source change: the note no longer
    cites the 16 files as evidence, and `adaptFrontmatterTools` emits antigravity
-   a `tools:` sequence while leaving every other provider's frontmatter
-   byte-identical.
+   a `tools:` sequence and no `model` key, while leaving every other provider's
+   frontmatter byte-identical.
 4. Apply the change in `packages/cli/src/providers/spec-verified.ts` and rewrite
    the rationale at `packages/cli/src/providers/resolver.ts:112-134`. The
    replacement comment must state that a populated directory written by this
    tool's own lineage is not evidence — the rule the `omp` row already states at
    `spec-verified.ts:184-186` — and must state what the probe showed.
 5. Fix the serializer: `adaptFrontmatterTools` emits `tools:` as a sequence for
-   antigravity. Then a test proving the installer plans **no delete** for a path
+   antigravity and removes the `model` key there. Then a test proving the installer plans **no delete** for a path
    no ariadnev receipt claims, and a heal test for the case where a prior
    ariadnev receipt *does* claim those paths, proving they are removed. The
    install summary needs no foreign-files notice for this directory — the next
@@ -385,8 +399,8 @@ install is how agents reach agy at all.
 - [x] `plans/reports/` holds the probe transcript: both discovery roots, both file shapes, the per-key frontmatter bisection, and the confirmation on two unmodified kit agents.
 - [ ] No comment in `resolver.ts` or `spec-verified.ts` still justifies an antigravity cell by the presence of files this tool's lineage wrote.
 - [ ] `antigravity.paths.agent` and `agentPath` keep `~/.gemini/config/agents/<name>.md`, and the note says what `agy agent` enumerated there, on which version.
-- [ ] An antigravity-adapted agent carries `tools:` as a YAML sequence, and every other provider's frontmatter is byte-identical to before.
-- [ ] Two kit agents adapted for antigravity are enumerated by `agy agent` after a real install — the same check the probe ran by hand.
+- [x] An antigravity-adapted agent carries `tools:` as a YAML sequence and no `model:` key, and every other provider's frontmatter is byte-identical to before.
+- [x] Two kit agents adapted for antigravity are enumerated by `agy agent` after a real install — the same check the probe ran by hand. Confirmed on 1.1.25: `Explore` and `kongming` through the real adapt pipeline, planted, both listed, then removed.
 - [ ] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them.
 - [ ] A heal test proves those paths *are* removed when a prior ariadnev receipt claims them.
 - [ ] The `skill` cell's bounded gap is stated: 1.1.25 ships no `skill` subcommand, so no listing standard exists for it, and the cell rests on its own separate evidence.

@@ -151,3 +151,29 @@ carries a Claude-Code-shaped hook config with `$CLAUDE_PROJECT_DIR` and
   was not run.
 - `mainAgent: true` lists and `mainAgent: false` does not. Not pursued — no kit
   artefact emits that key.
+
+## Follow-up — the `model` key, and an end-to-end run
+
+Same day, same binary, after the `tools:` fix was implemented. Run through the
+real adapt pipeline (`adaptArtifact(..., "antigravity")`) rather than by hand,
+so the check exercises what an install would actually write.
+
+| Planted file | `model:` | Listed by `agy agent` |
+|---|---|---|
+| control, minimal, no `model` | absent | yes |
+| `Explore` / `kongming`, fully adapted | `haiku` / `fable` | **no** |
+| the same two outputs, `model:` line stripped | absent | yes |
+| minimal agent + `model: gemini-3.8-flash-low` | a real id from `agy models` | **no** |
+| minimal agent + `model: {id: gemini-3.8-flash-low}` | object | **no** |
+| minimal agent + `model: haiku` | Claude alias | **no** |
+
+No accepted shape was found. `model` therefore has to be dropped rather than
+translated, and the adapted agent runs on agy's default model.
+
+This matters more than the per-key table above suggested: kit agents carry
+`model: haiku`, `model: opus`, and `model: fable`, so the `tools:` fix alone
+leaves every one of them unloadable. With both changes in place, `Explore` and
+`kongming` adapted for antigravity are enumerated by `agy agent`.
+
+All planted files were removed. `~/.gemini/config/agents/` is back at its
+original 16 files, no `av-*` remaining, and the listing is empty again.
