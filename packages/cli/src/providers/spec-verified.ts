@@ -119,7 +119,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       rules: observed("the AGENTS.md managed block text appears in prompt-input"),
       scripts: convention("shares the .agents tree whose skill root was observed; script execution itself was not observed"),
       env: convention("template file only — nothing reports reading it"),
-      hook: none("no hook mechanism observed; hooks are a Claude Code event contract and nothing equivalent surfaced"),
+      hook: convention("`~/.codex/hooks.json` is codex's own hook registry — its `config.toml` carries a `[hooks.state]` table keying trust per `<source>:<event>:<group>:<hook>`, so the file is one codex itself reads and records decisions about. Not `observed`: trusting a hook is an interactive TUI step, so no run of ours was seen to fire"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
       statusline: none("no statusline surface observed; nothing in prompt-input or the config reports one"),
     },

@@ -212,6 +212,7 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
       dest: hooksConfig,
       bindings,
       format: r.hooksConfigFormat!,
+      ownedDir: hooksDir,
     });
   }
   return ops;

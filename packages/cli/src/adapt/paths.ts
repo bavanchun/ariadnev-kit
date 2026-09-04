@@ -45,6 +45,16 @@ export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
 
 /**
+ * Codex's hooks tree and the file it discovers bindings in.
+ *
+ * `hooks.json` sits beside `config.toml` rather than inside the hooks tree
+ * because that is where Codex looks: it reads `~/.codex/hooks.json`, the
+ * project-local `<repo>/.codex/hooks.json`, and each plugin's bundled copy.
+ */
+export const CODEX_HOOKS_DIR = ".codex/hooks/av";
+export const CODEX_HOOKS_CONFIG_FILE = ".codex/hooks.json";
+
+/**
  * Where the session-init hook reads the kit's coding-level output styles from,
  * relative to whichever hooks tree the hook was installed into. They live inside
  * the hook's own install dir because the hook, not the provider, consumes them —

@@ -5,7 +5,13 @@ import {
   type ArtifactKind,
   isVerified,
 } from "./spec-verified.js";
-import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE, installedSkillDirName } from "../adapt/paths.js";
+import {
+  CLAUDE_HOOKS_DIR,
+  CLAUDE_SETTINGS_FILE,
+  CODEX_HOOKS_CONFIG_FILE,
+  CODEX_HOOKS_DIR,
+  installedSkillDirName,
+} from "../adapt/paths.js";
 
 export type Scope = "project" | "global";
 
@@ -18,7 +24,7 @@ export interface ResolverCtx {
 export type RulesMode = "dir" | "mdc" | "agents-md";
 
 /** Which merger writes a provider's hook-binding registry. */
-export type HooksConfigFormat = "claude-settings-json";
+export type HooksConfigFormat = "claude-settings-json" | "codex-hooks-json";
 
 export interface ProviderResolver {
   id: ProviderId;
@@ -142,7 +148,13 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     rulePath: null,
     scriptsDir: ".agents/ariadnev/scripts",
     envFile: ".agents/ariadnev/.env.example",
-    ...noHooks(".codex/hooks/av"),
+    // Codex discovers hooks from a JSON file of its own, not from the tree, so
+    // the tree alone activates nothing — the merge into `hooks.json` is what
+    // registers them, and Codex then asks the user to trust each one.
+    hooksDir: CODEX_HOOKS_DIR,
+    hooksConfigFile: CODEX_HOOKS_CONFIG_FILE,
+    hooksConfigFormat: "codex-hooks-json",
+    hooksInstall: true,
   },
   cursor: {
     rulesMode: "mdc",

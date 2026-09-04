@@ -171,3 +171,22 @@ describe("resolver target matrix", () => {
       .toBe("/home/u/.test-provider/skills/av-x");
   });
 });
+
+// The hooks themselves find their provider's config dir by walking two levels up
+// from the tree they were installed into (`_lib/provider-paths.cjs`,
+// HOOKS_DEPTH_BELOW_CONFIG). A provider whose tree is shaped differently would
+// hand every hook the wrong config dir, silently, at runtime.
+describe("hooks tree shape", () => {
+  it("puts every provider's hooks exactly two levels below its config dir", () => {
+    for (const id of PROVIDER_IDS) {
+      expect(`${id}: ${getResolver(id).hooksTarget(ctx)}`).toMatch(/\/hooks\/av$/);
+    }
+  });
+
+  it("gives a provider a hook config format exactly when it has a config file", () => {
+    for (const id of PROVIDER_IDS) {
+      const r = getResolver(id);
+      expect(`${id}: ${r.hooksConfigTarget(ctx) === null}`).toBe(`${id}: ${r.hooksConfigFormat === null}`);
+    }
+  });
+});

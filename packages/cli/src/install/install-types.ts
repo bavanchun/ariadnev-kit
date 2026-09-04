@@ -76,6 +76,11 @@ export interface HookSettingsOp {
    * and an action that reaches only some of those reaches disk unreconciled.
    */
   format: HooksConfigFormat;
+  /**
+   * The hooks tree this install owns. A merger that shares its config file with
+   * other writers recognises its own entries by this path and by nothing else.
+   */
+  ownedDir: string;
 }
 
 export interface StatusLineOp {

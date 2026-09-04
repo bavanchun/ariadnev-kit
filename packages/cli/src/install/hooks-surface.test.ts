@@ -199,10 +199,10 @@ describe("hooks tree relocation", () => {
   });
 });
 
-describe("a provider with no hooks surface of its own", () => {
-  // codex installs no hooks today. The assertion is not that it is skipped —
-  // it is that nothing it plans, installs or uninstalls names another
-  // provider's config file, which is the file the old hard-wire reached for.
+describe("a second provider that installs hooks of its own", () => {
+  // The assertion is not that codex is skipped — it installs hooks now. It is
+  // that nothing it plans, installs or uninstalls names another provider's
+  // config file, which is the file the old hard-wire reached for.
   it("plans nothing into another provider's tree", () => {
     const ops = plan(makeResolver("codex"));
     for (const dest of destinations(ops)) {
@@ -210,25 +210,47 @@ describe("a provider with no hooks surface of its own", () => {
     }
   });
 
-  it("unmerges from no settings file, even with applied bindings on record", () => {
-    const withBindings: Receipt = {
-      schemaVersion: 1,
-      ariadnevVersion: "0.4.0",
-      installs: {
-        codex: {
-          timestamp: "t",
-          scope: "global",
-          files: [],
-          agentsMdManaged: false,
-          hookBindings: [{ event: "SessionStart", command: 'node "/home/u/.codex/hooks/av/session-init.cjs"', applied: true }],
-          skipped: [],
-        },
-      },
-    };
-    const ops = planUninstall(withBindings, "codex", CTX.home, CTX.cwd, {
+  it("unmerges from its own registry, with its own merger and its own tree", () => {
+    const ops = planUninstall(withCodexBindings(), "codex", CTX.home, CTX.cwd, {
+      fileExists: () => false,
+      readFileContent: () => "",
+    });
+    const unmerge = ops.find((op) => op.action === "unmerge-settings");
+    expect(unmerge?.action === "unmerge-settings" && unmerge.path).toBe("/home/u/.codex/hooks.json");
+    expect(unmerge?.action === "unmerge-settings" && unmerge.format).toBe("codex-hooks-json");
+    expect(unmerge?.action === "unmerge-settings" && unmerge.ownedDir).toBe(CODEX_HOOKS);
+  });
+});
+
+describe("a provider with no hook registry at all", () => {
+  // Bindings can sit on a receipt written when the provider had a surface, or
+  // by a build that recorded them without applying them. Either way there is no
+  // file to take them out of, and reaching for one means reaching for somebody
+  // else's.
+  it("unmerges from no file, even with applied bindings on record", () => {
+    const receipt = withCodexBindings();
+    const asCursor: Receipt = { ...receipt, installs: { cursor: receipt.installs.codex! } };
+    const ops = planUninstall(asCursor, "cursor", CTX.home, CTX.cwd, {
       fileExists: () => false,
       readFileContent: () => "",
     });
     expect(ops.some((op) => op.action === "unmerge-settings")).toBe(false);
   });
 });
+
+function withCodexBindings(): Receipt {
+  return {
+    schemaVersion: 1,
+    ariadnevVersion: "0.4.0",
+    installs: {
+      codex: {
+        timestamp: "t",
+        scope: "global",
+        files: [],
+        agentsMdManaged: false,
+        hookBindings: [{ event: "SessionStart", command: 'node "/home/u/.codex/hooks/av/session-init.cjs"', applied: true }],
+        skipped: [],
+      },
+    },
+  };
+}

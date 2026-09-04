@@ -11,7 +11,7 @@ import {
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { HookBinding } from "../install/hook-settings-merge.js";
 import type { InstallJournal } from "../install/intent-journal.js";
-import { makeResolver } from "../providers/resolver.js";
+import { makeResolver, type HooksConfigFormat } from "../providers/resolver.js";
 
 export class UninstallPlanError extends Error {
   constructor(message: string) {
@@ -35,8 +35,14 @@ export interface UnmergeSettingsOp {
   action: "unmerge-settings";
   path: string;
   bindings: HookBinding[];
-  /** Directory this install owns — how its own statusline entry is recognised. */
-  ownedDir?: string;
+  /** Which merger wrote the file, and so which one has to take the entries out. */
+  format: HooksConfigFormat;
+  /**
+   * Directory this install owns — how its own entries are recognised in a file
+   * other writers share. Required, not optional: an empty value matches every
+   * command in the file, and this is the path that deletes.
+   */
+  ownedDir: string;
 }
 
 export interface RemoveAgentsBlockOp {
@@ -249,6 +255,7 @@ export function planUninstall(
       action: "unmerge-settings",
       path: hooksConfig,
       bindings: applied.map(({ event, matcher, command }) => ({ event, matcher, command })),
+      format: resolver.hooksConfigFormat!,
       ownedDir: resolver.hooksTarget({ home, cwd, scope: install.scope }),
     });
   }

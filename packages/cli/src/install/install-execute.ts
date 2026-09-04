@@ -51,7 +51,7 @@ export interface ExecuteOpts {
 
 function opContent(op: Exclude<InstallOp, { action: "skip" }>): string | Buffer {
   if (op.action === "agents-md") return mergeAgentsBlock(readAgentsMd(op.dest), op.block);
-  if (op.action === "hook-settings") return mergeHooksConfig(op.format, readAgentsMd(op.dest), op.bindings);
+  if (op.action === "hook-settings") return mergeHooksConfig(op.format, readAgentsMd(op.dest), op.bindings, op.ownedDir);
   if (op.action === "statusline-settings") {
     // `applied: false` means the user already has a statusline of their own.
     // Returning the file unchanged writes it back byte-identical, which the

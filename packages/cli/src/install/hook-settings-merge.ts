@@ -3,6 +3,7 @@
 // writes the returned string; this module never touches the filesystem.
 
 import type { HooksConfigFormat } from "../providers/resolver.js";
+import { mergeCodexHooks, unmergeCodexHooks } from "./codex-hooks-merge.js";
 
 export interface HookBinding {
   /** Claude Code hook event, e.g. "SessionStart". */
@@ -49,10 +50,34 @@ export function mergeHooksConfig(
   format: HooksConfigFormat,
   existing: string,
   bindings: HookBinding[],
+  ownedDir: string,
 ): string {
   switch (format) {
     case "claude-settings-json":
       return mergeHookSettings(existing, bindings);
+    case "codex-hooks-json":
+      return mergeCodexHooks(existing, bindings, ownedDir);
+  }
+}
+
+/**
+ * Reverse of `mergeHooksConfig`, dispatching on the same discriminator.
+ *
+ * The statusline rides along in Claude Code's settings.json and comes out in the
+ * same pass; codex has no statusline surface, so its config is only ever asked
+ * about hooks.
+ */
+export function unmergeHooksConfig(
+  format: HooksConfigFormat,
+  existing: string,
+  bindings: HookBinding[],
+  ownedDir: string,
+): string {
+  switch (format) {
+    case "claude-settings-json":
+      return unmergeStatusLine(unmergeHookSettings(existing, bindings), ownedDir);
+    case "codex-hooks-json":
+      return unmergeCodexHooks(existing, ownedDir);
   }
 }
 

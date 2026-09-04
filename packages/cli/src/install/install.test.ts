@@ -304,7 +304,7 @@ describe("executeInstall + dry-run", () => {
     expect(recorded).toContain(".claude/hooks/av/.ariadnev-runtime.json");
   });
 
-  it("hooks: non-claude providers skip-and-log", () => {
+  it("hooks: a provider with no hook evidence skips and logs", () => {
     const kitRoot = join(sandbox, "kit-with-hooks2");
     mkdirSync(join(kitRoot, "skills"), { recursive: true });
     const hookDir = join(kitRoot, "hooks", "privacy-block");
@@ -315,12 +315,34 @@ describe("executeInstall + dry-run", () => {
       JSON.stringify({ event: "PreToolUse", matcher: "Read", description: "block secrets" }),
     );
     const hookKit = loadKit(kitRoot);
-    const ops = planInstall(hookKit, getResolver("codex"), ctx);
+    const ops = planInstall(hookKit, getResolver("cursor"), ctx);
     const hookOps = ops.filter((o) => o.kind === "hook");
     expect(hookOps.length).toBeGreaterThan(0);
     expect(hookOps.every((o) => o.action === "skip")).toBe(true);
-    const { results: [res] } = installKit(hookKit, ["codex"], ctx, { timestamp: "20260603-000070" });
+    const { results: [res] } = installKit(hookKit, ["cursor"], ctx, { timestamp: "20260603-000070" });
     expect(res.skipped.some((s) => s.kind === "hook" && /unverified/.test(s.reason))).toBe(true);
+  });
+
+  it("hooks: codex writes its own tree and registers in its own hooks.json", () => {
+    const kitRoot = join(sandbox, "kit-with-hooks3");
+    mkdirSync(join(kitRoot, "skills"), { recursive: true });
+    const hookDir = join(kitRoot, "hooks", "privacy-block");
+    mkdirSync(hookDir, { recursive: true });
+    writeFileSync(join(hookDir, "hook.cjs"), "process.exit(0);\n");
+    writeFileSync(
+      join(hookDir, "hook.json"),
+      JSON.stringify({ event: "PreToolUse", matcher: "Read", description: "block secrets" }),
+    );
+    const hookKit = loadKit(kitRoot);
+    const ops = planInstall(hookKit, getResolver("codex"), ctx);
+    const merge = ops.find((o) => o.action === "hook-settings");
+    expect(merge?.action === "hook-settings" && merge.dest).toBe(join(ctx.home, ".codex/hooks.json"));
+    expect(merge?.action === "hook-settings" && merge.format).toBe("codex-hooks-json");
+    // Nothing codex plans may name another provider's tree — the whole point of
+    // giving it a surface of its own.
+    for (const op of ops) {
+      if (op.action !== "skip") expect(op.dest).not.toContain(".claude");
+    }
   });
 
   it("atomic: a pre-existing file is fully replaced, never half", () => {
@@ -475,10 +497,16 @@ describe("full-kit install smoke (v2 roster)", () => {
     expect(Object.values(installed).flat()).toHaveLength(19);
   });
 
-  it("codex: skills + agents install, every hook skips and logs", () => {
-    const { results: [res] } = installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110" });
+  it("codex: skills, agents and hooks all install into codex's own trees", () => {
+    installKit(kit, ["codex"], ctx, { timestamp: "20260603-000110", applyHookSettings: true });
     expect(existsSync(join(ctx.home, ".agents/skills/av-brainstorm/SKILL.md"))).toBe(true);
     expect(existsSync(join(ctx.home, ".codex/agents/explore.toml"))).toBe(true);
-    expect(res.skipped.filter((s) => s.kind === "hook").length).toBe(HOOKS.length);
+    for (const name of HOOKS) {
+      expect(existsSync(join(ctx.home, ".codex/hooks/av", `${name}.cjs`))).toBe(true);
+    }
+    // Nothing lands in Claude Code's tree, and its settings file is untouched.
+    expect(existsSync(join(ctx.home, ".codex/hooks.json"))).toBe(true);
+    expect(existsSync(join(ctx.cwd, ".claude/settings.json"))).toBe(false);
+    expect(existsSync(join(ctx.home, ".claude/hooks/av"))).toBe(false);
   });
 });
