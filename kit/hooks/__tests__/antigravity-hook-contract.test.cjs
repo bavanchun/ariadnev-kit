@@ -34,7 +34,14 @@ function sandbox(runtime) {
   fs.mkdirSync(path.join(project, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(project, 'package.json'), '{"name":"sandbox"}\n');
   const hooks = path.join(root, 'hooks');
-  fs.cpSync(HOOKS_DIR, hooks, { recursive: true });
+  // `.logs` is written by whatever hook ran last and is not part of the corpus.
+  // Copying it races every other suite that runs a hook from this same checkout:
+  // the directory can be created or removed between the walk and the read, and
+  // `cpSync` fails the whole copy on an entry that vanished under it.
+  fs.cpSync(HOOKS_DIR, hooks, {
+    recursive: true,
+    filter: (src) => path.basename(src) !== '.logs'
+  });
   fs.writeFileSync(
     path.join(hooks, '.ariadnev-runtime.json'),
     `${JSON.stringify({ schemaVersion: 1, runtime })}\n`
