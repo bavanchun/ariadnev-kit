@@ -3,7 +3,7 @@ phase: 2
 title: "Antigravity: correct the agent cell, lift the hook cell"
 status: pending
 priority: P1
-effort: 6h
+effort: 8h
 dependencies: [0]
 ---
 
@@ -64,24 +64,53 @@ populated files — consistent with `~/.gemini/config/agents/*.md` not being a
 discovery root, and with the binary naming a *directory-per-agent* shape
 (`.agents/agents/<name>/agent.md`) rather than a flat `<name>.md`.
 
-### How this phase decides
+### What the probe found
 
-Step 1 is a **free shape probe**: plant one agent as
-`<workspace>/.agents/agents/av-probe/agent.md`, run `agy agent`, and see whether
-it lists. `agy agent` is a local listing command; it makes no model call and
-spends no credits. The result sets the cell:
+Step 1 has run. The transcript is
+`plans/reports/probe-260904-1246-antigravity-agent-discovery.md`; no model call,
+no credits. It took a third outcome neither pre-decided branch predicted.
 
-- **Lists** → `agentPath` becomes `.agents/agents/<name>/agent.md`, cell is
-  `convention` (the path is the neutral `.agents/` layout, and the provider's
-  own listing command enumerated the artefact — the strongest rung reachable
-  without a session).
-- **Does not list** → `agentPath` becomes `null` and the cell is `none`. The
-  installer skips and logs, which is correct: writing agents to a root nothing
-  reads is worse than writing none.
+**`~/.gemini/config/agents/` is a real discovery root.** A file planted there is
+enumerated by bare `agy agent` immediately, with no project setup, in both the
+flat (`<name>.md`) and directory-per-agent (`<name>/agent.md`) shapes. The
+workspace root `.agents/agents/` works too, in both shapes, via
+`agy --add-dir <absolute path>`.
 
-Either way the falsified rationale is deleted and replaced with what was
-actually checked. The phase is not blocked on the outcome; both branches are
-fully specified below.
+**The 16 files are rejected for their content.** `agy` parses agent frontmatter
+strictly: unknown keys pass through, but a *known* key whose value has the wrong
+YAML shape makes it drop the whole agent silently — no warning, no partial load.
+`tools:` must be a sequence. Every one of the 16 carries Claude Code's
+comma-separated string, and that single line is the whole cause: copying
+`Explore.md` and `kongming.md` verbatim and rewriting only `tools: Glob, Grep,
+Read, Bash` into `tools: ["Glob", "Grep", "Read", "Bash"]` makes both list.
+`model` and `commandExecutionPolicy` reject on their values too; no kit artefact
+emits either.
+
+So the path is not the defect and `agentPath` stays
+`~/.gemini/config/agents/<name>.md`. The defect is in the **adapted content**,
+which puts the fix in the adapt engine's frontmatter serializer
+(`adaptFrontmatterTools`, `packages/cli/src/adapt/frontmatter.ts:63-81`) — a
+function that today rewrites `allowed-tools` / `disallowed-tools` /
+`argument-hint` and never touches the agent `tools:` key at all.
+
+The evidence rung is stronger than the phase assumed: the provider's own listing
+command enumerated an artefact planted at the exact path the installer writes
+to, on 1.1.25. That is a load check, not a layout inference. It is still not
+`observed` — nothing was watched *using* the agent — but the note can say
+precisely what was enumerated.
+
+The circular rationale is deleted regardless. It was defending a conclusion that
+happens to be right, on grounds that were never evidence, and leaving it in
+place would teach the next reader the wrong rule.
+
+**`agy skill list` does not exist.** 1.1.25 has `agent`, `agents`, `changelog`,
+`help`, `install`, `mcp`, `mic-serve`, `models`, `plugin`, `plugins`, `update`.
+Requirement 3 and step 1's second half cannot be run as written, so the `skill`
+cell cannot be held to the same listing standard as `agent`. Its separate
+evidence — a third party's `obsidian-second-brain-note` in
+`~/.gemini/config/skills/` — is untouched by this probe and stands on its own.
+The phase states that asymmetry as a bounded gap instead of pretending to close
+it.
 
 ### The other cells
 
@@ -107,10 +136,11 @@ so rather than leaving the asymmetry unexamined.
 
 1. Replace the falsified rationale in both `spec-verified.ts` and `resolver.ts`
    with what was actually verified, in every case.
-2. Run the free `agy agent` shape probe and set `antigravity.paths.agent` and
-   `agentPath` from its result, per the two branches above.
-3. Run `agy skill list` and confirm or demote the `skill` cell on the same
-   standard.
+2. Set `antigravity.paths.agent` and `agentPath` from the probe: the path
+   stands, the note says what `agy agent` enumerated and on which version.
+3. Emit `tools:` as a YAML sequence for antigravity so the agents this installer
+   writes are the ones `agy` will load. State the `skill` cell's bounded gap:
+   1.1.25 has no `skill` subcommand, so no listing standard exists for it.
 4. Handle the 16 files already on disk correctly — which is not the same as
    deleting them (see Architecture).
 5. Lift `antigravity.paths.hook` `none` → `convention`, citing the vendor's
@@ -190,8 +220,37 @@ Two cases, and the phase must handle both:
   did not write, on the strength of recognising their names, is exactly the
   ownership violation `install-heal.ts`'s hash record exists to prevent.
 
-The install summary therefore names the directory and says the files there are
-not ariadnev's to remove, with the `rm` the user can run if they want it gone.
+The probe narrows what "handle correctly" means here. Those 16 paths are exactly
+the ones this installer writes, so the frontmatter fix does not orphan or delete
+anything: the next install overwrites each of them with an agent `agy` can
+actually parse. Nothing is ever removed on the strength of a recognised name,
+and the no-delete-without-a-receipt invariant is still worth a test — it is the
+rule that keeps the *next* provider's remediation honest.
+
+### Installing hooks means teaching `kit/` a third runtime
+
+The phase was written as touching no file under `kit/`. Turning `hooksInstall`
+on for antigravity makes that false, and the reason is not cosmetic:
+
+- `kit/hooks/_lib/runtime-state-identity.cjs:13` is
+  `SUPPORTED_RUNTIMES = new Set(['claude-code', 'codex'])`, and three separate
+  guards (lines 93, 124, 141) reject a record whose runtime is not in it. An
+  antigravity marker makes every one of them return `null`, so the hooks that
+  key state on session identity do nothing and say nothing.
+- `kit/hooks/_lib/hook-output.cjs`'s `resolveRuntime` is
+  `runtime === 'codex' ? 'codex' : DEFAULT_RUNTIME`. Every other value collapses
+  to `claude-code`, so an antigravity hook would emit Claude Code's
+  `hookSpecificOutput.permissionDecision` envelope into a runtime whose
+  `PreToolUse` schema expects `{"decision": "allow"|"deny"|"ask"|"force_ask"}`.
+  That is issue #134's failure mode again, against a third provider.
+
+So the emitter gets an antigravity branch with that runtime's own decision
+vocabulary per event, `SUPPORTED_RUNTIMES` gains the third value, and the
+embedded kit is regenerated — which makes this phase one of the writers deferring
+to phase 0's single-writer rule for `kit-embedded.generated.ts`, not an exception
+to it. `doctor/diagnose.ts` and `doctor/hook-repair.ts` read the same registry
+and marker, so both have to recognise the third runtime or `av doctor` reports a
+correct antigravity install as broken.
 
 ### Tool-name mapping is a hypothesis, not evidence
 
@@ -236,6 +295,13 @@ install is how agents reach agy at all.
 - `plans/reports/` observation record: the probe transcript, the guide excerpt, the binary strings, the 16 filenames and their mtime, and the `agy skill list` output.
 
 **Modify**
+- `packages/cli/src/adapt/frontmatter.ts:63-81` — emit the agent `tools:` key as a YAML sequence for antigravity; today the function never looks at it.
+- `packages/cli/src/adapt/frontmatter.test.ts` — the failing assertion for that, and proof no other provider's output changes.
+- `kit/hooks/_lib/hook-output.cjs` — an antigravity branch in `resolveRuntime` and the per-event decision vocabulary behind it.
+- `kit/hooks/_lib/runtime-state-identity.cjs:13` — `SUPPORTED_RUNTIMES` gains the third runtime.
+- `packages/cli/src/doctor/diagnose.ts`, `packages/cli/src/doctor/hook-repair.ts` — recognise the third runtime, so a correct install is not reported as broken.
+- `packages/cli/src/install/hook-settings-merge.ts` — `mergeHooksConfig` / `unmergeHooksConfig` gain the `"antigravity-hooks-json"` case; the snippet renderer reads `merged.hooks`, which is `{}` for a named-key file and needs a format-aware path.
+- `packages/cli/src/kit/kit-embedded.generated.ts` — regenerated, never hand-edited.
 - `packages/cli/src/providers/spec-verified.ts:132-151` — `agent` per the probe branch; `hook` → `convention`; `statusline` note; `observedVersion: "1.1.25"`, `observedOn: null`; `toolNames` note names the extraction method.
 - `packages/cli/src/providers/resolver.ts:112-134` — replace the falsified rationale comment; set `agentPath` per the probe branch; fill antigravity's Phase 0 hooks fields for `.gemini/config`.
 - `packages/cli/src/providers/provider-matrix.test.ts:33-36` — the antigravity agent expectation currently asserts `verified: true`.
@@ -250,32 +316,30 @@ install is how agents reach agy at all.
 
 ## Implementation Steps
 
-1. **The probe, first, before any source change.** In a scratch git workspace:
-   write one agent as `.agents/agents/av-probe/agent.md` with the kit's own
-   frontmatter, run `agy agent`, and capture the output. In the same pass run
-   `agy skill list` against `~/.gemini/config/skills/` and capture whether
-   `obsidian-second-brain-note` is enumerated. Also try the flat shape
-   `.agents/agents/av-probe.md` so the directory-vs-file question is answered
-   rather than assumed. **No model call, no credits** — `agy agent` and
-   `agy skill list` are local listings. Write the transcript into
-   `plans/reports/` as the evidence record.
+1. ~~The probe.~~ **Done** — `plans/reports/probe-260904-1246-antigravity-agent-discovery.md`.
+   Both roots, both shapes, the per-key frontmatter bisection, and the
+   confirmation on two unmodified kit agents. `agy skill list` does not exist in
+   1.1.25, so that half of the step is unrunnable and is recorded as such.
 2. Record the evidence: the guide's type table, the discovery-locations list,
    the binary strings (`.agents/agents/`, `stepfile_uriSKILL.mdagent.md`, the
    frontmatter vocabulary counts), the 16 filenames with their 2026-08-08 mtime,
    and the probe transcript from step 1.
-3. Write the failing assertions before the source change, per the branch step 1
-   selected. Both branches assert that the note no longer cites the 16 files as
-   evidence.
+3. Write the failing assertions before the source change: the note no longer
+   cites the 16 files as evidence, and `adaptFrontmatterTools` emits antigravity
+   a `tools:` sequence while leaving every other provider's frontmatter
+   byte-identical.
 4. Apply the change in `packages/cli/src/providers/spec-verified.ts` and rewrite
    the rationale at `packages/cli/src/providers/resolver.ts:112-134`. The
    replacement comment must state that a populated directory written by this
    tool's own lineage is not evidence — the rule the `omp` row already states at
    `spec-verified.ts:184-186` — and must state what the probe showed.
-5. Add the foreign-files notice to the install summary
-   (`install-command.ts:123-137`) naming `~/.gemini/config/agents/`, and a test
-   proving the installer plans **no delete** for a path no ariadnev receipt
-   claims. Separately, a heal test for the case where a prior ariadnev receipt
-   *does* claim those paths, proving they are removed.
+5. Fix the serializer: `adaptFrontmatterTools` emits `tools:` as a sequence for
+   antigravity. Then a test proving the installer plans **no delete** for a path
+   no ariadnev receipt claims, and a heal test for the case where a prior
+   ariadnev receipt *does* claim those paths, proving they are removed. The
+   install summary needs no foreign-files notice for this directory — the next
+   install overwrites those 16 paths with parseable agents — so
+   `install-command.ts` is left alone unless the tests say otherwise.
 6. Write the failing `antigravity-hooks-merge.test.ts`: fixture containing
    Orca's `"orca-status"` key across all five events; merging ariadnev's `"av"`
    key must leave Orca's untouched; a second merge is a no-op; removal deletes
@@ -307,19 +371,25 @@ install is how agents reach agy at all.
     `matrix-drift.test.ts`, and update
     `docs/decisions/0006-provider-verification-evidence.md` with both the new
     evidence and the withdrawal of the old.
-13. `npx vitest run packages/cli/src/install packages/cli/src/providers`, then
-    `pnpm lint`. This phase edits no file under `kit/`, so it never regenerates
-    the embedded kit.
+13. Give the emitter its antigravity branch and add the third value to
+    `SUPPORTED_RUNTIMES`, teach `doctor/diagnose.ts` and `doctor/hook-repair.ts`
+    the same runtime, then regenerate the embedded kit
+    (`pnpm --filter ariadnev generate:embedded`) under phase 0's single-writer
+    rule. Verify with `node --test "kit/hooks/__tests__/*.test.cjs"
+    "kit/hooks/_lib/__tests__/*.test.cjs"`, then
+    `npx vitest run packages/cli/src/install packages/cli/src/providers
+    packages/cli/src/adapt`, then `pnpm lint`.
 
 ## Success Criteria
 
-- [ ] `plans/reports/` holds the probe transcript: `agy agent` with a planted `.agents/agents/av-probe/agent.md`, the flat-shape variant, and `agy skill list`.
+- [x] `plans/reports/` holds the probe transcript: both discovery roots, both file shapes, the per-key frontmatter bisection, and the confirmation on two unmodified kit agents.
 - [ ] No comment in `resolver.ts` or `spec-verified.ts` still justifies an antigravity cell by the presence of files this tool's lineage wrote.
-- [ ] `antigravity.paths.agent` and `agentPath` match the probe result, and the note says which of the two shapes was tried and what came back.
-- [ ] If the probe listed nothing: `ariadnev install --provider antigravity` emits 16 agent skip ops and writes nothing under `~/.gemini/config/agents/`.
-- [ ] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them, and the install summary names the directory as foreign.
+- [ ] `antigravity.paths.agent` and `agentPath` keep `~/.gemini/config/agents/<name>.md`, and the note says what `agy agent` enumerated there, on which version.
+- [ ] An antigravity-adapted agent carries `tools:` as a YAML sequence, and every other provider's frontmatter is byte-identical to before.
+- [ ] Two kit agents adapted for antigravity are enumerated by `agy agent` after a real install — the same check the probe ran by hand.
+- [ ] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them.
 - [ ] A heal test proves those paths *are* removed when a prior ariadnev receipt claims them.
-- [ ] The `skill` cell's disposition is stated against the same standard as `agent`, citing the `agy skill list` result — not left asymmetric by omission.
+- [ ] The `skill` cell's bounded gap is stated: 1.1.25 ships no `skill` subcommand, so no listing standard exists for it, and the cell rests on its own separate evidence.
 - [ ] `antigravity.hook` is `convention` with a note that states why it is not `observed`.
 - [ ] `antigravity.statusline` is `none`, and its note records the empty `statusLine` key as a lead rather than as evidence.
 - [ ] `observedVersion` is `"1.1.25"` and `observedOn` is `null`.
@@ -327,6 +397,9 @@ install is how agents reach agy at all.
 - [ ] Merging into a `hooks.json` fixture holding Orca's entries preserves them across both the grouped and flat event shapes; a second merge is a no-op; removal deletes only `"av"`.
 - [ ] The 9 unmappable bindings are skipped with per-binding reasons, and none is remapped onto `PreInvocation`.
 - [ ] The workspace-vs-global precedence interaction has a named test and a documented expectation.
+- [ ] `SUPPORTED_RUNTIMES` accepts the third runtime and the emitter renders antigravity's own per-event decision vocabulary rather than collapsing to Claude Code's.
+- [ ] `av doctor` reports a correct antigravity hook install as healthy.
+- [ ] The embedded kit is regenerated, not hand-edited, and the kit hook suites are green.
 - [ ] README matrix regenerated; `matrix-drift.test.ts` green.
 
 ## Risk Assessment
