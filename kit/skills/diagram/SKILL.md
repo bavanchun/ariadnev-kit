@@ -10,7 +10,7 @@ metadata:
   origin: ported
   author: upstream
   version: "1.0.0"
-  attribution: "Editorial templates vendored from cathrynlavery/diagram-design (MIT); Mermaid 11.4.1 (MIT) vendored at assets/mermaid.min.js"
+  attribution: "Editorial templates and the three geometry/motion validators vendored from cathrynlavery/diagram-design (MIT, see LICENSE); Mermaid 11.4.1 (MIT) vendored at assets/mermaid.min.js"
   license: MIT
   upstream: "github.com/cathrynlavery/diagram-design"
   upstream_sha: "09df49d8d1a1c7fb2efdfcdc7a2a0713534350a6"
@@ -133,6 +133,39 @@ PLAYWRIGHT_BROWSERS_PATH=.snapshot-browsers .snapshot-venv/bin/python -m playwri
 PLAYWRIGHT_BROWSERS_PATH=.snapshot-browsers .snapshot-venv/bin/python scripts/snapshot_test.py --all
 # After an intentional visual change, replace --all with --update-goldens.
 ```
+
+**Run the advisory validators over a rendered diagram (opt-in):**
+```bash
+av skill run diagram scripts/validators/run-validators.sh out/diagram.html
+```
+
+Three validators sit in `scripts/validators/`, vendored from the same upstream as
+the templates:
+
+| Validator | What it checks |
+|---|---|
+| `self_check.py` | the accessible-SVG contract, and the single-file safety rules — no remote asset beyond the approved font stylesheet, no executable attributes, no script but the canonical motion controller |
+| `verify-geometry.py` | that no arrow-label mask is clipped by a node painted after it, which renders the label as a fragment on the node border |
+| `verify-motion.py` | the structural motion contract: one motion root, known modes and actions |
+
+They are opt-in and are never invoked by a render. They need Python 3 and a
+rendered artefact that already exists, and they are **advisory** — the wrapper
+reports each verdict and exits zero, so a validator cannot fail a delivery.
+
+Two of them disagree with a perfectly good artefact by design, and it is worth
+knowing which before reading their output. `verify-motion.py` applies only to a
+diagram carrying motion markup and reports every static one. All three resolve
+their default asset directory against the upstream repository's layout, which
+does not exist inside this skill, so pass explicit file paths — the `--all` flag
+finds nothing here.
+
+**What gates them, stated exactly.** `scripts.executionPolicy: never` refuses the
+`av skill run` invocation above, and nothing else. An agent that runs
+`bash scripts/validators/run-validators.sh` or `python3 scripts/validators/…`
+directly executes third-party code with no gate in front of it — the policy is
+inert against that path. The three Python files are MIT-licensed upstream code
+covered by `LICENSE`, pinned by sha in `references/vendoring-metadata.yaml`;
+`run-validators.sh` is this kit's own and carries no upstream attribution.
 
 ## Animation effects
 

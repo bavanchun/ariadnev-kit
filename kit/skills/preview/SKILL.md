@@ -131,6 +131,8 @@ Before generating, agent MUST read these references:
 
 Multi-section pages (`--explain`, `--diff`, `--plan-review`, `--recap`): also read `references/html-responsive-nav.md`.
 
+Infographic pages — a poster-shaped `--explain` built around a few oversized stat callouts and one or two statement charts: also read `references/html-antv-infographic.md`. It is a choice of reference, not a separate flag.
+
 Use `/av:mermaidjs-v11` skill for Mermaid syntax validation.
 
 ### HTML-Only Modes

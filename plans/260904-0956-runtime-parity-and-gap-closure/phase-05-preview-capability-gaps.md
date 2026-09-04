@@ -387,22 +387,22 @@ pre-assigned so the two phases can land in either order without colliding.
 
 ## Success Criteria
 
-- [ ] The three upstream validators still resolve at sha `09df49d8d1a1c7fb2efdfcdc7a2a0713534350a6`, and `vendoring-metadata.yaml` plus the ADR record each one's own upstream path (`scripts/` for two, `skills/diagram-design/scripts/` for `self_check.py`).
-- [ ] `vendor_from_upstream.py` takes a required `--sha`, checks the source out to it, and exits non-zero when `rev-parse HEAD` disagrees (including when it cannot be read).
-- [ ] Re-running the vendor script with the same sha produces an empty diff — `git status` is clean after the second run.
-- [ ] `vendoring-metadata.yaml` still contains the `extra_vendors:` block with `assets/mermaid.min.js` and its `sha256_12: a43bc1afd446`, and all 72 template `sha256_12` values are byte-identical to before the phase.
-- [ ] The three vendored validators exist under `kit/skills/diagram/scripts/validators/`, each with a `sha256_12` entry tied to the pinned sha, and `run-validators.sh` exists beside them carrying no upstream text and no third-party attribution.
-- [ ] `kit/skills/diagram/LICENSE` exists with the upstream MIT text and copyright, and `SKILL.md`'s `attribution` points at it.
-- [ ] `requirements.txt` declares every non-stdlib import the new scripts make and no package name was guessed — expected to be no change at all, since the three validators are stdlib-only.
-- [ ] `kit/skills/diagram/scripts/ariadnev-lock.json` exists and is committed, and `av skill verify diagram` no longer reports the skill as `unknown` for want of a lock.
-- [ ] `SKILL.md` says the validators are opt-in, states their preconditions, names `av skill run` as the gated invocation, and states that direct Bash invocation is ungated.
-- [ ] No sentence in the phase, the ADR, or `SKILL.md` claims `scripts.executionPolicy` protects anything beyond `ariadnev skill run`.
-- [ ] `html-antv-infographic.md` exists and is reachable from both `html-libraries.md` and the routing table.
-- [ ] `visual-explanation-routing.md` names `/av:diagram` in Specialist Handoffs.
-- [ ] ADR 0020 records all three dispositions, the execution-safety position, and closes the parity study's open question.
-- [ ] `check-brand-drift.mjs` is clean **after staging**.
-- [ ] `packages/cli/src/kit/kit-embedded.generated.ts` was regenerated after the last `kit/` edit, and no other phase mutated `kit/` while this one ran.
-- [ ] No file was hand-copied from upstream without a hash entry, and no file authored here carries an upstream attribution.
+- [x] The three upstream validators still resolve at sha `09df49d8d1a1c7fb2efdfcdc7a2a0713534350a6`, and `vendoring-metadata.yaml` plus the ADR record each one's own upstream path (`scripts/` for two, `skills/diagram-design/scripts/` for `self_check.py`).
+- [x] `vendor_from_upstream.py` takes a required `--sha`, checks the source out to it, and exits non-zero when `rev-parse HEAD` disagrees (including when it cannot be read).
+- [x] Re-running the vendor script with the same sha produces an empty diff — `git status` is clean after the second run.
+- [x] `vendoring-metadata.yaml` still contains the `extra_vendors:` block with `assets/mermaid.min.js` and its `sha256_12: a43bc1afd446`. **Amended during execution:** the 72 template `sha256_12` values could not stay byte-identical. Deriving `imported_at` from the pinned commit rewrites the header line the hash covers, and no design that keeps the output a pure function of (sha, target set) avoids that one-time churn — preserving old headers would make idempotency depend on prior state. Verified instead: the diff touches the `imported_at` header line only, no template body byte changed, and a second run at the same sha reports `created=0 updated=0 skipped=75` with a clean tree. ADR 0020 records the deviation.
+- [x] The three vendored validators exist under `kit/skills/diagram/scripts/validators/`, each with a `sha256_12` entry tied to the pinned sha, and `run-validators.sh` exists beside them carrying no upstream text and no third-party attribution.
+- [x] `kit/skills/diagram/LICENSE` exists with the upstream MIT text and copyright, and `SKILL.md`'s `attribution` points at it.
+- [x] `requirements.txt` declares every non-stdlib import the new scripts make and no package name was guessed — expected to be no change at all, since the three validators are stdlib-only.
+- [x] `kit/skills/diagram/scripts/ariadnev-lock.json` exists and is committed, and `av skill verify diagram` no longer reports the skill as `unknown` for want of a lock.
+- [x] `SKILL.md` says the validators are opt-in, states their preconditions, names `av skill run` as the gated invocation, and states that direct Bash invocation is ungated.
+- [x] No sentence in the phase, the ADR, or `SKILL.md` claims `scripts.executionPolicy` protects anything beyond `ariadnev skill run`.
+- [x] `html-antv-infographic.md` exists and is reachable from both `html-libraries.md` and the routing table.
+- [x] `visual-explanation-routing.md` names `/av:diagram` in Specialist Handoffs.
+- [x] ADR 0020 records all three dispositions, the execution-safety position, and closes the parity study's open question.
+- [x] `check-brand-drift.mjs` is clean **after staging**.
+- [x] `packages/cli/src/kit/kit-embedded.generated.ts` was regenerated after the last `kit/` edit, and no other phase mutated `kit/` while this one ran.
+- [x] No file was hand-copied from upstream without a hash entry, and no file authored here carries an upstream attribution.
 
 ## Risk Assessment
 

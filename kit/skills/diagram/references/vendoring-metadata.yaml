@@ -3,8 +3,9 @@
 upstream_repo: cathrynlavery/diagram-design
 upstream_license: MIT
 upstream_sha: 09df49d8d1a1c7fb2efdfcdc7a2a0713534350a6
-vendored_at: 2026-08-16T07:31:38.966805+00:00
+vendored_at: 2026-08-14T14:28:44-07:00
 template_count: 72
+validator_count: 3
 
 # Additional MIT vendors not managed by vendor_from_upstream.py:
 extra_vendors:
@@ -16,364 +17,375 @@ extra_vendors:
     sha256_12: a43bc1afd446
     vendored_at: 2026-08-16T07:00:00+00:00
 
+validators:
+  - upstream_path: scripts/verify-geometry.py
+    target: scripts/validators/verify-geometry.py
+    sha256_12: 3155ea2a47dd
+  - upstream_path: scripts/verify-motion.py
+    target: scripts/validators/verify-motion.py
+    sha256_12: 27f48ca10f53
+  - upstream_path: skills/diagram-design/scripts/self_check.py
+    target: scripts/validators/self_check.py
+    sha256_12: 5bb48bdd4137
+
 templates:
   - type: architecture
     variant: light
     source: example-architecture.html
     target: assets/templates/architecture/light.html
-    sha256_12: 451d36f8ea0a
+    sha256_12: a98c82bafada
   - type: architecture
     variant: dark
     source: example-architecture-dark.html
     target: assets/templates/architecture/dark.html
-    sha256_12: 8485ca04dc36
+    sha256_12: a0131533a5b8
   - type: architecture
     variant: full
     source: example-architecture-full.html
     target: assets/templates/architecture/full.html
-    sha256_12: f876c7d6d843
+    sha256_12: 88ffa3f7a280
   - type: high-level
     variant: light
     source: example-high-level.html
     target: assets/templates/high-level/light.html
-    sha256_12: cf8a791930eb
+    sha256_12: 58ec9839a8f3
   - type: high-level
     variant: dark
     source: example-high-level-dark.html
     target: assets/templates/high-level/dark.html
-    sha256_12: 99d270fa4ab0
+    sha256_12: dc6807b88f9f
   - type: high-level
     variant: full
     source: example-high-level-full.html
     target: assets/templates/high-level/full.html
-    sha256_12: 966ce8edf354
+    sha256_12: 22b1682d6654
   - type: layers
     variant: light
     source: example-layers.html
     target: assets/templates/layers/light.html
-    sha256_12: d7a0439a4680
+    sha256_12: e0d2f985cef9
   - type: layers
     variant: dark
     source: example-layers-dark.html
     target: assets/templates/layers/dark.html
-    sha256_12: 79c43b4e3ba2
+    sha256_12: e3598fc92f10
   - type: layers
     variant: full
     source: example-layers-full.html
     target: assets/templates/layers/full.html
-    sha256_12: db968e1b3fef
+    sha256_12: 10167689ed47
   - type: medallion
     variant: light
     source: example-medallion.html
     target: assets/templates/medallion/light.html
-    sha256_12: 725b9883622e
+    sha256_12: 5d255ca6657c
   - type: medallion
     variant: dark
     source: example-medallion-dark.html
     target: assets/templates/medallion/dark.html
-    sha256_12: c6f73f1f8cd7
+    sha256_12: 2b5726f1757f
   - type: medallion
     variant: full
     source: example-medallion-full.html
     target: assets/templates/medallion/full.html
-    sha256_12: d6e6ebf80656
+    sha256_12: db73e158d47b
   - type: dp-integration
     variant: light
     source: example-dp-integration.html
     target: assets/templates/dp-integration/light.html
-    sha256_12: 35036c286444
+    sha256_12: 5ac31ea226c1
   - type: dp-integration
     variant: dark
     source: example-dp-integration-dark.html
     target: assets/templates/dp-integration/dark.html
-    sha256_12: 823220822001
+    sha256_12: 6fb800e64ae0
   - type: dp-integration
     variant: full
     source: example-dp-integration-full.html
     target: assets/templates/dp-integration/full.html
-    sha256_12: d76ed28a4d22
+    sha256_12: 35101df93b8c
   - type: dp-security-matrix
     variant: light
     source: example-dp-security-matrix.html
     target: assets/templates/dp-security-matrix/light.html
-    sha256_12: 1f9778c1f4d3
+    sha256_12: 4a9f77a55439
   - type: dp-security-matrix
     variant: dark
     source: example-dp-security-matrix-dark.html
     target: assets/templates/dp-security-matrix/dark.html
-    sha256_12: 0b7ed6174a6f
+    sha256_12: f48ef359366f
   - type: dp-security-matrix
     variant: full
     source: example-dp-security-matrix-full.html
     target: assets/templates/dp-security-matrix/full.html
-    sha256_12: 07957cbf4fa4
+    sha256_12: fbc5eb1d3746
   - type: data-flow
     variant: light
     source: example-data-flow.html
     target: assets/templates/data-flow/light.html
-    sha256_12: cc5b829b68d4
+    sha256_12: 85ed844c9e5a
   - type: data-flow
     variant: dark
     source: example-data-flow-dark.html
     target: assets/templates/data-flow/dark.html
-    sha256_12: 5ea47c39ae43
+    sha256_12: c2ad30348983
   - type: data-flow
     variant: full
     source: example-data-flow-full.html
     target: assets/templates/data-flow/full.html
-    sha256_12: 12bb84483151
+    sha256_12: c509984e1da7
   - type: flowchart
     variant: light
     source: example-flowchart.html
     target: assets/templates/flowchart/light.html
-    sha256_12: 457e55b7acdb
+    sha256_12: 54c749cae502
   - type: flowchart
     variant: dark
     source: example-flowchart-dark.html
     target: assets/templates/flowchart/dark.html
-    sha256_12: 9cf5ff9501c7
+    sha256_12: a3b31bd4e6db
   - type: flowchart
     variant: full
     source: example-flowchart-full.html
     target: assets/templates/flowchart/full.html
-    sha256_12: d799f9d8e116
+    sha256_12: 928d2c1f77bf
   - type: sequence
     variant: light
     source: example-sequence.html
     target: assets/templates/sequence/light.html
-    sha256_12: 75ba78f8079c
+    sha256_12: 701338f30f60
   - type: sequence
     variant: dark
     source: example-sequence-dark.html
     target: assets/templates/sequence/dark.html
-    sha256_12: 4300ef48fc4c
+    sha256_12: 6baf780688b2
   - type: sequence
     variant: full
     source: example-sequence-full.html
     target: assets/templates/sequence/full.html
-    sha256_12: aa0205f5557b
+    sha256_12: d7c97975169e
   - type: state
     variant: light
     source: example-state.html
     target: assets/templates/state/light.html
-    sha256_12: 6c476439e72d
+    sha256_12: ab368305b1cb
   - type: state
     variant: dark
     source: example-state-dark.html
     target: assets/templates/state/dark.html
-    sha256_12: bf22cb97d49e
+    sha256_12: f9b3203610bb
   - type: state
     variant: full
     source: example-state-full.html
     target: assets/templates/state/full.html
-    sha256_12: b4be12cb9d34
+    sha256_12: cb1f0865c3cb
   - type: swimlane
     variant: light
     source: example-swimlane.html
     target: assets/templates/swimlane/light.html
-    sha256_12: d2874027f4de
+    sha256_12: 9d4234472ae3
   - type: swimlane
     variant: dark
     source: example-swimlane-dark.html
     target: assets/templates/swimlane/dark.html
-    sha256_12: 1860c2a3d893
+    sha256_12: 1fe9e4987d6a
   - type: swimlane
     variant: full
     source: example-swimlane-full.html
     target: assets/templates/swimlane/full.html
-    sha256_12: b946bb3cc5c0
+    sha256_12: 656a69ff6940
   - type: process
     variant: light
     source: example-process.html
     target: assets/templates/process/light.html
-    sha256_12: 6009e3fd643a
+    sha256_12: 0a2282a22ba4
   - type: process
     variant: dark
     source: example-process-dark.html
     target: assets/templates/process/dark.html
-    sha256_12: 31d1a6decf60
+    sha256_12: 3f1d7e68a9e9
   - type: process
     variant: full
     source: example-process-full.html
     target: assets/templates/process/full.html
-    sha256_12: af4b35e98586
+    sha256_12: d4f6b5eccc1f
   - type: org-chart
     variant: light
     source: example-org-chart.html
     target: assets/templates/org-chart/light.html
-    sha256_12: ecc0bb2f1839
+    sha256_12: dda37646ae62
   - type: org-chart
     variant: dark
     source: example-org-chart-dark.html
     target: assets/templates/org-chart/dark.html
-    sha256_12: bfdde27e949d
+    sha256_12: 4d44d0b8c653
   - type: org-chart
     variant: full
     source: example-org-chart-full.html
     target: assets/templates/org-chart/full.html
-    sha256_12: dda780df01c3
+    sha256_12: 5a68a059cc01
   - type: loop
     variant: light
     source: example-loop.html
     target: assets/templates/loop/light.html
-    sha256_12: 58c3d03c82c0
+    sha256_12: cabd5cba3228
   - type: loop
     variant: dark
     source: example-loop-dark.html
     target: assets/templates/loop/dark.html
-    sha256_12: c47929a0e5c2
+    sha256_12: 8b0d2f2c9747
   - type: loop
     variant: full
     source: example-loop-full.html
     target: assets/templates/loop/full.html
-    sha256_12: c0c631bd2c3e
+    sha256_12: 671cfe0bf8fe
   - type: pyramid
     variant: light
     source: example-pyramid.html
     target: assets/templates/pyramid/light.html
-    sha256_12: 25086fd6bdc5
+    sha256_12: 0613bb86b56b
   - type: pyramid
     variant: dark
     source: example-pyramid-dark.html
     target: assets/templates/pyramid/dark.html
-    sha256_12: da8ab5fe9f9a
+    sha256_12: c52f6e64f36a
   - type: pyramid
     variant: full
     source: example-pyramid-full.html
     target: assets/templates/pyramid/full.html
-    sha256_12: 2bd55d8e5954
+    sha256_12: c32f32c788e6
   - type: quadrant
     variant: light
     source: example-quadrant.html
     target: assets/templates/quadrant/light.html
-    sha256_12: 53eaa2387d0b
+    sha256_12: 3bf313ec3b98
   - type: quadrant
     variant: dark
     source: example-quadrant-dark.html
     target: assets/templates/quadrant/dark.html
-    sha256_12: 27764085869f
+    sha256_12: eb9f0420197b
   - type: quadrant
     variant: full
     source: example-quadrant-full.html
     target: assets/templates/quadrant/full.html
-    sha256_12: 3f5eefb7614a
+    sha256_12: f645dabab4ab
   - type: radar
     variant: light
     source: example-radar.html
     target: assets/templates/radar/light.html
-    sha256_12: d09b3d741a33
+    sha256_12: bfcd1ba53390
   - type: radar
     variant: dark
     source: example-radar-dark.html
     target: assets/templates/radar/dark.html
-    sha256_12: 6270e9810bda
+    sha256_12: 397b1c7ba7d1
   - type: radar
     variant: full
     source: example-radar-full.html
     target: assets/templates/radar/full.html
-    sha256_12: 1eac12692947
+    sha256_12: 0681c877d2ec
   - type: timeline
     variant: light
     source: example-timeline.html
     target: assets/templates/timeline/light.html
-    sha256_12: 214d72ad55e5
+    sha256_12: 60d20a8f9bdb
   - type: timeline
     variant: dark
     source: example-timeline-dark.html
     target: assets/templates/timeline/dark.html
-    sha256_12: efa9dcf02320
+    sha256_12: 0c06a653bc87
   - type: timeline
     variant: full
     source: example-timeline-full.html
     target: assets/templates/timeline/full.html
-    sha256_12: b2dbab539f88
+    sha256_12: f6c5a6c3301e
   - type: nested
     variant: light
     source: example-nested.html
     target: assets/templates/nested/light.html
-    sha256_12: 45cdb65c6d0d
+    sha256_12: 925feee46564
   - type: nested
     variant: dark
     source: example-nested-dark.html
     target: assets/templates/nested/dark.html
-    sha256_12: 57eca8016ade
+    sha256_12: 73f1166b5dad
   - type: nested
     variant: full
     source: example-nested-full.html
     target: assets/templates/nested/full.html
-    sha256_12: a3c29ad8a49a
+    sha256_12: dfd144d14c8b
   - type: it-state
     variant: light
     source: example-it-state.html
     target: assets/templates/it-state/light.html
-    sha256_12: 9fd4307d05b8
+    sha256_12: 862287f73d9c
   - type: it-state
     variant: dark
     source: example-it-state-dark.html
     target: assets/templates/it-state/dark.html
-    sha256_12: 23cf1a083c53
+    sha256_12: cbf2d8bab2a2
   - type: it-state
     variant: full
     source: example-it-state-full.html
     target: assets/templates/it-state/full.html
-    sha256_12: 5a6d74c55f3d
+    sha256_12: 669b2fa526a9
   - type: bar
     variant: light
     source: example-bar.html
     target: assets/templates/bar/light.html
-    sha256_12: 784306b71a14
+    sha256_12: 8c898019ca52
   - type: bar
     variant: dark
     source: example-bar-dark.html
     target: assets/templates/bar/dark.html
-    sha256_12: 02c1bf1b4266
+    sha256_12: f6b7edd6f619
   - type: bar
     variant: full
     source: example-bar-full.html
     target: assets/templates/bar/full.html
-    sha256_12: 10211dd12d56
+    sha256_12: 36aeca3fa07b
   - type: line
     variant: light
     source: example-line.html
     target: assets/templates/line/light.html
-    sha256_12: 98188475a64d
+    sha256_12: 2d7f829df499
   - type: line
     variant: dark
     source: example-line-dark.html
     target: assets/templates/line/dark.html
-    sha256_12: 5a80f9681068
+    sha256_12: 0ce537fd73a4
   - type: line
     variant: full
     source: example-line-full.html
     target: assets/templates/line/full.html
-    sha256_12: e4e10b105346
+    sha256_12: af4df3ddf40b
   - type: scatter
     variant: light
     source: example-scatter.html
     target: assets/templates/scatter/light.html
-    sha256_12: 7aa231de76c9
+    sha256_12: 50a618e1a057
   - type: scatter
     variant: dark
     source: example-scatter-dark.html
     target: assets/templates/scatter/dark.html
-    sha256_12: 2c008b555e9c
+    sha256_12: e0b580451f50
   - type: scatter
     variant: full
     source: example-scatter-full.html
     target: assets/templates/scatter/full.html
-    sha256_12: ec2b374f97d4
+    sha256_12: 68299a35cc59
   - type: gantt
     variant: light
     source: example-gantt.html
     target: assets/templates/gantt/light.html
-    sha256_12: ae04c8e8aafb
+    sha256_12: f3cc06c1619d
   - type: gantt
     variant: dark
     source: example-gantt-dark.html
     target: assets/templates/gantt/dark.html
-    sha256_12: 640a7c4e3991
+    sha256_12: f669824795ec
   - type: gantt
     variant: full
     source: example-gantt-full.html
     target: assets/templates/gantt/full.html
-    sha256_12: 7fd5c8fdd259
+    sha256_12: 26fac77c4342
