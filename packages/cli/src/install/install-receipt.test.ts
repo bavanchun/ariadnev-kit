@@ -137,6 +137,7 @@ describe("buildReceipt (pure)", () => {
         ops: [
           {
             action: "hook-settings",
+            format: "claude-settings-json" as const,
             kind: "hook",
             name: "settings.json",
             dest: "/home/u/proj/.claude/settings.json",
@@ -158,6 +159,7 @@ describe("buildReceipt (pure)", () => {
         ops: [
           {
             action: "hook-settings",
+            format: "claude-settings-json" as const,
             kind: "hook",
             name: "settings.json",
             dest: "/home/u/proj/.claude/settings.json",

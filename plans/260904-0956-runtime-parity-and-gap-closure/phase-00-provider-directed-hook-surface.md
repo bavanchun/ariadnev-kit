@@ -401,3 +401,59 @@ Every change is additive-then-switched: the four `ProviderConfig` fields can be
 added and populated without any call site reading them, and each destination
 switches independently. Reverting the phase is reverting the commits in reverse
 order; no on-disk layout changes, so no installed tree needs migrating back.
+
+## Execution Notes
+
+Recorded during execution where the repository contradicted the written plan, or
+where a change turned out to be required that the steps did not list.
+
+**`CLAUDE_OUTPUT_STYLES_SIDECAR_DIR` was removed, not kept.** The plan said it
+"stays exported for the rewrite tables that reference the literal string". A
+repo-wide grep (excluding `node_modules`, `.git`, `plans/`, and the embedded-kit
+artefact) found no reference to it anywhere outside its own definition line. It
+was replaced by `OUTPUT_STYLES_SIDECAR_SUBDIR = "output-styles"`, the leaf name
+`planHooks` now joins onto the resolved hooks dir — keeping a claude-prefixed
+constant alive with no consumer would have re-created the hard-wire this phase
+removes.
+
+**`install-receipt.test.ts` needed an edit, and it is not the stop signal.** The
+risk section names "any existing install or receipt fixture needing an edit" as
+the signal that behaviour changed. Two fixtures there did change: the
+`hook-settings` op literals gained the now-required `format` discriminator. No
+destination in any fixture moved — the edit is a new required field on a
+discriminated union, which every hand-built literal of that union must supply.
+Claude Code's planned paths are unchanged, which is what the signal is for.
+
+**`doctor/diagnose.ts` was in the blast radius and the plan did not list it.**
+`hookRuntimeMarkerPath` changing from a scope root to a hooks dir broke its
+caller silently — both parameters are `string`, so the typechecker could not see
+it. Doctor still reads only claude-code's tree (`isHookFile`, `isHookRuntimeMarker`
+and `settingsPathFor` all match on `.claude/hooks/av/`), so the call site now
+spells out that root rather than half-directing one path through a resolver.
+Giving doctor real provider direction is its own change, not this phase's.
+
+**The statusline gate now reads the resolver, not the evidence table.**
+`planHooks` called `isVerified(r.id, "statusline")` directly while every other
+gate around it read `r.supports.*`. `makeResolver` builds `supports.statusline`
+from exactly that call, so the two are equal for every real provider and no
+behaviour changed — but a planner handed a resolver must follow the resolver it
+was handed, which is the whole point of the phase. The skip *reason* for output
+styles moved from the `hook` evidence cell to `hooksInstall` for a stronger
+reason: it promises a session-init sidecar, and a provider whose hook cell is
+graded but whose tree is not installed receives no sidecar.
+
+**Test file location follows the repo, not the step.** Step 10 names
+`kit/hooks/_lib/provider-paths.test.cjs`; the tests live at
+`kit/hooks/_lib/__tests__/provider-paths.test.cjs`. Every other hook test sits in
+a `__tests__/` directory, and `IGNORE_DIRS` excludes `__tests__` from install —
+a test file directly in `_lib/` would be copied into every user's hooks tree.
+
+**The embedded kit is regenerated at the end of every phase that edits `kit/`.**
+Deferring it to the branch's last `kit/` edit was tried first, to keep one ~10 MB
+tracked file out of the history five times over. It does not work:
+`embedded-kit.test.ts`'s drift guard compares the generated map against the live
+`kit/` tree, so it goes red the moment a `kit/` file changes and stays red for
+every intermediate commit. A phase that leaves the suite failing is not a phase
+that landed. "Single-writer" is about concurrent writers — no two phases may
+regenerate it at once — and phases run here in sequence, so regenerating per
+kit-touching phase satisfies the constraint and keeps every commit green.

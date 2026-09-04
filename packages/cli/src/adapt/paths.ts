@@ -33,18 +33,26 @@ export const CURSOR_RULES_DIR = ".cursor/rules";
 /** OpenCode user-global config root (for ~/.claude rewrites). */
 export const OPENCODE_USER_CONFIG = "~/.config/opencode";
 
-/** Claude Code hooks install dir + settings file (hooks are claude-only). */
+/**
+ * Claude Code's hooks tree and settings file.
+ *
+ * These are one provider's values, not the installer's. Every hooks destination
+ * is resolved through `ProviderConfig.hooksDir` / `hooksConfigFile`, and these
+ * constants are what claude-code's entry there is set to — so a second provider
+ * with hooks lands in its own tree instead of this one.
+ */
 export const CLAUDE_HOOKS_DIR = ".claude/hooks/av";
 export const CLAUDE_SETTINGS_FILE = ".claude/settings.json";
 
 /**
- * Where the session-init hook reads the kit's coding-level output styles from.
- * They live inside the hook's own install dir because the hook, not the
- * provider, consumes them — and because everything this tool writes must sit
- * under a root the provider matrix declares. `.claude/output-styles/` is probed
- * first and stays reserved for styles the user authors natively.
+ * Where the session-init hook reads the kit's coding-level output styles from,
+ * relative to whichever hooks tree the hook was installed into. They live inside
+ * the hook's own install dir because the hook, not the provider, consumes them —
+ * and because everything this tool writes must sit under a root the provider
+ * matrix declares. The provider's own `output-styles/` is probed first and stays
+ * reserved for styles the user authors natively.
  */
-export const CLAUDE_OUTPUT_STYLES_SIDECAR_DIR = `${CLAUDE_HOOKS_DIR}/output-styles`;
+export const OUTPUT_STYLES_SIDECAR_SUBDIR = "output-styles";
 
 /**
  * Namespace prefix for installed skill directories.

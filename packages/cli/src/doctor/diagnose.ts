@@ -2,7 +2,9 @@
 // injected fs/spawn adapters, returns findings — no fs/spawn calls happen
 // here directly, so this is fully unit-testable without a real install.
 import { fromPortablePath, receiptVersion, toPortablePath, type Receipt, type ReceiptInstall } from "../install/install-receipt.js";
+import { join } from "node:path";
 import type { HealRemoval } from "../install/install-heal.js";
+import { CLAUDE_HOOKS_DIR } from "../adapt/paths.js";
 import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerPath, isHookRuntimeMarkerValid } from "../install/hook-runtime-marker.js";
 
 // Tri-state (plus warning). `pass`/`skip` are informational rows; only `fail`
@@ -62,7 +64,10 @@ function hookRuntimeMarkerFinding(
   opts: DiagnoseOpts,
 ): ProviderFinding | null {
   if (!install.files.some((f) => isHookFile(f.path))) return null;
-  const abs = hookRuntimeMarkerPath(install.scope === "global" ? opts.home : opts.cwd);
+  // Doctor still reads only claude-code's tree, the same one `isHookFile` above
+  // matches on. The hooks root is spelled out here because the marker helper now
+  // takes an already-resolved directory, not a scope root.
+  const abs = hookRuntimeMarkerPath(join(install.scope === "global" ? opts.home : opts.cwd, CLAUDE_HOOKS_DIR));
   const shown = toPortablePath(abs, opts.home, opts.cwd);
   const text = deps.readHookRuntimeMarker(abs);
   if (text === null) {

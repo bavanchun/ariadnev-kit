@@ -63,11 +63,24 @@ export interface ProviderVerification {
   observedOn: string | null;
 }
 
-const OBSERVED_ON = "2026-08-15";
-
 function observed(note: string): CellEvidence {
   return { verified: true, level: "observed", note };
 }
+/**
+ * The path is right, and nobody watched it load.
+ *
+ * Two grounds reach this rung. Either the path is the neutral cross-tool layout
+ * that was observed working elsewhere, or the provider's own shipped artefact —
+ * its config file, its binary — names the path itself. Both say the same thing
+ * operationally, which is why they share a rung: the destination is the
+ * provider's, and no load of it was witnessed.
+ *
+ * What stays excluded is a directory populated by this tool's own lineage. A
+ * path this project wrote to certifies nothing about what reads it, and a
+ * directory listing cannot tell the two apart — see the `omp` row's comment
+ * below, where both the written-to path and the canonical one exist on disk and
+ * only the provider's own docs distinguish them.
+ */
 function convention(note: string): CellEvidence {
   return { verified: true, level: "convention", note };
 }
@@ -78,7 +91,9 @@ function none(note: string): CellEvidence {
 export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   "claude-code": {
     observedVersion: "2.1.232",
-    observedOn: OBSERVED_ON,
+    // One date per row, never a shared constant: a re-observation of one
+    // provider must not re-date a row nobody looked at that day.
+    observedOn: "2026-08-15",
     paths: {
       skill: observed("installed skills are listed by name in the running session's available-skills surface"),
       agent: observed("installed agents are listed by name as available subagent types"),
@@ -94,7 +109,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   },
   codex: {
     observedVersion: "codex-cli 0.147.0",
-    observedOn: OBSERVED_ON,
+    observedOn: "2026-08-15",
     paths: {
       // `codex debug prompt-input` renders the model-visible prompt, so these
       // are not inferences about what codex might read — they are what it sent.
@@ -151,7 +166,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   },
   opencode: {
     observedVersion: "1.15.3",
-    observedOn: OBSERVED_ON,
+    observedOn: "2026-08-15",
     paths: {
       skill: observed("`opencode debug skill` lists 26 skills whose reported location is the .opencode/skills dir written by the installer"),
       agent: observed("`opencode agent list` names all 13 installed agents as subagents; `opencode debug config` shows the same 13"),
@@ -215,13 +230,12 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       scripts: convention("same ~/.grok tree as the skill root above"),
       env: convention("template file only — nothing reports reading it"),
       // `~/.grok/hooks` is populated in the Claude-shaped tree, so the instinct
-      // is to verify this cell. It stays `none` for a mechanical reason found
-      // by regenerating the matrix: the resolver hard-wires every hook to
-      // `.claude/hooks/av/`, so a verified cell here would install grok's hooks
-      // into claude-code's directory. Writing into another provider's tree is
-      // worse than skipping, and giving grok its own hook root needs evidence
-      // that grok reads it — which needs a binary that is not on this machine.
-      hook: none("~/.grok/hooks exists, but the hook target resolves to `.claude/hooks/av/` for every provider; verifying this cell would install into claude-code's tree rather than grok's"),
+      // is to verify this cell. The reason it stays `none` is the same one every
+      // other grok cell gives: a populated directory proves something wrote
+      // there, not that grok reads it, and hooks are an event contract — a
+      // layout that looks right but fires nothing is a guard that silently
+      // stops guarding. Seeing a load needs a binary that is not on this machine.
+      hook: none("~/.grok/hooks exists in the Claude-shaped tree, but no grok binary on PATH to observe a hook load; a populated directory is not an event contract"),
       outputStyle: none("no output-style directory present in the observed tree"),
       statusline: none("no statusline surface observed for grok"),
     },

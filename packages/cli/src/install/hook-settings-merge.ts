@@ -2,6 +2,8 @@
 // managed-merge philosophy of agents-md.ts: caller reads the existing file and
 // writes the returned string; this module never touches the filesystem.
 
+import type { HooksConfigFormat } from "../providers/resolver.js";
+
 export interface HookBinding {
   /** Claude Code hook event, e.g. "SessionStart". */
   event: string;
@@ -36,6 +38,24 @@ function eventContainsCommand(groups: HookMatcherGroup[], command: string): bool
  * bindings are deduped by exact command; entries not owned by av are preserved
  * untouched. Throws on unparseable input rather than clobbering user config.
  */
+/**
+ * Pick the merger for a provider's hook-binding registry.
+ *
+ * One dispatch point, so a provider whose config is not settings.json-shaped
+ * adds a case here rather than a second op action that would then need parallel
+ * handling in the consent gate, the reconciler, uninstall and the receipt.
+ */
+export function mergeHooksConfig(
+  format: HooksConfigFormat,
+  existing: string,
+  bindings: HookBinding[],
+): string {
+  switch (format) {
+    case "claude-settings-json":
+      return mergeHookSettings(existing, bindings);
+  }
+}
+
 export function mergeHookSettings(existing: string, bindings: HookBinding[]): string {
   const settings: SettingsJson = existing.trim().length
     ? (JSON.parse(existing) as SettingsJson)

@@ -11,7 +11,7 @@ import {
 import type { ProviderId } from "../providers/spec-verified.js";
 import type { HookBinding } from "../install/hook-settings-merge.js";
 import type { InstallJournal } from "../install/intent-journal.js";
-import { CLAUDE_HOOKS_DIR, CLAUDE_SETTINGS_FILE } from "../adapt/paths.js";
+import { makeResolver } from "../providers/resolver.js";
 
 export class UninstallPlanError extends Error {
   constructor(message: string) {
@@ -235,13 +235,21 @@ export function planUninstall(
     ops.push({ action: "preserve-file", path, reason });
   }
 
+  // Both paths come from the provider being uninstalled, not from one
+  // provider's constants: unmerging out of a settings file this provider never
+  // wrote would edit another tool's config, and an `ownedDir` naming the wrong
+  // tree makes the unmerge fail to recognise its own entries. A provider that
+  // has no config file has nothing to unmerge from — its bindings, if any,
+  // never reached a file.
   const applied = install.hookBindings.filter((b) => b.applied);
-  if (applied.length > 0) {
+  const resolver = makeResolver(providerId);
+  const hooksConfig = resolver.hooksConfigTarget({ home, cwd, scope: install.scope });
+  if (applied.length > 0 && hooksConfig !== null) {
     ops.push({
       action: "unmerge-settings",
-      path: join(root, CLAUDE_SETTINGS_FILE),
+      path: hooksConfig,
       bindings: applied.map(({ event, matcher, command }) => ({ event, matcher, command })),
-      ownedDir: join(root, CLAUDE_HOOKS_DIR),
+      ownedDir: resolver.hooksTarget({ home, cwd, scope: install.scope }),
     });
   }
 
