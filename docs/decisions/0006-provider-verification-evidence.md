@@ -221,7 +221,8 @@ free surface in 2.1.260 was read: `claude doctor` never mentions output styles
 and does not validate an unknown `outputStyle` setting; `claude plugin validate
 --json` answers `"contents": []` for a plugin that carries an `output-styles/`
 directory; there is no `--output-style` flag, no `output-style` subcommand, and
-no `claude config` command at all. `/output-style` is interactive-only, and
+no `claude config` command at all. There is no `/output-style` command in the
+binary either; selection is the `/config` panel, which is interactive-only and
 reaching it costs a model turn, which a table refresh does not justify. The
 planted file was removed and the directory is empty again.
 

@@ -79,8 +79,9 @@ describe("provider verification evidence", () => {
     // style. A style planted in an otherwise-empty `~/.claude/output-styles/`
     // changed nothing in `claude doctor`, `claude plugin validate --json`
     // reported `"contents": []` for a plugin carrying one, and there is no
-    // `--output-style` flag and no `output-style` subcommand — `/output-style`
-    // is interactive-only, and reaching it means spending a model turn.
+    // `--output-style` flag, no `output-style` subcommand, and no
+    // `/output-style` command in the binary either — selection is the `/config`
+    // panel, which is interactive-only and reaching it spends a model turn.
     //
     // What the binary itself carries is the path: `output-styles` is a member
     // of its userConfigDir directory-name enum, beside `commands`, `agents`,

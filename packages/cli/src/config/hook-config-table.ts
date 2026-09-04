@@ -11,6 +11,18 @@ import { CONFIG_FIELDS, NOTIFICATION_HOSTS } from "./config-schema.js";
 /** Where the generated table is checked in, relative to the repo root. */
 export const HOOK_TABLE_FILE_RELATIVE = "kit/hooks/_lib/config-fields.generated.cjs";
 
+/**
+ * The same table again, beside the worktree skill's script.
+ *
+ * A skill script cannot reach the hooks tree: hooks install to one Claude-only
+ * directory while skills install to several roots, and for a provider whose hook
+ * cell is unverified the hooks tree is never written at all. A sibling file
+ * inside the skill's own directory resolves in the source tree and after install
+ * alike, because a skill directory is copied as a unit. Same bytes, so the layer
+ * rule still has one definition.
+ */
+export const SKILL_TABLE_FILE_RELATIVE = "kit/skills/worktree/scripts/config-fields.generated.cjs";
+
 export function buildHookConfigTable(): string {
   const fields: Record<string, { layer: string; type: string; default: unknown; enum?: string[] }> = {};
   for (const { path, spec } of CONFIG_FIELDS) {

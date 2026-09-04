@@ -59,7 +59,8 @@ immediately after the last surface below was read, and
 | `claude --help`, full option list | no `--output-style` flag, and no `output-style` subcommand. The command list is agents, attach, auth, auto-mode, doctor, gateway, import, install, logs, mcp, plugin, project, respawn, rm, setup-token, stop, ultrareview, update |
 | `claude config …` | does not exist in 2.1.260 — it falls through to the top-level help |
 | `claude import --help` | imports *from* codex and gemini; says nothing about the kinds it writes |
-| `/output-style` | interactive-only. Not reachable from a shell, and reaching it any other way means spending a model turn, which this probe is not allowed to do |
+| `/output-style` | not in the binary. The command is gone; selection is the `/config` panel, which is interactive-only and reaching it means spending a model turn, which this probe is not allowed to do |
+| `outputStylesPath` setting help | the binary's own text: *"List of output-style directory or file paths. When set, the `output-styles/` directory is not auto-loaded."* An opt-out phrased that way says the directory is auto-loaded by default — still the binary describing itself, not a witnessed load |
 
 So: **no free surface in 2.1.260 enumerates user-directory output styles.** The
 probe is inconclusive by the phase's own definition, not negative — nothing said
@@ -146,6 +147,6 @@ own footprint.
 ## Open, deliberately
 
 Whether Claude Code *renders* a style out of `~/.claude/output-styles/` is
-answerable only by opening `/output-style` interactively or spending a turn.
+answerable only by opening the `/config` panel interactively or spending a turn.
 Neither was in scope. If someone does it later, this cell earns `observed` and
 this record is where the difference should be written down.

@@ -933,6 +933,232 @@ test('scenario: user with WORKTREE_ROOT env var', () => {
 });
 
 // ============================================
+// WORKTREE ROOT FROM CONFIG
+// ============================================
+console.log('\n📁 worktree.root config setting');
+
+const os = require('os');
+
+// Each case gets its own repo and its own HOME, because the setting is read
+// from two files whose contents are the whole point of the test.
+function configBox(build) {
+  const box = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'av-wt-cfg-')));
+  const repo = path.join(box, 'repo');
+  const home = path.join(box, 'home');
+  fs.mkdirSync(repo, { recursive: true });
+  fs.mkdirSync(home, { recursive: true });
+  execSync('git init -q && git config user.email t@e.st && git config user.name t && git commit -q --allow-empty -m init', {
+    cwd: repo,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  try {
+    return build({ box, repo, home });
+  } finally {
+    fs.rmSync(box, { recursive: true, force: true });
+  }
+}
+
+function writeConfig(dir, contents) {
+  fs.mkdirSync(path.join(dir, '.ariadnev'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, '.ariadnev', 'config.json'),
+    typeof contents === 'string' ? contents : JSON.stringify(contents),
+  );
+}
+
+function infoIn(repo, home, env = {}) {
+  const output = execSync(`node "${SCRIPT_PATH}" info --json`, {
+    encoding: 'utf-8',
+    cwd: repo,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, HOME: home, WORKTREE_ROOT: '', ...env },
+  });
+  return JSON.parse(output.trim());
+}
+
+test('a relative project value decides where worktrees go', () => {
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: 'wt' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === path.join(repo, 'wt'), `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'project config', `got ${json.worktreeRootSource}`);
+    assert(!json.warnings || json.warnings.length === 0, 'a valid value warns about nothing');
+  });
+});
+
+test('a user value may be absolute, and is reported as the user config', () => {
+  configBox(({ box, repo, home }) => {
+    const target = path.join(box, 'elsewhere');
+    fs.mkdirSync(target, { recursive: true });
+    writeConfig(home, { worktree: { root: target } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === target, `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'user config', `got ${json.worktreeRootSource}`);
+  });
+});
+
+test('a project value beats a user value', () => {
+  configBox(({ box, repo, home }) => {
+    writeConfig(repo, { worktree: { root: 'wt' } });
+    writeConfig(home, { worktree: { root: path.join(box, 'elsewhere') } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === path.join(repo, 'wt'), `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'project config', `got ${json.worktreeRootSource}`);
+  });
+});
+
+test('the env var beats both config files', () => {
+  configBox(({ box, repo, home }) => {
+    const envTarget = path.join(box, 'from-env');
+    fs.mkdirSync(envTarget, { recursive: true });
+    writeConfig(repo, { worktree: { root: 'wt' } });
+    writeConfig(home, { worktree: { root: path.join(box, 'elsewhere') } });
+    const json = infoIn(repo, home, { WORKTREE_ROOT: envTarget });
+    assert(json.worktreeRoot === envTarget, `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'WORKTREE_ROOT env', `got ${json.worktreeRootSource}`);
+  });
+});
+
+test('no config file at all leaves auto-detection alone', () => {
+  configBox(({ repo, home }) => {
+    const json = infoIn(repo, home);
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(!json.warnings || json.warnings.length === 0, 'an absent file is not a warning');
+  });
+});
+
+test('an out-of-bounds project value is refused, and the user value applies instead', () => {
+  configBox(({ box, repo, home }) => {
+    const target = path.join(box, 'elsewhere');
+    fs.mkdirSync(target, { recursive: true });
+    // The case that matters: this file arrives with somebody else's clone.
+    writeConfig(repo, { worktree: { root: '../../escape' } });
+    writeConfig(home, { worktree: { root: target } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === target, `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'user config', `got ${json.worktreeRootSource}`);
+    assert(json.warnings && json.warnings.some(w => w.includes('worktree.root')), 'the refusal has to reach the agent');
+  });
+});
+
+test('an absolute project value is refused rather than obeyed', () => {
+  configBox(({ box, repo, home }) => {
+    const target = path.join(box, 'absolute-target');
+    fs.mkdirSync(target, { recursive: true });
+    writeConfig(repo, { worktree: { root: target } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot !== target, 'an absolute project value must not take effect');
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(json.warnings && json.warnings.length > 0, 'the refusal has to reach the agent');
+  });
+});
+
+test("a path inside the repository's own .git directory is refused", () => {
+  // Inside the bound, but inside the part git owns. `git worktree add
+  // .git/worktrees/<name>` succeeds and drops the checkout on top of the admin
+  // directory git creates for that same worktree.
+  for (const value of ['.git', '.git/worktrees', '.git/hooks/wt']) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `${value}: got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, `${value}: should warn`);
+    });
+  }
+});
+
+test('a value that merely starts with the same letters as .git is kept', () => {
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: '.github/worktrees' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === path.join(repo, '.github', 'worktrees'), `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'project config', `got ${json.worktreeRootSource}`);
+  });
+});
+
+test('a value passing through a dangling in-repo symlink is refused', () => {
+  configBox(({ box, repo, home }) => {
+    // A dangling link does not exist by existsSync, so a walk-up using it steps
+    // straight over the link and calls the result inside. Where it really points
+    // is unknowable until something creates the target.
+    fs.symlinkSync(path.join(box, 'never-created'), path.join(repo, 'dangling'), 'dir');
+    writeConfig(repo, { worktree: { root: 'dangling/worktrees' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(json.warnings && json.warnings.length > 0, 'the refusal has to reach the agent');
+  });
+});
+
+test('a deep project value is accepted, because create makes the parents', () => {
+  configBox(({ repo, home }) => {
+    // The one-missing-parent rule guards a mistyped --worktree-root, not a
+    // bounded config value the create step mkdirs recursively. Refusing depth
+    // here would make this script and `av config prefs resolve` disagree.
+    writeConfig(repo, { worktree: { root: 'a/b/c/worktrees' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === path.join(repo, 'a', 'b', 'c', 'worktrees'), `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'project config', `got ${json.worktreeRootSource}`);
+  });
+});
+
+test('a refused value does not fail the command', () => {
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: '/etc' } });
+    const result = execSync(`node "${SCRIPT_PATH}" info --json`, {
+      encoding: 'utf-8',
+      cwd: repo,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: home, WORKTREE_ROOT: '' },
+    });
+    // Terminating here would hand a hostile clone a denial of service.
+    assert(JSON.parse(result.trim()).info === true, 'info still answers');
+  });
+});
+
+test('a malformed config file warns and falls through, matching the CLI', () => {
+  for (const [label, contents] of [['not JSON', '{nope'], ['not an object', '[1,2,3]']]) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, contents);
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `${label}: got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, `${label}: should warn`);
+    });
+  }
+});
+
+test('the refusal rides the create envelope too, not only info', () => {
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: '/etc' } });
+    const result = execSync(`node "${SCRIPT_PATH}" create probe --json --dry-run`, {
+      encoding: 'utf-8',
+      cwd: repo,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: home, WORKTREE_ROOT: '' },
+    });
+    const json = JSON.parse(result.trim());
+    assert(json.warnings && json.warnings.some(w => w.includes('worktree.root')), 'create carries the refusal');
+  });
+});
+
+test('nothing about this path is written to stderr', () => {
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: '/etc' } });
+    const chunks = [];
+    try {
+      execSync(`node "${SCRIPT_PATH}" info --json 2>&1 1>/dev/null`, {
+        encoding: 'utf-8',
+        cwd: repo,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, HOME: home, WORKTREE_ROOT: '' },
+      });
+    } catch (error) {
+      chunks.push(error.stdout?.toString() || '');
+    }
+    assert(chunks.join('').trim() === '', 'the JSON envelope is the only channel');
+  });
+});
+
+// ============================================
 // SUMMARY
 // ============================================
 console.log('\n' + '='.repeat(50));

@@ -333,12 +333,19 @@ off automatically in CI.
 Settings live in `~/.ariadnev/config.json` (yours) and `<project>/.ariadnev/config.json`
 (the repo's). The two layers do **not** have equal rights: a project file may set
 workspace-shaped keys (`paths.*`, `plan.*`, `locale.*`, `docs.maxLoc`, `project.*`,
-`statusline.*`), and everything else is **user-only** — `privacyBlock`, `trust.enabled`,
+`statusline.*`, `worktree.root`), and everything else is **user-only** — `privacyBlock`, `trust.enabled`,
 `assertions`, `scripts.executionPolicy`, and notification destinations. A project
 file that sets a user-only key has that key dropped and named in a warning, so a
 repository you cloned cannot turn off your privacy blocking or point your
 notifications somewhere else. Notification destinations must be https URLs on an
 allowlisted host (`discord.com`, `slack.com`, `api.telegram.org`).
+
+One project-overridable key names a filesystem destination rather than something
+inside the repository by construction, so its *value* is bounded too:
+`worktree.root` from a project file must be relative and must resolve inside that
+repository, symlinks followed and `.git/` excluded. Only your own config may set
+an absolute one. A refused value is warned about and the next source applies —
+see [ADR 0019](docs/decisions/0019-worktree-root-is-a-bounded-project-setting.md).
 
 Point your editor at [`schemas/av-config.schema.json`](schemas/av-config.schema.json)
 for completion; it is generated from the TypeScript definition, so it cannot drift.
