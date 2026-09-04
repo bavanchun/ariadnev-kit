@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Preview generation-time validators and infographic engine"
-status: pending
+status: completed
 priority: P3
 effort: 6h
 dependencies: []
