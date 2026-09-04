@@ -174,6 +174,14 @@ function decisionPayload(event, topLevel = {}, runtime, nested = null) {
  */
 function blockPayload(event, reason, runtime) {
   if (resolveRuntime(runtime) !== 'antigravity') return { stdout: '', exitCode: 2 };
+  // Only `PreToolUse` has a deny in antigravity's vocabulary. Any other event
+  // would fall through to no output at all, and no output there is an allow —
+  // so the same call would block on the two runtimes that read the exit code
+  // and wave the call through on the one that does not, silently. A hook asking
+  // for a deny it cannot get is wrong about its own binding.
+  if (event !== 'PreToolUse') {
+    throw new Error(`antigravity has no deny for ${event}; only PreToolUse can be blocked`);
+  }
   const text = normalize(reason);
   return {
     stdout: antigravityPayload(event, {}, {

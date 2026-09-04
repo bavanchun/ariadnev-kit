@@ -259,3 +259,21 @@ test('emitBlock writes the payload and hands back the code to exit with', () => 
   assert.strictEqual(emitBlock('PreToolUse', 'reading .env', { runtime: CODEX, write: (s) => quiet.push(s) }), 2);
   assert.deepStrictEqual(quiet, [], 'stdout stays empty where the exit code carries the deny');
 });
+
+// The failure mode a silent return would create: on antigravity, an event with
+// no deny in its vocabulary produces no output, and no output there means the
+// call proceeds. The same call is still a hard exit 2 on the other two, so the
+// hook would block on two runtimes and wave the tool through on the third,
+// without either side saying so. Only PreToolUse has a deny; anything else
+// asking for one is a mistake in the hook, and it should be loud.
+test('blocking an event antigravity has no deny for is an error, not a silent allow', () => {
+  assert.throws(
+    () => blockPayload('Stop', 'nope', 'antigravity'),
+    /PreToolUse/,
+  );
+});
+
+test('the same event still blocks by exit code on the runtimes that read one', () => {
+  assert.deepEqual(blockPayload('Stop', 'nope', 'claude-code'), { stdout: '', exitCode: 2 });
+  assert.deepEqual(blockPayload('Stop', 'nope', 'codex'), { stdout: '', exitCode: 2 });
+});
