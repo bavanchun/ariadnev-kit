@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Antigravity: correct the agent cell, lift the hook cell"
-status: in-progress
+status: completed
 priority: P1
 effort: 8h
 dependencies: [0]
