@@ -80,9 +80,8 @@ each outcome lands on, so no grade is chosen after the fact.
 | 1 | [Codex native hooks and output adapter](./phase-01-codex-native-hooks.md) | **completed** |
 | 2 | [Antigravity: correct the agent cell, lift the hook cell](./phase-02-antigravity-agent-correction.md) | **completed** |
 | 3 | [Claude Code re-observation and native output styles](./phase-03-claude-code-reobservation.md) | **completed** |
-| 4 | [Persisted worktree root configuration](./phase-04-worktree-root-config.md) | Pending |
-| 5 | [Preview generation-time validators and infographic engine](./phase-05-preview-capability-gaps.md) | Pending |
-
+| 4 | [Persisted worktree root configuration](./phase-04-worktree-root-config.md) | **completed** |
+| 5 | [Preview generation-time validators and infographic engine](./phase-05-preview-capability-gaps.md) | **completed** |
 ## Sequencing
 
 Phase 0 blocks 1, 2 and 3. Nothing else is a dependency.
