@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Codex native hooks and output adapter"
-status: pending
+status: completed
 priority: P1
 effort: 8h
 dependencies: [0]
@@ -208,6 +208,7 @@ the correct trade, and the remediation text covers it by describing the symptom
 - `packages/cli/src/install/codex-hooks-merge.test.ts` — merge-safety, idempotence, uninstall.
 - `packages/cli/src/install/codex-legacy-wrapper.ts` — static detection + remediation text, no execution.
 - `packages/cli/src/install/codex-legacy-wrapper.test.ts`
+- `packages/cli/src/cli/install-command.test.ts` — the trust notice and the legacy-wrapper report, from files read and never run.
 - `kit/hooks/_lib/hook-output.cjs` — the single runtime-aware emitter.
 - `kit/hooks/_lib/__tests__/hook-output.test.cjs`
 - `kit/hooks/__tests__/codex-hook-contract.test.cjs` — the #134 fixtures (deny, exclusion-glob allow) as provider-contract tests.
@@ -218,6 +219,9 @@ the correct trade, and the remediation text covers it by describing the symptom
 - `packages/cli/src/adapt/paths.ts` — add `CODEX_HOOKS_DIR`, `CODEX_HOOKS_CONFIG_FILE` beside line 37.
 - `packages/cli/src/install/install-execute.ts:52-62` — `opContent` dispatches `format: "codex-hooks-json"` to the new merger.
 - `packages/cli/src/uninstall/uninstall-execute.ts:64-76` — the same dispatch on the unmerge side.
+- `packages/cli/src/doctor/hook-repair.ts` — repair a codex hooks.json binding, not only a settings.json one.
+- `packages/cli/src/install/hook-settings-merge.ts` — `renderHookSettingsSnippet` takes the merged file and its destination, so the declined-merge block names the registry the provider actually reads.
+- `packages/cli/src/install/hook-settings-merge.test.ts`, `packages/cli/src/cli/cli-commands.test.ts` — the same, asserted per provider.
 - `packages/cli/src/cli/install-command.ts:123-137` — the trust-step notice, beside `renderNoTargetWarning` (`:81`) and `renderHealSummary` (`:56`). *(An earlier draft named `install-surface.ts`; that file is a write allowlist and renders nothing.)*
 - `packages/cli/src/providers/provider-matrix.test.ts:32` — the codex hook lock.
 - `packages/cli/src/providers/spec-evidence.test.ts` — codex hook assertions.
@@ -291,18 +295,18 @@ the correct trade, and the remediation text covers it by describing the symptom
 
 ## Success Criteria
 
-- [ ] A Codex `PreToolUse` fixture reading `node_modules/pkg/index.js` is denied with schema-valid JSON and no top-level `permissionDecision`.
-- [ ] `find . -name package.json -not -path '*/node_modules/*'` remains allowed under the same fixture harness.
-- [ ] Claude Code hook output is byte-identical before and after the emitter migration, and every existing hook test passes unchanged.
-- [ ] `ariadnev install --provider codex --dry-run` plans writes to `~/.codex/hooks/av/*.cjs` and a `~/.codex/hooks.json` merge, and no other provider's hook target moved.
-- [ ] Merging into a `hooks.json` fixture containing two third-party groups and a plugin group leaves every foreign group unchanged; a second merge is a no-op; removal deletes only ariadnev groups.
-- [ ] `plan-format-kanban` emits `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` and no top-level `additionalContext`.
-- [ ] `codex-legacy-wrapper.ts` executes nothing: a test asserts the module has no `child_process` / `execFile` / `spawn` reference, and detection runs against parsed JSON only.
-- [ ] A legacy wrapper fixture produces a copy-pasteable remediation; an ariadnev-owned wrapper is healed instead.
-- [ ] The install summary states the TUI trust step.
-- [ ] README matrix regenerated; `matrix-drift.test.ts` green; `provider-matrix.test.ts` codex hook expectation updated.
-- [ ] `spec-verified.ts` codex `hook` reads `convention`, its note names codex-cli 0.153.1 and states the observed loads were other tools' hooks, and the row's `observedVersion` / `observedOn` are untouched in the diff.
-- [ ] Codex uninstall removes only ariadnev's `hooks.json` groups and touches no `~/.claude/settings.json` (Phase 0's guarantee, re-asserted here with codex as the concrete provider).
+- [x] A Codex `PreToolUse` fixture reading `node_modules/pkg/index.js` is denied with schema-valid JSON and no top-level `permissionDecision`.
+- [x] `find . -name package.json -not -path '*/node_modules/*'` remains allowed under the same fixture harness.
+- [x] Claude Code hook output is byte-identical before and after the emitter migration, and every existing hook test passes unchanged.
+- [x] `ariadnev install --provider codex --dry-run` plans writes to `~/.codex/hooks/av/*.cjs` and a `~/.codex/hooks.json` merge, and no other provider's hook target moved.
+- [x] Merging into a `hooks.json` fixture containing two third-party groups and a plugin group leaves every foreign group unchanged; a second merge is a no-op; removal deletes only ariadnev groups.
+- [x] `plan-format-kanban` emits `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` and no top-level `additionalContext`.
+- [x] `codex-legacy-wrapper.ts` executes nothing: a test asserts the module has no `child_process` / `execFile` / `spawn` reference, and detection runs against parsed JSON only.
+- [x] A legacy wrapper fixture produces a copy-pasteable remediation; an ariadnev-owned wrapper is healed instead.
+- [x] The install summary states the TUI trust step.
+- [x] README matrix regenerated; `matrix-drift.test.ts` green; `provider-matrix.test.ts` codex hook expectation updated.
+- [x] `spec-verified.ts` codex `hook` reads `convention`, its note names codex-cli 0.153.1 and states the observed loads were other tools' hooks, and the row's `observedVersion` / `observedOn` are untouched in the diff.
+- [x] Codex uninstall removes only ariadnev's `hooks.json` groups and touches no `~/.claude/settings.json` (Phase 0's guarantee, re-asserted here with codex as the concrete provider).
 - [ ] Issue #134 closed referencing all five of its checkboxes.
 
 ## Risk Assessment

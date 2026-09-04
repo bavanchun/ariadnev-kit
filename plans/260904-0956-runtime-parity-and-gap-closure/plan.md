@@ -72,7 +72,7 @@ each outcome lands on, so no grade is chosen after the fact.
 | # | Phase | Status |
 |---|-------|--------|
 | 0 | [Provider-directed hook surface](./phase-00-provider-directed-hook-surface.md) | **completed** |
-| 1 | [Codex native hooks and output adapter](./phase-01-codex-native-hooks.md) | Pending |
+| 1 | [Codex native hooks and output adapter](./phase-01-codex-native-hooks.md) | **completed** |
 | 2 | [Antigravity: correct the agent cell, lift the hook cell](./phase-02-antigravity-agent-correction.md) | Pending |
 | 3 | [Claude Code re-observation and native output styles](./phase-03-claude-code-reobservation.md) | Pending |
 | 4 | [Persisted worktree root configuration](./phase-04-worktree-root-config.md) | Pending |
