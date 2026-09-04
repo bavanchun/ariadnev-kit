@@ -56,13 +56,17 @@ export async function promptProviders(): Promise<PromptResult> {
 }
 
 /**
- * y/n gate before touching the user's settings.json for hook bindings.
+ * y/n gate before touching the user's own hook config for bindings.
  * Cancel or "no" → install still copies hook files; the CLI prints a
  * copy-pasteable snippet instead of merging.
+ *
+ * The files are named rather than described. Each provider registers hooks in a
+ * file of its own, several of which are shared with other tools, and "settings"
+ * is not a good enough answer to "what are you about to edit".
  */
-export async function confirmHookSettingsMerge(): Promise<boolean> {
+export async function confirmHookSettingsMerge(targets: string[]): Promise<boolean> {
   const answer = await confirm({
-    message: "Merge av hook bindings into .claude/settings.json? (a backup is kept)",
+    message: `Merge av hook bindings into ${targets.join(", ")}? (a backup is kept)`,
     initialValue: true,
   });
   if (isCancel(answer)) return false;

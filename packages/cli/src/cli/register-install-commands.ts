@@ -1,7 +1,7 @@
 import { recordActivity } from "../activity/emit.js";
 import type { Command } from "commander";
 import { lifecycleRoots, projectRoots, withLifecycleLock } from "../install/lifecycle-lock.js";
-import { PROVIDER_IDS } from "../providers/index.js";
+import { hookConfigTargets, PROVIDER_IDS } from "../providers/index.js";
 import { emit } from "./emit.js";
 import { readRegistry } from "../projects/registry.js";
 import { UsageError } from "./exit-codes.js";
@@ -32,9 +32,10 @@ export function registerInstallCommands(program: Command, context: CommandRegist
       }
       if (providers.length === 0) providers = [...PROVIDER_IDS].slice(0, 1);
       let applyHookSettings = false;
-      if (providers.includes("claude-code") && !global.yes && !global.dryRun && process.stdout.isTTY) {
+      const hookTargets = hookConfigTargets(providers, { home: global.home, cwd: global.cwd, scope });
+      if (hookTargets.length > 0 && !global.yes && !global.dryRun && process.stdout.isTTY) {
         const { confirmHookSettingsMerge } = await import("./prompt-providers.js");
-        applyHookSettings = await confirmHookSettingsMerge();
+        applyHookSettings = await confirmHookSettingsMerge(hookTargets);
       }
       // Taken here, not at the top of the action: everything above is an
       // interactive prompt, and holding a lock across an unbounded human wait

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getResolver, PROVIDER_IDS } from "./index.js";
+import { getResolver, hookConfigTargets, PROVIDER_IDS } from "./index.js";
 import { CODEX_COMMANDS_DIR } from "../adapt/paths.js";
 import type { Artifact } from "../kit/kit-types.js";
 import { loadKit, resolveKitRoot } from "../kit/load-kit.js";
@@ -188,5 +188,27 @@ describe("hooks tree shape", () => {
       const r = getResolver(id);
       expect(`${id}: ${r.hooksConfigTarget(ctx) === null}`).toBe(`${id}: ${r.hooksConfigFormat === null}`);
     }
+  });
+});
+
+describe("hook config targets", () => {
+  const globalCtx = { home: "/home/u", cwd: "/proj", scope: "global" as const };
+
+  it("names the file each selected provider would merge into", () => {
+    expect(hookConfigTargets(["antigravity"], globalCtx)).toEqual([
+      "/home/u/.gemini/config/hooks.json",
+    ]);
+    expect(hookConfigTargets(["codex"], globalCtx)).toEqual(["/home/u/.codex/hooks.json"]);
+    expect(hookConfigTargets(["claude-code"], globalCtx)).toEqual([
+      "/home/u/.claude/settings.json",
+    ]);
+  });
+
+  it("is empty for providers whose install writes no binding registry", () => {
+    expect(hookConfigTargets(["cursor", "opencode"], globalCtx)).toEqual([]);
+  });
+
+  it("lists every distinct file when several providers are installed at once", () => {
+    expect(hookConfigTargets(["claude-code", "codex", "antigravity"], globalCtx)).toHaveLength(3);
   });
 });
