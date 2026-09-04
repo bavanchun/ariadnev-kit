@@ -74,6 +74,41 @@ describe("provider verification evidence", () => {
     expect(SPEC_VERIFIED.antigravity.observedOn).toBe("2026-09-04");
   });
 
+  it("lands the claude-code output-style cell on the shipped-artefact ground", () => {
+    // 2.1.260 exposes no free surface that enumerates a user-directory output
+    // style. A style planted in an otherwise-empty `~/.claude/output-styles/`
+    // changed nothing in `claude doctor`, `claude plugin validate --json`
+    // reported `"contents": []` for a plugin carrying one, and there is no
+    // `--output-style` flag and no `output-style` subcommand — `/output-style`
+    // is interactive-only, and reaching it means spending a model turn.
+    //
+    // What the binary itself carries is the path: `output-styles` is a member
+    // of its userConfigDir directory-name enum, beside `commands`, `agents`,
+    // `skills` and `rules`. The destination is the provider's own, and no load
+    // of it was witnessed — which is this rung and not the one above it.
+    const style = evidenceFor("claude-code", "outputStyle");
+    expect(style.verified).toBe(true);
+    expect(style.level).toBe("convention");
+    expect(style.note).toMatch(/userConfigDir/);
+    expect(style.note).toMatch(/claude doctor/);
+    expect(SPEC_VERIFIED["claude-code"].observedVersion).toBe("2.1.260");
+    expect(SPEC_VERIFIED["claude-code"].observedOn).toBe("2026-09-04");
+  });
+
+  it("says which claude-code cells were re-checked and which were carried forward", () => {
+    // Re-pinning the row's version is a claim about every cell in it. The two
+    // that could not be reached from a shell session — the kit's single command
+    // was never invoked, and the status bar draws in the user's terminal — say
+    // so in their own notes rather than inheriting a date nobody earned.
+    expect(evidenceFor("claude-code", "command").note).toMatch(/carried forward/);
+    expect(evidenceFor("claude-code", "statusline").note).toMatch(/carried forward/);
+    for (const kind of ["skill", "agent", "rules", "hook"] as ArtifactKind[]) {
+      expect(evidenceFor("claude-code", kind).note, `${kind} reads as carried forward`).not.toMatch(
+        /carried forward/,
+      );
+    }
+  });
+
   it("grades the codex hook registry on what codex records, not on a run we watched", () => {
     // Trusting a hook in codex is an interactive TUI step, so no hook of ours
     // was seen to fire. What is on disk is codex's own bookkeeping about the

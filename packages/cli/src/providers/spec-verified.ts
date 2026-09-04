@@ -90,20 +90,23 @@ function none(note: string): CellEvidence {
 
 export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
   "claude-code": {
-    observedVersion: "2.1.232",
+    observedVersion: "2.1.260",
     // One date per row, never a shared constant: a re-observation of one
-    // provider must not re-date a row nobody looked at that day.
-    observedOn: "2026-08-15",
+    // provider must not re-date a row nobody looked at that day. Re-dating this
+    // row is a claim about every cell in it, so the two that could not be
+    // reached from a shell session say "carried forward" in their own notes
+    // rather than inheriting a date nobody earned for them.
+    observedOn: "2026-09-04",
     paths: {
-      skill: observed("installed skills are listed by name in the running session's available-skills surface"),
-      agent: observed("installed agents are listed by name as available subagent types"),
-      command: observed("installed commands appear as invocable slash commands"),
-      rules: observed("the AGENTS.md managed block is present in the session context"),
+      skill: observed("2.1.260: the running session's available-skills surface enumerates the installed av-* skills by name, and one of them loaded from ~/.claude/skills/<name>/SKILL.md"),
+      agent: observed("2.1.260: the Agent tool's available subagent types enumerate all 16 files in ~/.claude/agents/"),
+      command: observed("carried forward from 2.1.232 (2026-08-15): installed commands appear as invocable slash commands. Not re-checked on 2.1.260 — the kit installs one command and it was not invoked, and no non-interactive surface lists commands"),
+      rules: observed("2.1.260: every file installed under ~/.claude/rules/ appears verbatim in the session's context block"),
       scripts: convention("same .claude tree as the observed kinds; no separate surface reports script discovery"),
       env: convention("template file only — nothing reports reading it"),
-      hook: observed("hooks fire and their output appears in session transcripts"),
-      outputStyle: none("`.claude/output-styles/` is observed on disk but nothing was seen to load from it"),
-      statusline: observed("the settings.json `statusLine` key runs a command and its output is the bar shown in the session; observed working on this machine with a user-configured one"),
+      hook: observed("2.1.260: the SessionStart hook's own output, including the kit's session-state block, appears in the session transcript"),
+      outputStyle: convention("2.1.260 exposes no free surface that enumerates a user-directory output style: a style planted in an otherwise-empty ~/.claude/output-styles/ changed nothing in `claude doctor`, `claude plugin validate --json` answered `\"contents\": []` for a plugin carrying one, and there is no --output-style flag and no output-style subcommand (/output-style is interactive-only, and reaching it spends a model turn). The binary itself names the path: `output-styles` is a member of its userConfigDir directory-name enum beside `commands`, `agents`, `skills` and `rules`, and it joins `.claude/output-styles` literally in the same closure as `.claude/skills`. The destination is the provider's own; no load of it was witnessed — see plans/reports/observation-260904-1552-claude-code-2.1.260.md"),
+      statusline: observed("carried forward from 2.1.232 (2026-08-15): the settings.json `statusLine` key runs a command and its output is the bar shown in the session, observed working on this machine with a user-configured one. Not re-checked on 2.1.260 — the bar draws in the user's terminal, which no shell session can read"),
     },
     toolNames: observed("canonical format — identity rewrite, nothing to translate"),
   },

@@ -129,8 +129,6 @@ const CONFIGS: Record<ProviderId, ProviderConfig> = {
     skillDir: ".claude/skills",
     agentPath: (n) => `.claude/agents/${n}.md`,
     commandPath: (n) => `.claude/commands/${n}.md`,
-    // Observed on disk under ~/.claude/output-styles/. The matrix cell stays
-    // false until it is verified for real, so this path is not used yet.
     outputStylePath: (n) => `.claude/output-styles/${n}.md`,
     rulePath: (n) => `.claude/rules/${n}.md`,
     scriptsDir: ".claude/scripts",

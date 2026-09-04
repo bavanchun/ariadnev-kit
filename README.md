@@ -274,7 +274,7 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 | scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `~/.gemini/config/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `~/.gemini/config/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
 | hook | `.claude/hooks/av/*.cjs` | `~/.codex/hooks/av/*.cjs` | skip | `~/.gemini/config/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
-| outputStyle | skip | skip | skip | skip | skip | skip | skip | skip | skip |
+| outputStyle | `.claude/output-styles/*.md` | skip | skip | skip | skip | skip | skip | skip | skip |
 | statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
 <!-- END provider-matrix (generated) -->
 

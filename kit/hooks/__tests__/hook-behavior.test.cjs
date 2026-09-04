@@ -48,7 +48,14 @@ function runHook(name, payload, env = {}, hooksDir = HOOKS_DIR) {
  */
 function sandboxHooks(box) {
   const dir = path.join(box.root, 'hooks');
-  fs.cpSync(HOOKS_DIR, dir, { recursive: true });
+  // `.logs` is written by whatever hook ran last and is not part of the corpus.
+  // Copying it races every other suite that runs a hook from this same checkout:
+  // the directory can be created or removed between the walk and the read, and
+  // `cpSync` fails the whole copy on an entry that vanished under it.
+  fs.cpSync(HOOKS_DIR, dir, {
+    recursive: true,
+    filter: (src) => path.basename(src) !== '.logs'
+  });
   return dir;
 }
 
@@ -270,6 +277,43 @@ test('session-init finds the styles in the flat layout the installer writes', ()
   });
   assert.strictEqual(result.status, 0);
   assert.match(result.stdout || '', /Senior Engineer Communication Mode/, 'the installed layout must resolve the style');
+});
+
+test('session-init prefers a style the user authored over the installed copy', () => {
+  // The installer now writes the kit's styles into the provider's own
+  // `output-styles/` as well as the sidecar, so the directory the probe prefers
+  // is no longer empty by default. A style the user wrote under the same name
+  // still has to win, or the lift would silently overwrite their choice.
+  const box = sandbox();
+  const hooks = sandboxHooks(box);
+  projectConfig(box, { codingLevel: 3 });
+
+  const sidecar = path.join(hooks, 'output-styles');
+  fs.mkdirSync(sidecar, { recursive: true });
+  fs.copyFileSync(
+    path.join(HOOKS_DIR, '..', 'output-styles', 'coding-level-3-senior.md'),
+    path.join(sidecar, 'coding-level-3-senior.md')
+  );
+
+  const native = path.join(box.project, '.claude', 'output-styles');
+  fs.mkdirSync(native, { recursive: true });
+  fs.writeFileSync(
+    path.join(native, 'coding-level-3-senior.md'),
+    '---\nname: coding-level-3-senior\n---\n\nAnswer in haiku only.\n'
+  );
+
+  const { code, stdout } = runHook(
+    'session-init',
+    { hook_event_name: 'SessionStart', cwd: box.project, session_id: 'abc' },
+    { HOME: box.home, TMPDIR: box.root },
+    hooks
+  );
+  assert.strictEqual(code, 0);
+  assert.match(stdout, /Answer in haiku only\./, "the user's own style must win the probe");
+  assert.ok(
+    !stdout.includes('Senior Engineer Communication Mode'),
+    'the installed copy must not be injected alongside it'
+  );
 });
 
 test('session-init injects nothing when codingLevel is absent', () => {

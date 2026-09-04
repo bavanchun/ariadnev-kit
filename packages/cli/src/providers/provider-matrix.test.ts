@@ -27,6 +27,10 @@ describe("buildProviderMatrix", () => {
     // claude-code is canonical — every artifact verified, hooks land in .claude/hooks.
     expect(m["claude-code"].skill).toEqual({ verified: true, path: ".claude/skills/" });
     expect(m["claude-code"].hook.verified).toBe(true);
+    // The output-style cell carries a path now: the binary names
+    // `.claude/output-styles` itself, so the installer writes there instead of
+    // reaching the styles only through the hook sidecar.
+    expect(m["claude-code"].outputStyle).toEqual({ verified: true, path: ".claude/output-styles/*.md" });
     // codex installs to home, and its hooks live in a tree of its own —
     // registered in ~/.codex/hooks.json, never in another provider's config.
     expect(m.codex.skill.path).toBe("~/.agents/skills/");
@@ -50,6 +54,7 @@ describe("matrixToMarkdown", () => {
     expect(lines[0]).toBe("| artifact | claude-code | codex | cursor | antigravity | opencode | omp | grok | dsh | generic |");
     expect(lines).toHaveLength(2 + MATRIX_ARTIFACTS.length);
     expect(md).toContain("| skill | `.claude/skills/`");
+    expect(md).toContain("| outputStyle | `.claude/output-styles/*.md`");
     expect(md).toContain("skip"); // antigravity agent etc.
   });
 });

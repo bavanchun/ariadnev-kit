@@ -26,7 +26,7 @@ Three levels, because collapsing them is what allows self-certification:
 | Level | Meaning |
 |---|---|
 | `observed` | The provider was run and seen to load the artifact — it listed it by name, or the content appeared in the prompt the provider builds. Records provider version and date. |
-| `convention` | No provider-specific observation. The path is the neutral cross-tool layout (`.agents/`, `AGENTS.md`) that *was* observed working in another provider. Weaker, and labelled. |
+| `convention` | No load was witnessed, but the path is right on one of two grounds: it is the neutral cross-tool layout (`.agents/`, `AGENTS.md`) that *was* observed working in another provider, or the provider's **own shipped artefact** — its binary, its schema, a config file it wrote itself — names the path. Weaker, and labelled. |
 | `none` | No evidence. Cell is false; the installer skips. |
 
 "Installed it and it looked fine" is not an observation. Each `observed` note
@@ -39,6 +39,7 @@ Run on 2026-08-15, each install into an isolated `HOME` and project directory.
 **claude-code 2.1.232** — skills, agents, and commands appear by name in the
 running session's own surfaces; hooks fire and their output is visible in
 transcripts; the `AGENTS.md` managed block is present in session context.
+Re-observed against 2.1.260 on 2026-09-04; see below.
 
 **codex-cli 0.147.0** — `codex debug prompt-input` renders the model-visible
 prompt as JSON, which is stronger evidence than a directory listing: it is what
@@ -197,3 +198,51 @@ different rungs, for the ordinary reason.
 marks the agent listing. Every other cell in that row is `convention` and was not
 re-checked that day; the field says when the observation happened, and the notes
 say which cell it belongs to.
+
+## claude-code re-observed on 2.1.260 (2026-09-04)
+
+The row had been pinned to 2.1.232 since the table was written. A table that
+ages in place certifies itself, so every cell was re-checked against the build
+actually installed, and the two that a shell session cannot reach say so in
+their own notes: `command` (the kit ships one, it was not invoked, and no
+non-interactive surface lists commands) and `statusline` (the bar draws in the
+user's terminal). Both keep their original observation in the note and are
+labelled **carried forward**. `skill`, `agent`, `rules` and `hook` were seen
+again on 2.1.260.
+
+**The `outputStyle` cell moved from `none` to `convention`.** Its old note —
+"`.claude/output-styles/` is observed on disk but nothing was seen to load from
+it" — cited a directory listing, and a directory this tool's own lineage may
+have created proves nothing about what reads it. So the question was put to the
+provider.
+
+A style was planted in an otherwise-empty `~/.claude/output-styles/` and every
+free surface in 2.1.260 was read: `claude doctor` never mentions output styles
+and does not validate an unknown `outputStyle` setting; `claude plugin validate
+--json` answers `"contents": []` for a plugin that carries an `output-styles/`
+directory; there is no `--output-style` flag, no `output-style` subcommand, and
+no `claude config` command at all. `/output-style` is interactive-only, and
+reaching it costs a model turn, which a table refresh does not justify. The
+planted file was removed and the directory is empty again.
+
+What the shipped binary does say is specific. `output-styles` is a member of
+Claude Code's own **userConfigDir directory-name enum**, beside `commands`,
+`agents`, `skills` and `rules` — the four cells this row already grades
+`observed` — and the binary joins `.claude/output-styles` literally in the same
+closure that handles `.claude/skills`, `.claude/commands` and `.claude/hooks`.
+That is the provider's own artefact naming the path, which is the second ground
+in the `convention` row above and not the neutral-layout inference.
+
+It is not `observed`, because nothing was seen to load. It is not `none`,
+because that would mean no evidence and the enum is evidence. The full probe
+transcript is in
+`plans/reports/observation-260904-1552-claude-code-2.1.260.md`.
+
+**The hook sidecar stays.** Grading this cell means the six coding-level styles
+are now written to `.claude/output-styles/` as well as to
+`.claude/hooks/av/output-styles/`. The sidecar is not a claude-code workaround
+to retire on the lift — it is how the styles reach every provider with a
+verified hook cell and an unverified native surface, and dropping it would
+silently remove coding levels from the rest. Both copies are written from the
+same source bytes, and `session-init` still probes the provider's own directory
+first, so a style the user authors under the same name keeps winning.

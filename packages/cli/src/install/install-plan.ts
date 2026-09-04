@@ -50,9 +50,10 @@ function planCommands(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallO
 }
 
 // Output styles are plain Markdown the provider reads verbatim — no adaptation.
-// No provider's native output-style cell is verified today; where hooks are,
-// the styles still reach the session as a session-init hook sidecar (see
-// planHooks), and the skip reason says so instead of reading as a loss.
+// A provider whose native output-style cell is unverified is not cut off from
+// coding levels: wherever hooks are installed, the styles reach the session as
+// a session-init hook sidecar instead (see planHooks), which is why the skip
+// reason names that path rather than reading as a loss.
 function planOutputStyles(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[] {
   return kit.outputStyles.map((style): InstallOp => {
     if (!r.supports.outputStyle) {
@@ -173,11 +174,18 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
     content: hookRuntimeMarkerContent(r.id),
   });
   // Coding-level output styles are consumed by the session-init hook, not by
-  // the provider — the (claude-code, outputStyle) cell is unverified, so they
-  // do not go through planOutputStyles. They install as a hook sidecar under
-  // the second path the hook probes, leaving `.claude/output-styles/` to
-  // styles the user authors natively (which then win the probe). Written
-  // verbatim: the hook strips the frontmatter itself.
+  // the provider, so they are written here as well as wherever planOutputStyles
+  // sends them. This copy is the delivery path for the whole set of providers
+  // with a verified hook cell and an unverified native output-style surface —
+  // several today, and the set changes as cells are graded — so it is not
+  // redundant for the one provider whose native cell is now verified, and
+  // retiring it on that lift would silently drop coding levels for the rest.
+  //
+  // The hook probes the provider's own output-styles/ first and this directory
+  // second, so a style the user authors natively still wins. Both copies are
+  // written from the same `style.raw`, which is what makes the probe order
+  // unable to change the text a session gets. Written verbatim: the hook strips
+  // the frontmatter itself.
   for (const style of kit.outputStyles) {
     ops.push({
       action: "write",

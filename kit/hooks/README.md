@@ -60,13 +60,19 @@ family — `session-state`, `precompact-capture`, `cook-after-plan-reminder`,
 without writing when it is absent; `ariadnev doctor` reports a hook install that
 has lost it. The kit checkout deliberately carries no marker.
 
-The kit's `output-styles/` belong to `session-init`, not to a provider surface:
-the installer writes them (receipted, like any hook file) into this hooks
-directory, under `output-styles/`. `session-init` reads one when `codingLevel`
-in the project's `.ariadnev/config.json` is `0`–`5`, after first probing
-`<config dir>/output-styles/`, which stays reserved for styles the user authors
-natively and wins when both exist. `codingLevel: -1` (default) injects
-nothing.
+The kit's `output-styles/` are consumed by `session-init`, not by a provider
+surface. The installer writes them (receipted, like any hook file) into this
+hooks directory, under `output-styles/`, for every runtime whose hooks it
+installs — that copy is what reaches a provider whose own output-style cell is
+unverified. Where the provider's native cell *is* verified, the same files are
+also written there through the normal install path; both copies come from the
+same source bytes.
+
+`session-init` reads one when `codingLevel` in the project's
+`.ariadnev/config.json` is `0`–`5`, probing `<config dir>/output-styles/` first
+and this directory second. A style the user authors natively therefore wins
+under the same name, which is the point of that order. `codingLevel: -1`
+(default) injects nothing.
 
 `_lib/notifications/` is not bound to any event. Sending a session's activity to
 a third-party service is opt-in: set `notifications.enabled` and a destination in
