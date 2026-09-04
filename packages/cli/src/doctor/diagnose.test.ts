@@ -280,6 +280,73 @@ describe("a provider whose hook registry is not claude-code's", () => {
   });
 });
 
+describe("a provider whose hook registry is keyed by writer, not by event", () => {
+  // antigravity's hooks.json has no `hooks` object at all: each writer owns a
+  // top-level key, and ariadnev's is `av`. Reading it the way claude-code's
+  // settings.json is read finds nothing under every event, so a correct install
+  // reports every one of its bindings as removed — a clean install that says it
+  // is broken, and a `--fix` that rewrites a file that was already right.
+  const command = 'node "/home/u/.gemini/config/hooks/av/plan-format-kanban.cjs"';
+  const antigravityHooksJson = JSON.stringify({
+    "orca-status": { Stop: [{ type: "command", command: "orca status" }] },
+    av: { PostToolUse: [{ matcher: "Write", hooks: [{ type: "command", command }] }] },
+  });
+
+  function antigravityReceipt(): Receipt {
+    return {
+      schemaVersion: 1,
+      ariadnevVersion: "0.4.0",
+      installs: {
+        antigravity: {
+          timestamp: "t1",
+          scope: "global",
+          files: [{ path: "~/.gemini/config/hooks/av/plan-format-kanban.cjs", sha256: "abc" }],
+          agentsMdManaged: false,
+          hookBindings: [{ event: "PostToolUse", matcher: "Write", command, applied: true }],
+          skipped: [],
+        },
+      },
+    };
+  }
+
+  const marker = () => '{"schemaVersion":1,"runtime":"antigravity"}\n';
+
+  it("finds a binding registered under this provider's own key", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({ readHooksConfig: () => antigravityHooksJson, readHookRuntimeMarker: marker }),
+      opt,
+    );
+    expect(findings.filter((f) => f.level === "fail")).toEqual([]);
+  });
+
+  it("still reports drift when only the foreign writer's key is left", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({
+        readHooksConfig: () => JSON.stringify({ "orca-status": { Stop: [{ type: "command", command: "orca status" }] } }),
+        readHookRuntimeMarker: marker,
+      }),
+      opt,
+    );
+    const f = findings.find((x) => x.message.includes("PostToolUse"));
+    expect(f?.level).toBe("fail");
+    expect(f?.message).toContain("~/.gemini/config/hooks.json");
+  });
+
+  it("does not accept a command that happens to sit under another writer's key", () => {
+    const findings = diagnose(
+      antigravityReceipt(),
+      makeDeps({
+        readHooksConfig: () => JSON.stringify({ "orca-status": { PostToolUse: [{ hooks: [{ type: "command", command }] }] } }),
+        readHookRuntimeMarker: marker,
+      }),
+      opt,
+    );
+    expect(findings.some((f) => f.level === "fail" && f.message.includes("PostToolUse"))).toBe(true);
+  });
+});
+
 describe("deriveStatus — exit contract (keys on fail only)", () => {
   it("is not-installed when receipt is null or empty", () => {
     expect(deriveStatus(null, [])).toBe("not-installed");

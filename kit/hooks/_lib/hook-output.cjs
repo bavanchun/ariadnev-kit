@@ -2,18 +2,27 @@
 
 // The one place hook stdout is shaped.
 //
-// Two runtimes read it and they do not accept the same envelope. Codex's hook
+// Three runtimes read it and they do not accept the same envelope. Codex's hook
 // schemas are `additionalProperties: false`, so a key in the wrong place is not
 // ignored — the whole decision is rejected and the user sees `Hook failed`
 // instead of the deny the hook meant. Claude Code accepts the loose shapes, so
 // a mistake here is invisible on the runtime the corpus was written against and
-// only surfaces on the other one.
+// only surfaces on the others.
 //
-// Nearly all of that is the same on both: `hookSpecificOutput.additionalContext`
-// is the context envelope everywhere. The genuine runtime difference is the
-// older shape — the loose stdout Claude Code reads as context on SessionStart
-// and UserPromptSubmit, which Codex validates against schemas with no place for
-// text. That is the one thing this module branches on.
+// Claude Code and Codex differ in one place only:
+// `hookSpecificOutput.additionalContext` is the context envelope on both, and
+// the genuine difference is the older shape — the loose stdout Claude Code
+// reads as context on SessionStart and UserPromptSubmit, which Codex validates
+// against schemas with no place for text.
+//
+// Antigravity is not a third strictness setting on the same envelope. Its five
+// events each answer in a vocabulary of their own, documented in the provider's
+// own `agy-customizations/docs/hooks.md`: `PreToolUse` takes a top-level
+// `decision` of allow/deny/ask/force_ask with an optional `reason`,
+// `PostToolUse` expects `{}`, and `Stop` is blocked by answering `continue` —
+// the word Claude Code uses for letting the agent go on. None of the five
+// carries injected context, so a hook with only context to offer says nothing
+// there rather than emitting a field the runtime will not read.
 
 const { readRuntimeMarker } = require('./runtime-state-identity.cjs');
 
@@ -37,9 +46,47 @@ const NESTED_ONLY_KEYS = ['permissionDecision', 'permissionDecisionReason', 'add
  */
 const PERMISSION_REQUEST_FORBIDDEN = ['interrupt', 'updatedInput', 'updatedPermissions'];
 
+/** Runtimes with an envelope of their own. Everything else is Claude Code. */
+const NON_DEFAULT_RUNTIMES = new Set(['codex', 'antigravity']);
+
 function resolveRuntime(runtime) {
   if (runtime === undefined) return readRuntimeMarker() || DEFAULT_RUNTIME;
-  return runtime === 'codex' ? 'codex' : DEFAULT_RUNTIME;
+  return NON_DEFAULT_RUNTIMES.has(runtime) ? runtime : DEFAULT_RUNTIME;
+}
+
+/** The decisions antigravity's PreToolUse accepts, in its own spelling. */
+const ANTIGRAVITY_TOOL_DECISIONS = new Set(['allow', 'deny', 'ask', 'force_ask']);
+
+/**
+ * What a kit hook's answer becomes on antigravity, or `''` when it becomes
+ * nothing.
+ *
+ * Saying nothing is a real answer here and the safe one. `decision` is required
+ * on `PreToolUse`, so a hook that has no decision to make cannot fill it in
+ * without changing behaviour: `allow` would skip a permission prompt the user
+ * would otherwise see, and `ask` would raise one they would not. The same holds
+ * on `Stop`, where every value except `continue` lets the agent stop and
+ * `reason` is only carried when it is continuing — so a passing message has no
+ * channel and inventing a decision to carry it would block a stop nobody asked
+ * to block.
+ *
+ * Events outside the five are here too, because a binding for one is never
+ * installed for this provider: if such a hook runs at all, whatever it writes
+ * is read by nothing.
+ */
+function antigravityPayload(event, topLevel, nested) {
+  if (event === 'PreToolUse') {
+    const decision = nested && nested.permissionDecision;
+    if (!ANTIGRAVITY_TOOL_DECISIONS.has(decision)) return '';
+    const reason = nested.permissionDecisionReason;
+    return render(reason ? { decision, reason } : { decision });
+  }
+  if (event === 'Stop') {
+    if (topLevel.decision !== 'block') return '';
+    return render(topLevel.reason ? { decision: 'continue', reason: topLevel.reason } : { decision: 'continue' });
+  }
+  if (event === 'PostToolUse') return render({});
+  return '';
 }
 
 function render(payload) {
@@ -60,6 +107,7 @@ function normalize(text) {
 function contextPayload(event, text, runtime) {
   const body = normalize(text);
   if (body === '') return '';
+  if (resolveRuntime(runtime) === 'antigravity') return antigravityPayload(event, {}, null);
   return wrap(event, body);
 }
 
@@ -76,7 +124,9 @@ function contextPayload(event, text, runtime) {
 function plainContextPayload(event, text, runtime) {
   const body = normalize(text);
   if (body === '') return '';
-  return resolveRuntime(runtime) === 'codex' ? wrap(event, body) : `${body}\n`;
+  const resolved = resolveRuntime(runtime);
+  if (resolved === 'antigravity') return antigravityPayload(event, {}, null);
+  return resolved === 'codex' ? wrap(event, body) : `${body}\n`;
 }
 
 /**
@@ -100,6 +150,7 @@ function decisionPayload(event, topLevel = {}, runtime, nested = null) {
       }
     }
   }
+  if (resolveRuntime(runtime) === 'antigravity') return antigravityPayload(event, topLevel, nested);
   const payload = { ...topLevel };
   if (nested && Object.keys(nested).length > 0) {
     payload.hookSpecificOutput = { hookEventName: event, ...nested };

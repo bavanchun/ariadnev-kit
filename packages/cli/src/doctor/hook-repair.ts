@@ -60,7 +60,7 @@ export function planHookRepair(
     if (configPath === null || resolver.hooksConfigFormat === null) continue;
 
     const existing = deps.readHooksConfig(configPath) ?? "";
-    const missing = applied.filter((b) => !hasBindingCommand(existing, b.event, b.command));
+    const missing = applied.filter((b) => !hasBindingCommand(resolver.hooksConfigFormat!, existing, b.event, b.command));
     if (missing.length === 0) continue;
 
     const added: HookBinding[] = missing.map((b) => ({ event: b.event, matcher: b.matcher, command: b.command }));

@@ -3,7 +3,8 @@
 // here directly, so this is fully unit-testable without a real install.
 import { fromPortablePath, receiptVersion, toPortablePath, type Receipt, type ReceiptInstall } from "../install/install-receipt.js";
 import type { HealRemoval } from "../install/install-heal.js";
-import { makeResolver, type ProviderResolver, type Scope } from "../providers/resolver.js";
+import { makeResolver, type HooksConfigFormat, type ProviderResolver, type Scope } from "../providers/resolver.js";
+import { AV_HOOK_KEY } from "../install/antigravity-hooks-merge.js";
 import { isProviderId } from "../providers/index.js";
 import { HOOK_RUNTIME_MARKER_FILE, hookRuntimeMarkerPath, isHookRuntimeMarkerValid } from "../install/hook-runtime-marker.js";
 
@@ -123,16 +124,28 @@ function legacySkillDirs(removals: HealRemoval[], opts: DiagnoseOpts): string[] 
 /**
  * Whether a binding is still registered in a provider's hook config.
  *
- * Format-agnostic on purpose: claude-code's settings.json and codex's hooks.json
- * spell an event the same way — `hooks.<Event>` holding groups of
- * `{type, command}` handlers — so the drift question has one answer for both.
- * Only the *write* differs, which is why merging dispatches on format and this
- * does not.
+ * claude-code's settings.json and codex's hooks.json spell an event the same
+ * way — `hooks.<Event>` holding groups of `{type, command}` handlers — so those
+ * two share an answer. antigravity does not: its file has no `hooks` object at
+ * all, each writer owns a top-level key, and reading it the other way finds
+ * nothing under every event. That is not a harmless miss — a correct install
+ * would be reported as entirely broken, and `--fix` would rewrite a file that
+ * was already right.
+ *
+ * Looking under our own key is also what makes the check mean anything there:
+ * the same command sitting under another writer's key is that writer's entry,
+ * not a binding of ours that survived.
  */
-export function hasBindingCommand(hooksConfigJson: string, event: string, command: string): boolean {
+export function hasBindingCommand(
+  format: HooksConfigFormat,
+  hooksConfigJson: string,
+  event: string,
+  command: string,
+): boolean {
   try {
-    const parsed = JSON.parse(hooksConfigJson) as { hooks?: Record<string, unknown> };
-    const groups = parsed.hooks?.[event];
+    const parsed = JSON.parse(hooksConfigJson) as Record<string, unknown>;
+    const owned = format === "antigravity-hooks-json" ? parsed[AV_HOOK_KEY] : parsed.hooks;
+    const groups = (owned as Record<string, unknown> | undefined)?.[event];
     return JSON.stringify(groups ?? "").includes(JSON.stringify(command));
   } catch {
     return false;
@@ -214,7 +227,7 @@ export function diagnose(receipt: Receipt | null, deps: DiagnoseDeps, opts: Diag
         });
       } else {
         for (const b of applied) {
-          if (!hasBindingCommand(hooksConfigJson, b.event, b.command)) {
+          if (!hasBindingCommand(resolver.hooksConfigFormat!, hooksConfigJson, b.event, b.command)) {
             findings.push({
               providerId,
               level: "fail",

@@ -160,8 +160,11 @@ function planHooks(kit: Kit, r: ProviderResolver, ctx: ResolverCtx): InstallOp[]
   }
   // The runtime marker the hook library reads beside `_lib`. It is a planned
   // write like every other owned file so the receipt, backups, and uninstall
-  // all cover it. The runtime named is the provider's id: hooks are only
-  // verified for Claude Code, and that is the id the hook library accepts.
+  // all cover it. The runtime named is the provider's id, which is also what
+  // the hook library validates the marker against — so a provider whose hooks
+  // become installable has to be added to that library's accepted set in the
+  // same change. Miss it and the tree installs, runs, and records nothing,
+  // silently, because those hooks fail open.
   ops.push({
     action: "write",
     kind: "hook",

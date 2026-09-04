@@ -134,3 +134,86 @@ test('the plain emitter writes exactly what its payload builder returned', () =>
   assert.strictEqual(written.join(''), out);
   assert.strictEqual(out, plainContextPayload('SessionStart', 'ctx', CODEX));
 });
+
+// Antigravity is the third runtime, and it is not a stricter reading of the
+// first two. Each of its five events answers in a vocabulary of its own:
+// `PreToolUse` takes a top-level `decision` of allow/deny/ask/force_ask,
+// `PostToolUse` expects `{}`, and `Stop` is blocked by answering `continue` —
+// the word Claude Code uses for the opposite. None of the five carries injected
+// context, so a hook with only context to offer says nothing rather than
+// emitting an envelope the runtime has no field for.
+
+const ANTIGRAVITY = 'antigravity';
+
+test('antigravity has no context channel on the tool and stop events', () => {
+  for (const event of ['PreToolUse', 'Stop']) {
+    assert.strictEqual(contextPayload(event, 'hello', ANTIGRAVITY), '', event);
+    assert.strictEqual(plainContextPayload(event, 'hello', ANTIGRAVITY), '', event);
+  }
+});
+
+test('a PostToolUse answer to antigravity is the empty object its contract asks for', () => {
+  assert.deepStrictEqual(JSON.parse(contextPayload('PostToolUse', 'warn', ANTIGRAVITY)), {});
+  assert.deepStrictEqual(JSON.parse(decisionPayload('PostToolUse', { continue: true }, ANTIGRAVITY)), {});
+});
+
+test('a permission decision becomes antigravity top-level decision and reason', () => {
+  assert.deepStrictEqual(
+    JSON.parse(decisionPayload('PreToolUse', {}, ANTIGRAVITY, {
+      permissionDecision: 'deny',
+      permissionDecisionReason: 'secret path'
+    })),
+    { decision: 'deny', reason: 'secret path' }
+  );
+  for (const decision of ['allow', 'ask']) {
+    assert.deepStrictEqual(
+      JSON.parse(decisionPayload('PreToolUse', {}, ANTIGRAVITY, { permissionDecision: decision })),
+      { decision }
+    );
+  }
+});
+
+test('a PreToolUse hook with no decision does not invent one', () => {
+  // `{"decision":"allow"}` would skip the permission prompt the user would
+  // otherwise be shown, so having nothing to say is said by saying nothing.
+  assert.strictEqual(decisionPayload('PreToolUse', { continue: true }, ANTIGRAVITY), '');
+  assert.strictEqual(decisionPayload('PreToolUse', {}, ANTIGRAVITY, { updatedInput: { a: 1 } }), '');
+});
+
+test('blocking a stop is `continue` on antigravity and `block` on claude-code', () => {
+  const blocked = { decision: 'block', reason: 'tests still running' };
+  assert.deepStrictEqual(JSON.parse(decisionPayload('Stop', blocked, ANTIGRAVITY)), {
+    decision: 'continue',
+    reason: 'tests still running'
+  });
+  assert.deepStrictEqual(JSON.parse(decisionPayload('Stop', blocked, CLAUDE)), blocked);
+});
+
+test('a stop that is not being blocked says nothing to antigravity', () => {
+  // Any decision other than `continue` lets the agent stop, and a passing
+  // `systemMessage` has nowhere to go: agy carries `reason` only when it is
+  // continuing, so naming a decision here would be inventing one.
+  assert.strictEqual(decisionPayload('Stop', { continue: true, systemMessage: 'note' }, ANTIGRAVITY), '');
+});
+
+test('an event antigravity does not dispatch produces nothing under it', () => {
+  for (const event of ['SessionStart', 'UserPromptSubmit', 'SubagentStart', 'PreCompact']) {
+    assert.strictEqual(contextPayload(event, 'hello', ANTIGRAVITY), '', event);
+    assert.strictEqual(plainContextPayload(event, 'hello', ANTIGRAVITY), '', event);
+    assert.strictEqual(decisionPayload(event, { continue: true }, ANTIGRAVITY), '', event);
+  }
+});
+
+test('the misplacement guards apply on antigravity too', () => {
+  assert.throws(() => decisionPayload('PreToolUse', { permissionDecision: 'deny' }, ANTIGRAVITY), /permissionDecision/);
+  assert.throws(() => decisionPayload('PostToolUse', { additionalContext: 'x' }, ANTIGRAVITY), /additionalContext/);
+});
+
+test('the other two runtimes keep the shapes they had', () => {
+  // The branch is per runtime, not per event: adding a third vocabulary must
+  // not move a byte of what the first two already receive.
+  assert.deepStrictEqual(JSON.parse(contextPayload('PostToolUse', 'warn', CODEX)), {
+    hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: 'warn' }
+  });
+  assert.deepStrictEqual(JSON.parse(decisionPayload('Stop', { continue: true }, CLAUDE)), { continue: true });
+});
