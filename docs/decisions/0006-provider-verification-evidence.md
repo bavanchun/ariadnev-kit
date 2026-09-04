@@ -154,3 +154,46 @@ invented location looks like success.
 
 The provider count is therefore **9 listed, 8 installable, 1 skipped** — and that
 is stated in those terms rather than as "9 providers supported".
+
+## Amendment, 2026-09-04: antigravity, and what a listing does and does not prove
+
+**A citation is withdrawn.** `antigravity`'s `agent` and `skill` cells rested on
+"`~/.gemini/config/agents/` holds 16 `.md` files". Every one of those files came
+from this tool's own lineage, so the note was the installer certifying its own
+output — the exact circularity the ladder exists to prevent, stated as evidence
+in the table. It is deleted rather than softened.
+
+**What replaced it is `observed`, and the reason is the enumerator, not the
+directory.** `agy agent` on 1.1.25 listed by name two kit agents produced by the
+real antigravity adapt pipeline, planted at the path the installer writes to and
+removed afterwards; an empty control directory listed nothing. The listing is
+agy's own frontmatter parser: the same two files disappear from it when `tools:`
+is a scalar string or when any `model:` key is present. A file that exists and a
+file the provider accepted are therefore distinguishable — which is precisely
+what `ls` cannot do, and what separates this from the withdrawn citation.
+`opencode` and `codex` reached the same rung on the same kind of answer.
+
+**Listing is not execution, and the note says so.** What was observed is
+discovery and load, not a session using the agent, which needs a paid turn. That
+limit belongs in the cell rather than in a promotion to a rung the ladder does
+not define: there is no "loaded but not run" level, and inventing one to express
+a caveat would make every other row's grade mean less.
+
+**This is also a product finding, not only a grading one.** Until the adapter
+emitted `tools:` as a sequence and dropped `model:` entirely, agy silently
+ignored every agent this tool installed — 16 files on disk, none of them
+loadable, and no warning anywhere. Two adapt tests pin those two facts as the
+evidence they are, so that "simplifying" them back would void the observation
+rather than merely change a format.
+
+**The `hook` cell rose only to `convention` the same day, and the gap is the
+point.** The provider's shipped `hooks.json` documentation, the matching strings
+in its binary, and a third party's live registration in the very file the
+installer merges into all say the layout is right. None of them is a hook
+firing, and a hook only fires inside a session. Same day, same binary, two
+different rungs, for the ordinary reason.
+
+**One date per row still dates the observation, not the row.** `observedOn` here
+marks the agent listing. Every other cell in that row is `convention` and was not
+re-checked that day; the field says when the observation happened, and the notes
+say which cell it belongs to.
