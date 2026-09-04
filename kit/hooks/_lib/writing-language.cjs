@@ -24,7 +24,7 @@
 
 'use strict';
 
-const { resolvePrefs } = require('./av-prefs-client.cjs');
+const { resolvePrefs } = require('./av-config-client.cjs');
 
 const DEFAULT_LANGUAGE = 'en';
 const LANGUAGE_TAG_RE = /^[a-z]{2,3}(-[a-z0-9]+)*$/;

@@ -137,9 +137,11 @@ describe("buildReceipt (pure)", () => {
         ops: [
           {
             action: "hook-settings",
+            format: "claude-settings-json" as const,
             kind: "hook",
             name: "settings.json",
             dest: "/home/u/proj/.claude/settings.json",
+            ownedDir: "/home/u/proj/.claude/hooks/av",
             bindings: [{ event: "SessionStart", command: "node x.cjs" }],
           },
         ],
@@ -158,9 +160,11 @@ describe("buildReceipt (pure)", () => {
         ops: [
           {
             action: "hook-settings",
+            format: "claude-settings-json" as const,
             kind: "hook",
             name: "settings.json",
             dest: "/home/u/proj/.claude/settings.json",
+            ownedDir: "/home/u/proj/.claude/hooks/av",
             bindings: [{ event: "SessionStart", command: "node x.cjs" }],
           },
         ],

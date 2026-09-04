@@ -60,14 +60,27 @@ export interface SkipOp {
 }
 
 import type { HookBinding } from "./hook-settings-merge.js";
+import type { HooksConfigFormat } from "../providers/resolver.js";
 
 export interface HookSettingsOp {
   action: "hook-settings";
   kind: "hook";
   name: string;
-  /** Absolute settings.json path to merge bindings into. */
+  /** Absolute settings path to merge bindings into. */
   dest: string;
   bindings: HookBinding[];
+  /**
+   * Which merger produces the bytes. A discriminator rather than a second op
+   * action, because a new action would need parallel handling in `opContent`,
+   * the consent gate, the shared-write reconciler, uninstall, and the receipt —
+   * and an action that reaches only some of those reaches disk unreconciled.
+   */
+  format: HooksConfigFormat;
+  /**
+   * The hooks tree this install owns. A merger that shares its config file with
+   * other writers recognises its own entries by this path and by nothing else.
+   */
+  ownedDir: string;
 }
 
 export interface StatusLineOp {

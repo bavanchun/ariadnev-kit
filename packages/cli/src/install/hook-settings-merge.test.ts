@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { win32 } from "node:path";
 import {
   mergeHookSettings,
   unmergeHookSettings,
@@ -102,16 +103,28 @@ describe("unmergeHookSettings (pure)", () => {
 
 describe("renderHookSettingsSnippet", () => {
   it("prints a copy-pasteable hooks block", () => {
-    const snippet = renderHookSettingsSnippet(bindings);
+    const snippet = renderHookSettingsSnippet(mergeHookSettings("", bindings), "/home/u/.claude/settings.json");
     expect(snippet).toContain("SessionStart");
     expect(snippet).toContain("session-init.cjs");
     expect(snippet).toContain("Read|Grep|Glob");
   });
+
+  it("names the file the block actually goes in", () => {
+    // A provider that keeps its hooks somewhere else was still told to paste
+    // this into `.claude/settings.json` — a file it does not read, in a
+    // directory it may not have. The destination is the op's, not a constant.
+    const snippet = renderHookSettingsSnippet(mergeHookSettings("", bindings), "/home/u/.codex/hooks.json");
+    expect(snippet).toContain("/home/u/.codex/hooks.json");
+    expect(snippet).not.toContain(".claude/settings.json");
+  });
 });
 
 describe("statusLine merge", () => {
-  const OWNED = "/.claude/hooks/av/";
-  const OURS = `node "/home/u/.claude/hooks/av/av-statusline.cjs"`;
+  // The resolved hooks directory, the way install and uninstall both pass it —
+  // absolute and unterminated. A bare fragment would let any command whose text
+  // happens to contain it be mistaken for ours.
+  const OWNED = "/home/u/.claude/hooks/av";
+  const OURS = `node "${OWNED}/av-statusline.cjs"`;
 
   it("installs into an empty settings file", () => {
     const { json, applied } = mergeStatusLine("", OURS, OWNED);
@@ -142,5 +155,24 @@ describe("statusLine merge", () => {
 
     const withTheirs = JSON.stringify({ statusLine: { type: "command", command: 'node "$HOME/mine.cjs"' } });
     expect(JSON.parse(unmergeStatusLine(withTheirs, OWNED)).statusLine).toBeDefined();
+  });
+});
+
+describe("statusLine on Windows", () => {
+  // Same encoding trap as the hook commands: our own statusLine, read back,
+  // must be recognised as replaceable and as removable — otherwise an upgrade
+  // refuses to touch it ("you already have a statusLine") and an uninstall
+  // leaves it pointing at files it just deleted.
+  const owned = win32.join("C:\\Users\\u\\.claude\\hooks", "av");
+  const ours = `node ${JSON.stringify(win32.join(owned, "av-statusline.cjs"))}`;
+
+  it("replaces the one we installed last time", () => {
+    const existing = JSON.stringify({ statusLine: { type: "command", command: `${ours} --old` } });
+    expect(mergeStatusLine(existing, ours, owned).applied).toBe(true);
+  });
+
+  it("removes ours on uninstall", () => {
+    const existing = JSON.stringify({ statusLine: { type: "command", command: ours } });
+    expect(JSON.parse(unmergeStatusLine(existing, owned)).statusLine).toBeUndefined();
   });
 });

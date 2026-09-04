@@ -232,6 +232,7 @@ jobs:
         run: |
           find packages/cli/scripts -name '*.test.mjs' -print0 | xargs -0 -r node --test
           find kit/hooks kit/statusline -name '*.test.cjs' -print0 | xargs -0 -r node --test
+          pnpm test:worktree
 
   ci:
     name: Lint · Build · Test
@@ -374,3 +375,6 @@ jobs:
           # tests, which are content — running them would make this build red on
           # someone else's expectations about someone else's environment.
           find kit/hooks kit/statusline -name '*.test.cjs' -print0 | xargs -0 -r node --test
+          # Named rather than globbed for the same reason: this one suite under
+          # kit/skills is ours, and it guards a rule that exists twice.
+          pnpm test:worktree

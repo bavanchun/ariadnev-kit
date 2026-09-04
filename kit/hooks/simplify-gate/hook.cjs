@@ -21,6 +21,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
 const { resolvePrefsSection } = require(require('node:path').join(AV_LIB, 'av-config-client.cjs'));
+const { emitContext, emitDecision } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
 const DEFAULTS = {
   threshold: { locDelta: 400, fileCount: 8, singleFileLoc: 200 },
@@ -180,13 +181,11 @@ function formatMessage(signals, breaches, severity) {
 }
 
 function emitSoft(message) {
-  console.log(JSON.stringify({
-    hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: message }
-  }));
+  emitContext('UserPromptSubmit', message);
 }
 
 function emitHard(message) {
-  console.log(JSON.stringify({ continue: false, decision: 'block', reason: message }));
+  emitDecision('UserPromptSubmit', { continue: false, decision: 'block', reason: message });
 }
 
 function main() {

@@ -1,7 +1,8 @@
 ---
 phase: 2
 title: "Ledger schema strip"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "2h"
 dependencies: [1]
@@ -70,11 +71,11 @@ SkillEntry {
    - Grep for `"upstream"` in `packages/cli/src/kit/` and `kit/distill-decisions.json` to confirm 0 hits.
 
 ## Success Criteria
-- [ ] Schema stripped of all 5 upstream properties.
-- [ ] All 25 skills in `kit/distill-decisions.json` sanitized and passing JSON validation.
-- [ ] `claims[].why` entries free of upstream terminology.
-- [ ] `packages/cli/src/kit/distill-decisions.test.ts` passes 100%.
-- [ ] Zero grep hits for `upstream` in `packages/cli/src/kit/` and `kit/distill-decisions.json`.
+- [x] Schema stripped of all 5 upstream properties.
+- [x] All 25 skills in `kit/distill-decisions.json` sanitized and passing JSON validation.
+- [x] `claims[].why` entries free of upstream terminology.
+- [x] `packages/cli/src/kit/distill-decisions.test.ts` passes 100%.
+- [x] Zero grep hits for `upstream` in `packages/cli/src/kit/` and `kit/distill-decisions.json`.
 
 ## Risk Assessment
 - **Risk:** Deletion of `upstream_*` fields breaks automated ledger validation tooling or downstream scripts.

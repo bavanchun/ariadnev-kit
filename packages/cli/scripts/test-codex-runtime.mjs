@@ -17,7 +17,7 @@ if (!enabled) {
   process.exit(0);
 }
 
-const expectedRuntimeVersion = "0.147.0";
+const expectedRuntimeVersion = "0.153.1";
 const model = "gpt-5.4-mini";
 const root = mkdtempSync(join(tmpdir(), "ariadnev-live-codex-"));
 chmodSync(root, 0o700);

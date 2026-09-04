@@ -18,11 +18,12 @@ Use `language` from the JSON for all human-facing GitHub prose. If
 
 1. `ARIADNEV_LANGUAGE`
 2. `CK_RESPONSE_LANGUAGE`
-3. `<project>/.ariadnev/config.yaml` → `locale.response_language` or top-level `language`
-4. `$ARIADNEV_HOME/config.yaml` (default `~/.ariadnev/config.yaml`) → same keys
-5. `<project>/.claude/.ck.json` → `locale.responseLanguage`
-6. `~/.claude/.ck.json` → `locale.responseLanguage`
-7. Default: `en`
+3. `locale.responseLanguage` from the resolved ariadnev config, which is
+   `<project>/.ariadnev/config.json` merged over `~/.ariadnev/config.json`
+4. Default: `en`
+
+The resolver reads the config through the same client the hooks use, so the
+project layer wins over the user layer and neither file is parsed twice.
 
 ## What is localized
 

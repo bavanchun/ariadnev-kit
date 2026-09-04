@@ -145,18 +145,18 @@ solving it twice would mean fixing orphan bugs twice.
 
 ## Success Criteria
 
-- [ ] `watch` is off by default and requires an explicit per-repo allowlist
-- [ ] `dry-run` is the default; posting needs explicit opt-in
-- [ ] **No duplicate response across a simulated crash** — asserted
-- [ ] **A second `watch start` for the same repo detects the live daemon and does not spawn** — asserted
-- [ ] Issue text never reaches an instruction position — asserted with all three fixtures, including a body carrying the literal delimiter
-- [ ] Rate limit enforced locally before dispatch
-- [ ] The threat-model ADR is committed **before** the watch implementation
-- [ ] `orchestrate` rejects cyclic graphs
-- [ ] `resume` reconnects after a supervisor crash
-- [ ] **No orphan process survives** any orchestrate path
-- [ ] Platform gating decided and cleanly reported
-- [ ] `pnpm test` green
+- [x] `watch` is off by default and requires an explicit per-repo allowlist
+- [x] `dry-run` is the default; posting needs explicit opt-in
+- [x] **No duplicate response across a simulated crash** — asserted
+- [x] **A second `watch start` for the same repo detects the live daemon and does not spawn** — asserted
+- [x] Issue text never reaches an instruction position — asserted with all three fixtures, including a body carrying the literal delimiter
+- [x] Rate limit enforced locally before dispatch
+- [x] The threat-model ADR is committed **before** the watch implementation
+- [x] `orchestrate` rejects cyclic graphs
+- [x] `resume` reconnects after a supervisor crash
+- [x] **No orphan process survives** any orchestrate path
+- [x] Platform gating decided and cleanly reported
+- [x] `pnpm test` green
 
 ## Risk Assessment
 

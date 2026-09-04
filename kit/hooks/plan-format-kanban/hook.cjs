@@ -15,6 +15,7 @@ const AV_LIB = [require('node:path').join(__dirname, '_lib'), require('node:path
 'use strict';
 
 const { createHookTimer, logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
+const { emitDecision } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
 let input = '';
 process.stdin.setEncoding('utf8');
@@ -34,7 +35,7 @@ process.stdin.on('end', () => {
       : basename === 'plan.md';
     if (!isPlanFile) {
       timer.end({ tool: toolName, status: 'skip', exit: 0, note: 'non-plan-file' });
-      process.stdout.write(JSON.stringify({ continue: true }));
+      emitDecision('PostToolUse', { continue: true });
       return;
     }
 
@@ -42,7 +43,7 @@ process.stdin.on('end', () => {
     const fs = require('fs');
     if (!fs.existsSync(filePath)) {
       timer.end({ tool: toolName, status: 'skip', exit: 0, note: 'file-missing' });
-      process.stdout.write(JSON.stringify({ continue: true }));
+      emitDecision('PostToolUse', { continue: true });
       return;
     }
 
@@ -96,15 +97,15 @@ process.stdin.on('end', () => {
         target: 'plan.md',
         note: `${warnings.length}-warning(s)`
       });
-      process.stdout.write(JSON.stringify({ continue: true, additionalContext: warnings.join('\n') }));
+      emitDecision('PostToolUse', { continue: true }, { nested: { additionalContext: warnings.join('\n') } });
       return;
     }
 
     timer.end({ tool: toolName, status: 'ok', exit: 0, target: 'plan.md' });
-    process.stdout.write(JSON.stringify({ continue: true }));
+    emitDecision('PostToolUse', { continue: true });
   } catch (_err) {
     // Fail-open: never block on hook errors
     logHookCrash('plan-format-kanban', _err, { event: 'PostToolUse' });
-    process.stdout.write(JSON.stringify({ continue: true }));
+    emitDecision('PostToolUse', { continue: true });
   }
 });

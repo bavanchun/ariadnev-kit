@@ -154,6 +154,16 @@ export const SCHEMA = {
     mode: projectField.choice(["full", "compact", "minimal", "none"] as const, "full", "How much the statusline renders."),
     quota: projectField.bool(true, "Show remaining usage quota in the statusline."),
   },
+  worktree: {
+    // Where this repository's worktrees are created. Project-overridable
+    // because the answer is a fact about the workspace, but a project file
+    // arrives with a clone and this value decides where directories appear on
+    // the reader's disk. `filterProjectLayer` therefore bounds a project value
+    // to the repository that supplied it; a user-file value may be absolute.
+    root: projectField.optionalStr(
+      "Directory holding this repository's worktrees. From a project file the value must be relative and stay inside the repository; only a user config may set an absolute path.",
+    ),
+  },
 } satisfies SchemaBranch;
 
 export type Config = Resolved<typeof SCHEMA>;

@@ -1,7 +1,8 @@
 ---
 phase: 3
 title: "Code file renames"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "2h"
 dependencies: [2]
@@ -70,11 +71,11 @@ scripts/pin-upstream.ts        -> [DELETED]
 7. Run vitest: `bun test` or `pnpm test`.
 
 ## Success Criteria
-- [ ] 4 files successfully renamed with git history preserved.
-- [ ] `packages/cli/scripts/pin-upstream.ts` deleted.
-- [ ] TypeScript compiles cleanly with 0 errors.
-- [ ] All unit and integration tests passing.
-- [ ] Zero instances of `distill-registry` or `distill-decisions` in active code imports.
+- [x] 4 files successfully renamed with git history preserved.
+- [x] `packages/cli/scripts/pin-upstream.ts` deleted.
+- [x] TypeScript compiles cleanly with 0 errors.
+- [x] All unit and integration tests passing.
+- [x] Zero instances of `distill-registry` or `distill-decisions` in active code imports.
 
 ## Risk Assessment
 - **Risk:** Unresolved import paths cause runtime crashes in CLI execution.

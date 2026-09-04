@@ -273,8 +273,8 @@ run `pnpm --filter ariadnev generate:matrix` and `ariadnev validate --check` gat
 | rules | `.claude/rules/*.md` | `AGENTS.md` | skip | `AGENTS.md` | skip | `AGENTS.md` | `.grok/rules/*.md` | skip | `AGENTS.md` |
 | scripts | `.claude/scripts/` | `~/.agents/ariadnev/scripts/` | `.agents/scripts/` | `~/.gemini/config/scripts/` | `.opencode/scripts/` | `.agents/scripts/` | `.grok/scripts/` | skip | `.agents/scripts/` |
 | env | `.claude/.env.example` | `~/.agents/ariadnev/.env.example` | `.agents/.env.example` | `~/.gemini/config/.env.example` | `.opencode/.env.example` | `.agents/.env.example` | `.grok/.env.example` | skip | `.agents/.env.example` |
-| hook | `.claude/hooks/av/*.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
-| outputStyle | skip | skip | skip | skip | skip | skip | skip | skip | skip |
+| hook | `.claude/hooks/av/*.cjs` | `~/.codex/hooks/av/*.cjs` | skip | `~/.gemini/config/hooks/av/*.cjs` | skip | skip | skip | skip | skip |
+| outputStyle | `.claude/output-styles/*.md` | skip | skip | skip | skip | skip | skip | skip | skip |
 | statusline | `.claude/hooks/av/av-statusline.cjs` | skip | skip | skip | skip | skip | skip | skip | skip |
 <!-- END provider-matrix (generated) -->
 
@@ -294,6 +294,14 @@ and names `.agent[s]/skills` canonical. And `grok`'s hooks `skip` even though
 `~/.grok/hooks` exists, because every hook currently resolves to
 `.claude/hooks/av/` — verifying that cell would install grok's hooks into
 claude-code's tree.
+
+One cross-provider effect the table cannot show: `antigravity` reads a
+workspace `.agents/` tree before its own `~/.gemini/config/` root. So in a repo
+where you also installed for `cursor`, `omp` or `generic` at project scope, an
+`agy` session loads *their* copy of a skill — same content, adapted for a
+different tool — and the antigravity install underneath it never gets read.
+Install antigravity globally and the other providers globally too, or expect
+the workspace copy to win.
 
 ## Maintainer authoring
 
@@ -325,12 +333,19 @@ off automatically in CI.
 Settings live in `~/.ariadnev/config.json` (yours) and `<project>/.ariadnev/config.json`
 (the repo's). The two layers do **not** have equal rights: a project file may set
 workspace-shaped keys (`paths.*`, `plan.*`, `locale.*`, `docs.maxLoc`, `project.*`,
-`statusline.*`), and everything else is **user-only** — `privacyBlock`, `trust.enabled`,
+`statusline.*`, `worktree.root`), and everything else is **user-only** — `privacyBlock`, `trust.enabled`,
 `assertions`, `scripts.executionPolicy`, and notification destinations. A project
 file that sets a user-only key has that key dropped and named in a warning, so a
 repository you cloned cannot turn off your privacy blocking or point your
 notifications somewhere else. Notification destinations must be https URLs on an
 allowlisted host (`discord.com`, `slack.com`, `api.telegram.org`).
+
+One project-overridable key names a filesystem destination rather than something
+inside the repository by construction, so its *value* is bounded too:
+`worktree.root` from a project file must be relative and must resolve inside that
+repository, symlinks followed and `.git/` excluded. Only your own config may set
+an absolute one. A refused value is warned about and the next source applies —
+see [ADR 0019](docs/decisions/0019-worktree-root-is-a-bounded-project-setting.md).
 
 Point your editor at [`schemas/av-config.schema.json`](schemas/av-config.schema.json)
 for completion; it is generated from the TypeScript definition, so it cannot drift.
