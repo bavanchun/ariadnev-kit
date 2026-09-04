@@ -124,11 +124,18 @@ export function unmergeHookSettings(existing: string, bindings: HookBinding[]): 
   return `${JSON.stringify(settings, null, 2)}\n`;
 }
 
-/** Copy-pasteable `hooks` block for users who declined the automatic merge. */
-export function renderHookSettingsSnippet(bindings: HookBinding[]): string {
-  const merged = JSON.parse(mergeHookSettings("", bindings)) as SettingsJson;
+/**
+ * Copy-pasteable `hooks` block for users who declined the automatic merge.
+ *
+ * Takes the merged file text rather than the bindings, because which merger
+ * produced it is the caller's to know: a provider that keeps its hooks in a
+ * file of its own gets a block built by that provider's merger, and naming
+ * `.claude/settings.json` for it would send the user to a file it never reads.
+ */
+export function renderHookSettingsSnippet(mergedFile: string, dest: string): string {
+  const merged = JSON.parse(mergedFile) as SettingsJson;
   return [
-    "Add this to your .claude/settings.json to activate the av hooks:",
+    `Add this to ${dest} to activate the av hooks:`,
     JSON.stringify({ hooks: merged.hooks }, null, 2),
   ].join("\n");
 }

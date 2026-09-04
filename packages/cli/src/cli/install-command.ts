@@ -12,7 +12,8 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { installKit } from "../install/install-execute.js";
 import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
-import { renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
+import { mergeHookSettings, renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
+import { mergeCodexHooks } from "../install/codex-hooks-merge.js";
 import { renderSummary } from "./render-summary.js";
 import { renderSharedSummary } from "../install/shared-writes.js";
 import { hasVerifiedTargets } from "../providers/index.js";
@@ -208,7 +209,17 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
     const hookOp = results
       .flatMap((r) => r.ops)
       .find((o) => o.action === "hook-settings");
-    if (hookOp) summary += `\n\n${renderHookSettingsSnippet(hookOp.bindings)}`;
+    if (hookOp && hookOp.action === "hook-settings") {
+      // The same bindings render differently per registry — codex groups by
+      // (event, matcher) and omits an absent matcher where the settings.json
+      // merger writes `*` — so the block the user pastes has to come from the
+      // merger that owns their file, not from whichever one is imported here.
+      const merged =
+        hookOp.format === "codex-hooks-json"
+          ? mergeCodexHooks("", hookOp.bindings, hookOp.ownedDir)
+          : mergeHookSettings("", hookOp.bindings);
+      summary += `\n\n${renderHookSettingsSnippet(merged, hookOp.dest)}`;
+    }
   }
   return { results, summary };
 }

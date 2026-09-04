@@ -102,10 +102,19 @@ describe("unmergeHookSettings (pure)", () => {
 
 describe("renderHookSettingsSnippet", () => {
   it("prints a copy-pasteable hooks block", () => {
-    const snippet = renderHookSettingsSnippet(bindings);
+    const snippet = renderHookSettingsSnippet(mergeHookSettings("", bindings), "/home/u/.claude/settings.json");
     expect(snippet).toContain("SessionStart");
     expect(snippet).toContain("session-init.cjs");
     expect(snippet).toContain("Read|Grep|Glob");
+  });
+
+  it("names the file the block actually goes in", () => {
+    // A provider that keeps its hooks somewhere else was still told to paste
+    // this into `.claude/settings.json` — a file it does not read, in a
+    // directory it may not have. The destination is the op's, not a constant.
+    const snippet = renderHookSettingsSnippet(mergeHookSettings("", bindings), "/home/u/.codex/hooks.json");
+    expect(snippet).toContain("/home/u/.codex/hooks.json");
+    expect(snippet).not.toContain(".claude/settings.json");
   });
 });
 

@@ -93,7 +93,7 @@ export function executeInstall(
         action: "skip",
         kind: op.kind,
         name: op.name,
-        reason: "settings.json merge not confirmed — snippet printed",
+        reason: `merge into ${op.dest} not confirmed — snippet printed`,
       });
       continue;
     }
