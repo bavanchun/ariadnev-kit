@@ -17,7 +17,7 @@
     "docs-bundle:generate": "pnpm --filter ariadnev docs-bundle:generate",
     "test:build-binaries": "pnpm --filter ariadnev test:build-binaries",
     "changeset": "changeset",
-    "version-packages": "changeset version"
+    "version-packages": "changeset version && pnpm --filter ariadnev generate:embedded"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
