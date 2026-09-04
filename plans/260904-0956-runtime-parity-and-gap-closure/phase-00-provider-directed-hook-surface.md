@@ -1,7 +1,7 @@
 ---
 phase: 0
 title: "Provider-directed hook surface"
-status: pending
+status: completed
 priority: P1
 effort: 7h
 dependencies: []
