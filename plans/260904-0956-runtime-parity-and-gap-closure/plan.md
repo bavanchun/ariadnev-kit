@@ -115,6 +115,7 @@ which is stated above and is weaker.
 ## Acceptance criteria
 
 - [ ] Issue #134 is closed with all five of its acceptance checkboxes satisfied: a Codex `PreToolUse` fixture reading `node_modules/pkg/index.js` denies with schema-valid JSON and no `Hook failed`; the exclusion-glob command stays allowed; Claude Code hook behaviour and its existing tests are unchanged; the provider matrix and generated README reflect the newly verified capability; install/heal behaviour for a pre-existing legacy `.codex` wrapper is defined and tested.
+      All five checks are satisfied and ticked on the issue, with each mapped to its commit and the test that holds it. The issue itself is still open: PR #135 carries `Closes #134`, so this box turns over when that merges.
 - [x] No file under `packages/cli/src/install/` joins `CLAUDE_HOOKS_DIR` or `CLAUDE_SETTINGS_FILE` directly; every hooks-tree destination comes from the resolver.
 - [x] Claude Code's planned install destinations are byte-identical before and after Phase 0.
 - [x] A provider can be graded `convention` without that alone turning on file writes — the install-write decision is a separate field, and a test asserts no provider enables writes to a path it cannot cite.
