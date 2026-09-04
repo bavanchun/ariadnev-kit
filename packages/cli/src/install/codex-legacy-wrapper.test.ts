@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import {
   inspectCodexHooks,
   renderLegacyWrapperNotice,
@@ -126,5 +126,22 @@ describe("renderLegacyWrapperNotice", () => {
     const notice = renderLegacyWrapperNotice(report);
     expect(notice).toContain("/opt/acme/guard");
     expect(notice).not.toMatch(/Hook failed/);
+  });
+});
+
+describe("on Windows, where our own command spells the directory differently", () => {
+  it("does not report our hooks back to the user as another tool's", () => {
+    // The command carries the JSON-encoded path, whose doubled separators do
+    // not contain the directory as spelled. Missing that turns the install
+    // summary into a warning about the hooks the same run just wrote.
+    const owned = win32.join("C:\\Users\\u\\.codex\\hooks", "av");
+    const report = inspectCodexHooks(
+      [source("hooks.json", {
+        SessionStart: [{ hooks: [{ type: "command", command: `node ${JSON.stringify(win32.join(owned, "session-init.cjs"))}` }] }],
+      })],
+      owned,
+    );
+    expect(report.foreign).toHaveLength(0);
+    expect(report.suspects).toHaveLength(0);
   });
 });

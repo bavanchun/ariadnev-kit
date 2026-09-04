@@ -11,6 +11,7 @@
 // whatever is already there, and removing ours never reorders the rest.
 
 import type { HookBinding } from "./hook-settings-merge.js";
+import { commandOwnedBy } from "./owned-command.js";
 
 interface CodexHandler {
   type: "command";
@@ -46,7 +47,7 @@ function render(file: HooksJson): string {
  */
 function isOurs(group: CodexGroup, ownedDir: string): boolean {
   const handlers = group.hooks ?? [];
-  return handlers.length > 0 && handlers.every((h) => typeof h.command === "string" && h.command.includes(ownedDir));
+  return handlers.length > 0 && handlers.every((h) => typeof h.command === "string" && commandOwnedBy(h.command, ownedDir));
 }
 
 /**

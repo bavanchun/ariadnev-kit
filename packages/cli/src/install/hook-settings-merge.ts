@@ -4,6 +4,7 @@
 
 import type { HooksConfigFormat } from "../providers/resolver.js";
 import { mergeCodexHooks, unmergeCodexHooks } from "./codex-hooks-merge.js";
+import { commandOwnedBy } from "./owned-command.js";
 
 export interface HookBinding {
   /** Claude Code hook event, e.g. "SessionStart". */
@@ -162,7 +163,7 @@ export function mergeStatusLine(existing: string, command: string, ownedDir: str
   const current = (settings as { statusLine?: { command?: string } }).statusLine;
   const currentCommand = typeof current?.command === "string" ? current.command : null;
 
-  if (currentCommand !== null && !currentCommand.includes(ownedDir) && currentCommand !== command) {
+  if (currentCommand !== null && !commandOwnedBy(currentCommand, ownedDir) && currentCommand !== command) {
     return {
       json: existing,
       applied: false,
@@ -178,7 +179,7 @@ export function mergeStatusLine(existing: string, command: string, ownedDir: str
 export function unmergeStatusLine(existing: string, ownedDir: string): string {
   const settings: SettingsJson = existing.trim().length ? (JSON.parse(existing) as SettingsJson) : {};
   const current = (settings as { statusLine?: { command?: string } }).statusLine;
-  if (typeof current?.command === "string" && current.command.includes(ownedDir)) {
+  if (typeof current?.command === "string" && commandOwnedBy(current.command, ownedDir)) {
     delete (settings as { statusLine?: unknown }).statusLine;
   }
   return `${JSON.stringify(settings, null, 2)}\n`;

@@ -6,6 +6,7 @@
 // the user is asked to re-trust a hook they never touched.
 
 import { describe, expect, it } from "vitest";
+import { win32 } from "node:path";
 import { mergeCodexHooks, unmergeCodexHooks } from "./codex-hooks-merge.js";
 import type { HookBinding } from "./hook-settings-merge.js";
 
@@ -115,5 +116,27 @@ describe("removing our groups again", () => {
   it("is idempotent", () => {
     const once = unmergeCodexHooks(mergeCodexHooks(existing(), BINDINGS, OWNED), OWNED);
     expect(unmergeCodexHooks(once, OWNED)).toBe(once);
+  });
+});
+
+describe("on Windows, where the command spells our directory differently", () => {
+  // install-plan.ts builds `node ${JSON.stringify(dest)}`, and that doubles
+  // every separator. A merge that looked for the directory as spelled would
+  // find none of its own groups: re-installing appends a second copy beside the
+  // first, and uninstalling leaves both in a file three other tools share.
+  const OWNED_WIN = win32.join("C:\\Users\\u\\.codex\\hooks", "av");
+  const winBindings: HookBinding[] = [
+    { event: "SessionStart", command: `node ${JSON.stringify(win32.join(OWNED_WIN, "session-init.cjs"))}` },
+  ];
+
+  it("adds our group once, however many times the install runs", () => {
+    const once = mergeCodexHooks(existing(), winBindings, OWNED_WIN);
+    expect(mergeCodexHooks(once, winBindings, OWNED_WIN)).toBe(once);
+    expect(parse(once).hooks.SessionStart).toHaveLength(3);
+  });
+
+  it("takes our group back out again, leaving the foreign ones", () => {
+    const merged = mergeCodexHooks(existing(), winBindings, OWNED_WIN);
+    expect(parse(unmergeCodexHooks(merged, OWNED_WIN))).toEqual(FOREIGN);
   });
 });

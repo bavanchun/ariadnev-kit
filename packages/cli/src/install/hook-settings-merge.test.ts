@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { win32 } from "node:path";
 import {
   mergeHookSettings,
   unmergeHookSettings,
@@ -151,5 +152,24 @@ describe("statusLine merge", () => {
 
     const withTheirs = JSON.stringify({ statusLine: { type: "command", command: 'node "$HOME/mine.cjs"' } });
     expect(JSON.parse(unmergeStatusLine(withTheirs, OWNED)).statusLine).toBeDefined();
+  });
+});
+
+describe("statusLine on Windows", () => {
+  // Same encoding trap as the hook commands: our own statusLine, read back,
+  // must be recognised as replaceable and as removable — otherwise an upgrade
+  // refuses to touch it ("you already have a statusLine") and an uninstall
+  // leaves it pointing at files it just deleted.
+  const owned = win32.join("C:\\Users\\u\\.claude\\hooks", "av");
+  const ours = `node ${JSON.stringify(win32.join(owned, "av-statusline.cjs"))}`;
+
+  it("replaces the one we installed last time", () => {
+    const existing = JSON.stringify({ statusLine: { type: "command", command: `${ours} --old` } });
+    expect(mergeStatusLine(existing, ours, owned).applied).toBe(true);
+  });
+
+  it("removes ours on uninstall", () => {
+    const existing = JSON.stringify({ statusLine: { type: "command", command: ours } });
+    expect(JSON.parse(unmergeStatusLine(existing, owned)).statusLine).toBeUndefined();
   });
 });

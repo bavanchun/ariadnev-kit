@@ -14,6 +14,8 @@
 // the notice describes the symptom the user would see rather than asserting a
 // diagnosis it cannot prove.
 
+import { commandOwnedBy } from "./owned-command.js";
+
 /** One `hooks.json`, already parsed by the caller, with the path it came from. */
 export interface CodexHooksSource {
   path: string;
@@ -74,7 +76,7 @@ export function inspectCodexHooks(sources: CodexHooksSource[], ownedDir: string)
       if (!Array.isArray(groups)) continue;
       for (const group of groups) {
         for (const command of commandsIn(group)) {
-          if (command.includes(ownedDir)) continue;
+          if (commandOwnedBy(command, ownedDir)) continue;
           const suspect = WRAPPER_MARKERS.some((marker) => command.includes(marker));
           (suspect ? report.suspects : report.foreign).push({ path, event, command, suspect });
         }
