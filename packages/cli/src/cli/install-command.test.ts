@@ -59,11 +59,23 @@ afterEach(() => {
 describe("codex hook notices", () => {
   it("says nothing when the run installed no codex hooks", () => {
     const claude: ProviderInstallResult = { provider: "claude-code", written: 9, backedUp: 0, skipped: [], ops: [] };
-    expect(renderCodexHookNotices([claude], home, cwd)).toBe("");
+    expect(renderCodexHookNotices([claude], home, cwd, true)).toBe("");
+  });
+
+  it("does not claim a registration the user has not made yet", () => {
+    // The declined-merge path prints "Add this to <dest>" further down the same
+    // summary. Saying the hooks are registered there as well leaves the user
+    // with two contradictory sentences about one file, and the wrong one first.
+    const notice = renderCodexHookNotices([codexResult()], home, cwd, false);
+    expect(notice).not.toContain("hooks are registered");
+    expect(notice).toContain("nothing was written");
+    // Trusting is still ahead of them once they paste it, so the instruction
+    // stays — it is the claim about the file that was false, not the advice.
+    expect(notice).toContain("/hooks");
   });
 
   it("names the TUI as the only way to trust what was just written", () => {
-    const notice = renderCodexHookNotices([codexResult()], home, cwd);
+    const notice = renderCodexHookNotices([codexResult()], home, cwd, true);
     expect(notice).toContain("/hooks");
     expect(notice).toContain(join(home, ".codex", "hooks.json"));
     // The flag exists but is the user's to pass per session; presenting it as a
@@ -78,7 +90,7 @@ describe("codex hook notices", () => {
     writeHooks(cwd, {
       hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "./scripts/lint-guard.sh" }] }] },
     });
-    const notice = renderCodexHookNotices([codexResult()], home, cwd);
+    const notice = renderCodexHookNotices([codexResult()], home, cwd, true);
     expect(notice).toContain("codex-wrapper.sh");
     expect(notice).toContain("Hook failed");
     expect(notice).toContain("lint-guard.sh");
@@ -88,14 +100,14 @@ describe("codex hook notices", () => {
     writeHooks(home, {
       hooks: { Stop: [{ hooks: [{ type: "command", command: `node "${OWNED}/session-init.cjs"` }] }] },
     });
-    const notice = renderCodexHookNotices([codexResult()], home, cwd);
+    const notice = renderCodexHookNotices([codexResult()], home, cwd, true);
     expect(notice).not.toContain("session-init.cjs");
   });
 
   it("survives a hooks.json that is not JSON at all", () => {
     mkdirSync(join(home, ".codex"), { recursive: true });
     writeFileSync(join(home, ".codex", "hooks.json"), "{ this is not json");
-    expect(() => renderCodexHookNotices([codexResult()], home, cwd)).not.toThrow();
-    expect(renderCodexHookNotices([codexResult()], home, cwd)).toContain("/hooks");
+    expect(() => renderCodexHookNotices([codexResult()], home, cwd, true)).not.toThrow();
+    expect(renderCodexHookNotices([codexResult()], home, cwd, true)).toContain("/hooks");
   });
 });

@@ -12,8 +12,7 @@ import { getKitRoot } from "../kit/embedded-kit.js";
 import { installKit } from "../install/install-execute.js";
 import { isProviderId, type ProviderId } from "../providers/index.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
-import { mergeHookSettings, renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
-import { mergeCodexHooks } from "../install/codex-hooks-merge.js";
+import { mergeHooksConfig, renderHookSettingsSnippet } from "../install/hook-settings-merge.js";
 import { renderSummary } from "./render-summary.js";
 import { renderSharedSummary } from "../install/shared-writes.js";
 import { hasVerifiedTargets } from "../providers/index.js";
@@ -130,17 +129,24 @@ function codexHooksSources(home: string, cwd: string): CodexHooksSource[] {
 /**
  * What is still between a written Codex hook and a running one.
  *
- * The file list says the hooks are installed, and they are — and they will do
- * nothing at all until the user approves each one in Codex's TUI. There is no
- * CLI subcommand that grants that, so an install that stays silent here reads
- * as a working install that silently does nothing. The legacy-wrapper report
- * rides along because it is the other thing invisible in a file list: a stale
- * wrapper in the same shared file turns a clean deny into `Hook failed`.
+ * Hooks that are on disk will still do nothing at all until the user approves
+ * each one in Codex's TUI. There is no CLI subcommand that grants that, so an
+ * install that stays silent here reads as a working install that silently does
+ * nothing. The legacy-wrapper report rides along because it is the other thing
+ * invisible in a file list: a stale wrapper in the same shared file turns a
+ * clean deny into `Hook failed`.
+ *
+ * Whether the merge actually happened has to come from the caller. Declining it
+ * leaves the op in the result exactly as accepting it does, and the summary
+ * goes on to print the block for the user to paste — so reading registration
+ * off the op's presence puts two contradictory sentences about one file in
+ * front of them, with the false one first.
  */
 export function renderCodexHookNotices(
   results: ProviderInstallResult[],
   home: string,
   cwd: string,
+  applied: boolean,
 ): string {
   const codex = results.find((r) => r.provider === "codex");
   const merge = codex?.ops.find((op) => op.action === "hook-settings");
@@ -148,7 +154,9 @@ export function renderCodexHookNotices(
 
   const parts = [
     [
-      `  codex: hooks are registered in ${merge.dest}, and stay untrusted until you approve them.`,
+      applied
+        ? `  codex: hooks are registered in ${merge.dest}, and stay untrusted until you approve them.`
+        : `  codex: nothing was written to ${merge.dest} — the block below is yours to paste in,\n  and the hooks stay untrusted until you approve them.`,
       "  Run `/hooks` inside Codex to review and trust each one — no CLI subcommand does it.",
       "  `--dangerously-bypass-hook-trust` is a flag you pass to Codex per session, not something",
       "  an install can set on your behalf.",
@@ -203,7 +211,7 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
   // to the order they happen to run in.
   summary += renderSharedSummary(shared).join("\n");
   summary += renderHealSummary(heal);
-  summary += renderCodexHookNotices(results, opts.home, opts.cwd);
+  summary += renderCodexHookNotices(results, opts.home, opts.cwd, opts.applyHookSettings === true);
   if (!opts.applyHookSettings) {
     // Merge declined or non-interactive: hand the user the exact block instead.
     const hookOp = results
@@ -212,12 +220,9 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
     if (hookOp && hookOp.action === "hook-settings") {
       // The same bindings render differently per registry — codex groups by
       // (event, matcher) and omits an absent matcher where the settings.json
-      // merger writes `*` — so the block the user pastes has to come from the
-      // merger that owns their file, not from whichever one is imported here.
-      const merged =
-        hookOp.format === "codex-hooks-json"
-          ? mergeCodexHooks("", hookOp.bindings, hookOp.ownedDir)
-          : mergeHookSettings("", hookOp.bindings);
+      // merger writes `*` — so the block the user pastes comes from the same
+      // dispatcher the write path uses, against an empty file.
+      const merged = mergeHooksConfig(hookOp.format, "", hookOp.bindings, hookOp.ownedDir);
       summary += `\n\n${renderHookSettingsSnippet(merged, hookOp.dest)}`;
     }
   }
