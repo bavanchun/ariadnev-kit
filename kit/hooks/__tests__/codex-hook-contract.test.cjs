@@ -50,11 +50,11 @@ function sandbox(runtime) {
   return { root, home, project, hooks };
 }
 
-function runHook(box, name, payload) {
+function runHook(box, name, payload, env = {}) {
   const result = spawnSync(process.execPath, [path.join(box.hooks, name, 'hook.cjs')], {
     input: JSON.stringify(payload),
     encoding: 'utf8',
-    env: { ...process.env, HOME: box.home },
+    env: { ...process.env, HOME: box.home, ...env },
     cwd: payload.cwd || box.project,
     timeout: 15000
   });
@@ -225,4 +225,61 @@ test('the hooks whose output needs setting up are schema-valid too', () => {
   const cookOut = assertSchemaValid(cook.stdout, 'cook-after-plan-reminder');
   assert.match(cookOut.systemMessage, /Planning complete/);
 
+});
+
+// The usage cache defaults to a single file in the system temp directory, shared
+// by every process on the machine. Both cases below point it at their own
+// sandbox: reading the real one would make the result depend on whatever the
+// developer's own session last wrote, and writing it would corrupt that session's
+// statusline from a test run.
+function usageCacheEnv(box) {
+  const cache = path.join(box.root, 'usage-cache.json');
+  return { cache, env: { AV_USAGE_CACHE_PATH: cache } };
+}
+
+function lastNoteFor(box, hookName) {
+  const log = path.join(box.hooks, '.logs', 'hook-log.jsonl');
+  const lines = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  const mine = lines.filter((l) => l.hook === hookName);
+  assert.ok(mine.length > 0, `${hookName} has to record that it ran`);
+  return mine[mine.length - 1].note;
+}
+
+test('the usage-quota refresh does nothing at all outside Claude Code', () => {
+  // The figures it warms feed one statusline, and only Claude Code renders it.
+  // Registering this hook on another runtime means reading that user's Claude
+  // Code keychain entry and calling api.anthropic.com on every PostToolUse, Stop
+  // and UserPromptSubmit, for a display nothing there shows. The log line is the
+  // assertion because the skip is the whole behavior: stdout is identical either
+  // way. The cache is left absent, so anything but a skip would go to the network.
+  const box = sandbox('codex');
+  const { env } = usageCacheEnv(box);
+  const { code } = runHook(box, 'usage-quota-cache-refresh', {
+    hook_event_name: 'PostToolUse',
+    cwd: box.project,
+    session_id: 'abc',
+    tool_name: 'Read',
+    tool_input: {}
+  }, env);
+  assert.strictEqual(code, 0);
+  assert.strictEqual(lastNoteFor(box, 'usage-quota-cache-refresh'), 'no-usage-statusline');
+});
+
+test('the same refresh still reaches its throttle under Claude Code', () => {
+  // The gate has to be the runtime and not a blanket disable. A cache written a
+  // moment ago makes the throttle the next thing that stops the hook, so the run
+  // proves the gate let it through without spending a request to do it.
+  const box = sandbox('claude-code');
+  const { cache, env } = usageCacheEnv(box);
+  fs.writeFileSync(cache, JSON.stringify({ status: 'available', timestamp: Date.now(), snapshot: null }));
+
+  const { code } = runHook(box, 'usage-quota-cache-refresh', {
+    hook_event_name: 'PostToolUse',
+    cwd: box.project,
+    session_id: 'abc',
+    tool_name: 'Read',
+    tool_input: {}
+  }, env);
+  assert.strictEqual(code, 0);
+  assert.strictEqual(lastNoteFor(box, 'usage-quota-cache-refresh'), 'throttled');
 });

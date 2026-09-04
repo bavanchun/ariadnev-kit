@@ -1076,6 +1076,135 @@ test('a value that merely starts with the same letters as .git is kept', () => {
   });
 });
 
+test('a case-variant .git is refused where the filesystem folds case', () => {
+  // The refusal compares the first segment against .git literally, so it is only
+  // correct if resolution hands back the name on disk. A resolver that echoes the
+  // caller's spelling returns .GIT, the comparison misses, and the value lands on
+  // git's metadata on exactly the machines — macOS, Windows — where the two
+  // spellings are one directory.
+  configBox(({ repo, home }) => {
+    let folds = false;
+    try {
+      folds = fs.lstatSync(path.join(repo, '.GIT')).isDirectory();
+    } catch {
+      folds = false; // a case-sensitive filesystem: .GIT is simply a different name
+    }
+    if (!folds) return;
+    for (const value of ['.GIT/worktrees', '.Git']) {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `${value}: got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, `${value}: should warn`);
+    }
+  });
+});
+
+test('an unexpanded home reference is refused', () => {
+  // ~/x is not a relative path, and resolving it against the repository would
+  // silently turn it into one — a directory literally named ~.
+  for (const value of ['~/worktrees', '~']) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `${value}: got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, `${value}: should warn`);
+    });
+  }
+});
+
+test('control characters are refused', () => {
+  for (const value of ['work\u0000trees', 'work\ntrees', 'work\rtrees']) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, 'should warn');
+    });
+  }
+});
+
+test('a sibling of the repository is refused — the case a parent bound admits', () => {
+  // Bounding to the repository's parent would accept this: path.relative yields
+  // other-project, with no .. and no absolute prefix. The bound is the repository
+  // itself precisely so a clone cannot name its neighbours.
+  configBox(({ box, repo, home }) => {
+    fs.mkdirSync(path.join(box, 'other-project'), { recursive: true });
+    writeConfig(repo, { worktree: { root: '../other-project' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(json.warnings && json.warnings.length > 0, 'the refusal has to reach the agent');
+  });
+});
+
+test('the repository directory itself is refused', () => {
+  for (const value of ['.', 'worktrees/..']) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `${value}: got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, `${value}: should warn`);
+    });
+  }
+});
+
+test('an empty or whitespace-only value is refused', () => {
+  for (const value of ['', '   ']) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, 'should warn');
+    });
+  }
+});
+
+test('a value that is not a string is refused', () => {
+  for (const value of [42, true, ['worktrees'], { root: 'worktrees' }]) {
+    configBox(({ repo, home }) => {
+      writeConfig(repo, { worktree: { root: value } });
+      const json = infoIn(repo, home);
+      assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+      assert(json.warnings && json.warnings.length > 0, 'should warn');
+    });
+  }
+});
+
+test('an explicit null is unset rather than refused', () => {
+  // The key is optional and its default is null, so writing it out is a way of
+  // saying "no preference". Warning about it would report a problem the reader
+  // does not have.
+  configBox(({ repo, home }) => {
+    writeConfig(repo, { worktree: { root: null } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(!json.warnings || json.warnings.length === 0, 'an unset value is not a warning');
+  });
+});
+
+test('a value that leaves the repository through an in-repo symlink is refused', () => {
+  // No .. anywhere in the value, so a purely lexical resolve accepts it. Both
+  // sides have to be realpath-resolved for the containment check to see where the
+  // value actually lands.
+  configBox(({ box, repo, home }) => {
+    fs.symlinkSync(box, path.join(repo, 'escape'), 'dir');
+    writeConfig(repo, { worktree: { root: 'escape/worktrees' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRootSource === 'sibling directory', `got ${json.worktreeRootSource}`);
+    assert(json.warnings && json.warnings.length > 0, 'the refusal has to reach the agent');
+  });
+});
+
+test('a value under a symlink that stays inside the repository is kept', () => {
+  configBox(({ repo, home }) => {
+    fs.mkdirSync(path.join(repo, 'real'), { recursive: true });
+    fs.symlinkSync(path.join(repo, 'real'), path.join(repo, 'link'), 'dir');
+    writeConfig(repo, { worktree: { root: 'link/worktrees' } });
+    const json = infoIn(repo, home);
+    assert(json.worktreeRoot === path.join(repo, 'link', 'worktrees'), `got ${json.worktreeRoot}`);
+    assert(json.worktreeRootSource === 'project config', `got ${json.worktreeRootSource}`);
+  });
+});
+
 test('a value passing through a dangling in-repo symlink is refused', () => {
   configBox(({ box, repo, home }) => {
     // A dangling link does not exist by existsSync, so a walk-up using it steps

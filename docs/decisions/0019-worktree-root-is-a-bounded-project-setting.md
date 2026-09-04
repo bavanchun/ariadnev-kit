@@ -121,9 +121,23 @@ create through a dangling symlink, so a committed dangling link cannot be
 activated by the create step either.
 
 **The rule exists twice.** The TypeScript in `filter-project-layer.ts` and a
-dependency-free mirror in the worktree skill's script, which cannot import it. To
-keep the copies honest the test cases are named identically and kept in the same
-order in both files, and `node kit/skills/worktree/scripts/worktree.test.cjs` is
-now part of the root `test` script — so the second copy is covered in CI rather
-than only locally. The generated layer table both consumers read is compared
-against its generator by a test, in both of the places it is checked in.
+dependency-free mirror in the worktree skill's script, which cannot import it.
+The copies are kept honest case by case, not by name: every refusal and every
+acceptance the TypeScript suite asserts has a counterpart in the script's suite,
+worded for what that surface returns — a warning in the JSON envelope and a
+fallback source, rather than a filtered layer. The one TypeScript case with no
+counterpart is the one about leaving other project keys alone, which the script
+cannot have because it reads this key and no other. Both suites run in CI: the
+script's through `pnpm test:worktree`, named explicitly in the node:test step
+beside the hook and statusline globs, so a change to one copy that is not made to
+the other turns the build red. The generated layer table both consumers read is
+compared against its generator by a test, in both of the places it is checked in.
+
+`realpathSync.native`, in both copies, is load-bearing rather than incidental.
+The JS resolver returns whatever casing the caller passed, so on macOS and
+Windows — where `.GIT` and `.git` are one directory — a value spelled `.GIT/…`
+resolves to itself, the first-segment comparison misses, and the value lands on
+git's metadata on exactly the filesystems that fold case. The native resolver
+returns the name the filesystem holds. Each suite carries a test for it that is
+conditional on the filesystem actually folding, so it asserts where the bug is
+reachable and skips where it is not.

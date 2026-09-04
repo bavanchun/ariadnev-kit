@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, realpathSync, lstatSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { filterProjectLayer } from "./filter-project-layer.js";
@@ -87,6 +87,7 @@ describe("filterProjectLayer bounds worktree.root", () => {
     box = realpathSync(mkdtempSync(join(tmpdir(), "av-bound-")));
     repo = join(box, "repo");
     mkdirSync(join(repo, ".ariadnev"), { recursive: true });
+    mkdirSync(join(repo, ".git"), { recursive: true });
     mkdirSync(join(box, "other-project"), { recursive: true });
     sourcePath = join(repo, ".ariadnev", "config.json");
   });
@@ -144,6 +145,23 @@ describe("filterProjectLayer bounds worktree.root", () => {
     expectRefused(".git", "the git directory itself");
     expectRefused(".git/worktrees", "git's own worktree admin directory");
     expectRefused(".git/hooks/wt", "deeper inside git's directory");
+  });
+
+  it("refuses a case-variant .git where the filesystem folds case", () => {
+    // The refusal compares the first segment against `.git` literally, so it is
+    // only correct if resolution hands back the name on disk. A resolver that
+    // echoes the caller's spelling returns `.GIT`, the comparison misses, and the
+    // value lands on git's metadata on exactly the machines — macOS, Windows —
+    // where the two spellings are one directory.
+    let folds = false;
+    try {
+      folds = lstatSync(join(repo, ".GIT")).isDirectory();
+    } catch {
+      folds = false; // a case-sensitive filesystem: `.GIT` is simply a different name
+    }
+    if (!folds) return;
+    expectRefused(".GIT/worktrees", "upper-cased git directory");
+    expectRefused(".Git", "mixed-case git directory");
   });
 
   it("keeps a value that merely starts with the same letters as .git", () => {

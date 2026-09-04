@@ -68,6 +68,11 @@ const PROJECT_PATHS = new Set<string>(CONFIG_FIELDS.filter((f: FlatField) => f.s
  * so the walk would step straight over it and accept a path whose real location
  * is unknowable. Treating the link as present makes `realpathSync` throw, and a
  * throw is refused.
+ *
+ * `.native`, not the JS implementation: the latter hands back whatever casing the
+ * caller passed, so on a case-insensitive filesystem `.GIT/worktrees` resolves to
+ * itself and walks past the `.git` check below. The native resolver returns the
+ * name the filesystem actually holds.
  */
 function realpathOfPossiblyAbsent(candidate: string): string {
   const tail: string[] = [];
@@ -78,7 +83,7 @@ function realpathOfPossiblyAbsent(candidate: string): string {
     tail.unshift(basename(probe));
     probe = parent;
   }
-  return join(realpathSync(probe), ...tail);
+  return join(realpathSync.native(probe), ...tail);
 }
 
 function present(path: string): boolean {
@@ -127,7 +132,7 @@ function refuseWorktreeRoot(value: unknown, anchor: string): string | null {
   let realAnchor: string;
   let realCandidate: string;
   try {
-    realAnchor = realpathSync(anchor);
+    realAnchor = realpathSync.native(anchor);
     realCandidate = realpathOfPossiblyAbsent(resolve(anchor, value));
   } catch {
     return "it could not be resolved to a real path";

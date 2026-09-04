@@ -379,6 +379,11 @@ function readAriadnevConfig(dir) {
 // the walk would step over it and accept a path whose real location is
 // unknowable. Treating the link as present makes realpathSync throw, and a throw
 // is refused.
+//
+// .native, not the JS implementation: the latter hands back whatever casing the
+// caller passed, so on a case-insensitive filesystem .GIT/worktrees resolves to
+// itself and walks past the .git check below. The native resolver returns the
+// name the filesystem actually holds.
 function pathIsPresent(candidate) {
   try {
     fs.lstatSync(candidate);
@@ -397,7 +402,7 @@ function realpathOfPossiblyAbsent(candidate) {
     tail.unshift(path.basename(probe));
     probe = parent;
   }
-  return path.join(fs.realpathSync(probe), ...tail);
+  return path.join(fs.realpathSync.native(probe), ...tail);
 }
 
 // Why a project file may not set this value, or null when it may.
@@ -417,7 +422,7 @@ function refuseProjectWorktreeRoot(value, anchor) {
   let realAnchor;
   let realCandidate;
   try {
-    realAnchor = fs.realpathSync(anchor);
+    realAnchor = fs.realpathSync.native(anchor);
     realCandidate = realpathOfPossiblyAbsent(path.resolve(anchor, value));
   } catch {
     return 'it could not be resolved to a real path';
