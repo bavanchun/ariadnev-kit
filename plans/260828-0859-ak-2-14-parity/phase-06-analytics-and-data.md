@@ -184,16 +184,16 @@ retention is opt-in too.
 
 ## Success Criteria
 
-- [ ] All six `analytics` verbs and all three `data` verbs work with `--json`
-- [ ] **Delete the index → every command still answers, via source scan**
-- [ ] **Rebuild → equivalent answers.** Standing CI invariant, real cases
-- [ ] `refresh` and `rebuild` converge on the same state — asserted
-- [ ] `disable` stops reads without deleting data
-- [ ] `status` distinguishes absent / disabled / corrupt
-- [ ] Index is opt-in, 0600, credential-free
-- [ ] Retention applies by unlinking segments, never partial rewrites
-- [ ] The compiled binary still builds and runs on every target
-- [ ] `pnpm test` green
+- [x] All six `analytics` verbs and all three `data` verbs work with `--json`
+- [x] **Delete the index → every command still answers, via source scan**
+- [x] **Rebuild → equivalent answers.** Standing CI invariant, real cases
+- [x] `refresh` and `rebuild` converge on the same state — asserted
+- [x] `disable` stops reads without deleting data
+- [x] `status` distinguishes absent / disabled / corrupt
+- [x] Index is opt-in, 0600, credential-free
+- [x] Retention applies by unlinking segments, never partial rewrites
+- [x] The compiled binary still builds and runs on every target
+- [x] `pnpm test` green
 
 ## Risk Assessment
 

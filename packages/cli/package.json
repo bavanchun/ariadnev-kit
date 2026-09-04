@@ -1,6 +1,6 @@
 {
   "name": "ariadnev",
-  "version": "1.4.0",
+  "version": "1.5.1",
   "private": true,
   "description": "Install a curated, quality-gated workflow kit across coding-agent targets.",
   "type": "module",

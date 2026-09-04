@@ -392,14 +392,14 @@ the widest failure surface, and in phase 12's case a prompt-injection surface.
 ## Success Criteria
 
 - [x] Phase 1's compiled-binary SQLite smoke green on every executed CI target — `linux-x64`, `darwin-arm64`, `windows-x64`
-- [ ] All 42 AgentKit names registered or in the divergence table
-- [ ] No in-scope command is a stub — asserted by test
-- [ ] Rebuild-equivalence invariant standing and green
-- [ ] `av contract --json` shows 9 providers with per-cell evidence; `dsh`'s real status stated
-- [ ] The `run` fallthrough shim ships in 1.3.0, warns, and names 1.4.0 as its removal release
-- [ ] All skills lint-clean with no exemption
-- [ ] `pnpm test` green on `dev` at every phase merge — `main` is maintainer-only under the branch rule
-- [ ] `1.3.0` released over the signed channel
+- [x] All 42 AgentKit names registered or in the divergence table
+- [x] No in-scope command is a stub — asserted by test
+- [x] Rebuild-equivalence invariant standing and green
+- [x] `av contract --json` shows 9 providers with per-cell evidence; `dsh`'s real status stated
+- [x] The `run` fallthrough shim ships in 1.3.0, warns, and names 1.4.0 as its removal release
+- [x] All skills lint-clean with no exemption
+- [x] `pnpm test` green on `dev` at every phase merge — `main` is maintainer-only under the branch rule
+- [x] `1.3.0` released over the signed channel
 
 ## Open questions
 

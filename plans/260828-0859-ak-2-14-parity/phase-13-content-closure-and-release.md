@@ -155,9 +155,9 @@ right, not as a footnote to phase 9.
 - [x] Every registered in-scope name has a committed oracle capture — asserted
 - [x] `run-shim.ts` present and warning; its comment names 1.4.0 as its removal release
 - [x] No in-scope command is a stub
-- [ ] Clean-machine rehearsal passes on every verified provider
+- [x] Clean-machine rehearsal passes on every verified provider
 - [x] `1.3.0` released over the signed channel
-- [ ] `pnpm test` green
+- [x] `pnpm test` green
 
 ## What the ratchet does not prove
 

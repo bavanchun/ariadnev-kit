@@ -1,7 +1,8 @@
 ---
 phase: 7
 title: "History rewrite (squash + rename 16 commits)"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "1h"
 dependencies: [6]
@@ -65,10 +66,10 @@ New Commit History (Option A Squash):
    ```
 
 ## Success Criteria
-- [ ] 16 legacy commits successfully consolidated into clean commit(s).
-- [ ] `git log --oneline | grep -c -i "distill"` returns 0.
-- [ ] Working tree is clean.
-- [ ] All tests continue to pass after commit creation.
+- [x] 16 legacy commits successfully consolidated into clean commit(s).
+- [x] `git log --oneline | grep -c -i "distill"` returns 0.
+- [x] Working tree is clean.
+- [x] All tests continue to pass after commit creation.
 
 ## Risk Assessment
 - **Risk:** Erroneous git reset target causes uncommitted data loss.

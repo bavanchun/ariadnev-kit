@@ -105,14 +105,14 @@ that a user may paste into an issue. Truncate hard, and never include it in
 
 ## Success Criteria
 
-- [ ] All five verbs work with `--json`
-- [ ] Field names match the oracle envelope
-- [ ] Partial, empty, and corrupt-line files are handled non-fatally with a count
-- [ ] A 1 MB+ session streams — memory does not scale with file size
-- [ ] **No session file is ever written** — asserted across all verbs and flags
-- [ ] Unsupported agents are reported as unsupported, not guessed
-- [ ] Session content never reaches the activity log
-- [ ] `pnpm test` green
+- [x] All five verbs work with `--json`
+- [x] Field names match the oracle envelope
+- [x] Partial, empty, and corrupt-line files are handled non-fatally with a count
+- [x] A 1 MB+ session streams — memory does not scale with file size
+- [x] **No session file is ever written** — asserted across all verbs and flags
+- [x] Unsupported agents are reported as unsupported, not guessed
+- [x] Session content never reaches the activity log
+- [x] `pnpm test` green
 
 ## Risk Assessment
 

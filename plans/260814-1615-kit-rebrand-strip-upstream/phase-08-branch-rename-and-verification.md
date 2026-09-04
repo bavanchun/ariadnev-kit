@@ -1,7 +1,8 @@
 ---
 phase: 8
 title: "Branch rename + verification"
-status: pending
+status: completed
+completed: 2026-08-14
 priority: P1
 effort: "30m"
 dependencies: [7]
@@ -59,10 +60,10 @@ Branch Lifecycle:
 6. Optional: Review retention of `pre-rebrand-backup` tag.
 
 ## Success Criteria
-- [ ] Active branch is `kit/wave-0-initial`.
-- [ ] No git branch contains `distill` in its name.
-- [ ] Test suites are 100% green.
-- [ ] Rebrand is complete, self-contained, and verified.
+- [x] Active branch is `kit/wave-0-initial`.
+- [x] No git branch contains `distill` in its name.
+- [x] Test suites are 100% green.
+- [x] Rebrand is complete, self-contained, and verified.
 
 ## Risk Assessment
 - **Risk:** CI/CD or collaborator worktrees break due to sudden branch rename.

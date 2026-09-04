@@ -137,16 +137,16 @@ release checklist verifies it rather than performing it.
 
 ## Success Criteria
 
-- [ ] `av run <kit>/<skill> --target <adapter>` dispatches and streams
-- [ ] SIGINT reaches the child; **no orphan process survives** — asserted
-- [ ] `--timeout` escalates TERM → grace → KILL
-- [ ] Child exit codes propagate
-- [ ] Dispatch to an unverified provider is refused, not guessed
-- [ ] **`av run kit/skill` dispatches and `av run <no-slash>` still warns** — both asserted; the shim survives into 1.3.0
-- [ ] All five `skill` env verbs work; `remove` leaves the cache
-- [ ] `agents`, `commands`, `skills` share one implementation
-- [ ] `codex-agent-runtime register` is idempotent and backs up the prior TOML
-- [ ] `pnpm test` green
+- [x] `av run <kit>/<skill> --target <adapter>` dispatches and streams
+- [x] SIGINT reaches the child; **no orphan process survives** — asserted
+- [x] `--timeout` escalates TERM → grace → KILL
+- [x] Child exit codes propagate
+- [x] Dispatch to an unverified provider is refused, not guessed
+- [x] **`av run kit/skill` dispatches and `av run <no-slash>` still warns** — both asserted; the shim survives into 1.3.0
+- [x] All five `skill` env verbs work; `remove` leaves the cache
+- [x] `agents`, `commands`, `skills` share one implementation
+- [x] `codex-agent-runtime register` is idempotent and backs up the prior TOML
+- [x] `pnpm test` green
 
 ## Risk Assessment
 
