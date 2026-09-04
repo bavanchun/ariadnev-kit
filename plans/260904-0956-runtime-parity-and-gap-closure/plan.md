@@ -1,6 +1,6 @@
 ---
 title: "Runtime parity and gap closure: provider-directed hooks, codex native hooks, antigravity correction, native output styles, worktree root, preview validators"
-status: in-progress
+status: completed
 description: "Close the evidence-and-content gaps found by the 2026-09-04 parity study: a provider-directed hook surface the kit does not yet have, native Codex hooks (#134), the antigravity agent cell that rests on the installer's own output, a stale claude-code row hiding native output styles, persisted `worktree.root` config, and the dropped preview generation-time validators."
 priority: P1
 effort: 39h
