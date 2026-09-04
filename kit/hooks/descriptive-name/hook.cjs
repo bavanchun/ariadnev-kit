@@ -11,6 +11,7 @@ const AV_LIB = [require('node:path').join(__dirname, '_lib'), require('node:path
 try {
   const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
   const { createHookTimer, logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
+  const { emitContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('descriptive-name')) {
@@ -29,12 +30,7 @@ try {
   // Context-only hook: emit additionalContext without a permission decision.
   // Codex rejects `permissionDecision: "allow"` unless the hook also returns
   // updatedInput, and this hook never rewrites the tool call.
-  console.log(JSON.stringify({
-    "hookSpecificOutput": {
-      "hookEventName": "PreToolUse",
-      "additionalContext": injectedPrompt
-    }
-  }));
+  emitContext('PreToolUse', injectedPrompt);
 
     timer.end({ status: 'ok', exit: 0 });
     // All paths allowed

@@ -37,6 +37,7 @@ try {
   const { resolveSkillsVenv } = require(require('node:path').join(AV_LIB, 'context-builder.cjs'));
   const { createHookTimer, logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
   const { safeDisplayValue } = require(require('node:path').join(AV_LIB, 'session-state-renderer.cjs'));
+  const { emitContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('subagent-init')) {
@@ -222,15 +223,9 @@ async function main() {
       lines.push(agentContext);
     }
 
-    // CRITICAL: SubagentStart requires hookSpecificOutput.additionalContext format
-    const output = {
-      hookSpecificOutput: {
-        hookEventName: "SubagentStart",
-        additionalContext: lines.join('\n')
-      }
-    };
-
-    console.log(JSON.stringify(output));
+    // SubagentStart carries its context inside hookSpecificOutput on both
+    // runtimes; the emitter is what keeps it there.
+    emitContext('SubagentStart', lines.join('\n'));
     timer.end({ status: 'ok', exit: 0, target: agentType, note: 'context-injected' });
     process.exit(0);
   } catch (error) {

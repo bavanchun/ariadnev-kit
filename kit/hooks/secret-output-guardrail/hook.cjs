@@ -16,6 +16,7 @@ try {
   const { isHookEnabled } = require(require('node:path').join(AV_LIB, 'av-config-utils.cjs'));
   const { createHookTimer, logHookCrash } = require(require('node:path').join(AV_LIB, 'hook-logger.cjs'));
   const { containsSecretKeyword } = require(require('node:path').join(AV_LIB, 'secret-keywords.cjs'));
+  const { emitContext } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
   const HOOK_NAME = 'secret-output-guardrail';
   const REMINDER = [
@@ -35,13 +36,7 @@ try {
   }
 
   function outputForPrompt(prompt) {
-    if (!containsSecretKeyword(prompt)) return null;
-    return {
-      hookSpecificOutput: {
-        hookEventName: 'UserPromptSubmit',
-        additionalContext: REMINDER,
-      },
-    };
+    return containsSecretKeyword(prompt) ? REMINDER : null;
   }
 
   function main() {
@@ -59,7 +54,7 @@ try {
       process.exit(0);
     }
 
-    process.stdout.write(`${JSON.stringify(result)}\n`);
+    emitContext('UserPromptSubmit', result);
     timer.end({ status: 'ok', exit: 0, note: 'triggered' });
     process.exit(0);
   }
