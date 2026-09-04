@@ -22,6 +22,7 @@ const {
   refreshUsageCache,
   readUsageCache
 } = require(require('node:path').join(AV_LIB, 'usage-limits-cache.cjs'));
+const { emitDecision } = require(require('node:path').join(AV_LIB, 'hook-output.cjs'));
 
 const FETCH_INTERVAL_MS = 300000; // 5 minutes for PostToolUse
 const FETCH_INTERVAL_PROMPT_MS = 60000; // 1 minute for UserPromptSubmit / SessionStart
@@ -90,13 +91,18 @@ async function runUsageQuotaCacheRefreshHook({
     logHookCrash(hookName, error, { event: lastHookEvent, tool: lastToolName });
   }
 
-  console.log(JSON.stringify({ continue: true }));
+  // Through the emitter: this binds PostToolUse, Stop and UserPromptSubmit, and
+  // `{continue: true}` is only the right answer to the first of those on the
+  // runtime the corpus was written for.
+  emitDecision(lastHookEvent || 'PostToolUse', { continue: true });
 }
 
 if (require.main === module) {
   runUsageQuotaCacheRefreshHook().catch((error) => {
     logHookCrash('usage-quota-cache-refresh', error || 'main-catch');
-    console.log(JSON.stringify({ continue: true }));
+    // The event is unknown out here — the crash may have happened before the
+    // payload was read — so this answers as the binding that carries a body.
+    emitDecision('PostToolUse', { continue: true });
     process.exit(0);
   });
 }

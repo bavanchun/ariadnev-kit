@@ -158,6 +158,32 @@ function decisionPayload(event, topLevel = {}, runtime, nested = null) {
   return render(payload);
 }
 
+/**
+ * How a hook denies a tool call, per runtime: what to write, and what to exit
+ * with.
+ *
+ * Claude Code and Codex both read exit 2 with the reason on stderr as the deny,
+ * and writing a decision object beside it is what turned a block into `Hook
+ * failed` — so the answer there is the exit code and an empty stdout. Antigravity
+ * reads nothing but stdout: the same block has to arrive as `{"decision":"deny"}`,
+ * and the exit code has to go back to 0, because a non-zero one marks the hook
+ * failed on a runtime that was never going to read the reason out of it anyway.
+ *
+ * Callers keep writing their own stderr message. It is what the user actually
+ * reads on two of the three runtimes, and each hook formats it differently.
+ */
+function blockPayload(event, reason, runtime) {
+  if (resolveRuntime(runtime) !== 'antigravity') return { stdout: '', exitCode: 2 };
+  const text = normalize(reason);
+  return {
+    stdout: antigravityPayload(event, {}, {
+      permissionDecision: 'deny',
+      ...(text === '' ? {} : { permissionDecisionReason: text })
+    }),
+    exitCode: 0
+  };
+}
+
 function writeOut(text, options) {
   if (text === '') return '';
   const write = options.write || ((s) => process.stdout.write(s));
@@ -180,8 +206,17 @@ function emitDecision(event, topLevel = {}, options = {}) {
   return writeOut(decisionPayload(event, topLevel, options.runtime, options.nested), options);
 }
 
+/** Write a deny in whatever form the runtime reads, and return its exit code. */
+function emitBlock(event, reason, options = {}) {
+  const { stdout, exitCode } = blockPayload(event, reason, options.runtime);
+  writeOut(stdout, options);
+  return exitCode;
+}
+
 module.exports = {
   DEFAULT_RUNTIME,
+  blockPayload,
+  emitBlock,
   contextPayload,
   decisionPayload,
   emitContext,

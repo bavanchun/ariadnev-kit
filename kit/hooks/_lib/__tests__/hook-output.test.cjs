@@ -10,8 +10,10 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const {
+  blockPayload,
   contextPayload,
   decisionPayload,
+  emitBlock,
   emitContext,
   emitDecision,
   emitPlainContext,
@@ -216,4 +218,44 @@ test('the other two runtimes keep the shapes they had', () => {
     hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: 'warn' }
   });
   assert.deepStrictEqual(JSON.parse(decisionPayload('Stop', { continue: true }, CLAUDE)), { continue: true });
+});
+
+
+// A tool-blocking hook does not reach the emitter at all on the runtime it was
+// written for: Claude Code and Codex both read a deny as exit 2 with the reason
+// on stderr, and emitting JSON beside it is what turned a deny into `Hook
+// failed` in the first place. Antigravity has no such channel — stdout is the
+// only thing it reads — so the same block has to become a decision object
+// there, and the exit code has to stop being the message.
+
+test('a block is exit 2 and silent stdout on the runtimes that read exit codes', () => {
+  for (const runtime of [CLAUDE, CODEX]) {
+    assert.deepStrictEqual(blockPayload('PreToolUse', 'reading .env', runtime), { stdout: '', exitCode: 2 }, runtime);
+  }
+});
+
+test('a block antigravity can see is a deny on stdout, and not an exit code', () => {
+  // agy never looks at the exit code, so leaving it at 2 would mark the hook
+  // failed while the deny it carries is the whole point of running it.
+  const { stdout, exitCode } = blockPayload('PreToolUse', 'reading .env', ANTIGRAVITY);
+  assert.deepStrictEqual(JSON.parse(stdout), { decision: 'deny', reason: 'reading .env' });
+  assert.strictEqual(exitCode, 0);
+});
+
+test('a block with no reason still denies', () => {
+  assert.deepStrictEqual(JSON.parse(blockPayload('PreToolUse', '', ANTIGRAVITY).stdout), { decision: 'deny' });
+});
+
+test('emitBlock writes the payload and hands back the code to exit with', () => {
+  const written = [];
+  const code = emitBlock('PreToolUse', 'reading .env', {
+    runtime: ANTIGRAVITY,
+    write: (s) => written.push(s)
+  });
+  assert.strictEqual(code, 0);
+  assert.deepStrictEqual(JSON.parse(written.join('')), { decision: 'deny', reason: 'reading .env' });
+
+  const quiet = [];
+  assert.strictEqual(emitBlock('PreToolUse', 'reading .env', { runtime: CODEX, write: (s) => quiet.push(s) }), 2);
+  assert.deepStrictEqual(quiet, [], 'stdout stays empty where the exit code carries the deny');
 });
