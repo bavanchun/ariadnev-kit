@@ -281,10 +281,13 @@ the correct trade, and the remediation text covers it by describing the symptom
 14. `npx vitest run packages/cli/src/install packages/cli/src/providers`, then
     `node --test kit/hooks/__tests__/codex-hook-contract.test.cjs` and the
     emitter suite, then `pnpm lint`.
-15. Regenerate the embedded kit **only if** this phase is the last one on the
-    branch to touch `kit/` — see the single-writer constraint in phase 0, step
-    14. Phases 4 and 5 also edit `kit/`; whichever lands last runs
-    `pnpm --filter ariadnev generate:embedded`, once.
+15. Run `pnpm --filter ariadnev generate:embedded` as this phase's last step.
+    Deferring it to whichever `kit/`-touching phase lands last is not an option:
+    `embedded-kit.test.ts` guards the artifact against drift, so any phase that
+    adds a `kit/` file and does not regenerate leaves the suite red for every
+    phase after it. The single-writer constraint from phase 0, step 14 still
+    holds and is what makes this safe — phases 1, 4 and 5 regenerate one after
+    another, never two at once.
 
 ## Success Criteria
 

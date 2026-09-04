@@ -42,7 +42,7 @@ export interface CodexHooksReport {
  * does not require opening or running the script, which makes it the only one
  * available here.
  */
-const WRAPPER_MARKERS = ["claudekit", "ck migrate"];
+const WRAPPER_MARKERS = ["claudekit", "ck migrate"]; // brand-drift-allow: names the third-party tool whose wrapper is being detected, not this project
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

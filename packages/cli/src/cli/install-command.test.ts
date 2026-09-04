@@ -73,7 +73,7 @@ describe("codex hook notices", () => {
 
   it("reports a legacy wrapper sharing the file, from both locations", () => {
     writeHooks(home, {
-      hooks: { Stop: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }] },
+      hooks: { Stop: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }] }, // brand-drift-allow: names the third-party tool whose wrapper is being detected, not this project
     });
     writeHooks(cwd, {
       hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "./scripts/lint-guard.sh" }] }] },

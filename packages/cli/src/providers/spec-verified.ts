@@ -119,7 +119,7 @@ export const SPEC_VERIFIED: Record<ProviderId, ProviderVerification> = {
       rules: observed("the AGENTS.md managed block text appears in prompt-input"),
       scripts: convention("shares the .agents tree whose skill root was observed; script execution itself was not observed"),
       env: convention("template file only — nothing reports reading it"),
-      hook: convention("`~/.codex/hooks.json` is codex's own hook registry — its `config.toml` carries a `[hooks.state]` table keying trust per `<source>:<event>:<group>:<hook>`, so the file is one codex itself reads and records decisions about. Not `observed`: trusting a hook is an interactive TUI step, so no run of ours was seen to fire"),
+      hook: convention("codex-cli 0.153.1: `~/.codex/hooks.json` is codex's own hook registry, and its `config.toml` carries a `[hooks.state]` table keying a trust decision and a `trusted_hash` per `<source>:<event>:<group>:<hook>` — so codex was seen parsing that file and recording what it found. The loads behind those entries are *other tools'* hooks (two installed tools plus three plugin-bundled `hooks/hooks.json`), never ariadnev's: trusting a hook is an interactive TUI step, so no hook of ours was watched firing. That is why this is `convention` and not `observed`"),
       outputStyle: none("no equivalent concept observed in this provider's surfaces"),
       statusline: none("no statusline surface observed; nothing in prompt-input or the config reports one"),
     },

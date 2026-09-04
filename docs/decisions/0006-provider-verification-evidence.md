@@ -51,6 +51,19 @@ Commands were **not** observed: `.codex/commands/term-config.md` is written and
 never appears in the prompt. Commands may only surface on invocation, which was
 not observable here — so the cell is `none` rather than assumed.
 
+The `hook` cell was re-graded separately, against **codex-cli 0.153.1**. Codex
+keeps a `[hooks.state]` table in `~/.codex/config.toml` recording a trust
+decision and a `trusted_hash` per `<source>:<event>:<group>:<hook>`, so codex
+was seen parsing a `hooks.json` and writing down what it found there. The loads
+behind those entries are other tools' hooks — two installed tools plus three
+plugin-bundled `hooks/hooks.json` — never ariadnev's, because trusting a hook
+is an interactive TUI step nobody can perform on the user's behalf. That makes
+the layout better attested than the usual `convention` case, which rests on a
+neutral cross-tool directory, and still short of `observed`, which requires
+watching our own artifact load. `observedVersion` and `observedOn` on the codex
+row stay at 0.147.0: they date the skill and agent probes, and re-dating them
+here would silently re-stamp evidence nobody re-collected.
+
 **opencode 1.15.3** — `opencode debug skill` reports each skill's resolved
 location; 26 skills resolved to the installer's `.opencode/skills` directory.
 `opencode agent list` names all 13 agents as subagents, and `opencode debug

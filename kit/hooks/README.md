@@ -1,8 +1,19 @@
 # av hooks
 
-Claude Code event hooks shipped with the kit. Installing to `claude-code` copies
-each `hook.cjs` to `.claude/hooks/av/` and — after a y/n confirmation — merges the
-event bindings into `.claude/settings.json`. Other providers skip-and-log.
+Event hooks shipped with the kit. Two providers install them, each into its own
+tree and its own registry: `claude-code` copies each `hook.cjs` to
+`.claude/hooks/av/` and — after a y/n confirmation — merges the event bindings
+into `.claude/settings.json`; `codex` copies to `~/.codex/hooks/av/` and merges
+into `~/.codex/hooks.json`, which it shares with whatever else the user runs, so
+the merge touches only ariadnev's own groups. Other providers skip-and-log.
+
+A Codex hook stays inert until the user trusts it in Codex's own TUI (`/hooks`)
+— there is no CLI subcommand for it. Codex also validates hook stdout against
+schemas declared `additionalProperties: false`, so a key in the wrong place is
+not ignored: the whole decision is thrown away and the user sees `Hook failed`
+where a deny was meant. Every hook here writes its stdout through
+`_lib/hook-output.cjs` for that reason — it is the one place the envelope is
+shaped, and it refuses the misplacements rather than emitting them.
 
 Every hook is **fail-open**: an internal error exits 0 so a hook can never take
 down the session it was watching. The two guards below are the exception, and

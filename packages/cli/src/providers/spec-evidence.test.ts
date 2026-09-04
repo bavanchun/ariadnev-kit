@@ -70,6 +70,23 @@ describe("provider verification evidence", () => {
     expect(SPEC_VERIFIED.antigravity.observedVersion).toBeNull();
   });
 
+  it("grades the codex hook registry on what codex records, not on a run we watched", () => {
+    // Trusting a hook in codex is an interactive TUI step, so no hook of ours
+    // was seen to fire. What is on disk is codex's own bookkeeping about the
+    // file — a `[hooks.state]` table keying a trust decision per hook — which
+    // is evidence that codex reads it, and is not evidence of a load.
+    const hook = evidenceFor("codex", "hook");
+    expect(hook.level).toBe("convention");
+    expect(hook.verified).toBe(true);
+    expect(hook.note).toMatch(/hooks\.state/);
+    expect(hook.note).toMatch(/0\.153\.1/);
+    expect(hook.note).toMatch(/other tools/);
+    // Grading a cell documents a layout; it must never be read as a new
+    // observation, so the row's observation stays exactly where it was.
+    expect(SPEC_VERIFIED.codex.observedVersion).toBe("codex-cli 0.147.0");
+    expect(SPEC_VERIFIED.codex.observedOn).toBe("2026-08-15");
+  });
+
   it("does not let a binary alone promote a provider to observed", () => {
     // `omp` is installed and runnable here, and every cell is still
     // `convention`. The probe that looked like a load check (`omp read

@@ -67,7 +67,7 @@ describe("inspectCodexHooks", () => {
     // guessed to do — the script itself is never opened, let alone run.
     const report = inspectCodexHooks(
       [source("<repo>/.codex/hooks.json", {
-        PreToolUse: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }],
+        PreToolUse: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }], // brand-drift-allow: names the third-party tool whose wrapper is being detected, not this project
         Stop: [{ hooks: [{ type: "command", command: "ck migrate --codex-hook stop" }] }],
       })],
       OWNED,
@@ -104,12 +104,12 @@ describe("renderLegacyWrapperNotice", () => {
   it("describes the symptom and hands over a command, without asserting a diagnosis", () => {
     const report = inspectCodexHooks(
       [source("~/.codex/hooks.json", {
-        PreToolUse: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }],
+        PreToolUse: [{ hooks: [{ type: "command", command: "~/.claudekit/hooks/codex-wrapper.sh" }] }], // brand-drift-allow: names the third-party tool whose wrapper is being detected, not this project
       })],
       OWNED,
     );
     const notice = renderLegacyWrapperNotice(report);
-    expect(notice).toContain("~/.claudekit/hooks/codex-wrapper.sh");
+    expect(notice).toContain("~/.claudekit/hooks/codex-wrapper.sh"); // brand-drift-allow: names the third-party tool whose wrapper is being detected, not this project
     expect(notice).toContain("~/.codex/hooks.json");
     expect(notice).toMatch(/Hook failed/);
     // The remediation is the user's to run: nothing here promises to do it.
