@@ -107,3 +107,17 @@ describe("merging into antigravity's shared hooks.json", () => {
     expect(() => mergeAntigravityHooks("{not json", bindings)).toThrow();
   });
 });
+
+describe("a hooks.json whose bytes parse but whose shape is not the provider's", () => {
+  // Our bindings live under one top-level key, so an array root takes the
+  // assignment and then drops it at stringify time. The install would report
+  // hooks registered into a file that has none of them.
+  const bindings: HookBinding[] = [{ event: "Stop", command: 'node "/home/u/.gemini/config/hooks/av/a.cjs"' }];
+
+  it("refuses a root that is not an object", () => {
+    for (const root of ["[]", '[{"a":1}]', '"x"', "7", "null", "false"]) {
+      expect(() => mergeAntigravityHooks(root, bindings)).toThrow(/not a JSON object/);
+      expect(() => unmergeAntigravityHooks(root)).toThrow(/not a JSON object/);
+    }
+  });
+});

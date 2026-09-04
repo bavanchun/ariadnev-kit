@@ -29,8 +29,43 @@ type HooksJson = Record<string, unknown> & {
   hooks?: Record<string, CodexGroup[]>;
 };
 
+/**
+ * The file as an object, or a refusal.
+ *
+ * `JSON.parse` answers for far more shapes than this format has. An array takes
+ * the `hooks` assignment as a named property and then loses it at stringify
+ * time, so the install would report a registration the file does not carry; a
+ * string throws on the same assignment, surfacing as a raw TypeError rather
+ * than as a statement about the user's file. Both are refused here instead,
+ * which is the same answer this module already gives to bytes it cannot parse:
+ * stop before the write rather than clobber a config it did not understand.
+ */
+function asObject(value: unknown, what: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${what} is not a JSON object — refusing to merge into it`);
+  }
+  return value as Record<string, unknown>;
+}
+
 function parseFile(existing: string): HooksJson {
-  return existing.trim().length ? (JSON.parse(existing) as HooksJson) : {};
+  if (!existing.trim().length) return {};
+  return asObject(JSON.parse(existing), "codex hooks.json") as HooksJson;
+}
+
+/**
+ * One event's groups, or a refusal.
+ *
+ * A foreign writer's malformed-but-parseable entry would otherwise reach
+ * `.filter` and abort the install with a stack trace. The event is named so the
+ * message points at the key to look at.
+ */
+function eventGroups(hooks: Record<string, CodexGroup[]>, event: string): CodexGroup[] {
+  const value = hooks[event];
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    throw new Error(`codex hooks.json entry ${event} is not a list of hook groups — refusing to merge into it`);
+  }
+  return value;
 }
 
 function render(file: HooksJson): string {
@@ -85,10 +120,11 @@ function ourGroups(bindings: HookBinding[], event: string): CodexGroup[] {
  */
 export function mergeCodexHooks(existing: string, bindings: HookBinding[], ownedDir: string): string {
   const file = parseFile(existing);
+  if (file.hooks !== undefined) asObject(file.hooks, "codex hooks.json key hooks");
   const hooks = (file.hooks ??= {});
   const events = [...new Set(bindings.map((b) => b.event))];
   for (const event of [...new Set([...Object.keys(hooks), ...events])]) {
-    const foreign = (hooks[event] ?? []).filter((group) => !isOurs(group, ownedDir));
+    const foreign = eventGroups(hooks, event).filter((group) => !isOurs(group, ownedDir));
     const mine = ourGroups(bindings, event);
     if (foreign.length === 0 && mine.length === 0) {
       delete hooks[event];
@@ -112,10 +148,10 @@ export function unmergeCodexHooks(existing: string, ownedDir: string): string {
   // removal path that is not a bug worth recovering from afterwards.
   if (ownedDir === "") throw new Error("refusing to unmerge codex hooks without an owned directory");
   const file = parseFile(existing);
-  const hooks = file.hooks;
+  const hooks = file.hooks === undefined ? undefined : (asObject(file.hooks, "codex hooks.json key hooks") as Record<string, CodexGroup[]>);
   if (hooks) {
     for (const event of Object.keys(hooks)) {
-      const remaining = hooks[event].filter((group) => !isOurs(group, ownedDir));
+      const remaining = eventGroups(hooks, event).filter((group) => !isOurs(group, ownedDir));
       if (remaining.length > 0) hooks[event] = remaining;
       else delete hooks[event];
     }

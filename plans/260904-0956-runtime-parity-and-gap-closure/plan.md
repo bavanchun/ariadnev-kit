@@ -115,20 +115,20 @@ which is stated above and is weaker.
 ## Acceptance criteria
 
 - [ ] Issue #134 is closed with all five of its acceptance checkboxes satisfied: a Codex `PreToolUse` fixture reading `node_modules/pkg/index.js` denies with schema-valid JSON and no `Hook failed`; the exclusion-glob command stays allowed; Claude Code hook behaviour and its existing tests are unchanged; the provider matrix and generated README reflect the newly verified capability; install/heal behaviour for a pre-existing legacy `.codex` wrapper is defined and tested.
-- [ ] No file under `packages/cli/src/install/` joins `CLAUDE_HOOKS_DIR` or `CLAUDE_SETTINGS_FILE` directly; every hooks-tree destination comes from the resolver.
-- [ ] Claude Code's planned install destinations are byte-identical before and after Phase 0.
-- [ ] A provider can be graded `convention` without that alone turning on file writes — the install-write decision is a separate field, and a test asserts no provider enables writes to a path it cannot cite.
-- [ ] `pnpm test` and `pnpm lint` are green; `pnpm coverage` still reports ≥90% on `packages/cli/src/adapt/`.
-- [ ] The README provider matrix block between `<!-- BEGIN provider-matrix (generated) -->` and `<!-- END provider-matrix (generated) -->` is regenerated and `matrix-drift.test.ts` passes against it.
-- [ ] No cell in `spec-verified.ts` is raised above the rung its cited evidence actually supports; every changed cell's note names the artefact it was checked against, and every `observed` claim names a run that happened.
-- [ ] No provider cell keeps a rationale that rests on the installer's own output being mistaken for third-party evidence.
-- [ ] `spec-verified.ts` carries per-row observation dates; no row is re-dated by an edit made for a different row.
-- [ ] Nothing in this plan executes a command read out of a config file the installer did not write.
-- [ ] Nothing in this plan deletes a user file that no ariadnev receipt claims; foreign files are reported instead.
-- [ ] Every hook-config writer added by this plan is proven merge-safe by a test whose fixture already contains a third party's entries, and proven idempotent across a second install.
-- [ ] `node packages/cli/scripts/check-brand-drift.mjs` is clean **after staging** every new file (the gate scans tracked files only).
-- [ ] `docs/decisions/0006-provider-verification-evidence.md` is updated for each provider whose row changed (`spec-evidence.test.ts:110-117` asserts the ADR names every evidence-required provider).
-- [ ] `packages/cli/src/kit/kit-embedded.generated.ts` was regenerated after the final `kit/` edit on the branch and is staged with it; no two phases regenerated it concurrently.
+- [x] No file under `packages/cli/src/install/` joins `CLAUDE_HOOKS_DIR` or `CLAUDE_SETTINGS_FILE` directly; every hooks-tree destination comes from the resolver.
+- [x] Claude Code's planned install destinations are byte-identical before and after Phase 0.
+- [x] A provider can be graded `convention` without that alone turning on file writes — the install-write decision is a separate field, and a test asserts no provider enables writes to a path it cannot cite.
+- [x] `pnpm test` and `pnpm lint` are green; `pnpm coverage` still reports ≥90% on `packages/cli/src/adapt/`.
+- [x] The README provider matrix block between `<!-- BEGIN provider-matrix (generated) -->` and `<!-- END provider-matrix (generated) -->` is regenerated and `matrix-drift.test.ts` passes against it.
+- [x] No cell in `spec-verified.ts` is raised above the rung its cited evidence actually supports; every changed cell's note names the artefact it was checked against, and every `observed` claim names a run that happened.
+- [x] No provider cell keeps a rationale that rests on the installer's own output being mistaken for third-party evidence.
+- [x] `spec-verified.ts` carries per-row observation dates; no row is re-dated by an edit made for a different row.
+- [x] Nothing in this plan executes a command read out of a config file the installer did not write.
+- [x] Nothing in this plan deletes a user file that no ariadnev receipt claims; foreign files are reported instead.
+- [x] Every hook-config writer added by this plan is proven merge-safe by a test whose fixture already contains a third party's entries, and proven idempotent across a second install.
+- [x] `node packages/cli/scripts/check-brand-drift.mjs` is clean **after staging** every new file (the gate scans tracked files only).
+- [x] `docs/decisions/0006-provider-verification-evidence.md` is updated for each provider whose row changed (`spec-evidence.test.ts:110-117` asserts the ADR names every evidence-required provider).
+- [x] `packages/cli/src/kit/kit-embedded.generated.ts` was regenerated after the final `kit/` edit on the branch and is staged with it; no two phases regenerated it concurrently.
 
 ## Red Team Review
 

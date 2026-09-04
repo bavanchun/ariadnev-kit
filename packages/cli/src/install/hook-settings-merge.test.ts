@@ -120,8 +120,11 @@ describe("renderHookSettingsSnippet", () => {
 });
 
 describe("statusLine merge", () => {
-  const OWNED = "/.claude/hooks/av/";
-  const OURS = `node "/home/u/.claude/hooks/av/av-statusline.cjs"`;
+  // The resolved hooks directory, the way install and uninstall both pass it —
+  // absolute and unterminated. A bare fragment would let any command whose text
+  // happens to contain it be mistaken for ours.
+  const OWNED = "/home/u/.claude/hooks/av";
+  const OURS = `node "${OWNED}/av-statusline.cjs"`;
 
   it("installs into an empty settings file", () => {
     const { json, applied } = mergeStatusLine("", OURS, OWNED);

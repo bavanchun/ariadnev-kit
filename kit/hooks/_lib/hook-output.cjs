@@ -136,6 +136,16 @@ function plainContextPayload(event, text, runtime) {
  * `stopReason`, `suppressOutput`, `systemMessage`); `nested` carries whatever
  * belongs under `hookSpecificOutput` for this event. Splitting them at the
  * signature is what makes the misplacement checks below possible at all.
+ *
+ * How far the Codex side of this is checked, stated rather than implied: four
+ * of its output schemas were fetched — pre-tool-use, post-tool-use,
+ * permission-request, session-start — and all four set
+ * `additionalProperties: false`. The flow-control keys pass through unchanged
+ * on every event, so the two live emitters on unfetched schemas —
+ * `{continue, decision, reason}` on UserPromptSubmit and
+ * `{continue, systemMessage}` on Stop — rest on the fetched four generalising.
+ * If either schema rejects a key, the symptom is `Hook failed`, so those two
+ * schemas are the thing to fetch before widening this further.
  */
 function decisionPayload(event, topLevel = {}, runtime, nested = null) {
   for (const key of NESTED_ONLY_KEYS) {

@@ -45,8 +45,23 @@ interface MatcherGroup {
 type EventConfig = Record<string, MatcherGroup[] | Handler[]>;
 type HooksJson = Record<string, unknown>;
 
+/**
+ * The file as an object, or a refusal.
+ *
+ * Our bindings live under one top-level key, so an array root accepts the
+ * assignment as a named property and then drops it at stringify time — the
+ * install would report hooks registered into a file that carries none of them,
+ * which is the one failure the user has no way to notice. A string root throws
+ * a raw TypeError on the same line. Both get the answer this module already
+ * gives to unparseable bytes: refuse before the caller writes.
+ */
 function parseFile(existing: string): HooksJson {
-  return existing.trim().length ? (JSON.parse(existing) as HooksJson) : {};
+  if (!existing.trim().length) return {};
+  const parsed: unknown = JSON.parse(existing);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("antigravity hooks.json is not a JSON object — refusing to merge into it");
+  }
+  return parsed as HooksJson;
 }
 
 function render(file: HooksJson): string {

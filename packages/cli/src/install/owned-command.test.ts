@@ -39,6 +39,22 @@ describe("recognising a command as one we installed", () => {
     expect(commandOwnedBy(planned(win32.join("C:\\Users\\u\\.codex\\hooks", "orca"), "x.cjs"), winDir)).toBe(false);
   });
 
+  it("does not claim a stranger's command that merely names our directory", () => {
+    // A guard that excludes our hooks from its own scan carries the directory
+    // in an argument. Reading that as ownership makes uninstall delete another
+    // tool's entry out of the shared file, and makes a reinstall rebuild over
+    // it — so what is compared is the path the command actually runs, not
+    // whether the text mentions us anywhere.
+    expect(commandOwnedBy(`guard --ignore ${posixDir}`, posixDir)).toBe(false);
+    expect(commandOwnedBy(`node "/home/u/.orca/run.cjs" --exclude ${posixDir}`, posixDir)).toBe(false);
+  });
+
+  it("does not claim a sibling directory sharing our prefix", () => {
+    // `…/hooks/av-legacy` starts with `…/hooks/av`, so a prefix test with no
+    // separator after it takes another tool's tree for a subdirectory of ours.
+    expect(commandOwnedBy(planned(`${posixDir}-legacy`, "x.cjs"), posixDir)).toBe(false);
+  });
+
   it("claims nothing at all when the owned directory is empty", () => {
     // Every string contains "", so the permissive answer here would make an
     // uninstall delete three other tools' hooks out of a shared file.

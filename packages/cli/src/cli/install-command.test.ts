@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderCodexHookNotices } from "./install-command.js";
+import { renderCodexHookNotices, renderDeclinedHookSnippets } from "./install-command.js";
 import type { ProviderInstallResult } from "../install/install-types.js";
 
 let home: string;
@@ -109,5 +109,54 @@ describe("codex hook notices", () => {
     writeFileSync(join(home, ".codex", "hooks.json"), "{ this is not json");
     expect(() => renderCodexHookNotices([codexResult()], home, cwd, true)).not.toThrow();
     expect(renderCodexHookNotices([codexResult()], home, cwd, true)).toContain("/hooks");
+  });
+});
+
+describe("the blocks to paste when the merge was declined", () => {
+  // Three providers now keep hooks in three registries, and a run can select
+  // all of them. Naming one and staying silent about the others leaves hooks on
+  // disk that will never fire, with nothing in the output to say which.
+  function opFor(provider: ProviderInstallResult["provider"], dest: string, format: "claude-settings-json" | "codex-hooks-json" | "antigravity-hooks-json"): ProviderInstallResult {
+    return {
+      provider,
+      written: 1,
+      backedUp: 0,
+      skipped: [],
+      ops: [
+        {
+          action: "hook-settings",
+          kind: "hook",
+          name: "hooks",
+          dest,
+          bindings: [{ event: "Stop", command: `node "${OWNED}/a.cjs"` }],
+          format,
+          ownedDir: OWNED,
+        },
+      ],
+    };
+  }
+
+  it("names every registry the run wrote to", () => {
+    const out = renderDeclinedHookSnippets([
+      opFor("claude-code", "/home/u/.claude/settings.json", "claude-settings-json"),
+      opFor("codex", "/home/u/.codex/hooks.json", "codex-hooks-json"),
+      opFor("antigravity", "/home/u/.gemini/config/hooks.json", "antigravity-hooks-json"),
+    ]);
+    expect(out).toContain("/home/u/.claude/settings.json");
+    expect(out).toContain("/home/u/.codex/hooks.json");
+    expect(out).toContain("/home/u/.gemini/config/hooks.json");
+  });
+
+  it("prints one block per file, not per provider", () => {
+    const dest = "/home/u/.codex/hooks.json";
+    const out = renderDeclinedHookSnippets([
+      opFor("codex", dest, "codex-hooks-json"),
+      opFor("codex", dest, "codex-hooks-json"),
+    ]);
+    expect(out.split(dest)).toHaveLength(2);
+  });
+
+  it("says nothing when the run registered no hooks anywhere", () => {
+    expect(renderDeclinedHookSnippets([{ provider: "cursor", written: 0, backedUp: 0, skipped: [], ops: [] }])).toBe("");
   });
 });

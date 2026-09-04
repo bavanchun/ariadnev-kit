@@ -169,6 +169,30 @@ export function renderCodexHookNotices(
   return `\n\n${parts.join("\n\n")}`;
 }
 
+/**
+ * The blocks to paste when the merge was declined — one per hook registry.
+ *
+ * Every provider with hooks has a registry of its own, and a run can select
+ * several. Printing only the first leaves the rest of the hooks on disk,
+ * unregistered, with nothing in the output saying so. Two providers sharing one
+ * destination still get one block, because that is one file to edit.
+ *
+ * The same bindings render differently per registry — codex groups by
+ * (event, matcher) and omits an absent matcher where the settings.json merger
+ * writes `*` — so each block comes from the same dispatcher the write path
+ * uses, against an empty file.
+ */
+export function renderDeclinedHookSnippets(results: ProviderInstallResult[]): string {
+  const seen = new Set<string>();
+  const blocks: string[] = [];
+  for (const op of results.flatMap((r) => r.ops)) {
+    if (op.action !== "hook-settings" || seen.has(op.dest)) continue;
+    seen.add(op.dest);
+    blocks.push(renderHookSettingsSnippet(mergeHooksConfig(op.format, "", op.bindings, op.ownedDir), op.dest));
+  }
+  return blocks.length === 0 ? "" : `\n\n${blocks.join("\n\n")}`;
+}
+
 /** Pure-ish handler: resolves providers, loads kit, installs, returns summary. */
 export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
   const providers = validateProviders(opts.providers);
@@ -212,19 +236,6 @@ export function runInstall(opts: InstallHandlerOpts): InstallHandlerResult {
   summary += renderSharedSummary(shared).join("\n");
   summary += renderHealSummary(heal);
   summary += renderCodexHookNotices(results, opts.home, opts.cwd, opts.applyHookSettings === true);
-  if (!opts.applyHookSettings) {
-    // Merge declined or non-interactive: hand the user the exact block instead.
-    const hookOp = results
-      .flatMap((r) => r.ops)
-      .find((o) => o.action === "hook-settings");
-    if (hookOp && hookOp.action === "hook-settings") {
-      // The same bindings render differently per registry — codex groups by
-      // (event, matcher) and omits an absent matcher where the settings.json
-      // merger writes `*` — so the block the user pastes comes from the same
-      // dispatcher the write path uses, against an empty file.
-      const merged = mergeHooksConfig(hookOp.format, "", hookOp.bindings, hookOp.ownedDir);
-      summary += `\n\n${renderHookSettingsSnippet(merged, hookOp.dest)}`;
-    }
-  }
+  if (!opts.applyHookSettings) summary += renderDeclinedHookSnippets(results);
   return { results, summary };
 }

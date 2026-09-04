@@ -140,3 +140,30 @@ describe("on Windows, where the command spells our directory differently", () =>
     expect(parse(unmergeCodexHooks(merged, OWNED_WIN))).toEqual(FOREIGN);
   });
 });
+
+describe("a hooks.json whose bytes parse but whose shape is not Codex's", () => {
+  // Refusing is the whole contract of this module: the caller writes back what
+  // it returns, so a shape it cannot merge into must stop the write rather than
+  // produce a file. A JSON array accepts `hooks` as a property and then loses
+  // it at stringify time, which would report a registration the file does not
+  // have — the one failure the user has no way to notice.
+  const BINDING: HookBinding[] = [{ event: "Stop", command: `node "${OWNED}/a.cjs"` }];
+
+  it("refuses a root that is not an object", () => {
+    for (const root of ["[]", '["a"]', '"a string"', "42", "null", "true"]) {
+      expect(() => mergeCodexHooks(root, BINDING, OWNED)).toThrow(/not a JSON object/);
+      expect(() => unmergeCodexHooks(root, OWNED)).toThrow(/not a JSON object/);
+    }
+  });
+
+  it("refuses a `hooks` key that is not an object", () => {
+    expect(() => mergeCodexHooks('{"hooks": []}', BINDING, OWNED)).toThrow(/not a JSON object/);
+  });
+
+  it("refuses an event whose value is not a list of groups", () => {
+    // `.filter` on it would abort the install with a raw TypeError, which reads
+    // as a crash in ariadnev rather than as a report about the user's file.
+    expect(() => mergeCodexHooks('{"hooks": {"Stop": {}}}', BINDING, OWNED)).toThrow(/Stop/);
+    expect(() => unmergeCodexHooks('{"hooks": {"Stop": "x"}}', OWNED)).toThrow(/Stop/);
+  });
+});
