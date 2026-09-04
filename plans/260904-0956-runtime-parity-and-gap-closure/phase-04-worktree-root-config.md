@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Persisted worktree root configuration"
-status: pending
+status: completed
 priority: P2
 effort: 7h
 dependencies: []
@@ -344,21 +344,21 @@ the value either.
 
 ## Success Criteria
 
-- [ ] `worktree.root` is in `config-schema.ts` as a project-layer optional string and appears in `schemas/av-config.schema.json`, `kit/hooks/_lib/config-fields.generated.cjs`, and `kit/skills/worktree/scripts/config-fields.generated.cjs`.
-- [ ] `av config prefs resolve` shows the resolved value, and shows the *same* value the skill script uses — an out-of-bounds project value is absent from both, because `filterProjectLayer` dropped it before `resolveConfig` saw it.
-- [ ] `filterProjectLayer` drops an out-of-bounds `worktree.root` with a `DroppedKey` and a warning, asserted in `filter-project-layer.test.ts`; a valid relative value survives unchanged.
-- [ ] The bound is `gitRoot`, not `dirname(gitRoot)`: a project value of `../<sibling-directory>` is refused, asserted by test.
-- [ ] A project value reaching outside the anchor through an in-repo symlink is refused, asserted by a test using a real symlink; a value naming a directory that does not exist yet is accepted, proving the walk-up realpath procedure does not throw `ENOENT`.
-- [ ] An absolute, `~`-prefixed, or control-character project value is refused; the next priority wins; the command still succeeds and exits zero.
-- [ ] An absolute user-layer value is accepted and reported as `user config`.
-- [ ] Precedence flag > env > project > user > auto-detection is asserted by test.
-- [ ] The refusal reaches the agent through the JSON envelope's `warnings` array for both `info` and `create` — `cmdInfo`'s envelope and `output()`'s info branch both carry it — and nothing is written to stderr for this path.
-- [ ] The config branch calls `validateWorktreeRoot` on the accepted path and, on failure, warns and falls through instead of calling `outputError`.
-- [ ] The skill reader takes its layer rule from the generated sibling table and restates no key list of its own; its tests assert reader behaviour (which layer wins, what is refused), not that a field carries a `"project"` label.
-- [ ] The reader's malformed-file behaviour matches the CLI's: unreadable, non-JSON, and non-object files each produce an empty layer plus a warning, and an absent file produces neither.
-- [ ] `worktreeRootSource` reports `project config` / `user config`, and `SKILL.md` step 1 needs no parsing change.
+- [x] `worktree.root` is in `config-schema.ts` as a project-layer optional string and appears in `schemas/av-config.schema.json`, `kit/hooks/_lib/config-fields.generated.cjs`, and `kit/skills/worktree/scripts/config-fields.generated.cjs`.
+- [x] `av config prefs resolve` shows the resolved value, and shows the *same* value the skill script uses — an out-of-bounds project value is absent from both, because `filterProjectLayer` dropped it before `resolveConfig` saw it.
+- [x] `filterProjectLayer` drops an out-of-bounds `worktree.root` with a `DroppedKey` and a warning, asserted in `filter-project-layer.test.ts`; a valid relative value survives unchanged.
+- [x] The bound is `gitRoot`, not `dirname(gitRoot)`: a project value of `../<sibling-directory>` is refused, asserted by test.
+- [x] A project value reaching outside the anchor through an in-repo symlink is refused, asserted by a test using a real symlink; a value naming a directory that does not exist yet is accepted, proving the walk-up realpath procedure does not throw `ENOENT`.
+- [x] An absolute, `~`-prefixed, or control-character project value is refused; the next priority wins; the command still succeeds and exits zero.
+- [x] An absolute user-layer value is accepted and reported as `user config`.
+- [x] Precedence flag > env > project > user > auto-detection is asserted by test.
+- [x] The refusal reaches the agent through the JSON envelope's `warnings` array for both `info` and `create` — `cmdInfo`'s envelope and `output()`'s info branch both carry it — and nothing is written to stderr for this path.
+- [x] The config branch calls `validateWorktreeRoot` on the accepted path and, on failure, warns and falls through instead of calling `outputError`.
+- [x] The skill reader takes its layer rule from the generated sibling table and restates no key list of its own; its tests assert reader behaviour (which layer wins, what is refused), not that a field carries a `"project"` label.
+- [x] The reader's malformed-file behaviour matches the CLI's: unreadable, non-JSON, and non-object files each produce an empty layer plus a warning, and an absent file produces neither.
+- [x] `worktreeRootSource` reports `project config` / `user config`, and `SKILL.md` step 1 needs no parsing change.
 - [ ] `pnpm --filter ariadnev generate:embedded` has been run after the last `kit/` edit, and `packages/cli/src/kit/kit-embedded.generated.ts` is staged with the change.
-- [ ] ADR 0019 records the decision, including the project/user asymmetry and why the two upstream modules did not port.
+- [x] ADR 0019 records the decision, including the project/user asymmetry and why the two upstream modules did not port.
 
 ## Risk Assessment
 
