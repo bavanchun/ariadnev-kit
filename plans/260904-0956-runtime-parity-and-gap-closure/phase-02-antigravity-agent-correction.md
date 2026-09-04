@@ -419,19 +419,20 @@ install is how agents reach agy at all.
 - [x] Two kit agents adapted for antigravity are enumerated by `agy agent` after a real install — the same check the probe ran by hand. Confirmed on 1.1.25: `Explore` and `kongming` through the real adapt pipeline, planted, both listed, then removed.
 - [x] The installer plans **no delete** for `~/.gemini/config/agents/*.md` when no ariadnev receipt claims them.
 - [x] A heal test proves those paths *are* removed when a prior ariadnev receipt claims them.
-- [ ] The `skill` cell's bounded gap is stated: 1.1.25 ships no `skill` subcommand, so no listing standard exists for it, and the cell rests on its own separate evidence.
-- [ ] `antigravity.hook` is `convention` with a note that states why it is not `observed`.
-- [ ] `antigravity.statusline` is `none`, and its note records the empty `statusLine` key as a lead rather than as evidence.
+- [x] The `skill` cell's bounded gap is stated: 1.1.25 ships no `skill` subcommand, so no listing standard exists for it, and the cell rests on its own separate evidence.
+- [x] `antigravity.hook` is `convention` with a note that states why it is not `observed`.
+- [x] `antigravity.statusline` is `none`, and its note records the empty `statusLine` key as a lead rather than as evidence.
 - [x] `observedVersion` is `"1.1.25"` and `observedOn` is `"2026-09-04"`, scoped by a comment to the one cell that was observed.
 - [x] `antigravity.agent` is `observed`, and its note says what `agy agent` enumerated, that the listing is a parse rather than a directory echo, and what is still unobserved.
-- [ ] `toolNames` stays `none`; the mapping appears only as a marked hypothesis.
-- [ ] Merging into a `hooks.json` fixture holding Orca's entries preserves them across both the grouped and flat event shapes; a second merge is a no-op; removal deletes only `"av"`.
-- [ ] The 9 unmappable bindings are skipped with per-binding reasons, and none is remapped onto `PreInvocation`.
-- [ ] The workspace-vs-global precedence interaction has a named test and a documented expectation.
-- [ ] `SUPPORTED_RUNTIMES` accepts the third runtime and the emitter renders antigravity's own per-event decision vocabulary rather than collapsing to Claude Code's.
-- [ ] `av doctor` reports a correct antigravity hook install as healthy.
-- [ ] The embedded kit is regenerated, not hand-edited, and the kit hook suites are green.
-- [ ] README matrix regenerated; `matrix-drift.test.ts` green.
+- [x] `toolNames` stays `none`; the mapping appears only as a marked hypothesis.
+- [x] Merging into a `hooks.json` fixture holding Orca's entries preserves them across both the grouped and flat event shapes; a second merge is a no-op; removal deletes only `"av"`.
+- [x] The 9 unmappable bindings are skipped with per-binding reasons, and none is remapped onto `PreInvocation`.
+- [x] The workspace-vs-global precedence interaction has a named test and a documented expectation.
+- [x] `SUPPORTED_RUNTIMES` accepts the third runtime and the emitter renders antigravity's own per-event decision vocabulary rather than collapsing to Claude Code's.
+- [x] The gap that tick does not close is written into the `hook` note rather than left implied: agy's stdin is camelCase protojson (`toolCall.{name,args}`, `workspacePaths`, `conversationId`) and its matchers are agy tool names, where the kit's hooks read Claude Code's fields and match Claude Code's tool names — so the registered bindings answer in agy's vocabulary but do not yet fire on it.
+- [x] `av doctor` reports a correct antigravity hook install as healthy.
+- [x] The embedded kit is regenerated, not hand-edited, and the kit hook suites are green.
+- [x] README matrix regenerated; `matrix-drift.test.ts` green.
 
 ## Risk Assessment
 
